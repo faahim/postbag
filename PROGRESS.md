@@ -23,9 +23,11 @@ the rules and `docs/` for the design.
 - **Credentials:** Coolify API token + Cloudflare token live in `~/Developer/smedja/.env`
   (`COOLIFY_*`, `CLOUDFLARE_*`). GitHub App for `faahim/*` in Coolify = `github_apps.id=2`.
   Never copy secrets into this repo.
-- **Implementation engine:** Codex via the `conduct` skill (`~/.claude/skills/conduct/SKILL.md`),
-  `--effort xhigh`, one job per bounded spec; Claude writes specs, reviews, commits.
-  Sonnet sub-agents are the fallback.
+- **Implementation engine:** Job A runs on Codex (`conduct` skill). **Codex quota is low
+  (Fahim, 2026-08-21 ~22:40 UTC)** → jobs B, C and later run as **Sonnet sub-agents** (Agent
+  tool, `model: sonnet`) from the same specs in `tasks/`. Claude (Fable) only writes specs,
+  reviews, and commits. Jobs run sequentially (A → B → C) to avoid rework.
+- **Auto-deploy on push to `main` is confirmed** (Coolify deployment fired for `ec84d6c`).
 
 ## Decisions made tonight (2026-08-21)
 
