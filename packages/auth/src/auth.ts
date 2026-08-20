@@ -6,11 +6,23 @@ import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { organization } from "better-auth/plugins"
 
+export type CreatedAuthUser = {
+  readonly id: string
+  readonly name: string
+  readonly email: string
+}
+
 export type CreateAuthOptions = {
   readonly db: Database
   readonly secret: string
   readonly baseURL: string
   readonly trustedOrigins: readonly string[]
+  /**
+   * Called after Better Auth persists a new user row (database hook). The server app
+   * uses this to provision the user's personal organization, membership, settings and
+   * default project — kept out of this package so it stays a thin auth config.
+   */
+  readonly onUserCreated?: (user: CreatedAuthUser) => Promise<void>
 }
 
 function authRecordId(model: string): string {
@@ -47,6 +59,22 @@ export function createAuth(options: CreateAuthOptions) {
         generateId: ({ model }) => authRecordId(model),
       },
     },
+    databaseHooks:
+      options.onUserCreated === undefined
+        ? undefined
+        : {
+            user: {
+              create: {
+                after: async (user) => {
+                  await options.onUserCreated?.({
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                  })
+                },
+              },
+            },
+          },
     plugins: [
       organization(),
       apiKey([

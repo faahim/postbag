@@ -10,8 +10,11 @@ Read this file, then `docs/PRINCIPLES.md`. Everything else is linked from `docs/
 
 ## Current state
 
-**Phase 0 — contract.** There is no code yet. The repo holds the design documents and
-the OpenAPI sketch. Do not start Phase 1 code unless the task explicitly says so.
+**Phase 1 — MVP in progress.** `packages/core`, `packages/db`, `packages/auth` and
+`apps/server` exist and are verified (lint, typecheck, tests, Docker). Production runs at
+`https://postbag.withfaahim.com` (auto-deploys from `main`). **`PROGRESS.md` is the live
+blueprint — read it before doing anything**; it records what is done, what is next, every
+infrastructure id, and the gotchas.
 
 ## The one idea
 
@@ -35,7 +38,7 @@ correctness. `docs/ARCHITECTURE.md` explains why.
 10. Business timezone for digests defaults to the org's setting; ours is `Europe/Stockholm`.
 11. **Beautiful by default.** Any task touching `apps/web` or the marketing site invokes the `make-interfaces-feel-better` and `transitions-dev` skills (plus `design-taste-frontend` / `frontend-design` for new screens) *before* writing UI code, and follows `docs/DESIGN.md`. Hardcoded colour classes are lint errors; motion uses tokens; every list has a designed empty state.
 
-## Repo map (intended; Phase 1 creates it)
+## Repo map
 
 ```
 packages/core      pure domain — validation, mapping, routing, spam, templates (no I/O)

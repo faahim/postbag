@@ -1,6 +1,7 @@
 export const ERROR_DEFINITIONS = {
   not_found: { status: 404, hint: "Check the id and organization scope." },
   forbidden: { status: 403, hint: "Use credentials with permission for this operation." },
+  unauthorized: { status: 401, hint: "Provide a session cookie or an Authorization: Bearer pb_live_… key." },
   validation_failed: { status: 422, hint: "Correct the fields described in details and retry." },
   mapping_incomplete: { status: 422, hint: "Map every required stream field before attaching." },
   schema_violation: {
@@ -11,14 +12,20 @@ export const ERROR_DEFINITIONS = {
     status: 413,
     hint: "Reduce the payload size, field count, or nesting depth.",
   },
+  unsupported_media_type: {
+    status: 415,
+    hint: "File uploads are not supported yet; send text fields only.",
+  },
   rate_limited: { status: 429, hint: "Retry after the indicated delay." },
   origin_rejected: { status: 403, hint: "Add the site origin to the Form allowed origins." },
   idempotency_conflict: { status: 409, hint: "Reuse the key only for the identical operation." },
+  conflict: { status: 409, hint: "The resource already exists, or is still referenced elsewhere." },
   plan_limit_reached: { status: 402, hint: "Change plan limits or remove an unused resource." },
   expressions_not_enabled: {
     status: 422,
     hint: "Use from, const, or default until expressions ship.",
   },
+  internal_error: { status: 500, hint: "Retry; contact support if this persists." },
 } as const
 
 export type ErrorCode = keyof typeof ERROR_DEFINITIONS
@@ -41,7 +48,7 @@ export class PostbagError extends Error {
     const definition = ERROR_DEFINITIONS[code]
     this.code = code
     this.hint = definition.hint
-    this.docs = `https://postbag.dev/docs/errors/${code}`
+    this.docs = `https://postbag.withfaahim.com/docs/errors/${code}`
     this.status = definition.status
     if (details !== undefined) this.details = details
   }

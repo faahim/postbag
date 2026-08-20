@@ -1,0 +1,159 @@
+import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
+import { newId, PostbagError, SystemWebhookInputSchema } from "@postbag/core"
+import { and, desc, eq, lt, or, type SQL } from "drizzle-orm"
+import { events, systemWebhooks, type Database } from "@postbag/db"
+
+import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
+import { assertScope, type AppEnv } from "../../lib/scope.js"
+import { serializeEvent, serializeSystemWebhook } from "../../repo/serialize.js"
+import { CursorQuerySchema, errorResponses, EventSchema, SystemWebhookSchema } from "../../schemas.js"
+
+const EventListSchema = z.object({ data: z.array(EventSchema), next_cursor: z.string().nullable() })
+
+const listEventsRoute = createRoute({
+  method: "get",
+  path: "/v1/events",
+  tags: ["events"],
+  summary: "Organization event log",
+  request: { query: CursorQuerySchema.extend({ type: z.string().optional(), since: z.string().optional() }) },
+  responses: { 200: { description: "ok", content: { "application/json": { schema: EventListSchema } } } },
+})
+
+const listWebhooksRoute = createRoute({
+  method: "get",
+  path: "/v1/webhooks",
+  tags: ["events"],
+  summary: "List system webhooks",
+  responses: {
+    200: { description: "ok", content: { "application/json": { schema: z.array(SystemWebhookSchema) } } },
+  },
+})
+
+const createWebhookRoute = createRoute({
+  method: "post",
+  path: "/v1/webhooks",
+  tags: ["events"],
+  summary: "Subscribe a URL to event types",
+  request: { body: { content: { "application/json": { schema: SystemWebhookInputSchema } } } },
+  responses: {
+    201: { description: "created", content: { "application/json": { schema: SystemWebhookSchema } } },
+    ...errorResponses,
+  },
+})
+
+const patchWebhookRoute = createRoute({
+  method: "patch",
+  path: "/v1/webhooks/{webhookId}",
+  tags: ["events"],
+  summary: "Update",
+  request: {
+    params: z.object({ webhookId: z.string() }),
+    body: { content: { "application/json": { schema: SystemWebhookInputSchema.partial() } } },
+  },
+  responses: {
+    200: { description: "ok", content: { "application/json": { schema: SystemWebhookSchema } } },
+    ...errorResponses,
+  },
+})
+
+const deleteWebhookRoute = createRoute({
+  method: "delete",
+  path: "/v1/webhooks/{webhookId}",
+  tags: ["events"],
+  summary: "Delete",
+  request: { params: z.object({ webhookId: z.string() }) },
+  responses: { 204: { description: "deleted" }, ...errorResponses },
+})
+
+export function registerEventRoutes(app: OpenAPIHono<AppEnv>, db: Database): void {
+  app.openapi(listEventsRoute, async (c) => {
+    const scope = c.var.scope
+    assertScope(scope, "read")
+    const query = c.req.valid("query")
+    const limit = parseLimit(query.limit)
+    const cursor = query.cursor === undefined ? null : decodeCursor(query.cursor)
+    const conditions: SQL[] = [eq(events.organizationId, scope.organizationId)]
+    if (query.type !== undefined) conditions.push(eq(events.type, query.type))
+    if (cursor !== null) {
+      const cursorCondition = or(
+        lt(events.createdAt, cursor.createdAt),
+        and(eq(events.createdAt, cursor.createdAt), lt(events.id, cursor.id)),
+      )
+      if (cursorCondition !== undefined) conditions.push(cursorCondition)
+    }
+    const rows = await db
+      .select()
+      .from(events)
+      .where(and(...conditions))
+      .orderBy(desc(events.createdAt), desc(events.id))
+      .limit(limit + 1)
+    const { data, nextCursor } = page(rows, limit)
+    const body: z.infer<typeof EventListSchema> = { data: data.map(serializeEvent), next_cursor: nextCursor }
+    return c.json(body)
+  })
+
+  app.openapi(listWebhooksRoute, async (c) => {
+    const scope = c.var.scope
+    assertScope(scope, "read")
+    const rows = await db.select().from(systemWebhooks).where(eq(systemWebhooks.organizationId, scope.organizationId))
+    const body: z.infer<typeof SystemWebhookSchema>[] = rows.map(serializeSystemWebhook)
+    return c.json(body)
+  })
+
+  app.openapi(createWebhookRoute, async (c) => {
+    const scope = c.var.scope
+    assertScope(scope, "manage")
+    const input = c.req.valid("json")
+    const [created] = await db
+      .insert(systemWebhooks)
+      .values({
+        id: newId("wh"),
+        organizationId: scope.organizationId,
+        url: input.url,
+        events: [...input.events],
+        secret: input.secret ?? globalThis.crypto.randomUUID(),
+        enabled: input.enabled,
+      })
+      .returning()
+    if (created === undefined) throw new Error("Failed to create webhook.")
+    const body: z.infer<typeof SystemWebhookSchema> = serializeSystemWebhook(created)
+    return c.json(body, 201)
+  })
+
+  app.openapi(patchWebhookRoute, async (c) => {
+    const scope = c.var.scope
+    assertScope(scope, "manage")
+    const { webhookId } = c.req.valid("param")
+    const input = c.req.valid("json")
+    const updates: Partial<typeof systemWebhooks.$inferInsert> = {}
+    if (input.url !== undefined) updates.url = input.url
+    if (input.events !== undefined) updates.events = [...input.events]
+    if (input.secret !== undefined) updates.secret = input.secret
+    if (input.enabled !== undefined) updates.enabled = input.enabled
+    updates.updatedAt = new Date()
+    const [row] = await db
+      .update(systemWebhooks)
+      .set(updates)
+      .where(and(eq(systemWebhooks.organizationId, scope.organizationId), eq(systemWebhooks.id, webhookId)))
+      .returning()
+    if (row === undefined) throw new PostbagError("not_found", "No webhook with that id.")
+    const body: z.infer<typeof SystemWebhookSchema> = serializeSystemWebhook(row)
+    return c.json(body)
+  })
+
+  app.openapi(deleteWebhookRoute, async (c) => {
+    const scope = c.var.scope
+    assertScope(scope, "manage")
+    const { webhookId } = c.req.valid("param")
+    const [row] = await db
+      .select({ id: systemWebhooks.id })
+      .from(systemWebhooks)
+      .where(and(eq(systemWebhooks.organizationId, scope.organizationId), eq(systemWebhooks.id, webhookId)))
+      .limit(1)
+    if (row === undefined) throw new PostbagError("not_found", "No webhook with that id.")
+    await db
+      .delete(systemWebhooks)
+      .where(and(eq(systemWebhooks.organizationId, scope.organizationId), eq(systemWebhooks.id, webhookId)))
+    return c.body(null, 204)
+  })
+}

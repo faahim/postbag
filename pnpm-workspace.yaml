@@ -4,3 +4,7 @@ packages:
 
 allowBuilds:
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@hono/zod-openapi@1.6.1'
+  - resend@6.21.0

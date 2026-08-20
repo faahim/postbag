@@ -15,5 +15,26 @@ services:
     volumes:
       - postbag-postgres:/var/lib/postgresql/data
 
+  # Optional: the full server image against the compose db, for self-host smoke tests
+  # (`docker compose --profile server up --build`). Not started by plain `docker compose up`.
+  server:
+    build: .
+    profiles: ["server"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postbag:postbag@db:5432/postbag
+      NODE_ENV: production
+      PORT: "3000"
+      APP_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: devsecretdevsecretdevsecretdevsecret
+      POSTBAG_ROLE: all
+      TZ: UTC
+      MIGRATE_ON_BOOT: "true"
+      MAIL_FROM: "Postbag <postbag@updates.withfaahim.com>"
+    ports:
+      - "3000:3000"
+
 volumes:
   postbag-postgres:

@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+**/dist
+**/coverage
+.git
+.github
+docs
+tasks
+api
+/*.md
+.env
+.env.*
+!.env.example
+.DS_Store
+.turbo

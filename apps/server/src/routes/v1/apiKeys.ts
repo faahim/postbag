@@ -1,0 +1,144 @@
+import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
+import { PostbagError } from "@postbag/core"
+import { and, eq } from "drizzle-orm"
+import { apikey, type Database } from "@postbag/db"
+
+import type { Auth } from "../../authSetup.js"
+import { assertScope, assertSessionActor } from "../../lib/scope.js"
+import type { AppEnv } from "../../lib/scope.js"
+import { errorResponses, ScopeSchema } from "../../schemas.js"
+
+const ApiKeyCreateInputSchema = z.object({
+  name: z.string().min(1).optional(),
+  scopes: z.array(ScopeSchema).min(1).default(["read", "submit"]),
+})
+
+const ApiKeyCreatedSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  prefix: z.string().nullable(),
+  scopes: z.array(ScopeSchema),
+  key: z.string(),
+  created_at: z.string(),
+})
+
+const ApiKeySummarySchema = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  prefix: z.string().nullable(),
+  scopes: z.array(ScopeSchema),
+  enabled: z.boolean(),
+  created_at: z.string(),
+})
+
+const createApiKeyRoute = createRoute({
+  method: "post",
+  path: "/v1/api-keys",
+  tags: ["discovery"],
+  summary: "Create an API key for the active organization (session only)",
+  request: { body: { content: { "application/json": { schema: ApiKeyCreateInputSchema } } } },
+  responses: {
+    201: { description: "created", content: { "application/json": { schema: ApiKeyCreatedSchema } } },
+    ...errorResponses,
+  },
+})
+
+const listApiKeysRoute = createRoute({
+  method: "get",
+  path: "/v1/api-keys",
+  tags: ["discovery"],
+  summary: "List API keys for the active organization",
+  responses: {
+    200: { description: "ok", content: { "application/json": { schema: z.array(ApiKeySummarySchema) } } },
+  },
+})
+
+const deleteApiKeyRoute = createRoute({
+  method: "delete",
+  path: "/v1/api-keys/{id}",
+  tags: ["discovery"],
+  summary: "Delete an API key",
+  request: { params: z.object({ id: z.string() }) },
+  responses: { 204: { description: "deleted" }, ...errorResponses },
+})
+
+export function registerApiKeyRoutes(app: OpenAPIHono<AppEnv>, auth: Auth, db: Database): void {
+  app.openapi(createApiKeyRoute, async (c) => {
+    const scope = c.var.scope
+    assertSessionActor(scope, "Create API keys from a signed-in session, not another API key.")
+    const body = c.req.valid("json")
+
+    const created = await auth.api.createApiKey({
+      headers: c.req.raw.headers,
+      body: {
+        configId: "postbag",
+        name: body.name,
+        organizationId: scope.organizationId,
+        metadata: { scopes: body.scopes },
+      },
+    })
+    const createdRecord = created as unknown as {
+      readonly id: string
+      readonly name: string | null
+      readonly prefix: string | null
+      readonly key: string
+      readonly createdAt: Date
+    }
+
+    return c.json(
+      {
+        id: createdRecord.id,
+        name: createdRecord.name,
+        prefix: createdRecord.prefix,
+        scopes: body.scopes,
+        key: createdRecord.key,
+        created_at: createdRecord.createdAt.toISOString(),
+      },
+      201,
+    )
+  })
+
+  app.openapi(listApiKeysRoute, async (c) => {
+    const scope = c.var.scope
+    assertScope(scope, "manage")
+    const rows = await db
+      .select()
+      .from(apikey)
+      .where(and(eq(apikey.referenceId, scope.organizationId), eq(apikey.configId, "postbag")))
+    return c.json(
+      rows.map((row) => {
+        const metadata = row.metadata === null ? {} : (JSON.parse(row.metadata) as { scopes?: unknown })
+        const scopes = Array.isArray(metadata.scopes)
+          ? metadata.scopes.filter(
+              (value): value is "manage" | "read" | "submit" =>
+                value === "manage" || value === "read" || value === "submit",
+            )
+          : []
+        return {
+          id: row.id,
+          name: row.name,
+          prefix: row.prefix,
+          scopes,
+          enabled: row.enabled,
+          created_at: row.createdAt.toISOString(),
+        }
+      }),
+    )
+  })
+
+  app.openapi(deleteApiKeyRoute, async (c) => {
+    const scope = c.var.scope
+    assertScope(scope, "manage")
+    const { id } = c.req.valid("param")
+    const [row] = await db
+      .select({ id: apikey.id })
+      .from(apikey)
+      .where(and(eq(apikey.id, id), eq(apikey.referenceId, scope.organizationId)))
+      .limit(1)
+    if (row === undefined) throw new PostbagError("not_found", "No API key with that id.")
+    // Delete directly: better-auth's deleteApiKey endpoint gates on a browser session,
+    // which does not exist for a bearer-key caller; ownership is already org-scoped above.
+    await db.delete(apikey).where(and(eq(apikey.id, id), eq(apikey.referenceId, scope.organizationId)))
+    return c.body(null, 204)
+  })
+}

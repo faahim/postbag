@@ -50,15 +50,19 @@ the rules and `docs/` for the design.
 - [x] Coolify application + Postgres resource created and wired (see Current state)
 - [x] Placeholder Dockerfile deployed → `https://postbag.withfaahim.com/health` = 200 (deployment `podwf2dxeqjf8s0xtp0vpk0i`, 2026-08-21). Pipeline proven: GitHub → Coolify → Traefik → Cloudflare.
 - [x] Job A (Codex, spec `tasks/job-A-scaffold.md`): monorepo + `packages/core` (pure domain, 10 test files) + `packages/db` (23 tables, 1 migration, claim/notify helpers) + `packages/auth` (Better Auth, org-owned API keys via `referenceId`→`organization_id`). Codex's sandbox had no network/Docker, so Claude installed deps and verified: lint 0, typecheck ok, migrate ok, 49/49 tests. Fixed by Claude: pnpm `allowBuilds`, ESLint typed-rule scoping, engine range.
-- [ ] Job B (**Sonnet sub-agent**, spec `tasks/job-B-server.md`): `apps/server` submit path + worker + `/v1` API + auth + real Dockerfile — launched 2026-08-21 ~22:05 UTC
+- [x] Job B (Sonnet, spec `tasks/job-B-server.md`): `apps/server` — submit path, `/v1` (all openapi paths), Better Auth + API keys + org provisioning on signup, worker with email/telegram/webhook adapters, `/health`, `/llms.txt`, generated `/openapi.json`, multi-stage Dockerfile. Verified by Claude: lint 0, typecheck ok, 72/72 tests, image builds. Known gaps (tracked in Next up): system-webhook dispatch, digest sending, schema inference for `observe`, RLS second fence, `drizzle-kit generate` broken by `@postbag/core` export map (migration 0001 hand-written).
+
+## In progress
+
+- [ ] Job C (Sonnet, spec `tasks/job-C-dashboard.md`): `apps/web` dashboard + `packages/sdk` — launched 2026-08-21 ~23:35 UTC
+- [ ] Production deploy of the real server (commit after `38ee52a`); verify `/health` shows db up + worker alive, then run a real quickstart against production.
 
 ## Next up (in order)
 
-1. Real Dockerfile replaces placeholder; Coolify redeploys from push; `/health` reports db + worker.
-2. Destinations email/telegram/webhook + `/v1/quickstart` + `llms.txt`.
-3. Dashboard SPA (shadcn, identity coat per `docs/DESIGN.md`): login, forms, inbox.
-4. CLI + MCP thin clients.
-5. Dogfood: portfolio contact form.
+1. Job D: system-webhook dispatch (EventDispatcher seam in `apps/server`), digest sending, `observe`-mode schema inference, `drizzle-kit generate` fix (export map in `@postbag/core`), RLS fence.
+2. CLI + MCP thin clients over `packages/sdk`.
+3. Dogfood: portfolio contact form → Postbag. Then Smedja `forge` provisioning.
+4. Marketing site (`apps/site`, Astro SSR, SEO+GEO) — Phase 3 but the domain decision (postbag.dev?) should happen earlier.
 
 - **Email:** Resend account = the key in `~/Developer/vendingmachine-stuff/.env` (only account on disk;
   `updates.withfaahim.com` belongs to some other account). Sending domain
