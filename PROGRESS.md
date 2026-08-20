@@ -60,6 +60,12 @@ the rules and `docs/` for the design.
 4. CLI + MCP thin clients.
 5. Dogfood: portfolio contact form.
 
+- **Email:** Resend account = the key in `~/Developer/vendingmachine-stuff/.env` (only account on disk;
+  `updates.withfaahim.com` belongs to some other account). Sending domain
+  **`postbag.withfaahim.com`** created in Resend (id `fda6ffab-c792-42f3-bc76-0e03fbd7e80b`,
+  eu-west-1), DKIM/SPF/MX records added in Cloudflare 2026-08-21; `MAIL_FROM=Postbag <notify@postbag.withfaahim.com>`
+  and `RESEND_API_KEY` set on the Coolify app.
+
 ## Gotchas learned
 
 - `source ~/Developer/smedja/.env` breaks in bash (an unquoted value on line 11); read vars with
