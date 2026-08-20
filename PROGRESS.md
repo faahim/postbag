@@ -46,9 +46,9 @@ the rules and `docs/` for the design.
 ## In progress
 
 - [x] Coolify application + Postgres resource created and wired (see Current state)
-- [ ] Placeholder Dockerfile deploy → `https://postbag.withfaahim.com/health` returns 200
+- [x] Placeholder Dockerfile deployed → `https://postbag.withfaahim.com/health` = 200 (deployment `podwf2dxeqjf8s0xtp0vpk0i`, 2026-08-21). Pipeline proven: GitHub → Coolify → Traefik → Cloudflare.
 - [ ] Codex job A (`task-mt1zc0au-vw6k5m`, spec `tasks/job-A-scaffold.md`): monorepo scaffold + `packages/db` + `packages/core` + `packages/auth` — running since ~22:30 UTC 2026-08-21
-- [ ] Codex job B: `apps/server` submit path + worker + `/v1` API + auth
+- [ ] Codex job B (spec `tasks/job-B-server.md`, launches after A): `apps/server` submit path + worker + `/v1` API + auth + real Dockerfile
 
 ## Next up (in order)
 
