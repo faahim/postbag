@@ -1,0 +1,32 @@
+{
+  "name": "postbag",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --recursive --parallel dev",
+    "build": "pnpm --recursive build",
+    "typecheck": "pnpm --filter @postbag/core build && pnpm --filter @postbag/db build && pnpm --recursive typecheck",
+    "test": "pnpm --filter @postbag/core build && pnpm --filter @postbag/db build && vitest run --config vitest.workspace.ts --coverage",
+    "lint": "pnpm --filter @postbag/core build && pnpm --filter @postbag/db build && eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @postbag/core build && pnpm --filter @postbag/db db:generate",
+    "db:migrate": "pnpm --filter @postbag/db db:migrate",
+    "db:studio": "pnpm --filter @postbag/db db:studio"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "22.20.1",
+    "@vitest/coverage-v8": "4.1.10",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.64.0",
+    "vitest": "4.1.10"
+  }
+}

@@ -49,8 +49,8 @@ the rules and `docs/` for the design.
 
 - [x] Coolify application + Postgres resource created and wired (see Current state)
 - [x] Placeholder Dockerfile deployed → `https://postbag.withfaahim.com/health` = 200 (deployment `podwf2dxeqjf8s0xtp0vpk0i`, 2026-08-21). Pipeline proven: GitHub → Coolify → Traefik → Cloudflare.
-- [ ] Codex job A (`task-mt1zc0au-vw6k5m`, spec `tasks/job-A-scaffold.md`): monorepo scaffold + `packages/db` + `packages/core` + `packages/auth` — running since ~22:30 UTC 2026-08-21
-- [ ] Codex job B (spec `tasks/job-B-server.md`, launches after A): `apps/server` submit path + worker + `/v1` API + auth + real Dockerfile
+- [x] Job A (Codex, spec `tasks/job-A-scaffold.md`): monorepo + `packages/core` (pure domain, 10 test files) + `packages/db` (23 tables, 1 migration, claim/notify helpers) + `packages/auth` (Better Auth, org-owned API keys via `referenceId`→`organization_id`). Codex's sandbox had no network/Docker, so Claude installed deps and verified: lint 0, typecheck ok, migrate ok, 49/49 tests. Fixed by Claude: pnpm `allowBuilds`, ESLint typed-rule scoping, engine range.
+- [ ] Job B (**Sonnet sub-agent**, spec `tasks/job-B-server.md`): `apps/server` submit path + worker + `/v1` API + auth + real Dockerfile — launched 2026-08-21 ~22:05 UTC
 
 ## Next up (in order)
 
@@ -67,6 +67,10 @@ the rules and `docs/` for the design.
   and `RESEND_API_KEY` set on the Coolify app.
 
 ## Gotchas learned
+
+- pnpm 11: build-script approval lives in `pnpm-workspace.yaml` under `allowBuilds:` (not `package.json.pnpm`).
+- Local dev Postgres: `docker compose up -d db` → `postgres://postbag:postbag@localhost:5433/postbag` (OrbStack).
+- `pnpm lint` builds core+db first (typed linting needs their d.ts); config files are excluded from typed rules.
 
 - `source ~/Developer/smedja/.env` breaks in bash (an unquoted value on line 11); read vars with
   `grep '^NAME=' | cut -d= -f2-` instead.

@@ -1,0 +1,31 @@
+{
+  "name": "@postbag/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "dev": "tsc -p tsconfig.json --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@better-auth/api-key": "1.6.25",
+    "@postbag/db": "workspace:*",
+    "@postbag/core": "workspace:*",
+    "better-auth": "1.6.25",
+    "drizzle-orm": "0.45.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "auth": "1.6.25",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

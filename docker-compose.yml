@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: postbag
+      POSTGRES_USER: postbag
+      POSTGRES_PASSWORD: postbag
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postbag -d postbag"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - postbag-postgres:/var/lib/postgresql/data
+
+volumes:
+  postbag-postgres:
