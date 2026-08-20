@@ -55,11 +55,12 @@ the rules and `docs/` for the design.
 ## In progress
 
 - [ ] Job C (Sonnet, spec `tasks/job-C-dashboard.md`): `apps/web` dashboard + `packages/sdk` — launched 2026-08-21 ~23:35 UTC
-- [ ] Production deploy of the real server (commit after `38ee52a`); verify `/health` shows db up + worker alive, then run a real quickstart against production.
+- [x] **Production verified end-to-end 2026-08-21 23:25 UTC:** `d4a8f3a` deployed; `/health` db up + worker alive; signup → `/v1/me` → API key → `/v1/quickstart` → real submission → email delivered via Resend in ~1 s and confirmed in Fahim's Gmail.
+  Fahim's production account: `afiur.fahim@gmail.com`, org `org_3yv5z32sed4q`, project `postbag`, form `fm_gwdahpd22tjy` ("Overnight smoke test"). Password + full-scope API key saved at **`~/.postbag/credentials`** (mode 600, not in repo).
 
 ## Next up (in order)
 
-1. Job D: system-webhook dispatch (EventDispatcher seam in `apps/server`), digest sending, `observe`-mode schema inference, `drizzle-kit generate` fix (export map in `@postbag/core`), RLS fence.
+1. Job D (server follow-ups): **bugs found in prod smoke test:** (a) an API key with only `manage` scope is refused `read` — `manage` must imply `read` (agents create `manage` keys and immediately GET); (b) email subject `{{form.name}}` renders the slug — template context must carry the real name. Then: system-webhook dispatch (EventDispatcher seam), digest sending, `observe`-mode schema inference, `drizzle-kit generate` fix (export map in `@postbag/core`), RLS fence.
 2. CLI + MCP thin clients over `packages/sdk`.
 3. Dogfood: portfolio contact form → Postbag. Then Smedja `forge` provisioning.
 4. Marketing site (`apps/site`, Astro SSR, SEO+GEO) — Phase 3 but the domain decision (postbag.dev?) should happen earlier.
