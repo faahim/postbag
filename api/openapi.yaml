@@ -1,0 +1,832 @@
+openapi: 3.1.0
+info:
+  title: Postbag API
+  version: 0.1.0-draft
+  summary: A form backend that routes.
+  description: |
+    **Phase 0 sketch.** Hand-written to fix the shape of the contract. From Phase 1 the
+    document is generated from the Zod route definitions in `apps/server` and this file
+    becomes a reviewed snapshot.
+
+    Two surfaces:
+    - **Public submit** — `POST /s/{formId}`: no auth, CORS per form, accepts HTML forms and JSON.
+    - **Management** — `/v1/*`: `Authorization: Bearer pb_live_…` (or dashboard cookie). Org-scoped.
+
+    Conventions: prefixed ids (`fm_`, `sb_`, `st_`, `ds_`, `rt_`, `dl_`, `prj_`); cursor
+    pagination (`?cursor=&limit=`); `Idempotency-Key` honoured on every POST; every error is
+    `{ error: { code, message, hint, docs } }`; every create returns `next[]`.
+servers:
+  - url: https://api.postbag.dev
+tags:
+  - { name: submit,       description: Public submission endpoints }
+  - { name: discovery,    description: "Who am I, what can I do" }
+  - { name: projects }
+  - { name: forms }
+  - { name: submissions }
+  - { name: streams }
+  - { name: destinations }
+  - { name: routes }
+  - { name: deliveries }
+  - { name: events }
+
+security:
+  - apiKey: []
+
+paths:
+  # ───────────────────────── public ─────────────────────────
+  /s/{formId}:
+    post:
+      tags: [submit]
+      security: []
+      summary: Submit to a form
+      description: |
+        Accepts `application/x-www-form-urlencoded`, `multipart/form-data`, `application/json`.
+        Control fields (stripped from `data`): `_redirect`, `_gotcha` (honeypot), `_idempotency`,
+        `_subject`, `_test`. The submission is stored **before** any spam/quota decision; those
+        only set its status. No third-party call happens in this request.
+      parameters: [{ $ref: '#/components/parameters/formId' }]
+      requestBody:
+        content:
+          application/json: { schema: { type: object, additionalProperties: true } }
+          application/x-www-form-urlencoded: { schema: { type: object, additionalProperties: true } }
+          multipart/form-data: { schema: { type: object, additionalProperties: true } }
+      responses:
+        '200':
+          description: Stored (JSON clients).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  submission_id: { $ref: '#/components/schemas/Id' }
+                  status: { $ref: '#/components/schemas/SubmissionStatus' }
+                  deliveries:
+                    description: Only present when `_test` is true.
+                    type: array
+                    items: { $ref: '#/components/schemas/Id' }
+        '303': { description: Stored; redirect for HTML posts (`_redirect` → form.redirect_url → hosted thanks page). }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/Error' }
+    options:
+      tags: [submit]
+      security: []
+      summary: CORS preflight (per-form allowed origins)
+      parameters: [{ $ref: '#/components/parameters/formId' }]
+      responses: { '204': { description: ok } }
+
+  /s/{formId}/schema:
+    get:
+      tags: [submit]
+      security: []
+      summary: Current form schema (managed forms render from this)
+      parameters: [{ $ref: '#/components/parameters/formId' }]
+      responses:
+        '200':
+          description: JSON Schema + UI hints for the current version. CORS open.
+          content: { application/json: { schema: { $ref: '#/components/schemas/SchemaVersion' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /llms.txt:
+    get:
+      tags: [discovery]
+      security: []
+      summary: Agent onboarding page (markdown)
+      responses: { '200': { description: ok, content: { text/markdown: {} } } }
+
+  /openapi.json:
+    get:
+      tags: [discovery]
+      security: []
+      summary: This document
+      responses: { '200': { description: ok } }
+
+  # ───────────────────────── discovery ─────────────────────────
+  /v1/me:
+    get:
+      tags: [discovery]
+      summary: Identify the caller and summarise the organization
+      description: The first call an agent should make.
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  organization: { $ref: '#/components/schemas/Organization' }
+                  key: { type: object, properties: { prefix: { type: string }, scopes: { type: array, items: { $ref: '#/components/schemas/Scope' } } } }
+                  counts: { type: object, properties: { projects: { type: integer }, forms: { type: integer }, streams: { type: integer }, destinations: { type: integer }, routes: { type: integer } } }
+                  limits: { $ref: '#/components/schemas/PlanLimits' }
+                  next: { $ref: '#/components/schemas/Next' }
+
+  /v1/quickstart:
+    post:
+      tags: [discovery]
+      summary: One call to a working, routed form
+      description: |
+        Idempotent by `(project, name)`. Creates the project if missing, the form, an `email`
+        destination (and/or `telegram`/`webhook` if given), and a direct route. Returns embed
+        snippets and a verification recipe.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, example: Portfolio contact }
+                project: { type: string, description: Project slug; created if missing. Default `default`. }
+                origin: { type: string, format: uri, description: Added to allowed_origins. }
+                notify_email: { type: string, format: email }
+                telegram: { type: object, properties: { bot_token: { type: string }, chat_id: { type: string } } }
+                webhook: { type: object, properties: { url: { type: string, format: uri }, secret: { type: string } } }
+                tags: { type: array, items: { type: string } }
+                redirect_url: { type: string, format: uri }
+      responses:
+        '201':
+          description: created (or returned, if it already existed)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  form: { $ref: '#/components/schemas/Form' }
+                  destinations: { type: array, items: { $ref: '#/components/schemas/Destination' } }
+                  routes: { type: array, items: { $ref: '#/components/schemas/Route' } }
+                  embed: { $ref: '#/components/schemas/Embed' }
+                  verify: { $ref: '#/components/schemas/Verify' }
+                  next: { $ref: '#/components/schemas/Next' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  # ───────────────────────── projects ─────────────────────────
+  /v1/projects:
+    get:
+      tags: [projects]
+      summary: List projects
+      parameters: [{ $ref: '#/components/parameters/cursor' }, { $ref: '#/components/parameters/limit' }]
+      responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/ProjectList' } } } } }
+    post:
+      tags: [projects]
+      summary: Create a project
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProjectInput' } } } }
+      responses:
+        '201': { description: created, content: { application/json: { schema: { $ref: '#/components/schemas/Project' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /v1/projects/{projectId}:
+    parameters: [{ $ref: '#/components/parameters/projectId' }]
+    get:    { tags: [projects], summary: Get a project,    responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Project' } } } }, '404': { $ref: '#/components/responses/NotFound' } } }
+    patch:  { tags: [projects], summary: Update a project, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/ProjectInput' } } } }, responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Project' } } } } } }
+    delete: { tags: [projects], summary: Delete an empty project, responses: { '204': { description: deleted }, '409': { $ref: '#/components/responses/Error' } } }
+
+  # ───────────────────────── forms ─────────────────────────
+  /v1/forms:
+    get:
+      tags: [forms]
+      summary: List forms
+      parameters:
+        - { $ref: '#/components/parameters/cursor' }
+        - { $ref: '#/components/parameters/limit' }
+        - { name: project, in: query, schema: { type: string } }
+        - { name: tag, in: query, schema: { type: string } }
+        - { name: stream, in: query, schema: { type: string } }
+      responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/FormList' } } } } }
+    post:
+      tags: [forms]
+      summary: Create a form
+      description: |
+        `from_template: st_…` creates the form pre-attached to that stream with a mapping derived
+        from the stream's form template; an incomplete mapping is a 422 listing missing fields.
+        `if_exists: return` makes the call idempotent by `(project, slug)`.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/FormInput' } } } }
+      responses:
+        '201': { description: created, content: { application/json: { schema: { $ref: '#/components/schemas/FormCreated' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /v1/forms/{formId}:
+    parameters: [{ $ref: '#/components/parameters/formId' }]
+    get:    { tags: [forms], summary: Get a form, responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Form' } } } }, '404': { $ref: '#/components/responses/NotFound' } } }
+    patch:  { tags: [forms], summary: "Update a form (settings, tags, mode, status)", requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/FormInput' } } } }, responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Form' } } } } } }
+    delete: { tags: [forms], summary: Delete a form (submissions retained for retention period), responses: { '204': { description: deleted } } }
+  /v1/forms/{formId}/embed:
+    get:
+      tags: [forms]
+      summary: Embed snippets (html, fetch, react, astro, nextjs_action), rendered from the current schema if any
+      parameters: [{ $ref: '#/components/parameters/formId' }]
+      responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Embed' } } } } }
+  /v1/forms/{formId}/schema:
+    parameters: [{ $ref: '#/components/parameters/formId' }]
+    get:
+      tags: [forms]
+      summary: Current schema version (or the inferred draft, if none is published)
+      responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/SchemaVersion' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
+    post:
+      tags: [forms]
+      summary: Publish a new schema version
+      description: Immutable; bumps `current_schema_version`, emits `form.schema.changed`, resolves matching drift events, re-validates stream mappings.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SchemaInput' } } } }
+      responses: { '201': { description: published, content: { application/json: { schema: { $ref: '#/components/schemas/SchemaVersion' } } } }, '422': { $ref: '#/components/responses/Error' } }
+  /v1/forms/{formId}/schema/versions:
+    get:
+      tags: [forms]
+      summary: All schema versions
+      parameters: [{ $ref: '#/components/parameters/formId' }]
+      responses: { '200': { description: ok, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/SchemaVersion' } } } } } }
+  /v1/forms/{formId}/drift:
+    get:
+      tags: [forms]
+      summary: Unresolved drift events for this form
+      parameters: [{ $ref: '#/components/parameters/formId' }]
+      responses: { '200': { description: ok, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/DriftEvent' } } } } } }
+  /v1/forms/{formId}/submissions:
+    get:
+      tags: [submissions]
+      summary: List submissions for a form
+      parameters:
+        - { $ref: '#/components/parameters/formId' }
+        - { $ref: '#/components/parameters/cursor' }
+        - { $ref: '#/components/parameters/limit' }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/SubmissionStatus' } }
+        - { name: since, in: query, schema: { type: string, format: date-time } }
+        - { name: q, in: query, schema: { type: string }, description: Full-text over data }
+      responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/SubmissionList' } } } } }
+
+  # ───────────────────────── submissions ─────────────────────────
+  /v1/submissions/{submissionId}:
+    parameters: [{ $ref: '#/components/parameters/submissionId' }]
+    get:    { tags: [submissions], summary: Get a submission with its deliveries, responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/SubmissionDetail' } } } }, '404': { $ref: '#/components/responses/NotFound' } } }
+    patch:  { tags: [submissions], summary: "Change status (e.g. spam ↔ received) — re-routes if moving to `received`", requestBody: { content: { application/json: { schema: { type: object, properties: { status: { $ref: '#/components/schemas/SubmissionStatus' } } } } } }, responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Submission' } } } } } }
+    delete: { tags: [submissions], summary: Delete permanently (GDPR), responses: { '204': { description: deleted } } }
+  /v1/submissions:
+    get:
+      tags: [submissions]
+      summary: Search submissions across the organization
+      parameters:
+        - { $ref: '#/components/parameters/cursor' }
+        - { $ref: '#/components/parameters/limit' }
+        - { name: stream, in: query, schema: { type: string } }
+        - { name: form, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/SubmissionStatus' } }
+        - { name: q, in: query, schema: { type: string } }
+      responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/SubmissionList' } } } } }
+
+  # ───────────────────────── streams ─────────────────────────
+  /v1/streams:
+    get:  { tags: [streams], summary: List streams, parameters: [{ $ref: '#/components/parameters/cursor' }, { $ref: '#/components/parameters/limit' }], responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/StreamList' } } } } } }
+    post:
+      tags: [streams]
+      summary: Create a stream (optionally with its first schema version and sources)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StreamInput' } } } }
+      responses: { '201': { description: created, content: { application/json: { schema: { $ref: '#/components/schemas/Stream' } } } }, '409': { $ref: '#/components/responses/Error' } }
+  /v1/streams/{streamId}:
+    parameters: [{ $ref: '#/components/parameters/streamId' }]
+    get:    { tags: [streams], summary: "Get a stream with schema, sources, mapping status and routes", responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/StreamDetail' } } } }, '404': { $ref: '#/components/responses/NotFound' } } }
+    patch:  { tags: [streams], summary: Update name/slug, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/StreamInput' } } } }, responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Stream' } } } } } }
+    delete: { tags: [streams], summary: Delete a stream (routes on it are deleted; forms are untouched), responses: { '204': { description: deleted } } }
+  /v1/streams/{streamId}/schema:
+    parameters: [{ $ref: '#/components/parameters/streamId' }]
+    get:  { tags: [streams], summary: Current stream schema (the outbound contract), responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/SchemaVersion' } } } } } }
+    post:
+      tags: [streams]
+      summary: Publish a new stream schema version
+      description: Emits `stream.schema.changed`; re-validates all source mappings and reports which became incomplete.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SchemaInput' } } } }
+      responses:
+        '201': { description: published, content: { application/json: { schema: { type: object, properties: { schema: { $ref: '#/components/schemas/SchemaVersion' }, mappings: { type: array, items: { $ref: '#/components/schemas/StreamSource' } } } } } } }
+  /v1/streams/{streamId}/sources:
+    parameters: [{ $ref: '#/components/parameters/streamId' }]
+    get:  { tags: [streams], summary: List sources (forms/selectors) and their mapping status, responses: { '200': { description: ok, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StreamSource' } } } } } } }
+    post:
+      tags: [streams]
+      summary: Attach a form or selector with a mapping
+      description: Validated at attach time. An incomplete mapping is a 422 listing the missing stream fields; nothing is attached.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StreamSourceInput' } } } }
+      responses: { '201': { description: attached, content: { application/json: { schema: { $ref: '#/components/schemas/StreamSource' } } } }, '422': { $ref: '#/components/responses/Error' } }
+  /v1/streams/{streamId}/sources/{sourceId}:
+    parameters: [{ $ref: '#/components/parameters/streamId' }, { name: sourceId, in: path, required: true, schema: { type: string } }]
+    patch:  { tags: [streams], summary: Update the mapping, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/StreamSourceInput' } } } }, responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/StreamSource' } } } }, '422': { $ref: '#/components/responses/Error' } } }
+    delete: { tags: [streams], summary: Detach, responses: { '204': { description: detached } } }
+  /v1/streams/{streamId}/preview:
+    post:
+      tags: [streams]
+      summary: Run a sample submission through a source's mapping and return the stream-shaped payload
+      parameters: [{ $ref: '#/components/parameters/streamId' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [form_id, data], properties: { form_id: { $ref: '#/components/schemas/Id' }, data: { type: object } } } } } }
+      responses: { '200': { description: ok, content: { application/json: { schema: { type: object, properties: { payload: { type: object }, extras: { type: object }, problems: { type: array, items: { type: string } } } } } } } }
+
+  # ───────────────────────── destinations ─────────────────────────
+  /v1/destinations:
+    get:  { tags: [destinations], summary: List destinations (secrets redacted), parameters: [{ $ref: '#/components/parameters/cursor' }, { $ref: '#/components/parameters/limit' }], responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/DestinationList' } } } } } }
+    post:
+      tags: [destinations]
+      summary: Create a destination
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DestinationInput' } } } }
+      responses: { '201': { description: created, content: { application/json: { schema: { $ref: '#/components/schemas/Destination' } } } }, '422': { $ref: '#/components/responses/Error' } }
+  /v1/destinations/{destinationId}:
+    parameters: [{ $ref: '#/components/parameters/destinationId' }]
+    get:    { tags: [destinations], summary: Get, responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Destination' } } } } } }
+    patch:  { tags: [destinations], summary: Update config, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/DestinationInput' } } } }, responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Destination' } } } } } }
+    delete: { tags: [destinations], summary: Delete (fails if routes reference it), responses: { '204': { description: deleted }, '409': { $ref: '#/components/responses/Error' } } }
+  /v1/destinations/{destinationId}/test:
+    post:
+      tags: [destinations]
+      summary: Send a sample payload now and return the provider response
+      parameters: [{ $ref: '#/components/parameters/destinationId' }]
+      requestBody: { content: { application/json: { schema: { type: object, properties: { sample: { type: object } } } } } }
+      responses: { '200': { description: result, content: { application/json: { schema: { $ref: '#/components/schemas/DeliveryResult' } } } } }
+
+  # ───────────────────────── routes ─────────────────────────
+  /v1/routes:
+    get:
+      tags: [routes]
+      summary: List routes
+      parameters:
+        - { $ref: '#/components/parameters/cursor' }
+        - { $ref: '#/components/parameters/limit' }
+        - { name: form, in: query, schema: { type: string } }
+        - { name: stream, in: query, schema: { type: string } }
+        - { name: destination, in: query, schema: { type: string } }
+      responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/RouteList' } } } } }
+    post:
+      tags: [routes]
+      summary: Create a route (source is exactly one of form_id / stream_id)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RouteInput' } } } }
+      responses: { '201': { description: created, content: { application/json: { schema: { $ref: '#/components/schemas/Route' } } } }, '422': { $ref: '#/components/responses/Error' } }
+  /v1/routes/{routeId}:
+    parameters: [{ $ref: '#/components/parameters/routeId' }]
+    get:    { tags: [routes], summary: Get, responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Route' } } } } } }
+    patch:  { tags: [routes], summary: Update rules / enable / disable, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/RouteInput' } } } }, responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Route' } } } } } }
+    delete: { tags: [routes], summary: Delete, responses: { '204': { description: deleted } } }
+
+  # ───────────────────────── deliveries ─────────────────────────
+  /v1/deliveries:
+    get:
+      tags: [deliveries]
+      summary: List deliveries (the outbox)
+      parameters:
+        - { $ref: '#/components/parameters/cursor' }
+        - { $ref: '#/components/parameters/limit' }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/DeliveryStatus' } }
+        - { name: route, in: query, schema: { type: string } }
+        - { name: destination, in: query, schema: { type: string } }
+        - { name: submission, in: query, schema: { type: string } }
+      responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/DeliveryList' } } } } }
+  /v1/deliveries/{deliveryId}:
+    get:
+      tags: [deliveries]
+      summary: Get a delivery with payload snapshot and last response
+      parameters: [{ $ref: '#/components/parameters/deliveryId' }]
+      responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Delivery' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
+  /v1/deliveries/{deliveryId}/retry:
+    post:
+      tags: [deliveries]
+      summary: Re-snapshot the payload against current mapping/transform and queue again
+      parameters: [{ $ref: '#/components/parameters/deliveryId' }]
+      responses: { '202': { description: queued, content: { application/json: { schema: { $ref: '#/components/schemas/Delivery' } } } } }
+
+  # ───────────────────────── events & system webhooks ─────────────────────────
+  /v1/events:
+    get:
+      tags: [events]
+      summary: Organization event log
+      parameters:
+        - { $ref: '#/components/parameters/cursor' }
+        - { $ref: '#/components/parameters/limit' }
+        - { name: type, in: query, schema: { $ref: '#/components/schemas/EventType' } }
+        - { name: since, in: query, schema: { type: string, format: date-time } }
+      responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/EventList' } } } } }
+  /v1/webhooks:
+    get:  { tags: [events], summary: List system webhooks, responses: { '200': { description: ok, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/SystemWebhook' } } } } } } }
+    post:
+      tags: [events]
+      summary: Subscribe a URL to event types (how Dekhval/Smedja learn about schema changes)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SystemWebhookInput' } } } }
+      responses: { '201': { description: created, content: { application/json: { schema: { $ref: '#/components/schemas/SystemWebhook' } } } } }
+  /v1/webhooks/{webhookId}:
+    parameters: [{ name: webhookId, in: path, required: true, schema: { type: string } }]
+    patch:  { tags: [events], summary: Update, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/SystemWebhookInput' } } } }, responses: { '200': { description: ok } } }
+    delete: { tags: [events], summary: Delete, responses: { '204': { description: deleted } } }
+
+components:
+  securitySchemes:
+    apiKey:
+      type: http
+      scheme: bearer
+      bearerFormat: pb_live_… | pb_test_…
+  parameters:
+    formId:        { name: formId,        in: path, required: true, schema: { type: string, pattern: '^fm_' } }
+    projectId:     { name: projectId,     in: path, required: true, schema: { type: string, pattern: '^prj_' } }
+    submissionId:  { name: submissionId,  in: path, required: true, schema: { type: string, pattern: '^sb_' } }
+    streamId:      { name: streamId,      in: path, required: true, schema: { type: string, pattern: '^st_' } }
+    destinationId: { name: destinationId, in: path, required: true, schema: { type: string, pattern: '^ds_' } }
+    routeId:       { name: routeId,       in: path, required: true, schema: { type: string, pattern: '^rt_' } }
+    deliveryId:    { name: deliveryId,    in: path, required: true, schema: { type: string, pattern: '^dl_' } }
+    cursor: { name: cursor, in: query, schema: { type: string } }
+    limit:  { name: limit,  in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+  responses:
+    Error:
+      description: Error
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    NotFound:
+      description: Not found (or not in your organization — indistinguishable by design)
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+
+  schemas:
+    Id: { type: string, description: Prefixed public id, example: fm_8f3kq2 }
+    Slug: { type: string, pattern: '^[a-z0-9][a-z0-9-]{1,62}$' }
+    Timestamp: { type: string, format: date-time }
+    Scope: { type: string, enum: [manage, read, submit] }
+
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:    { type: string, example: mapping_incomplete }
+            message: { type: string, example: "Stream 'vending-leads' requires 'phone', which this form does not provide." }
+            hint:    { type: string, example: "Add a mapping for 'phone', or publish a stream schema version where it is optional." }
+            docs:    { type: string, format: uri, example: https://postbag.dev/docs/errors/mapping_incomplete }
+            details: { type: object, additionalProperties: true }
+
+    Next:
+      description: Suggested follow-up calls, ready to send.
+      type: array
+      items:
+        type: object
+        properties:
+          why:    { type: string }
+          method: { type: string }
+          path:   { type: string }
+          body:   { type: object, additionalProperties: true }
+
+    Organization:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        slug: { $ref: '#/components/schemas/Slug' }
+        name: { type: string }
+        plan: { type: string, enum: [free, pro, team, selfhost] }
+        timezone: { type: string, example: Europe/Stockholm }
+    PlanLimits:
+      type: object
+      properties:
+        forms: { type: integer }
+        submissions_per_month: { type: integer }
+        destinations: { type: integer }
+        retention_days: { type: integer }
+        used: { type: object, properties: { forms: { type: integer }, submissions_this_month: { type: integer } } }
+
+    Project:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        slug: { $ref: '#/components/schemas/Slug' }
+        name: { type: string }
+        tags: { type: array, items: { type: string } }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+    ProjectInput:
+      type: object
+      properties:
+        name: { type: string }
+        slug: { $ref: '#/components/schemas/Slug' }
+        tags: { type: array, items: { type: string } }
+        if_exists: { type: string, enum: [error, return], default: error }
+    ProjectList: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Project' } }, next_cursor: { type: [string, 'null'] } } }
+
+    SchemaMode: { type: string, enum: [observe, enforce, managed], default: observe }
+    FormStatus: { type: string, enum: [active, paused] }
+    FormSettings:
+      type: object
+      properties:
+        allowed_origins: { type: array, items: { type: string, format: uri } }
+        redirect_url: { type: [string, 'null'], format: uri }
+        honeypot_field: { type: string, default: _gotcha }
+        turnstile: { type: object, properties: { secret: { type: string, writeOnly: true }, enabled: { type: boolean } } }
+        rate_limit: { type: object, properties: { per_minute: { type: integer, default: 10 }, burst: { type: integer, default: 20 } } }
+        reply_to_field: { type: [string, 'null'] }
+    Form:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        project_id: { $ref: '#/components/schemas/Id' }
+        slug: { $ref: '#/components/schemas/Slug' }
+        name: { type: string }
+        tags: { type: array, items: { type: string } }
+        status: { $ref: '#/components/schemas/FormStatus' }
+        schema_mode: { $ref: '#/components/schemas/SchemaMode' }
+        current_schema_version: { type: [integer, 'null'] }
+        settings: { $ref: '#/components/schemas/FormSettings' }
+        submit_url: { type: string, format: uri }
+        streams: { type: array, items: { type: object, properties: { id: { $ref: '#/components/schemas/Id' }, slug: { type: string }, mapping_status: { type: string, enum: [valid, incomplete] } } } }
+        counts: { type: object, properties: { submissions: { type: integer }, last_submission_at: { type: [string, 'null'], format: date-time } } }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+    FormInput:
+      type: object
+      properties:
+        name: { type: string }
+        slug: { $ref: '#/components/schemas/Slug' }
+        project: { type: string, description: project id or slug; default `default` }
+        tags: { type: array, items: { type: string } }
+        status: { $ref: '#/components/schemas/FormStatus' }
+        schema_mode: { $ref: '#/components/schemas/SchemaMode' }
+        settings: { $ref: '#/components/schemas/FormSettings' }
+        schema: { $ref: '#/components/schemas/SchemaInput' }
+        from_template: { $ref: '#/components/schemas/Id', description: A stream id; pre-attaches with a derived mapping. }
+        if_exists: { type: string, enum: [error, return], default: error }
+    FormCreated:
+      allOf:
+        - $ref: '#/components/schemas/Form'
+        - type: object
+          properties:
+            embed: { $ref: '#/components/schemas/Embed' }
+            verify: { $ref: '#/components/schemas/Verify' }
+            next: { $ref: '#/components/schemas/Next' }
+    FormList: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Form' } }, next_cursor: { type: [string, 'null'] } } }
+
+    Embed:
+      type: object
+      properties:
+        html: { type: string }
+        fetch: { type: string }
+        react: { type: string }
+        astro: { type: string }
+        nextjs_action: { type: string }
+    Verify:
+      type: object
+      properties:
+        curl: { type: string }
+        then: { type: string }
+
+    SchemaInput:
+      type: object
+      required: [json_schema]
+      properties:
+        json_schema: { type: object, description: JSON Schema draft 2020-12 for the submission data }
+        ui: { $ref: '#/components/schemas/UiHints' }
+        changelog: { type: string }
+    SchemaVersion:
+      allOf:
+        - $ref: '#/components/schemas/SchemaInput'
+        - type: object
+          properties:
+            version: { type: integer }
+            inferred: { type: boolean, description: true when this is an unpublished draft derived from observed submissions }
+            created_at: { $ref: '#/components/schemas/Timestamp' }
+            created_by: { type: string }
+    UiHints:
+      type: object
+      description: Per-field rendering hints keyed by field name.
+      additionalProperties:
+        type: object
+        properties:
+          label: { type: string }
+          placeholder: { type: string }
+          help: { type: string }
+          order: { type: integer }
+          widget: { type: string, enum: [text, email, tel, textarea, select, radio, checkbox, number, date, hidden, file] }
+          options: { type: array, items: { type: object, properties: { value: { type: string }, label: { type: string } } } }
+
+    SubmissionStatus: { type: string, enum: [received, quarantined, spam] }
+    Submission:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        form_id: { $ref: '#/components/schemas/Id' }
+        status: { $ref: '#/components/schemas/SubmissionStatus' }
+        quarantine_reason: { type: [string, 'null'], enum: [schema_violation, rate_limited, origin_rejected, turnstile_failed, over_quota, null] }
+        test: { type: boolean }
+        data: { type: object, additionalProperties: true }
+        form_schema_version: { type: [integer, 'null'] }
+        spam: { type: object, properties: { score: { type: number }, reasons: { type: array, items: { type: string } } } }
+        meta:
+          type: object
+          properties:
+            ip: { type: string }
+            user_agent: { type: string }
+            origin: { type: [string, 'null'] }
+            referer: { type: [string, 'null'] }
+            country: { type: [string, 'null'] }
+            content_type: { type: string }
+        received_at: { $ref: '#/components/schemas/Timestamp' }
+    SubmissionDetail:
+      allOf:
+        - $ref: '#/components/schemas/Submission'
+        - type: object
+          properties:
+            deliveries: { type: array, items: { $ref: '#/components/schemas/Delivery' } }
+            drift: { type: array, items: { $ref: '#/components/schemas/DriftEvent' } }
+    SubmissionList: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Submission' } }, next_cursor: { type: [string, 'null'] } } }
+
+    DriftEvent:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        form_id: { $ref: '#/components/schemas/Id' }
+        submission_id: { $ref: '#/components/schemas/Id' }
+        kind: { type: string, enum: [new_field, missing_field, type_change] }
+        field: { type: string }
+        details: { type: object, additionalProperties: true }
+        detected_at: { $ref: '#/components/schemas/Timestamp' }
+        resolved_at: { type: [string, 'null'], format: date-time }
+
+    Stream:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        slug: { $ref: '#/components/schemas/Slug' }
+        name: { type: string }
+        current_schema_version: { type: [integer, 'null'] }
+        counts: { type: object, properties: { sources: { type: integer }, routes: { type: integer }, submissions_30d: { type: integer } } }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+    StreamInput:
+      type: object
+      properties:
+        name: { type: string }
+        slug: { $ref: '#/components/schemas/Slug' }
+        schema: { $ref: '#/components/schemas/SchemaInput' }
+        sources: { type: array, items: { $ref: '#/components/schemas/StreamSourceInput' } }
+        if_exists: { type: string, enum: [error, return], default: error }
+    StreamDetail:
+      allOf:
+        - $ref: '#/components/schemas/Stream'
+        - type: object
+          properties:
+            schema: { $ref: '#/components/schemas/SchemaVersion' }
+            sources: { type: array, items: { $ref: '#/components/schemas/StreamSource' } }
+            routes: { type: array, items: { $ref: '#/components/schemas/Route' } }
+            form_template: { $ref: '#/components/schemas/SchemaInput', description: 'A suggested form schema that maps 1:1 onto this stream; used by POST /v1/forms with from_template.' }
+    StreamList: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Stream' } }, next_cursor: { type: [string, 'null'] } } }
+
+    Mapping:
+      type: object
+      description: Keyed by stream field. Exactly one of from / const / expr per entry. Unmapped form fields land in `extras`.
+      additionalProperties:
+        type: object
+        properties:
+          from: { type: string, description: Form field name (dot-path allowed) }
+          const: { description: Literal value }
+          expr: { type: string, description: "Expression (Phase 2, ADR-005)" }
+          default: { description: Used when `from` is absent/empty }
+    StreamSourceInput:
+      type: object
+      properties:
+        form_id: { $ref: '#/components/schemas/Id' }
+        selector: { type: string, description: "`tag:vending` or `project:prj_…`; mapping then applies to every matching form, per-form overrides via separate explicit sources." }
+        mapping: { $ref: '#/components/schemas/Mapping' }
+    StreamSource:
+      allOf:
+        - $ref: '#/components/schemas/StreamSourceInput'
+        - type: object
+          properties:
+            id: { $ref: '#/components/schemas/Id' }
+            mapping_status: { type: string, enum: [valid, incomplete] }
+            missing: { type: array, items: { type: string } }
+            stream_schema_version: { type: integer }
+
+    DestinationType: { type: string, enum: [email, telegram, webhook, slack, discord] }
+    Destination:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        type: { $ref: '#/components/schemas/DestinationType' }
+        name: { type: string }
+        config: { type: object, additionalProperties: true, description: Secrets redacted on read. }
+        health: { type: string, enum: [unknown, ok, failing] }
+        verified: { type: boolean, description: email recipients verified; always true for other types }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+    DestinationInput:
+      type: object
+      required: [type, config]
+      properties:
+        type: { $ref: '#/components/schemas/DestinationType' }
+        name: { type: string }
+        config:
+          oneOf:
+            - title: email
+              type: object
+              required: [to]
+              properties:
+                to: { type: array, items: { type: string, format: email } }
+                cc: { type: array, items: { type: string, format: email } }
+                subject_template: { type: string, default: "New submission: {{form.name}}" }
+                from_name: { type: string }
+            - title: telegram
+              type: object
+              required: [bot_token, chat_id]
+              properties:
+                bot_token: { type: string, writeOnly: true }
+                chat_id: { type: string }
+                template: { type: string }
+            - title: webhook
+              type: object
+              required: [url]
+              properties:
+                url: { type: string, format: uri }
+                secret: { type: string, writeOnly: true, description: Generated if omitted; returned once. }
+                headers: { type: object, additionalProperties: { type: string } }
+    DestinationList: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Destination' } }, next_cursor: { type: [string, 'null'] } } }
+    DeliveryResult:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status_code: { type: [integer, 'null'] }
+        latency_ms: { type: integer }
+        response_excerpt: { type: string }
+        error: { type: [string, 'null'] }
+
+    Route:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        form_id: { type: [string, 'null'] }
+        stream_id: { type: [string, 'null'] }
+        destination_id: { $ref: '#/components/schemas/Id' }
+        enabled: { type: boolean }
+        mode: { type: object, properties: { type: { type: string, enum: [instant, digest] }, cron: { type: string }, timezone: { type: string } } }
+        window: { type: object, properties: { from: { type: [string, 'null'], format: date-time }, until: { type: [string, 'null'], format: date-time } } }
+        quality: { type: object, properties: { exclude_spam: { type: boolean, default: true }, exclude_quarantined: { type: boolean, default: true } } }
+        filter: { type: [string, 'null'], description: Expression (Phase 2) }
+        transform: { type: [string, 'null'], description: Expression/template (Phase 2) }
+        counts: { type: object, properties: { sent_30d: { type: integer }, dead_30d: { type: integer } } }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+    RouteInput:
+      type: object
+      properties:
+        form_id: { $ref: '#/components/schemas/Id' }
+        stream_id: { $ref: '#/components/schemas/Id' }
+        destination_id: { $ref: '#/components/schemas/Id' }
+        enabled: { type: boolean, default: true }
+        mode: { type: object }
+        window: { type: object }
+        quality: { type: object }
+        filter: { type: string }
+        transform: { type: string }
+    RouteList: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Route' } }, next_cursor: { type: [string, 'null'] } } }
+
+    DeliveryStatus: { type: string, enum: [pending, sending, sent, failed, dead, skipped] }
+    Delivery:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        submission_id: { $ref: '#/components/schemas/Id' }
+        route_id: { $ref: '#/components/schemas/Id' }
+        destination_id: { $ref: '#/components/schemas/Id' }
+        status: { $ref: '#/components/schemas/DeliveryStatus' }
+        skip_reason: { type: [string, 'null'], enum: [filter, window, quality, paused, over_quota, null] }
+        attempts: { type: integer }
+        next_attempt_at: { type: [string, 'null'], format: date-time }
+        schema_version: { type: [integer, 'null'] }
+        payload: { type: object, additionalProperties: true }
+        last_response: { $ref: '#/components/schemas/DeliveryResult' }
+        last_error: { type: [string, 'null'] }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+        sent_at: { type: [string, 'null'], format: date-time }
+    DeliveryList: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Delivery' } }, next_cursor: { type: [string, 'null'] } } }
+
+    EventType:
+      type: string
+      enum:
+        - submission.received
+        - submission.quarantined
+        - submission.spam
+        - delivery.sent
+        - delivery.failed
+        - delivery.dead
+        - digest.ready
+        - form.created
+        - form.schema.changed
+        - stream.schema.changed
+        - drift.detected
+        - drift.resolved
+        - destination.failing
+        - destination.recovered
+    Event:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        type: { $ref: '#/components/schemas/EventType' }
+        subject: { type: object, properties: { form_id: { type: string }, stream_id: { type: string }, submission_id: { type: string }, delivery_id: { type: string }, destination_id: { type: string } } }
+        data: { type: object, additionalProperties: true }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+    EventList: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Event' } }, next_cursor: { type: [string, 'null'] } } }
+
+    SystemWebhookInput:
+      type: object
+      required: [url, events]
+      properties:
+        url: { type: string, format: uri }
+        events: { type: array, items: { $ref: '#/components/schemas/EventType' } }
+        secret: { type: string, writeOnly: true }
+        enabled: { type: boolean, default: true }
+    SystemWebhook:
+      allOf:
+        - $ref: '#/components/schemas/SystemWebhookInput'
+        - type: object
+          properties:
+            id: { $ref: '#/components/schemas/Id' }
+            health: { type: string, enum: [unknown, ok, failing] }
