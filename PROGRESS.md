@@ -13,6 +13,13 @@ the rules and `docs/` for the design.
   (`140.245.57.24`, arm64, uuid `a8w4s8cg0go4kwo0g0gk8co0`). Coolify project "Postbag".
 - **Domain:** `postbag.withfaahim.com` → A record (proxied) → megh-oracle. Zone id
   `4f548539cadf02e52a52ef6957a82e3f`.
+- **Coolify resources:** project `8ngphk5sjmqmwtzvdlr17wcs` · app `ertar2xhyn50wzetdjzzin2g`
+  (GitHub App uuid `y0sw00scw8w8k8co0occwgsc`, repo `faahim/postbag`, branch `main`, Dockerfile
+  build pack, port 3000, health `/health`, connected to predefined network) · Postgres 16
+  `fmeduf0fi7ax0dvsdhsvtewb` (internal host = that uuid, db/user `postbag`). App env vars set:
+  `DATABASE_URL`, `NODE_ENV`, `PORT`, `APP_URL`, `BETTER_AUTH_SECRET`, `POSTBAG_ROLE=all`, `TZ`.
+  Deploy: `POST $COOLIFY_BASE_URL/api/v1/deploy?uuid=<app>&force=true`; status at
+  `GET /api/v1/deployments/<deployment_uuid>`.
 - **Credentials:** Coolify API token + Cloudflare token live in `~/Developer/smedja/.env`
   (`COOLIFY_*`, `CLOUDFLARE_*`). GitHub App for `faahim/*` in Coolify = `github_apps.id=2`.
   Never copy secrets into this repo.
@@ -38,9 +45,9 @@ the rules and `docs/` for the design.
 
 ## In progress
 
-- [ ] Coolify application (GitHub App source, Dockerfile build pack, fqdn) + Postgres resource
+- [x] Coolify application + Postgres resource created and wired (see Current state)
 - [ ] Placeholder Dockerfile deploy → `https://postbag.withfaahim.com/health` returns 200
-- [ ] Codex job A: monorepo scaffold + `packages/db` schema/migrations + `packages/core`
+- [ ] Codex job A (`task-mt1zc0au-vw6k5m`, spec `tasks/job-A-scaffold.md`): monorepo scaffold + `packages/db` + `packages/core` + `packages/auth` — running since ~22:30 UTC 2026-08-21
 - [ ] Codex job B: `apps/server` submit path + worker + `/v1` API + auth
 
 ## Next up (in order)
