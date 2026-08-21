@@ -160,6 +160,13 @@ the rules and `docs/` for the design.
   `postbag.withfaahim.com` (id `fda6ffab-c792-42f3-bc76-0e03fbd7e80b`). `MAIL_FROM=Postbag <notify@postbag.dev>` once
   verified; `RESEND_API_KEY` set on the Coolify app.
 
+## Operations
+- **DB backups:** daily at 03:00 server time, kept 14 days, **on the same server** (Coolify backup schedule
+  `3gwbwkbf1mhtbp3gxwd9zw5x` on Postgres `fmeduf0fi7ax0dvsdhsvtewb`, created 2026-08-21). Off-server copies are
+  not configured yet: add a Cloudflare R2 (S3-compatible) bucket as a Coolify S3 storage and flip `save_s3` — do this
+  before the first paying customer.
+- No uptime monitor yet (`/health` is the probe to use).
+
 ## Gotchas learned
 
 - pnpm 11: build-script approval lives in `pnpm-workspace.yaml` under `allowBuilds:` (not `package.json.pnpm`).
