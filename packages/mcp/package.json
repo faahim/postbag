@@ -1,0 +1,60 @@
+{
+  "name": "@postbag/mcp",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "MCP server for Postbag — every /v1 operation as a tool, plus quickstart and explain.",
+  "type": "module",
+  "bin": {
+    "postbag-mcp": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "server.json"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/faahim/postbag.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://postbag.dev",
+  "keywords": [
+    "postbag",
+    "forms",
+    "form-backend",
+    "mcp",
+    "model-context-protocol",
+    "agents"
+  ],
+  "mcpName": "io.github.faahim/postbag",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "tsc -p tsconfig.json --watch",
+    "generate": "node --experimental-strip-types scripts/generate.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10",
+    "yaml": "2.9.0"
+  }
+}

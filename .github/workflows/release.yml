@@ -1,0 +1,44 @@
+name: Release
+
+# Publishes the public packages (@postbag/sdk, postbag, @postbag/mcp) to npm.
+# Trigger: push a tag `v<version>` after bumping versions with `pnpm release:version <version>`.
+# Private packages (apps/*, core, db, auth) are skipped by `pnpm -r publish` automatically.
+# Needs the `NPM_TOKEN` repository secret (granular token, publish rights on the @postbag scope + `postbag`).
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run pnpm publish with --dry-run"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write # npm provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: package.json
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm --filter @postbag/sdk --filter postbag --filter @postbag/mcp build
+      - run: pnpm --filter @postbag/sdk --filter postbag --filter @postbag/mcp test
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '--dry-run' || '' }}
+        run: pnpm -r publish --access public --no-git-checks --provenance $DRY

@@ -1,0 +1,54 @@
+{
+  "name": "postbag",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "The Postbag CLI — create, inspect and route forms from the terminal or an agent session.",
+  "type": "module",
+  "bin": {
+    "postbag": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/faahim/postbag.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://postbag.dev",
+  "keywords": [
+    "postbag",
+    "forms",
+    "form-backend",
+    "cli",
+    "agents"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "tsc -p tsconfig.json --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@postbag/sdk": "workspace:*",
+    "commander": "15.0.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

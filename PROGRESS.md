@@ -35,6 +35,13 @@ the rules and `docs/` for the design.
   tool, `model: sonnet`) from the same specs in `tasks/`. Claude (Fable) only writes specs,
   reviews, and commits. Jobs run sequentially (A → B → C) to avoid rework.
 - **Auto-deploy on push to `main` is confirmed** (Coolify deployment fired for `ec84d6c`).
+- **postbag.dev cut-over done 2026-08-21 12:40 UTC** (`7432e86`): site, `/app`, `/v1`, `/s`, `/openapi.json`
+  (`servers: https://postbag.dev`) and `/llms.txt` all serve on `postbag.dev`; `api.postbag.dev` alias works;
+  `postbag.withfaahim.com` still serves everything (old embeds keep working). Coolify domains:
+  `postbag.dev, api.postbag.dev, www.postbag.dev, postbag.withfaahim.com`; env `LEGACY_HOSTS=postbag.withfaahim.com,www.postbag.dev`
+  (redirect middleware ships with job F). Resend `postbag.dev` verified; `MAIL_FROM=Postbag <notify@postbag.dev>`.
+  Site forms `fm_h6eetntqdbp6` / `fm_73c74vjq6z24` have `https://postbag.dev` + `https://api.postbag.dev` in `allowed_origins`.
+  `~/.postbag/credentials` still says `POSTBAG_URL=https://postbag.withfaahim.com` — both hosts accept the key.
 
 ## Decisions made tonight (2026-08-21)
 
