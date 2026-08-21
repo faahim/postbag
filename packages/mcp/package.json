@@ -1,8 +1,8 @@
 {
   "name": "@postbag/mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
-  "description": "MCP server for Postbag — every /v1 operation as a tool, plus quickstart and explain.",
+  "description": "MCP server for Postbag \u2014 every /v1 operation as a tool, plus quickstart and explain.",
   "type": "module",
   "bin": {
     "postbag-mcp": "./dist/bin.js"
@@ -36,7 +36,7 @@
     "model-context-protocol",
     "agents"
   ],
-  "mcpName": "io.github.faahim/postbag",
+  "mcpName": "dev.postbag/mcp",
   "publishConfig": {
     "access": "public"
   },

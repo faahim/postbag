@@ -118,8 +118,12 @@ the rules and `docs/` for the design.
    a human publish with OTP: `pnpm -r publish --access public --no-git-checks`; then per package
    `npm trust github <pkg> --file release.yml --repo faahim/postbag --allow-publish --yes` (npm ≥ 11.15). `release.yml`
    already publishes via OIDC on `v*` tags with no secret; delete the `NPM_TOKEN` secret + revoke the GAT afterwards.
-   Then: MCP registry (`server.json` ready), flip site copy from "in progress", make the repo public (gitleaks clean;
-   also unlocks provenance).
+   ~~flip site copy~~ done. **MCP registry:** namespace `dev.postbag/mcp` via DNS auth — apex TXT
+   `v=MCPv1; k=ed25519; p=…` on postbag.dev (Cloudflare), private key at `~/.config/postbag/mcp-registry-ed25519.pem`
+   (mode 600, never in the repo; login = `mcp-publisher login dns --domain postbag.dev --private-key "$(openssl pkey -in
+   ~/.config/postbag/mcp-registry-ed25519.pem -noout -text | grep -A3 priv: | tail -n +2 | tr -d ' :\n')"`; then
+   `mcp-publisher publish` in `packages/mcp`). Requires `@postbag/mcp@0.1.1` (mcpName = dev.postbag/mcp) on npm first —
+   published by the OIDC workflow on tag `v0.1.1`. Make the repo public afterwards (gitleaks clean; unlocks provenance).
 2b. **Legal pages before selling (agent drafts, Fahim supplies entity name/address):** Terms, Privacy
    Policy, DPA for operators, sub-processor list (Resend, Cloudflare, the hosting provider, Polar),
    GDPR Art. 27 EU-representative answer for a non-EU entity. Pages at `/legal/terms/`, `/legal/privacy/`, `/legal/dpa/`.

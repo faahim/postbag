@@ -1,18 +1,18 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
-  "name": "io.github.faahim/postbag",
-  "description": "Postbag — a form backend that routes. One MCP tool per API operation, plus quickstart and explain, so an agent holding only an API key can create and manage forms, streams, destinations, routes and deliveries.",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "dev.postbag/mcp",
+  "description": "Postbag \u2014 a form backend that routes. One MCP tool per API operation, plus quickstart and explain, so an agent holding only an API key can create and manage forms, streams, destinations, routes and deliveries.",
   "repository": {
     "url": "https://github.com/faahim/postbag",
     "source": "github"
   },
-  "version": "0.1.0",
+  "version": "0.1.1",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@postbag/mcp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "transport": {
         "type": "stdio"
       },
@@ -27,18 +27,19 @@
       "environmentVariables": [
         {
           "name": "POSTBAG_API_KEY",
-          "description": "A Postbag API key (pb_live_… or pb_test_…). Mint one at https://postbag.dev/app or with `postbag login`.",
+          "description": "A Postbag API key (pb_live_\u2026 or pb_test_\u2026). Mint one at https://postbag.dev/app or with `postbag login`.",
           "isRequired": true,
           "isSecret": true
         },
         {
           "name": "POSTBAG_API_URL",
-          "description": "Base URL of the Postbag API. Defaults to https://postbag.dev — set this only for a self-hosted instance.",
+          "description": "Base URL of the Postbag API. Defaults to https://postbag.dev \u2014 set this only for a self-hosted instance.",
           "isRequired": false,
           "isSecret": false,
           "default": "https://postbag.dev"
         }
       ]
     }
-  ]
+  ],
+  "websiteUrl": "https://postbag.dev/for-ai-agents/"
 }
