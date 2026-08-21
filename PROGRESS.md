@@ -18,13 +18,14 @@ the rules and `docs/` for the design.
   (Hetzner Nuremberg, DE/EU, `159.69.144.166`, x86_64, uuid `lksgcsw84skoc8o0488o40og`). App **`postbag-eu`**
   `jfw5odopfompxmpq7ffgrtn9`, Postgres 16 **`postbag-db-eu`** `oxowkoj5egbcqjibdnoy30sf` (backup schedule
   `lsvi1rsnoo8erhsfugiznstn`, daily 03:00, 14 d local). Migrated from **megh-oracle** (Oracle Singapore, arm64) by
-  pg_dump/restore; the old app `ertar2xhyn50wzetdjzzin2g` is **stopped** (domains set to a placeholder) and the old DB
-  `fmeduf0fi7ax0dvsdhsvtewb` kept for rollback — delete both after a week. Root SSH works to both servers from Fahim's Mac.
+  pg_dump/restore; the old app `ertar2xhyn50wzetdjzzin2g` and old DB `fmeduf0fi7ax0dvsdhsvtewb` were **deleted from Coolify
+  2026-08-21 16:22 UTC** (Fahim's request, after parity verification); a final dump is at
+  `~/.config/postbag/backups/postbag-megh-oracle-final-20260821T162011Z.sql.gz` (600). Root SSH works to both servers from Fahim's Mac.
 - **Domain:** **`postbag.dev`** (canonical, `APP_URL`) + alias `api.postbag.dev`; zone id `84f7a4a0b32316b3d420ef347d6d494a`
   (Afiur.fahim@gmail.com Cloudflare account). A records (proxied) → megh-oracle. Legacy `postbag.withfaahim.com`
   (zone `4f548539cadf02e52a52ef6957a82e3f`) stays served as an extra Coolify domain so old submit URLs keep working;
   redirect non-`/s` `/v1` paths to postbag.dev (see Next up).
-- **Coolify resources:** project `8ngphk5sjmqmwtzvdlr17wcs` · (old) app `ertar2xhyn50wzetdjzzin2g`
+- **Coolify resources (historical, deleted 2026-08-21):** project `8ngphk5sjmqmwtzvdlr17wcs` · app `ertar2xhyn50wzetdjzzin2g`
   (GitHub App uuid `y0sw00scw8w8k8co0occwgsc`, repo `faahim/postbag`, branch `main`, Dockerfile
   build pack, port 3000, health `/health`, connected to predefined network) · Postgres 16
   `fmeduf0fi7ax0dvsdhsvtewb` (internal host = that uuid, db/user `postbag`). App env vars set:
