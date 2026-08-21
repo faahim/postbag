@@ -1,4 +1,10 @@
-/** Mirrors packages/core/src/errors.ts ERROR_DEFINITIONS. The `docs` URL on every API error points at /docs/errors/{code}/. */
+/**
+ * Mirrors packages/core/src/errors.ts ERROR_DEFINITIONS, plus two codes specific to the
+ * public /v1/auth/request-code and /v1/auth/verify-code endpoints (job H) that live in
+ * apps/server's route handlers rather than packages/core (outside this job's file
+ * boundary) — added here so their `docs` deep links resolve instead of 404ing.
+ * The `docs` URL on every API error points at /docs/errors/{code}/.
+ */
 export const ERROR_CODES = [
   { code: "not_found", status: 404, hint: "Check the id and organization scope.", more: "The id may be from another organization, may be mistyped (ids are prefixed: fm_, sb_, st_, ds_, rt_, dl_, prj_), or the resource may have been deleted. For a project slug, create it first or let the quickstart create it." },
   { code: "forbidden", status: 403, hint: "Use credentials with permission for this operation.", more: "API keys carry scopes: manage ⊇ read ⊇ submit. A read key cannot create or change resources. Mint a manage key for setup work." },
@@ -15,4 +21,6 @@ export const ERROR_CODES = [
   { code: "plan_limit_reached", status: 402, hint: "Change plan limits or remove an unused resource.", more: "Forms and destinations are checked at creation. Submissions over the monthly limit are still stored and flagged; delivery pauses until the plan allows." },
   { code: "expressions_not_enabled", status: 422, hint: "Use from, const, or default until expressions ship.", more: "Mapping expr entries and route filter/transform are reserved for the expression phase (JSONata, ADR-005)." },
   { code: "internal_error", status: 500, hint: "Retry; contact support if this persists.", more: "The request id is in the response headers; include it when reporting." },
+  { code: "invalid_code", status: 401, hint: "That code is wrong or has expired — request a new one.", more: "POST /v1/auth/verify-code allows 3 attempts per code, and codes expire after 10 minutes. Call POST /v1/auth/request-code again for a fresh one." },
+  { code: "email_not_configured", status: 501, hint: "Set RESEND_API_KEY and MAIL_FROM on the server, or create a key in the dashboard.", more: "POST /v1/auth/request-code needs outbound email configured on this instance (self-host parity: it is optional). Until then, sign in to the dashboard and create an API key from Settings." },
 ] as const

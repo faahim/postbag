@@ -6,6 +6,7 @@ import type { AnyDestinationAdapter } from "./destinations/types.js"
 import type { Env } from "./env.js"
 import { envelope } from "./lib/errors.js"
 import { renderLlmsTxt } from "./lib/llms.js"
+import { renderPostbagSkill, skillsIndex } from "./lib/skills.js"
 import type { Logger } from "./logger.js"
 import { buildErrorHandler } from "./lib/onError.js"
 import { TokenBucketLimiter } from "./lib/rateLimit.js"
@@ -19,6 +20,7 @@ import { registerAppStatic } from "./routes/staticApp.js"
 import { registerSiteStatic } from "./routes/staticSite.js"
 import { registerSubmitRoutes } from "./routes/submit.js"
 import { registerApiKeyRoutes } from "./routes/v1/apiKeys.js"
+import { registerAuthCodeRoutes } from "./routes/v1/authCodes.js"
 import { registerAuthProviderRoutes } from "./routes/v1/authProviders.js"
 import { registerDeliveryRoutes } from "./routes/v1/deliveries.js"
 import { registerDestinationRoutes } from "./routes/v1/destinations.js"
@@ -71,6 +73,11 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   // which social buttons to render, so it must work with zero credentials.
   registerAuthProviderRoutes(app, env)
 
+  // Public agent-onboarding endpoints (job H): request-code / verify-code. Same public,
+  // pre-requireOrg registration as the two above — an agent holding no credentials at all
+  // must be able to reach these.
+  registerAuthCodeRoutes(app, auth, db, env, rateLimiter)
+
   // Better Auth handles /api/auth/* itself.
   app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw))
 
@@ -95,6 +102,19 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   app.get("/llms.txt", (c) => {
     c.header("content-type", "text/markdown; charset=utf-8")
     return c.body(renderLlmsTxt(env.APP_URL))
+  })
+
+  // Agent Skills discovery (job H 3): the index an agent's `skills` tooling reads to find
+  // what's installable, and the skill file itself, served with a 1-hour cache like a static
+  // asset — its content only changes on deploy.
+  app.get("/.well-known/skills/index.json", (c) => {
+    c.header("cache-control", "public, max-age=3600")
+    return c.json(skillsIndex(env.APP_URL))
+  })
+  app.get("/.well-known/skills/postbag/SKILL.md", (c) => {
+    c.header("content-type", "text/markdown; charset=utf-8")
+    c.header("cache-control", "public, max-age=3600")
+    return c.body(renderPostbagSkill(env.APP_URL))
   })
 
   app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {

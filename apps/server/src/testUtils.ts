@@ -4,7 +4,7 @@ import { createDb, member, organization, organizationSettings, projects, user, t
 import type { OpenAPIHono } from "@hono/zod-openapi"
 
 import { createApp, type AppDeps } from "./app.js"
-import { buildAuth, type Auth } from "./authSetup.js"
+import { buildAuth, type Auth, type BuildAuthOverrides } from "./authSetup.js"
 import { createDestinationRegistry } from "./destinations/registry.js"
 import type { Env } from "./env.js"
 import { createLogger, type Logger } from "./logger.js"
@@ -41,11 +41,11 @@ export type TestHarness = {
   close(): Promise<void>
 }
 
-export function buildHarness(envOverrides: Partial<Env> = {}): TestHarness {
+export function buildHarness(envOverrides: Partial<Env> = {}, authOverrides: BuildAuthOverrides = {}): TestHarness {
   const env = testEnv(envOverrides)
   const client = createDb(env.DATABASE_URL)
   const logger = createLogger(env)
-  const auth = buildAuth(client.db, env)
+  const auth = buildAuth(client.db, env, authOverrides)
   const destinations = createDestinationRegistry(env)
   const deps: AppDeps = { db: client.db, env, logger, auth, destinations }
   const app = createApp(deps)

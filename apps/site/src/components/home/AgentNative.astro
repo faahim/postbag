@@ -1,56 +1,86 @@
 ---
 import CodeBlock from "@/components/CodeBlock.astro"
-import { API_URL, EXAMPLE, LLMS_URL, OPENAPI_URL } from "@/config"
-const transcript = `$ curl ${API_URL}/v1/me -H "Authorization: Bearer pb_live_…"
-{ "organization": { "id": "org_3yv5z3", "slug": "acme", "plan": "free", "timezone": "Europe/Stockholm" },
-  "key": { "prefix": "pb_live_", "scopes": ["manage"] },
-  "counts": { "projects": 1, "forms": 0, "streams": 0, "destinations": 0, "routes": 0 },
-  "limits": { "forms": 5, "submissions_per_month": 1000, "used": { "forms": 0, "submissions_this_month": 0 } } }
+import { Bot, Plug, Puzzle } from "@lucide/astro"
+import { API_URL, LLMS_URL, OPENAPI_URL } from "@/config"
 
-$ curl -X POST ${API_URL}/v1/quickstart -H "Authorization: Bearer pb_live_…" \\
-  -d '{ "name": "Portfolio contact", "notify_email": "me@example.com", "project": "portfolio" }'
-{ "form": { "id": "${EXAMPLE.form}", "submit_url": "${API_URL}/s/${EXAMPLE.form}" },
-  "embed": { "html": "<form action=…>", "fetch": "…", "react": "…", "astro": "…", "nextjs_action": "…" },
-  "verify": { "curl": "curl -X POST … -d '{\\"_test\\":true,…}'", "then": "GET /v1/forms/${EXAMPLE.form}/submissions?limit=1" },
-  "next": [ { "why": "Add Telegram", "call": "POST /v1/destinations", "body": { "type": "telegram", … } } ] }
+const promptText = `Set up a contact form on this site with Postbag. Read ${LLMS_URL} first.`
+const skillInstall = `npx skills add faahim/postbag --skill postbag
+# works once the repo is public — or fetch the file directly:
+curl ${API_URL}/.well-known/skills/postbag/SKILL.md`
+const mcpAndCli = `npx -y @postbag/mcp   # env: POSTBAG_API_KEY=pb_live_…
+npx postbag login     # in progress — CLI/MCP not yet published to npm`
 
-$ curl -X POST ${API_URL}/s/${EXAMPLE.form} -d '{"email":"a@b.se","message":"hi","_test":true}'
-{ "ok": true, "submission_id": "${EXAMPLE.submission}", "status": "received", "deliveries": ["${EXAMPLE.delivery}"] }
+const options = [
+  {
+    icon: Bot,
+    title: "Paste to your agent",
+    body: "One line. The agent reads llms.txt, mints its own key by email code, and builds the form.",
+    code: promptText,
+    lang: "text",
+  },
+  {
+    icon: Puzzle,
+    title: "Install the skill",
+    body: "An Agent Skill with the decision tree, the quickstart call and the embed snippet already in it.",
+    code: skillInstall,
+    lang: "bash",
+  },
+  {
+    icon: Plug,
+    title: "MCP or CLI",
+    body: "Tools that mirror the API one to one, for agents and terminals that prefer not to shell out to curl.",
+    code: mcpAndCli,
+    lang: "bash",
+  },
+] as const
 
-$ curl ${API_URL}/v1/deliveries/${EXAMPLE.delivery} -H "Authorization: Bearer pb_live_…"
-{ "id": "${EXAMPLE.delivery}", "status": "sent", "attempts": 1, "response": { "status": 200, "latency_ms": 412 } }`
-const props = [
-  { k: "Discoverable", v: `GET /llms.txt and GET /openapi.json describe the whole surface. GET /v1/me says who you are, what you can do, and what already exists.` },
-  { k: "One call to a working form", v: "POST /v1/quickstart creates the project, form, email destination and route, idempotently, and returns embed snippets plus a verification recipe." },
-  { k: "Verifiable without a browser", v: "Submit with _test: true and get back submission and delivery ids to poll. POST /v1/destinations/{id}/test returns the provider's response inline." },
-  { k: "Errors that teach", v: "Every error is { code, message, hint, docs }. Every create returns next[]: follow-up calls with ready-to-send bodies." },
-  { k: "Safe to retry", v: "Idempotency-Key on every POST under /v1. Creates accept if_exists: \"return\", so a re-run setup script gets the same objects back." },
-  { k: "Self-describing ids", v: "fm_, sb_, st_, ds_, rt_, dl_, prj_. An id in a log or a chat tells you what it is." },
-]
+const keyFlow = `$ curl -X POST ${API_URL}/v1/auth/request-code -d '{"email":"you@example.com"}'
+{ "ok": true, "expires_in": 600, "next": "POST /v1/auth/verify-code with { email, code, key_name }" }
+
+# — a human reads the 6-digit code out of their inbox and gives it to the agent —
+
+$ curl -X POST ${API_URL}/v1/auth/verify-code -d '{"email":"you@example.com","code":"482913"}'
+{ "api_key": "pb_live_…", "organization": { "id": "org_…", "slug": "…", "name": "…" },
+  "user": { "email": "you@example.com", "created": true },
+  "next": [ "POST /v1/quickstart to create a routed form in one call", "GET /v1/me to see limits and what exists" ] }`
 ---
 <section class="container-x mt-28 sm:mt-36" aria-labelledby="agents-heading" id="agents">
   <div class="max-w-2xl" data-reveal>
-    <h2 id="agents-heading" class="text-3xl font-semibold sm:text-4xl">Everything a human can do in the dashboard, an agent can do with an API key.</h2>
+    <h2 id="agents-heading" class="text-3xl font-semibold text-balance sm:text-4xl">Set up your agent in seconds.</h2>
     <p class="mt-4 text-lg leading-relaxed text-muted-foreground">
-      Agent-native is a property, not a feature. The test: a coding agent holding only a key goes from a fresh site repo to a working, verified, routed form, without a browser and without a human.
+      Agent-native is a property, not a feature. No browser, no dashboard, no support ticket — just a key it gets itself, and one call to a working form.
     </p>
   </div>
-  <div class="mt-10 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-12">
-    <div class="min-w-0" data-reveal>
-      <CodeBlock code={transcript} lang="bash" title="one conversation, four calls" dense />
-    </div>
-    <dl class="grid gap-5 sm:grid-cols-2 lg:grid-cols-1" data-reveal-group="60">
-      {props.map((p) => (
-        <div class="border-l-2 border-primary/40 pl-4" data-reveal>
-          <dt class="font-display text-[17px] font-semibold">{p.k}</dt>
-          <dd class="mt-1 text-[15px] leading-relaxed text-muted-foreground">{p.v}</dd>
+
+  <div class="mt-10 grid gap-5 sm:grid-cols-3" data-reveal-group="80">
+    {options.map((o) => (
+      <div class="card flex flex-col gap-4 p-5" data-reveal>
+        <div class="flex items-center gap-3">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+            <o.icon size={20} stroke-width={1.75} aria-hidden="true" />
+          </span>
+          <h3 class="font-display text-[17px] font-semibold">{o.title}</h3>
         </div>
-      ))}
-    </dl>
+        <p class="text-[15px] leading-relaxed text-muted-foreground">{o.body}</p>
+        <CodeBlock code={o.code} lang={o.lang} dense class="mt-auto" />
+      </div>
+    ))}
   </div>
+
+  <div class="mt-12 grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:gap-12" data-reveal>
+    <div>
+      <h3 class="font-display text-xl font-semibold">How does the agent get a key?</h3>
+      <p class="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+        Two calls, one human step in between. A new email provisions an organization first; an existing email reuses its own. The key is shown once — the agent stores it and moves on.
+      </p>
+    </div>
+    <div class="min-w-0"><CodeBlock code={keyFlow} lang="bash" title="request-code → verify-code" dense /></div>
+  </div>
+
   <div class="mt-8 flex flex-wrap items-center gap-3" data-reveal>
     <a href="/for-ai-agents/" class="btn btn-primary">How agents use Postbag</a>
     <a href={LLMS_URL} class="btn btn-secondary">llms.txt</a>
     <a href={OPENAPI_URL} class="btn btn-secondary">openapi.json</a>
+    <a href={`${API_URL}/.well-known/skills/index.json`} class="btn btn-secondary">.well-known/skills/</a>
   </div>
 </section>

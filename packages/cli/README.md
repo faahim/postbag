@@ -19,7 +19,7 @@ Requires Node ≥ 22.
 
 ```sh
 cd my-site
-postbag login                    # paste an API key (from https://postbag.dev/app/api-keys)
+postbag login                    # paste an API key, or get one by email code — no browser needed
 postbag init --yes                # runs quickstart, writes postbag.json into this repo
 ```
 
@@ -50,8 +50,19 @@ Each of `--api-key`/`--api-url` is resolved in this order, first match wins:
 5. `https://postbag.dev` as the default `api_url`; no default API key
 
 `postbag login [--api-key <key>]` verifies the key against `GET /v1/me` before saving
-it — if you don't pass `--api-key`, it prompts with hidden input. `postbag logout`
-forgets the saved key. `postbag whoami` prints who the current key belongs to.
+it. With no `--api-key` and no `POSTBAG_API_KEY`, it prompts `Email (or paste an API
+key)`: paste a key and it verifies it the same way; give an email instead and it sends
+a 6-digit code (`POST /v1/auth/request-code`), asks for the code, and verifies it
+(`POST /v1/auth/verify-code`) — no dashboard, no browser, just a human reading a code
+out of their inbox once. The same flow works with no TTY, in two invocations:
+
+```sh
+postbag login --email you@example.com                 # sends the code
+postbag login --email you@example.com --code 123456   # verifies it, saves the key
+```
+
+`postbag logout` forgets the saved key. `postbag whoami` prints who the current key
+belongs to.
 
 ## Output
 
@@ -69,6 +80,16 @@ supplied them, and exits `1`. In `--json` mode the raw `{ "error": { "code", "me
 "hint", "docs" } }` object goes to stderr instead. The API key is never printed.
 
 ## Agent usage
+
+No key yet? An agent can get one without a browser or asking a human to open the
+dashboard — the human only reads a 6-digit code out of their inbox:
+
+```sh
+postbag login --email the-human@example.com    # "Code sent to the-human@example.com — check your inbox"
+postbag login --email the-human@example.com --code 123456
+```
+
+Then it's a normal key, resolved the same way every other command resolves one:
 
 ```sh
 POSTBAG_API_KEY=pb_live_xxxxx postbag --json forms list
@@ -104,7 +125,7 @@ Never hand-write a submit URL — run `postbag init` once, then `postbag forms c
 ## Command reference
 
 ```
-postbag login | logout | whoami
+postbag login [--api-key <key>] [--email <addr>] [--code <digits>] | logout | whoami
 postbag init [--name] [--email] [--telegram <chatId>] [--project] [--yes] [--force]
 postbag forms list|get <id>|create|update <id>|delete <id>|embed <id>
 postbag submissions list|get <id>|tail --form <id> [--interval <s>]

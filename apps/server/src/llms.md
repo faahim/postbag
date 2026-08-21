@@ -6,6 +6,23 @@ according to rules you configure. It is multi-tenant, self-hostable, and
 agent-native: everything a human can do in the dashboard, an agent can do with an
 API key.
 
+## Getting an API key without a browser
+
+No key yet? Two calls and one human step, no dashboard required:
+
+1. `POST {{APP_URL}}/v1/auth/request-code {"email":"you@example.com"}` — emails a
+   6-digit code, good for 10 minutes. Always 200 for a well-formed address.
+2. A human reads the code out of their inbox and gives it to you.
+3. `POST {{APP_URL}}/v1/auth/verify-code {"email":"you@example.com","code":"123456"}`
+   — returns `{ api_key: "pb_live_…", organization, next }`. A new email provisions
+   an organization first; an existing email reuses its own. The key is shown once.
+
+Save it as `POSTBAG_API_KEY` or in `~/.config/postbag/credentials.json` (the CLI's
+`postbag login` does this for you and also drives this exact flow — run it with no
+arguments, or non-interactively with `--email`/`--code`). Then write a
+`postbag.json` in the site repo (`form_id`, `submit_url`, `project`) once you've
+created a form, so later sessions find the wiring without asking again.
+
 ## The one idea
 
 A submission is a row before it is anything else. Delivery is an outbox drained by

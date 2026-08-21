@@ -8,6 +8,45 @@ import { assertScope, assertSessionActor } from "../../lib/scope.js"
 import type { AppEnv } from "../../lib/scope.js"
 import { errorResponses, ScopeSchema } from "../../schemas.js"
 
+export type MintedApiKey = {
+  readonly id: string
+  readonly name: string | null
+  readonly prefix: string | null
+  readonly key: string
+  readonly createdAt: Date
+}
+
+export type MintApiKeyInput = {
+  readonly organizationId: string
+  readonly name?: string | undefined
+  readonly scopes: readonly ("manage" | "read" | "submit")[]
+  /** Session request headers, when minting from a signed-in dashboard session (POST
+   * /v1/api-keys). Omit when minting on behalf of an explicit `userId` instead (job H's
+   * POST /v1/auth/verify-code, which has no session) — better-auth's `createApiKey`
+   * accepts either. */
+  readonly headers?: Headers | undefined
+  readonly userId?: string | undefined
+}
+
+/**
+ * The exact key-minting call `POST /v1/api-keys` uses, extracted (job H 1b) so `POST
+ * /v1/auth/verify-code` mints through the identical path instead of a second
+ * implementation that could drift from it.
+ */
+export async function mintApiKey(auth: Auth, input: MintApiKeyInput): Promise<MintedApiKey> {
+  const created = await auth.api.createApiKey({
+    ...(input.headers === undefined ? {} : { headers: input.headers }),
+    body: {
+      configId: "postbag",
+      name: input.name,
+      organizationId: input.organizationId,
+      ...(input.userId === undefined ? {} : { userId: input.userId }),
+      metadata: { scopes: input.scopes },
+    },
+  })
+  return created as unknown as MintedApiKey
+}
+
 const ApiKeyCreateInputSchema = z.object({
   name: z.string().min(1).optional().describe("A label to tell keys apart, e.g. 'CI deploy key'."),
   scopes: z
@@ -80,22 +119,12 @@ export function registerApiKeyRoutes(app: OpenAPIHono<AppEnv>, auth: Auth, db: D
     assertSessionActor(scope, "Create API keys from a signed-in session, not another API key.")
     const body = c.req.valid("json")
 
-    const created = await auth.api.createApiKey({
+    const createdRecord = await mintApiKey(auth, {
+      organizationId: scope.organizationId,
+      name: body.name,
+      scopes: body.scopes,
       headers: c.req.raw.headers,
-      body: {
-        configId: "postbag",
-        name: body.name,
-        organizationId: scope.organizationId,
-        metadata: { scopes: body.scopes },
-      },
     })
-    const createdRecord = created as unknown as {
-      readonly id: string
-      readonly name: string | null
-      readonly prefix: string | null
-      readonly key: string
-      readonly createdAt: Date
-    }
 
     return c.json(
       {

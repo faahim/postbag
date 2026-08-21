@@ -2,6 +2,7 @@ import { createAuth, type CreateAuthOptions } from "@postbag/auth"
 import type { Database } from "@postbag/db"
 
 import type { Env } from "./env.js"
+import { createOtpEmailSender } from "./lib/otpEmail.js"
 import { provisionPersonalOrganization } from "./provisioning.js"
 
 export type Auth = ReturnType<typeof createAuth>
@@ -25,7 +26,16 @@ function socialProvidersFrom(env: Env): CreateAuthOptions["socialProviders"] {
   }
 }
 
-export function buildAuth(db: Database, env: Env): Auth {
+export type BuildAuthOverrides = {
+  /** Job H 1a test seam: production wires the real Resend-backed sender (from
+   * `RESEND_API_KEY`/`MAIL_FROM`); tests inject a capturing stub instead so no network call
+   * happens and the OTP can be read back. Leave unset to get the production behaviour
+   * (including "undefined when RESEND_API_KEY is unset", which is what makes `POST
+   * /v1/auth/request-code` return `501 email_not_configured`). */
+  readonly sendEmailOTP?: CreateAuthOptions["sendEmailOTP"]
+}
+
+export function buildAuth(db: Database, env: Env, overrides: BuildAuthOverrides = {}): Auth {
   return createAuth({
     db,
     secret: env.BETTER_AUTH_SECRET,
@@ -37,5 +47,12 @@ export function buildAuth(db: Database, env: Env): Auth {
     trustedOrigins: env.NODE_ENV === "development" ? [env.APP_URL, "http://localhost:5173"] : [env.APP_URL],
     onUserCreated: (user) => provisionPersonalOrganization(db, user),
     socialProviders: socialProvidersFrom(env),
+    sendEmailOTP:
+      overrides.sendEmailOTP ??
+      createOtpEmailSender(
+        env.RESEND_API_KEY === undefined
+          ? undefined
+          : { resendApiKey: env.RESEND_API_KEY, mailFrom: env.MAIL_FROM },
+      ),
   })
 }

@@ -696,6 +696,171 @@ paths:
                   - email_password
                   - social
                   - sign_in_url
+  /v1/auth/request-code:
+    post:
+      operationId: auth_request_code
+      tags:
+        - discovery
+      summary: Email a 6-digit sign-in code (step 1 of agent onboarding without a
+        browser)
+      description: Public, unauthenticated. Sends a 6-digit code good for 10 minutes
+        to the given address. Always 200 for a well-formed email, whether or not
+        an account exists — this endpoint never confirms or denies an account's
+        existence. Rate limited per email and per client IP. The human reads the
+        code out of their inbox and gives it to the agent, which calls POST
+        /v1/auth/verify-code next.
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Lowercased and trimmed before use. Always 200s for a well-formed
+                    address.
+              required:
+                - email
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  expires_in:
+                    type: integer
+                  next:
+                    type: string
+                required:
+                  - ok
+                  - expires_in
+                  - next
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "501":
+          description: Email sending is not configured on this server
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/auth/verify-code:
+    post:
+      operationId: auth_verify_code
+      tags:
+        - discovery
+      summary: Verify a code and mint an API key (step 2 of agent onboarding without a
+        browser)
+      description: Public, unauthenticated. Verifies the code sent by POST
+        /v1/auth/request-code and, on success, mints an API key through the same
+        path POST /v1/api-keys uses — default scope manage. A new email
+        provisions a personal organization first, exactly like every other
+        sign-up path. An existing user's key is minted against their personal
+        organization (the one they own, oldest first, if they belong to
+        several). This does not set a session cookie — it mints a key, it does
+        not log a browser in.
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+                  description: The 6-digit code from the email.
+                key_name:
+                  type: string
+                  description: Defaults to "agent · <YYYY-MM-DD>".
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - manage
+                      - read
+                      - submit
+                  minItems: 1
+                  default:
+                    - manage
+              required:
+                - email
+                - code
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_key:
+                    type: string
+                    description: Shown once — store it immediately.
+                  key_id:
+                    type: string
+                  scopes:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                        - manage
+                        - read
+                        - submit
+                  organization:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      slug:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                      - id
+                      - slug
+                      - name
+                  user:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                      created:
+                        type: boolean
+                    required:
+                      - email
+                      - created
+                  next:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - api_key
+                  - key_id
+                  - scopes
+                  - organization
+                  - user
+                  - next
+        "401":
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /v1/me:
     get:
       operationId: me_get

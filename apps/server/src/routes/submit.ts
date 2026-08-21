@@ -23,6 +23,7 @@ import {
 import type { Context, Hono } from "hono"
 
 import type { Env } from "../env.js"
+import { clientIp } from "../lib/clientIp.js"
 import { decideCors } from "../lib/cors.js"
 import { envelope } from "../lib/errors.js"
 import type { Logger } from "../logger.js"
@@ -56,29 +57,6 @@ type FormSettings = {
   readonly rate_limit?: { readonly per_minute?: number; readonly burst?: number }
   readonly reply_to_field?: string | null
   readonly turnstile?: { readonly secret?: string; readonly enabled?: boolean }
-}
-
-// Job D 1c: production runs behind Cloudflare (proxied) → Traefik → container. Prefer the
-// header Cloudflare sets from the real client connection, then the first hop of
-// X-Forwarded-For (the proxy chain nearest the client), then the raw socket address the
-// Node server sees, in that order. Without this, every submission recorded `ip: unknown`.
-function socketRemoteAddress(c: Context<AppEnv>): string | undefined {
-  const env = c.env as { readonly incoming?: { readonly socket?: { readonly remoteAddress?: string } } } | undefined
-  const address = env?.incoming?.socket?.remoteAddress
-  return address === undefined || address.length === 0 ? undefined : address
-}
-
-function clientIp(c: Context<AppEnv>): string {
-  const cfConnectingIp = c.req.header("cf-connecting-ip")?.trim()
-  if (cfConnectingIp !== undefined && cfConnectingIp.length > 0) return cfConnectingIp
-
-  const forwarded = c.req.header("x-forwarded-for")
-  if (forwarded !== undefined) {
-    const firstHop = forwarded.split(",")[0]?.trim()
-    if (firstHop !== undefined && firstHop.length > 0) return firstHop
-  }
-
-  return socketRemoteAddress(c) ?? "unknown"
 }
 
 async function readBoundedBody(request: Request): Promise<{ raw: ArrayBuffer; contentType: string }> {

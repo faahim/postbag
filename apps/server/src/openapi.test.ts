@@ -51,10 +51,14 @@ describe("generated OpenAPI document", () => {
     const health = allOperations(doc).find(({ path }) => path === "/health")
     expect(health?.op.security).toEqual([])
 
-    // GET /v1/auth/providers is deliberately public (job G 1c) — the SPA calls it before
-    // sign-in even loads, so it carries its own `security: []` override instead of
-    // inheriting the document default. Every other /v1/* operation still inherits it.
-    const v1Operations = allOperations(doc).filter(({ path }) => path.startsWith("/v1/") && path !== "/v1/auth/providers")
+    // GET /v1/auth/providers (job G 1c) and the two agent-onboarding endpoints
+    // /v1/auth/request-code + /v1/auth/verify-code (job H 1b) are deliberately public — the
+    // SPA calls the first before sign-in even loads, and an agent holding no credentials at
+    // all must be able to reach the other two, so they carry their own `security: []`
+    // override instead of inheriting the document default. Every other /v1/* operation
+    // still inherits it.
+    const PUBLIC_V1_PATHS = new Set(["/v1/auth/providers", "/v1/auth/request-code", "/v1/auth/verify-code"])
+    const v1Operations = allOperations(doc).filter(({ path }) => path.startsWith("/v1/") && !PUBLIC_V1_PATHS.has(path))
     expect(v1Operations.length).toBeGreaterThan(0)
     for (const { path, method, op } of v1Operations) {
       // No per-operation override — they inherit the document-level `security: [{ bearerAuth: [] }]`.
@@ -67,5 +71,16 @@ describe("generated OpenAPI document", () => {
     const op = doc.paths["/v1/auth/providers"]?.["get"]
     expect(op?.operationId).toBe("auth_providers")
     expect(op?.security).toEqual([])
+  })
+
+  it("the two agent-onboarding auth-code endpoints are public with well-formed operationIds", async () => {
+    const doc = (await generateOpenapiDocument()) as unknown as OpenapiDoc
+    const requestCode = doc.paths["/v1/auth/request-code"]?.["post"]
+    expect(requestCode?.operationId).toBe("auth_request_code")
+    expect(requestCode?.security).toEqual([])
+
+    const verifyCode = doc.paths["/v1/auth/verify-code"]?.["post"]
+    expect(verifyCode?.operationId).toBe("auth_verify_code")
+    expect(verifyCode?.security).toEqual([])
   })
 })

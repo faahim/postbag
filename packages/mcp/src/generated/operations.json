@@ -12,6 +12,77 @@
     "body": null
   },
   {
+    "operationId": "auth_request_code",
+    "method": "post",
+    "path": "/v1/auth/request-code",
+    "summary": "Email a 6-digit sign-in code (step 1 of agent onboarding without a browser)",
+    "description": "Public, unauthenticated. Sends a 6-digit code good for 10 minutes to the given address. Always 200 for a well-formed email, whether or not an account exists — this endpoint never confirms or denies an account's existence. Rate limited per email and per client IP. The human reads the code out of their inbox and gives it to the agent, which calls POST /v1/auth/verify-code next.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Lowercased and trimmed before use. Always 200s for a well-formed address."
+        }
+      },
+      "required": [
+        "email"
+      ]
+    }
+  },
+  {
+    "operationId": "auth_verify_code",
+    "method": "post",
+    "path": "/v1/auth/verify-code",
+    "summary": "Verify a code and mint an API key (step 2 of agent onboarding without a browser)",
+    "description": "Public, unauthenticated. Verifies the code sent by POST /v1/auth/request-code and, on success, mints an API key through the same path POST /v1/api-keys uses — default scope manage. A new email provisions a personal organization first, exactly like every other sign-up path. An existing user's key is minted against their personal organization (the one they own, oldest first, if they belong to several). This does not set a session cookie — it mints a key, it does not log a browser in.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "code": {
+          "type": "string",
+          "description": "The 6-digit code from the email."
+        },
+        "key_name": {
+          "type": "string",
+          "description": "Defaults to \"agent · <YYYY-MM-DD>\"."
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "manage",
+              "read",
+              "submit"
+            ]
+          },
+          "minItems": 1,
+          "default": [
+            "manage"
+          ]
+        }
+      },
+      "required": [
+        "email",
+        "code"
+      ]
+    }
+  },
+  {
     "operationId": "me_get",
     "method": "get",
     "path": "/v1/me",

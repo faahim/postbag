@@ -4,6 +4,7 @@ import PageHeader from "@/components/PageHeader.astro"
 import CodeBlock from "@/components/CodeBlock.astro"
 import Faq from "@/components/Faq.astro"
 import CtaBand from "@/components/CtaBand.astro"
+import { Bot, Plug, Puzzle } from "@lucide/astro"
 import { API_URL, EXAMPLE, LLMS_URL, OPENAPI_URL, SITE_URL } from "@/config"
 import { breadcrumbLd, faqLd, webPageLd } from "@/lib/seo"
 
@@ -11,13 +12,35 @@ const crumbs = [ { name: "Home", href: "/" }, { name: "For AI agents", href: "/f
 const title = "Postbag for AI agents: a form backend an agent can set up end to end with one API key"
 const description = "Postbag is agent-native: llms.txt and OpenAPI for discovery, GET /v1/me for context, POST /v1/quickstart for a working routed form in one call, _test submissions to verify delivery, errors with hints and docs links, idempotent creates. Built for Claude Code, Cursor, Codex and any agent with an API key."
 const faqs = [
-  { q: "What does an AI agent need to use Postbag?", a: "An API key (pb_live_…) with the manage scope. From there it can read /llms.txt and /openapi.json, call GET /v1/me, create a routed form with POST /v1/quickstart, verify with a _test submission, and add destinations or streams, all without a browser." },
+  { q: "What does an AI agent need to use Postbag?", a: "Nothing to start — not even an API key. It emails itself a 6-digit code (<code>POST /v1/auth/request-code</code>), a human reads the code out of their inbox, and <code>POST /v1/auth/verify-code</code> returns a manage-scoped key (and provisions an organization for a new email). From there it can read /llms.txt and /openapi.json, call GET /v1/me, create a routed form with POST /v1/quickstart, verify with a _test submission, and add destinations or streams, all without a browser." },
+  { q: "How does an agent get an API key without a browser?", a: "Two calls, one human step in between: <code>POST /v1/auth/request-code {\"email\":\"…\"}</code> emails a 6-digit code good for 10 minutes; the human reads it out and gives it to the agent; <code>POST /v1/auth/verify-code {\"email\":\"…\",\"code\":\"…\"}</code> returns a <code>pb_live_…</code> key. <code>postbag login</code> (once published) or <code>npx skills add faahim/postbag --skill postbag</code> drives this same flow." },
   { q: "How does an agent verify that a form actually works?", a: "It posts to the submit URL with <code>_test: true</code>. The response includes the submission id and delivery ids; polling <code>GET /v1/deliveries/{id}</code> shows <code>sent</code> along with the provider's response. Test submissions are excluded from quotas." },
-  { q: "Is there an MCP server or CLI?", a: "Both are in progress and will be thin clients over the same /v1 API and the generated SDK. Today the recommended path is the HTTP API directly; it is small and fully described by <code>/openapi.json</code>. Nothing the CLI or MCP server will do is impossible over HTTP." },
+  { q: "Is there an MCP server or CLI?", a: "Both are in progress — not yet published to npm — but the commands already exist and work against a real Postbag instance today: <code>npx postbag login</code>, <code>npx postbag init</code>, and <code>npx -y @postbag/mcp</code>. Today the recommended path is the HTTP API directly; it is small and fully described by <code>/openapi.json</code>. Nothing the CLI or MCP server does is impossible over HTTP." },
   { q: "What happens when an agent makes a mistake?", a: "Every error is <code>{ code, message, hint, docs }</code>. The hint says what to do next; docs is a deep link into <a href='/docs/errors/'>the error reference</a>. Validation errors list the offending fields. Incomplete stream mappings fail at attach time with the missing fields listed." },
   { q: "Is it safe for an agent to re-run a setup script?", a: "Yes. <code>Idempotency-Key</code> is honoured on every POST under /v1, and creates accept <code>if_exists: \"return\"</code> so re-running returns the same objects instead of duplicates or errors." },
   { q: "How should a site repo remember its Postbag wiring?", a: "The convention is a <code>postbag.json</code> at the repo root with <code>form_id</code>, <code>submit_url</code> and <code>project</code>, and a line in CLAUDE.md or AGENTS.md saying forms on this site post to Postbag. Later sessions, human or agent, find the wiring there." },
 ]
+
+const promptText = `Set up a contact form on this site with Postbag. Read ${LLMS_URL} first.`
+const skillInstall = `npx skills add faahim/postbag --skill postbag
+# works once the repo is public — or fetch the file directly:
+curl ${API_URL}/.well-known/skills/postbag/SKILL.md`
+const mcpAndCli = `npx -y @postbag/mcp   # env: POSTBAG_API_KEY=pb_live_…
+npx postbag login     # in progress — CLI/MCP not yet published to npm`
+const options = [
+  { icon: Bot, title: "Paste to your agent", body: "One line. The agent reads llms.txt, mints its own key by email code, and builds the form.", code: promptText, lang: "text" },
+  { icon: Puzzle, title: "Install the skill", body: "An Agent Skill with the decision tree, the quickstart call and the embed snippet already in it.", code: skillInstall, lang: "bash" },
+  { icon: Plug, title: "MCP or CLI", body: "Tools that mirror the API one to one, for agents and terminals that prefer not to shell out to curl.", code: mcpAndCli, lang: "bash" },
+] as const
+const keyFlow = `$ curl -X POST ${API_URL}/v1/auth/request-code -d '{"email":"you@example.com"}'
+{ "ok": true, "expires_in": 600, "next": "POST /v1/auth/verify-code with { email, code, key_name }" }
+
+# — a human reads the 6-digit code out of their inbox and gives it to the agent —
+
+$ curl -X POST ${API_URL}/v1/auth/verify-code -d '{"email":"you@example.com","code":"482913"}'
+{ "api_key": "pb_live_…", "organization": { "id": "org_…", "slug": "…", "name": "…" },
+  "user": { "email": "you@example.com", "created": true },
+  "next": [ "POST /v1/quickstart to create a routed form in one call", "GET /v1/me to see limits and what exists" ] }`
 const ld = [ webPageLd({ url: `${SITE_URL}/for-ai-agents/`, name: title, description }), breadcrumbLd(crumbs), faqLd(faqs) ]
 
 const steps = [
@@ -48,8 +71,34 @@ Never hand-write a submit URL. Verify with a _test submission and poll the deliv
     </div>
   </PageHeader>
 
-  <section class="container-x" aria-labelledby="flow-heading">
-    <h2 id="flow-heading" class="text-3xl font-semibold sm:text-4xl">Four calls from nothing to verified.</h2>
+  <section class="container-x" aria-labelledby="setup-heading">
+    <h2 id="setup-heading" class="text-3xl font-semibold text-balance sm:text-4xl">Set up your agent in seconds.</h2>
+    <p class="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">Three ways in, none of them a dashboard.</p>
+    <div class="mt-10 grid gap-5 sm:grid-cols-3" data-reveal-group="80">
+      {options.map((o) => (
+        <div class="card flex flex-col gap-4 p-5" data-reveal>
+          <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <o.icon size={20} stroke-width={1.75} aria-hidden="true" />
+            </span>
+            <h3 class="font-display text-[17px] font-semibold">{o.title}</h3>
+          </div>
+          <p class="text-[15px] leading-relaxed text-muted-foreground">{o.body}</p>
+          <CodeBlock code={o.code} lang={o.lang} dense class="mt-auto" />
+        </div>
+      ))}
+    </div>
+    <div class="mt-12 grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:gap-12" data-reveal>
+      <div>
+        <h3 class="font-display text-xl font-semibold">How does the agent get a key?</h3>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted-foreground">Two calls, one human step in between. A new email provisions an organization first; an existing email reuses its own. The key is shown once.</p>
+      </div>
+      <div class="min-w-0"><CodeBlock code={keyFlow} lang="bash" title="request-code → verify-code" dense /></div>
+    </div>
+  </section>
+
+  <section class="container-x mt-24" aria-labelledby="flow-heading">
+    <h2 id="flow-heading" class="text-3xl font-semibold sm:text-4xl">Four calls from key to verified.</h2>
     <ol class="mt-10 grid gap-12">
       {steps.map((s, i) => (
         <li class="grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-12" data-reveal>

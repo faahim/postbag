@@ -24,6 +24,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/request-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email a 6-digit sign-in code (step 1 of agent onboarding without a browser)
+         * @description Public, unauthenticated. Sends a 6-digit code good for 10 minutes to the given address. Always 200 for a well-formed email, whether or not an account exists — this endpoint never confirms or denies an account's existence. Rate limited per email and per client IP. The human reads the code out of their inbox and gives it to the agent, which calls POST /v1/auth/verify-code next.
+         */
+        post: operations["auth_request_code"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/verify-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify a code and mint an API key (step 2 of agent onboarding without a browser)
+         * @description Public, unauthenticated. Verifies the code sent by POST /v1/auth/request-code and, on success, mints an API key through the same path POST /v1/api-keys uses — default scope manage. A new email provisions a personal organization first, exactly like every other sign-up path. An existing user's key is minted against their personal organization (the one they own, oldest first, if they belong to several). This does not set a session cookie — it mints a key, it does not log a browser in.
+         */
+        post: operations["auth_verify_code"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me": {
         parameters: {
             query?: never;
@@ -1033,6 +1073,120 @@ export interface operations {
                         social: ("google" | "github")[];
                         sign_in_url: string;
                     };
+                };
+            };
+        };
+    };
+    auth_request_code: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: email
+                     * @description Lowercased and trimmed before use. Always 200s for a well-formed address.
+                     */
+                    email: string;
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                        expires_in: number;
+                        next: string;
+                    };
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Email sending is not configured on this server */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    auth_verify_code: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    email: string;
+                    /** @description The 6-digit code from the email. */
+                    code: string;
+                    /** @description Defaults to "agent · <YYYY-MM-DD>". */
+                    key_name?: string;
+                    /**
+                     * @default [
+                     *       "manage"
+                     *     ]
+                     */
+                    scopes?: ("manage" | "read" | "submit")[];
+                };
+            };
+        };
+        responses: {
+            /** @description created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Shown once — store it immediately. */
+                        api_key: string;
+                        key_id: string;
+                        scopes: ("manage" | "read" | "submit")[];
+                        organization: {
+                            id: string;
+                            slug: string;
+                            name: string;
+                        };
+                        user: {
+                            email: string;
+                            created: boolean;
+                        };
+                        next: string[];
+                    };
+                };
+            };
+            /** @description Invalid or expired code */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

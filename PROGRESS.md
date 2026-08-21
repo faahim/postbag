@@ -102,6 +102,12 @@ the rules and `docs/` for the design.
   `trustedProviders` + `requireLocalEmailVerified:false` — pre-registration takeover). Providers activate the moment
   `GOOGLE_*`/`GITHUB_*` env land on Coolify (`VITE_HOSTED=1` build arg already set).
 
+- [x] **Job H (2026-08-21, spec `tasks/job-H-agent-onboarding.md`):** `POST /v1/auth/request-code` + `/verify-code`
+  (Better Auth `emailOTP`, hashed 6-digit, 3 attempts, 3/email + 10/IP per 10 min, no cookie, mints a key through the
+  same helper as `/v1/api-keys`); `postbag login` drives it (`--email`, `--code`); `skills/postbag/SKILL.md` served at
+  `/.well-known/skills/` (bundled into dist by the server build); landing "set up your agent" block; llms.txt section.
+  184 tests.
+
 ## Next up (in order)
 
 0. Design session with Fahim on the dashboard (see Job E verdict). Screenshots: session scratchpad `web-shots/` (before) and `web-shots-v2/` (after).
@@ -127,7 +133,7 @@ the rules and `docs/` for the design.
    Until a password account is verified, Better Auth will not auto-link a same-email Google/GitHub sign-in
    (by design — pre-registration takeover); the sign-in page explains to use the password and connect from
    Settings. Also: resend-verification button in Settings → Profile.
-2e. **Agent onboarding, here.now-style** — (a)+(b) in progress as `tasks/job-H-agent-onboarding.md`; (c) awaits Fahim: (a) agent-assisted signup without a browser —
+2e. **Agent onboarding** — (a)+(b) shipped (job H); (c) anonymous/claimable quickstart awaits Fahim: (a) agent-assisted signup without a browser —
    `POST /v1/auth/request-code {email}` → emailed 6-digit code (Better Auth `emailOTP` plugin) →
    `POST /v1/auth/verify-code {email, code, key_name}` creates user+org if new and returns a `pb_live_` manage key
    the agent stores in `~/.config/postbag/credentials.json`; (b) an Agent Skill in-repo (`skills/postbag/SKILL.md`,
