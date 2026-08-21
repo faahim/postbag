@@ -26,6 +26,7 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     MIGRATE_ON_BOOT: false,
     RLS_ENFORCED: false,
     LEGACY_HOSTS: [],
+    PLATFORM_ADMIN_EMAILS: [],
     ...overrides,
   }
 }

@@ -19,7 +19,7 @@ import type { AnyDestinationAdapter, DeliveryContext } from "../destinations/typ
 import type { Env } from "../env.js"
 import type { Logger } from "../logger.js"
 import { runDigestSweep } from "./digests.js"
-import { runSchemaInferenceSweep } from "./housekeeping.js"
+import { runPlanExpirySweep, runSchemaInferenceSweep } from "./housekeeping.js"
 import { recordEvent } from "./shared.js"
 import { processSystemWebhookDeliveries } from "./systemWebhooks.js"
 
@@ -329,6 +329,9 @@ export function startWorker(
   const housekeepingTimer = setInterval(() => {
     runSchemaInferenceSweep(db, log).catch((error: unknown) => {
       log.error({ err: error }, "schema inference sweep failed")
+    })
+    runPlanExpirySweep(db, log).catch((error: unknown) => {
+      log.error({ err: error }, "plan expiry sweep failed")
     })
   }, HOUSEKEEPING_INTERVAL_MS)
 

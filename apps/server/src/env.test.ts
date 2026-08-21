@@ -47,3 +47,14 @@ describe("loadEnv — social login (job G)", () => {
     expect(() => loadEnv({ ...BASE, GITHUB_CLIENT_SECRET: "github-secret" })).toThrow(/GITHUB_CLIENT_ID/)
   })
 })
+
+describe("loadEnv — PLATFORM_ADMIN_EMAILS (job K)", () => {
+  it("defaults to an empty list, hiding the admin endpoints", () => {
+    expect(loadEnv(BASE).PLATFORM_ADMIN_EMAILS).toEqual([])
+  })
+
+  it("splits, trims and lowercases a comma-separated list", () => {
+    const env = loadEnv({ ...BASE, PLATFORM_ADMIN_EMAILS: " Fahim@Example.com, friend@example.com ,," })
+    expect(env.PLATFORM_ADMIN_EMAILS).toEqual(["fahim@example.com", "friend@example.com"])
+  })
+})

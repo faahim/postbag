@@ -34,6 +34,7 @@ export async function generateOpenapiDocument(): Promise<Record<string, unknown>
     MIGRATE_ON_BOOT: false,
     RLS_ENFORCED: false,
     LEGACY_HOSTS: [],
+    PLATFORM_ADMIN_EMAILS: [],
   }
   const logger = createLogger(env)
   const client = createDb(env.DATABASE_URL)

@@ -1,5 +1,6 @@
-import { and, eq, isNull } from "drizzle-orm"
-import { forms, type Database } from "@postbag/db"
+import { newId } from "@postbag/core"
+import { and, eq, isNull, lt } from "drizzle-orm"
+import { events, forms, organizationSettings, type Database } from "@postbag/db"
 
 import type { Logger } from "../logger.js"
 import { inferFormSchemaDraft } from "../repo/schemaInference.js"
@@ -21,6 +22,48 @@ export async function runSchemaInferenceSweep(db: Database, logger: Logger): Pro
       await inferFormSchemaDraft(db, form.organizationId, form.id)
     } catch (error) {
       logger.warn({ err: error, form_id: form.id }, "schema inference sweep failed for form")
+    }
+  }
+}
+
+/**
+ * Job K expiry housekeeping — same 10-minute loop as the schema inference sweep above.
+ * Reverts a `complimentary` org whose `plan_expires_at` has passed back to `free`/`free`
+ * (plan_note cleared) and emits `organization.plan.changed` with before/after, the same
+ * event POST /v1/plan/redeem writes. One org failing must not stop the sweep for the rest.
+ */
+export async function runPlanExpirySweep(db: Database, logger: Logger): Promise<void> {
+  const now = new Date()
+  const expired = await db
+    .select()
+    .from(organizationSettings)
+    .where(and(eq(organizationSettings.planSource, "complimentary"), lt(organizationSettings.planExpiresAt, now)))
+
+  for (const org of expired) {
+    try {
+      const before = {
+        plan: org.plan,
+        plan_source: org.planSource,
+        plan_expires_at: org.planExpiresAt?.toISOString() ?? null,
+        plan_note: org.planNote,
+      }
+      const after = { plan: "free", plan_source: "free", plan_expires_at: null, plan_note: null }
+
+      await db.transaction(async (tx) => {
+        await tx
+          .update(organizationSettings)
+          .set({ plan: "free", planSource: "free", planNote: null, planExpiresAt: null, updatedAt: now })
+          .where(eq(organizationSettings.organizationId, org.organizationId))
+        await tx.insert(events).values({
+          id: newId("ev"),
+          organizationId: org.organizationId,
+          type: "organization.plan.changed",
+          subject: { organization_id: org.organizationId },
+          data: { before, after, reason: "complimentary_expired" },
+        })
+      })
+    } catch (error) {
+      logger.warn({ err: error, organization_id: org.organizationId }, "plan expiry sweep failed for organization")
     }
   }
 }

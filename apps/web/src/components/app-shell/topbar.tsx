@@ -5,6 +5,7 @@ import { useState } from "react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { VipBadge } from "@/components/vip-badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,6 +76,8 @@ export function Topbar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {me.data?.organization.plan_source === "complimentary" && <VipBadge />}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

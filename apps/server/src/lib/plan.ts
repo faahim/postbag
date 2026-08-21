@@ -1,4 +1,9 @@
-import type { Plan, PlanLimits } from "@postbag/core"
+import { PostbagError, type Plan, type PlanLimits, type PlanSource } from "@postbag/core"
+
+// Job K: tier ordering for the plan_grants redeem rule ("redeeming a lower tier than
+// current is refused"). `selfhost` is not a purchasable/redeemable tier in practice but
+// ranks highest so nothing downgrades a self-hosted instance by accident.
+export const PLAN_ORDER: Record<Plan, number> = { free: 0, pro: 1, team: 2, selfhost: 3 }
 
 export const DEFAULT_PLAN_LIMITS: Record<Plan, Omit<PlanLimits, "used">> = {
   free: { forms: 5, submissions_per_month: 1_000, destinations: 5, retention_days: 90 },
@@ -23,5 +28,21 @@ export function limitsFor(plan: string, stored: Readonly<Record<string, number>>
     submissions_per_month: stored["submissions_per_month"] ?? defaults.submissions_per_month,
     destinations: stored["destinations"] ?? defaults.destinations,
     retention_days: stored["retention_days"] ?? defaults.retention_days,
+  }
+}
+
+/**
+ * Job K — the checkout guard, written now even though checkout (ADR-007/Polar) doesn't
+ * exist yet: billing code must never downgrade a complimentary org and must refuse to
+ * start checkout for one. Call this at the top of the future `POST /v1/billing/checkout`
+ * handler; it throws `409 plan_is_complimentary` (with a hint) when checkout must not
+ * proceed, and is a no-op otherwise.
+ */
+export function canStartCheckout(planSource: PlanSource): void {
+  if (planSource === "complimentary") {
+    throw new PostbagError(
+      "plan_is_complimentary",
+      "This organization has complimentary access; billing does not apply while it is active.",
+    )
   }
 }

@@ -21,6 +21,27 @@ export const ERROR_DEFINITIONS = {
   idempotency_conflict: { status: 409, hint: "Reuse the key only for the identical operation." },
   conflict: { status: 409, hint: "The resource already exists, or is still referenced elsewhere." },
   plan_limit_reached: { status: 402, hint: "Change plan limits or remove an unused resource." },
+  // Job K — plan grants (complimentary access) and the checkout guard that will sit in
+  // front of Polar billing (ADR-007) once it exists.
+  grant_not_found: { status: 404, hint: "Check the code and try again." },
+  grant_expired: { status: 410, hint: "Ask whoever sent the code for a new one." },
+  grant_revoked: { status: 410, hint: "This code was revoked and can no longer be redeemed." },
+  grant_exhausted: {
+    status: 410,
+    hint: "This code has already been redeemed the maximum number of times.",
+  },
+  plan_is_billing: {
+    status: 409,
+    hint: "This organization already pays for its plan — cancel the subscription first if you want to redeem a code instead.",
+  },
+  plan_not_upgrade: {
+    status: 409,
+    hint: "This code's plan is not higher than the organization's current plan.",
+  },
+  plan_is_complimentary: {
+    status: 409,
+    hint: "This organization has complimentary access; billing does not apply while it is active.",
+  },
   expressions_not_enabled: {
     status: 422,
     hint: "Use from, const, or default until expressions ship.",

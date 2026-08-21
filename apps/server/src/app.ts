@@ -27,6 +27,8 @@ import { registerDestinationRoutes } from "./routes/v1/destinations.js"
 import { registerEventRoutes } from "./routes/v1/events.js"
 import { registerFormRoutes } from "./routes/v1/forms.js"
 import { registerMeRoutes } from "./routes/v1/me.js"
+import { registerPlanGrantRoutes } from "./routes/v1/planGrants.js"
+import { registerPlanRoutes } from "./routes/v1/plan.js"
 import { registerProjectRoutes } from "./routes/v1/projects.js"
 import { registerQuickstartRoutes } from "./routes/v1/quickstart.js"
 import { registerRouteResourceRoutes } from "./routes/v1/routesResource.js"
@@ -87,6 +89,8 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
 
   registerMeRoutes(app, db)
   registerApiKeyRoutes(app, auth, db)
+  registerPlanRoutes(app, db)
+  registerPlanGrantRoutes(app, db, env)
   registerQuickstartRoutes(app, db, env.APP_URL)
   registerProjectRoutes(app, db)
   registerFormRoutes(app, db, env.APP_URL)

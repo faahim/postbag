@@ -23,6 +23,12 @@ const MeSchema = z.object({
     slug: z.string(),
     name: z.string(),
     plan: z.string(),
+    // Job K: *what tier* (plan) vs *why the org has it* (plan_source). plan_expires_at is
+    // only set for time-boxed complimentary grants; plan_note is a short line shown to
+    // the org, e.g. "Courtesy of Postbag".
+    plan_source: z.string(),
+    plan_expires_at: z.string().nullable(),
+    plan_note: z.string().nullable(),
     timezone: z.string(),
   }),
   key: z.object({ prefix: z.string().optional(), scopes: z.array(ScopeSchema) }),
@@ -86,7 +92,16 @@ export function registerMeRoutes(app: OpenAPIHono<AppEnv>, db: Database): void {
     const limits = limitsFor(plan, settingsRow?.limits ?? {})
 
     return c.json({
-      organization: { id: org.id, slug: org.slug, name: org.name, plan, timezone: settingsRow?.timezone ?? "UTC" },
+      organization: {
+        id: org.id,
+        slug: org.slug,
+        name: org.name,
+        plan,
+        plan_source: settingsRow?.planSource ?? "free",
+        plan_expires_at: settingsRow?.planExpiresAt?.toISOString() ?? null,
+        plan_note: settingsRow?.planNote ?? null,
+        timezone: settingsRow?.timezone ?? "UTC",
+      },
       key: { prefix: keyPrefix, scopes: [...scope.scopes] },
       counts: {
         projects: projectCount?.value ?? 0,

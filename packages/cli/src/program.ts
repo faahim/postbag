@@ -1,5 +1,6 @@
 import { Command } from "commander"
 
+import { registerAdminCommands } from "./commands/admin.js"
 import { registerApiKeysCommands } from "./commands/apiKeys.js"
 import { registerAuthCommands } from "./commands/auth.js"
 import { registerDeliveriesCommands } from "./commands/deliveries.js"
@@ -8,6 +9,7 @@ import { registerEventsCommands } from "./commands/events.js"
 import { registerFormsCommands } from "./commands/forms.js"
 import { registerInitCommand } from "./commands/init.js"
 import { registerMiscCommands } from "./commands/misc.js"
+import { registerPlanCommands } from "./commands/plan.js"
 import { registerProjectsCommands } from "./commands/projects.js"
 import { registerRoutesCommands } from "./commands/routes.js"
 import { registerSchemaCommands } from "./commands/schema.js"
@@ -55,6 +57,8 @@ export function buildProgram(deps: CliDeps = defaultDeps()): Command {
   registerWebhooksCommands(program, deps)
   registerProjectsCommands(program, deps)
   registerApiKeysCommands(program, deps)
+  registerPlanCommands(program, deps)
+  registerAdminCommands(program, deps)
   registerMiscCommands(program, deps)
 
   return program

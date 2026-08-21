@@ -50,6 +50,20 @@ const EnvSchema = z
           .map((host) => host.trim().toLowerCase())
           .filter((host) => host.length > 0),
       ),
+    // Job K: comma-separated emails allowed to mint/list/revoke plan_grants
+    // (POST/GET /v1/admin/plan-grants*). Empty by default so a self-hosted operator who
+    // never sets this never sees the endpoint exist (it answers 404 not_found) — see
+    // apps/server/src/lib/platformAdmin.ts.
+    PLATFORM_ADMIN_EMAILS: z
+      .string()
+      .optional()
+      .default("")
+      .transform((value) =>
+        value
+          .split(",")
+          .map((email) => email.trim().toLowerCase())
+          .filter((email) => email.length > 0),
+      ),
   })
   .superRefine((data, ctx) => {
     const pairs: readonly [string, string | undefined, string, string | undefined][] = [
@@ -92,6 +106,7 @@ export type Env = {
   readonly GITHUB_CLIENT_ID?: string | undefined
   readonly GITHUB_CLIENT_SECRET?: string | undefined
   readonly LEGACY_HOSTS: readonly string[]
+  readonly PLATFORM_ADMIN_EMAILS: readonly string[]
 }
 
 export function loadEnv(source: Readonly<Record<string, string | undefined>> = process.env): Env {

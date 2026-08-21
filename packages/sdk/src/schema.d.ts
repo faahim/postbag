@@ -128,6 +128,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/plan/redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Redeem a complimentary-access grant code for the active organization
+         * @description Requires the manage scope (a session is always manage-scoped). A code minted by POST /v1/admin/plan-grants sets plan, plan_source='complimentary', plan_note and — if the grant has a plan_duration_days — plan_expires_at. A paying org (plan_source='billing') cannot redeem (409 plan_is_billing: cancel the subscription first); redeeming a lower tier than the org's current plan is refused (409 plan_not_upgrade).
+         */
+        post: operations["plan_redeem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/plan-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List plan grants (platform admin only; hashed codes never returned)
+         * @description Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var (comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist.
+         */
+        get: operations["admin_plan_grants_list"];
+        put?: never;
+        /**
+         * Mint a complimentary-access grant code (platform admin only)
+         * @description Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var (comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist. Touches no tenant — the code is redeemed by an org's own owner with POST /v1/plan/redeem, which is where plan_source actually changes.
+         */
+        post: operations["admin_plan_grants_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/plan-grants/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a plan grant so it can no longer be redeemed (platform admin only)
+         * @description Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var (comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist. Idempotent — revoking an already-revoked grant just returns it.
+         */
+        post: operations["admin_plan_grants_revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/quickstart": {
         parameters: {
             query?: never;
@@ -785,6 +849,46 @@ export interface components {
                 };
             };
         };
+        PlanRedeemResult: components["schemas"]["OrganizationPlan"] & {
+            next: {
+                why?: string;
+                method?: string;
+                path?: string;
+                body?: {
+                    [key: string]: unknown;
+                };
+            }[];
+        };
+        OrganizationPlan: {
+            /** @enum {string} */
+            plan: "free" | "pro" | "team" | "selfhost";
+            /** @enum {string} */
+            plan_source: "free" | "billing" | "complimentary" | "selfhost";
+            /** @example 2026-08-21T09:00:00.000Z */
+            plan_expires_at: string | null;
+            plan_note: string | null;
+        };
+        PlanGrantCreated: components["schemas"]["PlanGrant"] & {
+            /** @description Shown once — store it immediately. Only its hash is kept. */
+            code: string;
+        };
+        PlanGrant: {
+            /** @example fm_8f3kq2 */
+            id: string;
+            /** @enum {string} */
+            plan: "free" | "pro" | "team" | "selfhost";
+            note: string | null;
+            /** @example 2026-08-21T09:00:00.000Z */
+            expires_at: string | null;
+            plan_duration_days: number | null;
+            max_redemptions: number;
+            redeemed_count: number;
+            created_by_user_id: string;
+            /** @example 2026-08-21T09:00:00.000Z */
+            created_at: string;
+            /** @example 2026-08-21T09:00:00.000Z */
+            revoked_at: string | null;
+        };
         Form: {
             /** @example fm_8f3kq2 */
             id: string;
@@ -1221,6 +1325,9 @@ export interface operations {
                             slug: string;
                             name: string;
                             plan: string;
+                            plan_source: string;
+                            plan_expires_at: string | null;
+                            plan_note: string | null;
                             timezone: string;
                         };
                         key: {
@@ -1397,6 +1504,344 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    plan_redeem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description A code minted by POST /v1/admin/plan-grants. */
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanRedeemResult"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The code is expired, revoked, or fully redeemed */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_plan_grants_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanGrant"][];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_plan_grants_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description The tier this code grants on redemption.
+                     * @enum {string}
+                     */
+                    plan: "free" | "pro" | "team" | "selfhost";
+                    /** @description Shown to the redeeming org, e.g. "Courtesy of Postbag". */
+                    note?: string;
+                    /**
+                     * Format: date-time
+                     * @description When the code itself stops being redeemable. Omit for a code that never expires on its own.
+                     */
+                    expires_at?: string;
+                    /**
+                     * @description How many different organizations may redeem this code.
+                     * @default 1
+                     */
+                    max_redemptions?: number;
+                    /** @description How many days after redemption the granted plan lasts. Omit for a grant with no automatic expiry. */
+                    plan_duration_days?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanGrantCreated"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_plan_grants_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanGrant"];
+                };
             };
             /** @description Error */
             400: {

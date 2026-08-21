@@ -6,6 +6,10 @@ import type { DriftKind, JsonSchema, UiWidget } from "./schema.js"
 // allow: SIZE_OK — OpenAPI component types and matching Zod inputs are one contract surface.
 export type Scope = "manage" | "read" | "submit"
 export type Plan = "free" | "pro" | "team" | "selfhost"
+// Job K: *what tier* (Plan) is separate from *why the org has it* (PlanSource). `billing`
+// is written only by the (future) Polar webhook handler; `complimentary` only by redeeming
+// a plan_grants code; `selfhost` by the self-host bootstrap.
+export type PlanSource = "free" | "billing" | "complimentary" | "selfhost"
 export type Timestamp = string
 export type Id = string
 export type Slug = string
@@ -56,6 +60,9 @@ export type ApiKey = {
 export type OrganizationSettings = {
   readonly organization_id: Id
   readonly plan: Plan
+  readonly plan_source: PlanSource
+  readonly plan_expires_at: Timestamp | null
+  readonly plan_note: string | null
   readonly timezone: string
   readonly limits: Omit<PlanLimits, "used">
 }

@@ -35,6 +35,13 @@ export function formatDateTime(iso: string): string {
   return dateTimeFormatter.format(new Date(iso))
 }
 
+const dateFormatter = new Intl.DateTimeFormat("en", { dateStyle: "medium" })
+
+/** "21 Aug 2026" — no time-of-day, used where only the day matters (e.g. a plan's expiry). */
+export function formatDate(iso: string): string {
+  return dateFormatter.format(new Date(iso))
+}
+
 const countFormatter = new Intl.NumberFormat("en")
 
 export function formatCount(value: number): string {

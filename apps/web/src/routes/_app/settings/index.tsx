@@ -4,6 +4,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { ConnectedAccountsCard } from "@/components/connected-accounts-card"
+import { PlanCard } from "@/components/plan-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -51,6 +52,8 @@ function SettingsRoute() {
         <p className="text-sm text-muted-foreground">Workspace name, plan and timezone.</p>
       </div>
 
+      <PlanCard />
+
       {me.isLoading || me.data === undefined ? (
         <Skeleton className="h-48 w-full" />
       ) : (
@@ -65,10 +68,6 @@ function SettingsRoute() {
                   setName(e.target.value)
                 }}
               />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Plan</Label>
-              <p className="text-sm text-muted-foreground capitalize">{me.data.organization.plan}</p>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Timezone</Label>

@@ -167,6 +167,114 @@
     "body": null
   },
   {
+    "operationId": "plan_redeem",
+    "method": "post",
+    "path": "/v1/plan/redeem",
+    "summary": "Redeem a complimentary-access grant code for the active organization",
+    "description": "Requires the manage scope (a session is always manage-scoped). A code minted by POST /v1/admin/plan-grants sets plan, plan_source='complimentary', plan_note and — if the grant has a plan_duration_days — plan_expires_at. A paying org (plan_source='billing') cannot redeem (409 plan_is_billing: cancel the subscription first); redeeming a lower tier than the org's current plan is refused (409 plan_not_upgrade).",
+    "tags": [
+      "plan"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A code minted by POST /v1/admin/plan-grants."
+        }
+      },
+      "required": [
+        "code"
+      ]
+    }
+  },
+  {
+    "operationId": "admin_plan_grants_list",
+    "method": "get",
+    "path": "/v1/admin/plan-grants",
+    "summary": "List plan grants (platform admin only; hashed codes never returned)",
+    "description": "Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var (comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist.",
+    "tags": [
+      "admin"
+    ],
+    "params": [],
+    "body": null
+  },
+  {
+    "operationId": "admin_plan_grants_create",
+    "method": "post",
+    "path": "/v1/admin/plan-grants",
+    "summary": "Mint a complimentary-access grant code (platform admin only)",
+    "description": "Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var (comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist. Touches no tenant — the code is redeemed by an org's own owner with POST /v1/plan/redeem, which is where plan_source actually changes.",
+    "tags": [
+      "admin"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "plan": {
+          "type": "string",
+          "enum": [
+            "free",
+            "pro",
+            "team",
+            "selfhost"
+          ],
+          "description": "The tier this code grants on redemption."
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 280,
+          "description": "Shown to the redeeming org, e.g. \"Courtesy of Postbag\"."
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the code itself stops being redeemable. Omit for a code that never expires on its own."
+        },
+        "max_redemptions": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "How many different organizations may redeem this code."
+        },
+        "plan_duration_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How many days after redemption the granted plan lasts. Omit for a grant with no automatic expiry."
+        }
+      },
+      "required": [
+        "plan"
+      ]
+    }
+  },
+  {
+    "operationId": "admin_plan_grants_revoke",
+    "method": "post",
+    "path": "/v1/admin/plan-grants/{id}/revoke",
+    "summary": "Revoke a plan grant so it can no longer be redeemed (platform admin only)",
+    "description": "Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var (comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist. Idempotent — revoking an already-revoked grant just returns it.",
+    "tags": [
+      "admin"
+    ],
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
     "operationId": "quickstart",
     "method": "post",
     "path": "/v1/quickstart",

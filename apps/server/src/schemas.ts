@@ -290,6 +290,57 @@ export const SystemWebhookDeliverySchema = z
   })
   .openapi("SystemWebhookDelivery")
 
+// Job K: plan_source on organizations, complimentary access via grant codes.
+export const PlanSchema = z.enum(["free", "pro", "team", "selfhost"])
+export const PlanSourceSchema = z.enum(["free", "billing", "complimentary", "selfhost"])
+
+export const PlanGrantCreateInputSchema = z.object({
+  plan: PlanSchema.describe("The tier this code grants on redemption."),
+  note: z.string().max(280).optional().describe('Shown to the redeeming org, e.g. "Courtesy of Postbag".'),
+  expires_at: z.iso.datetime().optional().describe("When the code itself stops being redeemable. Omit for a code that never expires on its own."),
+  max_redemptions: z.number().int().min(1).optional().default(1).describe("How many different organizations may redeem this code."),
+  plan_duration_days: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("How many days after redemption the granted plan lasts. Omit for a grant with no automatic expiry."),
+})
+
+export const PlanGrantSummarySchema = z
+  .object({
+    id: IdSchema,
+    plan: PlanSchema,
+    note: z.string().nullable(),
+    expires_at: TimestampSchema.nullable(),
+    plan_duration_days: z.number().int().nullable(),
+    max_redemptions: z.number().int(),
+    redeemed_count: z.number().int(),
+    created_by_user_id: z.string(),
+    created_at: TimestampSchema,
+    revoked_at: TimestampSchema.nullable(),
+  })
+  .openapi("PlanGrant")
+
+export const PlanGrantCreatedSchema = PlanGrantSummarySchema.extend({
+  code: z.string().describe("Shown once — store it immediately. Only its hash is kept."),
+}).openapi("PlanGrantCreated")
+
+export const OrganizationPlanSchema = z
+  .object({
+    plan: PlanSchema,
+    plan_source: PlanSourceSchema,
+    plan_expires_at: TimestampSchema.nullable(),
+    plan_note: z.string().nullable(),
+  })
+  .openapi("OrganizationPlan")
+
+export const PlanRedeemInputSchema = z.object({ code: z.string().min(1).describe("A code minted by POST /v1/admin/plan-grants.") })
+
+export const PlanRedeemResponseSchema = OrganizationPlanSchema.extend({
+  next: NextSchema,
+}).openapi("PlanRedeemResult")
+
 export const errorResponses = {
   400: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
   401: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
