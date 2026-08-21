@@ -44,14 +44,26 @@ function panel(top: number): string {
   return `M${l} ${top} H${r} V${bottom - radius} Q${r} ${bottom} ${r - radius} ${bottom} H${l + radius} Q${l} ${bottom} ${l} ${bottom - radius} Z`
 }
 
+/** Where each line enters the slot — three distinct points, so the lines read as three
+ * parallel drops rather than one bundle. */
+const ENTRY_X = [POCKET.cx - 10, POCKET.cx, POCKET.cx + 10] as const
+
 /** Arcs over from the form and comes straight down into the slot (vertical tangent at the
- * end — the last control point sits directly above the opening). */
-function inGuide(cy: number): string {
-  return `M ${FORM_X + FORM_W + 4} ${cy} C 236 ${cy}, ${POCKET.cx} 34, ${POCKET.cx} ${POCKET.backTop - 6}`
+ * end — the last control point sits directly above the entry point). The line runs on past
+ * the front panel's top edge, which is drawn over it, so it visibly goes *in*. */
+function inGuide(cy: number, entryX: number): string {
+  // Two smooth segments: rise to a level well above the pocket's top edge while still left
+  // of it, then turn the corner and drop straight down into the slot.
+  const level = POCKET.backTop - 18
+  const turnX = entryX - 34
+  return (
+    `M ${FORM_X + FORM_W + 4} ${cy} C 220 ${cy}, ${turnX - 50} ${level}, ${turnX} ${level} ` +
+    `C ${entryX - 10} ${level}, ${entryX} ${level + 4}, ${entryX} ${POCKET.frontTop + 6}`
+  )
 }
-/** The animated dot keeps going — down into the pocket, behind the front panel. */
-function inFlight(cy: number): string {
-  return `${inGuide(cy)} L ${POCKET.cx} ${POCKET.frontTop + 12}`
+/** The animated dot keeps going a little further down inside. */
+function inFlight(cy: number, entryX: number): string {
+  return `${inGuide(cy, entryX)} L ${entryX} ${POCKET.frontTop + 14}`
 }
 
 const STAMP_TICKS = Array.from({ length: 12 }, (_, i) => i)
@@ -68,14 +80,6 @@ export function BagFlowIllustration({ className }: { readonly className?: string
       className={cn("h-auto w-full select-none", className)}
       fill="none"
     >
-      {/* lines — the still version of the story */}
-      <g stroke="var(--border)" strokeWidth="1.25">
-        {FORM_CY.map((cy) => (
-          <path key={cy} d={inGuide(cy)} />
-        ))}
-        <path d={OUT_PATH} />
-      </g>
-
       {/* forms */}
       {FORM_CY.map((cy, i) => {
         const top = cy - FORM_H / 2
@@ -94,6 +98,14 @@ export function BagFlowIllustration({ className }: { readonly className?: string
       {/* pocket — back panel (dots pass in front of this…) */}
       <path d={panel(POCKET.backTop)} fill="var(--muted)" stroke="var(--foreground)" strokeOpacity="0.4" strokeWidth="1.25" strokeLinejoin="round" />
 
+      {/* lines — the still version of the story; over the back panel, under the front one */}
+      <g stroke="var(--border)" strokeWidth="1.25">
+        {FORM_CY.map((cy, i) => (
+          <path key={cy} d={inGuide(cy, ENTRY_X[i] ?? POCKET.cx)} />
+        ))}
+        <path d={OUT_PATH} />
+      </g>
+
       {/* in — dots arc over and drop into the slot */}
       {!reducedMotion &&
         FORM_CY.map((cy, i) => (
@@ -103,7 +115,7 @@ export function BagFlowIllustration({ className }: { readonly className?: string
               dur={dur}
               begin={`${IN_DELAYS[i] ?? 0}s`}
               repeatCount="indefinite"
-              path={inFlight(cy)}
+              path={inFlight(cy, ENTRY_X[i] ?? POCKET.cx)}
               keyPoints="0;1;1"
               keyTimes="0;0.26;1"
               calcMode="spline"
