@@ -123,9 +123,9 @@ set on the EU app — takes effect on the deploy of `6c9208f`). **Job L** (membe
 `tasks/job-L-members-and-org-switcher.md`) — agent launched 2026-08-21 ~22:55 UTC; if the session died, its partial work
 is uncommitted in the working tree: read it, finish the spec, run the gates, commit.
 
-**To do right after K's deploy is healthy:** mint codes —
-`postbag admin plan-grants create --plan pro --note "Eric" --days 365` and one for Fahim — with Fahim's key
-(`~/.postbag/credentials`; its org owner email is the admin). Hand the code to Eric; he redeems in Settings → Plan.
+**Done 2026-08-21 17:08 UTC:** Fahim's org redeemed a Team grant (`plan_source=complimentary`, note "The house");
+a single-use Pro grant (365 d, note "Eric — friend of the house") was minted and the code handed to Fahim in chat —
+codes are never written to the repo. Eric redeems it in Settings → Plan → "Have a code?" (or `postbag plan redeem`).
 
 **Hero polish (small, not done):** centre the Prompt/Skill/MCP/CLI segmented control under the prompt block; make
 sure the prompt's wrapped layout is CSS-only at first paint (300 ms screenshot showed a single clipped line).
