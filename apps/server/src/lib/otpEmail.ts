@@ -38,22 +38,73 @@ function htmlBody(otp: string): string {
   )
 }
 
+type OtpSender = (input: SendEmailOTPInput) => Promise<void>
+
+/**
+ * Better Auth runs `sendVerificationOTP` through `runInBackgroundOrAwait`, which logs and
+ * swallows a rejection — so a failed send would otherwise look like `200 ok` to the caller
+ * (seen in production: a transient fetch failure seconds after container boot). The tracked
+ * sender records the failure per normalised email; the route takes it right after the
+ * Better Auth call and answers `502 email_send_failed` instead of lying.
+ */
+export class OtpSendFailures {
+  private readonly failures = new Map<string, string>()
+
+  record(email: string, reason: string): void {
+    this.failures.set(email.trim().toLowerCase(), reason)
+  }
+
+  /** Returns and clears the recorded failure for this email, if any. */
+  take(email: string): string | undefined {
+    const key = email.trim().toLowerCase()
+    const reason = this.failures.get(key)
+    this.failures.delete(key)
+    return reason
+  }
+}
+
+export const otpSendFailures = new OtpSendFailures()
+
+export function withFailureTracking(sender: OtpSender, tracker: OtpSendFailures = otpSendFailures): OtpSender {
+  return async (input) => {
+    try {
+      await sender(input)
+    } catch (error) {
+      tracker.record(input.email, error instanceof Error ? error.message : String(error))
+      throw error
+    }
+  }
+}
+
+const RETRY_DELAY_MS = 400
+
 /** Builds the `sendEmailOTP` callback `createAuth()` needs, or `undefined` when no Resend
  * key is configured (self-host parity — the caller then returns 501 without ever reaching
- * Better Auth; see the comment on `EmailOtpNotConfiguredError` in packages/auth). */
-export function createOtpEmailSender(
-  config: OtpEmailConfig | undefined,
-): ((input: SendEmailOTPInput) => Promise<void>) | undefined {
+ * Better Auth; see the comment on `EmailOtpNotConfiguredError` in packages/auth).
+ * One retry absorbs the transient network errors Resend's SDK reports as
+ * "Unable to fetch data"; a second failure is thrown (and tracked, see above). */
+export function createOtpEmailSender(config: OtpEmailConfig | undefined): OtpSender | undefined {
   if (config === undefined) return undefined
   const client = new Resend(config.resendApiKey)
+  const attempt = async (email: string, otp: string): Promise<string | undefined> => {
+    try {
+      const result = await client.emails.send({
+        from: config.mailFrom,
+        to: [email],
+        subject: `Your Postbag code: ${otp}`,
+        text: textBody(otp),
+        html: htmlBody(otp),
+      })
+      return result.error === null ? undefined : result.error.message
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error)
+    }
+  }
   return async ({ email, otp }) => {
-    const result = await client.emails.send({
-      from: config.mailFrom,
-      to: [email],
-      subject: `Your Postbag code: ${otp}`,
-      text: textBody(otp),
-      html: htmlBody(otp),
-    })
-    if (result.error !== null) throw new Error(result.error.message)
+    const first = await attempt(email, otp)
+    if (first === undefined) return
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+    const second = await attempt(email, otp)
+    if (second !== undefined) throw new Error(second)
   }
 }

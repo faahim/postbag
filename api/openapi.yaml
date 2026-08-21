@@ -755,6 +755,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+        "502":
+          description: The code email could not be sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /v1/auth/verify-code:
     post:
       operationId: auth_verify_code

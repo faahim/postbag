@@ -7,6 +7,7 @@ import type { Auth } from "../../authSetup.js"
 import { clientIp } from "../../lib/clientIp.js"
 import { envelope } from "../../lib/errors.js"
 import type { TokenBucketLimiter } from "../../lib/rateLimit.js"
+import { otpSendFailures } from "../../lib/otpEmail.js"
 import type { AppEnv } from "../../lib/scope.js"
 import type { Env } from "../../env.js"
 import { ErrorEnvelopeSchema, ScopeSchema } from "../../schemas.js"
@@ -59,6 +60,7 @@ const requestCodeRoute = createRoute({
   responses: {
     200: { description: "ok", content: { "application/json": { schema: RequestCodeResponseSchema } } },
     429: { description: "Rate limited", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
+    502: { description: "The code email could not be sent", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
     501: {
       description: "Email sending is not configured on this server",
       content: { "application/json": { schema: ErrorEnvelopeSchema } },
@@ -154,6 +156,16 @@ export function registerAuthCodeRoutes(
     }
 
     await auth.api.sendVerificationOTP({ body: { email, type: "sign-in" } })
+    const sendFailure = otpSendFailures.take(email)
+    if (sendFailure !== undefined) {
+      return c.json(
+        envelope("email_send_failed", "The code could not be emailed.", {
+          hint: "This is usually transient. Request a new code in a moment; if it keeps failing, the server's RESEND_API_KEY or MAIL_FROM is wrong.",
+          details: { reason: sendFailure },
+        }),
+        502,
+      )
+    }
 
     return c.json(
       {

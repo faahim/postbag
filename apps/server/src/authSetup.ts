@@ -2,7 +2,7 @@ import { createAuth, type CreateAuthOptions } from "@postbag/auth"
 import type { Database } from "@postbag/db"
 
 import type { Env } from "./env.js"
-import { createOtpEmailSender } from "./lib/otpEmail.js"
+import { createOtpEmailSender, withFailureTracking } from "./lib/otpEmail.js"
 import { provisionPersonalOrganization } from "./provisioning.js"
 
 export type Auth = ReturnType<typeof createAuth>
@@ -47,12 +47,17 @@ export function buildAuth(db: Database, env: Env, overrides: BuildAuthOverrides 
     trustedOrigins: env.NODE_ENV === "development" ? [env.APP_URL, "http://localhost:5173"] : [env.APP_URL],
     onUserCreated: (user) => provisionPersonalOrganization(db, user),
     socialProviders: socialProvidersFrom(env),
-    sendEmailOTP:
+    sendEmailOTP: trackOtpSender(
       overrides.sendEmailOTP ??
-      createOtpEmailSender(
-        env.RESEND_API_KEY === undefined
-          ? undefined
-          : { resendApiKey: env.RESEND_API_KEY, mailFrom: env.MAIL_FROM },
-      ),
+        createOtpEmailSender(
+          env.RESEND_API_KEY === undefined
+            ? undefined
+            : { resendApiKey: env.RESEND_API_KEY, mailFrom: env.MAIL_FROM },
+        ),
+    ),
   })
+}
+
+function trackOtpSender(sender: CreateAuthOptions["sendEmailOTP"]): CreateAuthOptions["sendEmailOTP"] {
+  return sender === undefined ? undefined : withFailureTracking(sender)
 }

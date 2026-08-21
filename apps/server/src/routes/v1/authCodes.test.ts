@@ -23,6 +23,14 @@ function harnessWithCapturingEmail(): { readonly harness: TestHarness; readonly 
   return { harness, captured }
 }
 
+/** A harness whose sendEmailOTP fails like a dead mail provider would. */
+function harnessWithFailingEmail(): TestHarness {
+  return buildHarness(
+    { RESEND_API_KEY: "test_resend_key" },
+    { sendEmailOTP: () => Promise.reject(new Error("Unable to fetch data. The request could not be resolved.")) },
+  )
+}
+
 async function requestJson(harness: TestHarness, path: string, body: unknown) {
   const response = await harness.app.request(path, {
     method: "POST",
@@ -170,5 +178,19 @@ integration("POST /v1/auth/request-code + /v1/auth/verify-code", () => {
     const body = json as { error: { code: string; hint?: string } }
     expect(body.error.code).toBe("email_not_configured")
     expect(body.error.hint).toContain("RESEND_API_KEY")
+  })
+
+  it("answers 502 email_send_failed when the code email cannot be sent (never a false 200)", async () => {
+    const failing = harnessWithFailingEmail()
+    try {
+      const { response, json } = await requestJson(failing, "/v1/auth/request-code", {
+        email: "otp-send-fails@example.com",
+      })
+      expect(response.status).toBe(502)
+      expect((json as { error: { code: string; details?: { reason?: string } } }).error.code).toBe("email_send_failed")
+      expect((json as { error: { details?: { reason?: string } } }).error.details?.reason).toContain("Unable to fetch data")
+    } finally {
+      await failing.close()
+    }
   })
 })
