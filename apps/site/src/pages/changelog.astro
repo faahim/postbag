@@ -7,6 +7,7 @@ import { breadcrumbLd, webPageLd } from "@/lib/seo"
 const crumbs = [ { name: "Home", href: "/" }, { name: "Changelog", href: "/changelog/" } ]
 // Dated from the repository history. Newest first.
 const entries = [
+  { date: "2026-08-21", title: "Agent clients on npm, social login, keys by email code", items: ["postbag CLI (npx postbag login / init / forms / submissions tail …) and @postbag/mcp (one tool per API operation plus postbag_quickstart and postbag_explain) published to npm; @postbag/sdk public.", "Sign in with Google or GitHub; connected accounts in Settings.", "POST /v1/auth/request-code → /verify-code mints an API key from an emailed 6-digit code — no dashboard needed for an agent's first key.", "Agent Skill served at /.well-known/skills/postbag/SKILL.md; every /v1 operation has a stable operationId and the OpenAPI document is generated from the route definitions.", "postbag.dev is the home; old embeds on the previous domain keep working."] },
   { date: "2026-08-21", title: "Marketing and documentation site", items: ["Public site with docs, comparisons, use cases and glossary, served by the same container at /.", "Markdown twins of every docs page and llms-full.txt for agents; Accept: text/markdown honoured.", "A live demo form on the home page posting real test submissions."] },
   { date: "2026-08-21", title: "Dashboard polish", items: ["Display-scale first-run headline, accent postmark brand mark, staggered \"It arrived\" reveal.", "Inbox id chips, postmark delivery status, delivery timeline, collapsible metadata."] },
   { date: "2026-08-21", title: "Server follow-ups", items: ["Scope implication (manage ⊇ read ⊇ submit).", "Client IP and country from Cloudflare headers.", "Organization system webhooks dispatched from a Postgres trigger, with GET /v1/webhooks/{id}/deliveries.", "Digest routes: one payload per period, unique by (route, period).", "Schema inference for observe forms: POST /v1/forms/{id}/schema/infer.", "Row-level security policies and the postbag_app role in migrations."] },
@@ -32,7 +33,7 @@ const ld = [ webPageLd({ url: `${SITE_URL}/changelog/`, name: "Postbag changelog
         </li>
       ))}
     </ol>
-    <p class="mt-12 text-[15px] text-muted-foreground">Next: row-level security enforced per request, CLI and MCP server as thin clients over the SDK, Slack and Discord destinations, expression mappings and filters, file uploads, billing.</p>
+    <p class="mt-12 text-[15px] text-muted-foreground">Next: row-level security enforced per request, email verification on password sign-up, Slack and Discord destinations, expression mappings and filters, file uploads, billing.</p>
   </section>
   <CtaBand />
 </Base>
