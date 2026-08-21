@@ -166,6 +166,12 @@ the rules and `docs/` for the design.
   not configured yet: add a Cloudflare R2 (S3-compatible) bucket as a Coolify S3 storage and flip `save_s3` — do this
   before the first paying customer.
 - No uptime monitor yet (`/health` is the probe to use).
+- **hello@postbag.dev** → Cloudflare Email Routing rule → afiur.fahim@gmail.com (set up 2026-08-21 in the Cloudflare
+  dashboard; the API token in `~/Developer/smedja/.env` has no Email Routing scope). Apex MX records are Cloudflare's;
+  Resend sends from `send.postbag.dev`, so they don't collide.
+- **Legal identity (job I):** operator Md Afiur Rahman, trading as Postbag, Dhaka 1209, Bangladesh, hello@postbag.dev;
+  governing law Bangladesh. Production is in **Singapore** (Oracle Cloud, `megh-oracle`) — the pages say so; EU
+  migration (Fahim has an EU server) is the next infra item.
 
 ## Gotchas learned
 
