@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { toastApiError } from "@/lib/api"
 import { useSession } from "@/lib/auth-client"
 import { formatDateTime } from "@/lib/format"
 import {
@@ -143,7 +144,7 @@ function MemberRow({
       { memberId: member.id, role },
       {
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : "Couldn't change that member's role.")
+          toastApiError(error, "Couldn't change that member's role — try again.")
         },
       },
     )
@@ -155,7 +156,7 @@ function MemberRow({
         toast.success(isSelf ? "You left the workspace." : `${member.user.name || member.user.email} was removed.`)
       },
       onError: (error) => {
-        toast.error(error instanceof Error ? error.message : "Couldn't remove that member.")
+        toastApiError(error, "Couldn't remove that member — try again.")
       },
     })
   }
@@ -221,7 +222,7 @@ function InvitationRow({ invitation, canManage }: { readonly invitation: Invitat
           toast.success(`Invitation resent to ${invitation.email}.`)
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : "Couldn't resend that invitation.")
+          toastApiError(error, "Couldn't resend that invitation — try again.")
         },
       },
     )
@@ -296,7 +297,7 @@ function InviteCard() {
       toast.success(`Invited ${values.email}.`)
       reset({ email: "", role: "member" })
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Couldn't send that invitation.")
+      toastApiError(error, "Couldn't send that invitation — try again.")
     }
   })
 

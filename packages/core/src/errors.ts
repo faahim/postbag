@@ -4,6 +4,10 @@ export const ERROR_DEFINITIONS = {
   unauthorized: { status: 401, hint: "Provide a session cookie or an Authorization: Bearer pb_live_… key." },
   validation_failed: { status: 422, hint: "Correct the fields described in details and retry." },
   mapping_incomplete: { status: 422, hint: "Map every required stream field before attaching." },
+  stream_schema_missing: {
+    status: 422,
+    hint: "Attach a form that has a published schema or at least one submission — Postbag derives the stream's first schema from it — or publish one with POST /v1/streams/{id}/schema.",
+  },
   schema_violation: {
     status: 422,
     hint: "Publish a compatible schema or correct the submitted fields.",

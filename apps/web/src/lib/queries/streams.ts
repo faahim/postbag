@@ -57,7 +57,7 @@ export function useCreateStream() {
 export function usePublishStreamSchema(streamId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (body: { readonly json_schema: unknown; readonly changelog?: string }) =>
+    mutationFn: async (body: { readonly json_schema: unknown; readonly ui?: unknown; readonly changelog?: string }) =>
       unwrap(
         await api.POST("/v1/streams/{streamId}/schema", {
           params: { path: { streamId } },
@@ -96,6 +96,19 @@ export function useUpdateStreamSource(streamId: string) {
           body,
         }),
       ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["streams", streamId] })
+    },
+  })
+}
+
+export function useRemoveStreamSource(streamId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (sourceId: string): Promise<void> => {
+      const result = await api.DELETE("/v1/streams/{streamId}/sources/{sourceId}", { params: { path: { streamId, sourceId } } })
+      if (result.error !== undefined) unwrap(result)
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["streams", streamId] })
     },

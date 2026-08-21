@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { VipBadge } from "@/components/vip-badge"
-import { api, PostbagApiError } from "@/lib/api"
+import { api, toastApiError } from "@/lib/api"
 import { formatCount, formatDate } from "@/lib/format"
 import { useRedeemPlanCode } from "@/lib/queries/plan"
 
@@ -70,11 +70,7 @@ export function PlanCard() {
         setArrived(false)
       }, 2600)
     } catch (error) {
-      if (error instanceof PostbagApiError) {
-        toast.error(error.message)
-      } else {
-        toast.error("Couldn't redeem that code — try again.")
-      }
+      toastApiError(error, "Couldn't redeem that code — try again.")
     }
   }
 

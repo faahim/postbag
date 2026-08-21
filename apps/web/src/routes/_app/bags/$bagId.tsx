@@ -1,32 +1,39 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { ArrowLeft, Plus } from "lucide-react"
-import { useState } from "react"
+import { ArrowLeft, Plus, Unlink } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
+import { BagExplainer } from "@/components/bag-explainer"
+import { EmptyState } from "@/components/empty-state"
+import { MappingEditor } from "@/components/mapping-editor"
+import { RoutesList } from "@/components/routes-list"
+import { ShapeEditor } from "@/components/shape-editor"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { EmptyState } from "@/components/empty-state"
 import { Input } from "@/components/ui/input"
-import { MappingEditor } from "@/components/mapping-editor"
-import { RoutesList } from "@/components/routes-list"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PostbagApiError } from "@/lib/api"
-import { useFormSchema, useForms } from "@/lib/queries/forms"
+import { PostbagApiError, toastApiError } from "@/lib/api"
+import { useFormKnownFields } from "@/lib/form-fields"
+import { formatDateTime } from "@/lib/format"
+import { useForms } from "@/lib/queries/forms"
 import { useFormSubmissions } from "@/lib/queries/submissions"
-import { useAddStreamSource, useStream, useStreamPreview } from "@/lib/queries/streams"
+import { useAddStreamSource, useRemoveStreamSource, useStream, useStreamPreview } from "@/lib/queries/streams"
 
 // The generated StreamSource type only requires `id` (the OpenAPI doc under-specifies this
 // route's Zod shape) — the server always populates the rest, so the UI can rely on it.
-type SourcesTabSource = {
+type Source = {
   readonly id: string
   readonly form_id: string
   readonly mapping: Readonly<Record<string, { readonly from?: string; readonly const?: unknown }>>
   readonly mapping_status: "valid" | "incomplete"
   readonly missing: readonly string[]
 }
+
+type FormRef = { readonly id: string; readonly name: string }
+type BagTab = "delivered" | "sources" | "send-to" | "preview"
 
 export const Route = createFileRoute("/_app/bags/$bagId")({
   component: BagDetailRoute,
@@ -35,8 +42,11 @@ export const Route = createFileRoute("/_app/bags/$bagId")({
 function BagDetailRoute() {
   const { bagId } = Route.useParams()
   const stream = useStream(bagId)
+  const forms = useForms()
+  const [tab, setTab] = useState<BagTab>("delivered")
+  const [workspaceOpened, setWorkspaceOpened] = useState(false)
 
-  if (stream.isLoading || stream.data === undefined) {
+  if (stream.isPending || stream.data === undefined) {
     return (
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-64" />
@@ -45,9 +55,16 @@ function BagDetailRoute() {
     )
   }
 
-  const schemaProps = (stream.data.schema?.json_schema as { properties?: Record<string, unknown>; required?: string[] } | undefined) ?? undefined
+  const bag = stream.data
+  const schema = bag.schema
+  const schemaProps = schema?.json_schema as { properties?: Record<string, unknown>; required?: string[] } | undefined
   const bagFields = Object.keys(schemaProps?.properties ?? {})
   const requiredFields = schemaProps?.required ?? []
+  const sources = (bag.sources ?? []) as unknown as readonly Source[]
+  const routeCount = bag.routes?.length ?? bag.counts.routes
+  const allForms: readonly FormRef[] = forms.data?.data ?? []
+  const formsById = new Map(allForms.map((f) => [f.id, f.name]))
+  const fresh = schema === undefined && sources.length === 0
 
   return (
     <div className="flex flex-col gap-6">
@@ -55,72 +72,211 @@ function BagDetailRoute() {
         <Link to="/bags" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-3.5" /> Bags
         </Link>
-        <h1 className="text-xl font-semibold">{stream.data.name}</h1>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h1 className="text-xl font-semibold">{bag.name}</h1>
+          <span className="font-mono text-xs text-muted-foreground">{bag.id}</span>
+        </div>
+        {!fresh && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <Badge variant={schema === undefined ? "warning" : "muted"}>
+              {schema === undefined ? "No shape yet" : `Shape v${schema.version ?? 1} · ${bagFields.length} ${bagFields.length === 1 ? "field" : "fields"}`}
+            </Badge>
+            <Badge variant="muted">
+              {sources.length} {sources.length === 1 ? "form" : "forms"}
+            </Badge>
+            <Badge variant="muted">
+              {routeCount} {routeCount === 1 ? "route" : "routes"}
+            </Badge>
+          </div>
+        )}
       </div>
 
-      <Tabs defaultValue="delivered">
-        <TabsList>
-          <TabsTrigger value="delivered">What gets delivered</TabsTrigger>
-          <TabsTrigger value="sources">Sources</TabsTrigger>
-          <TabsTrigger value="send-to">Send to</TabsTrigger>
-          <TabsTrigger value="preview">Preview</TabsTrigger>
-        </TabsList>
+      {fresh && !workspaceOpened ? (
+        <BagExplainer
+          title="Many forms in. One tidy shape out."
+          lede="Say the same contact form lives on three of your sites, and each one names its fields a little differently — fullName, name, Namn. A bag takes everything those forms receive and lines it up into one shape, so wherever you send it — an inbox, Telegram, a webhook — the same fields always arrive in the same places."
+          action={
+            <FirstFormAttach
+              bagId={bagId}
+              forms={allForms}
+              onAttached={() => {
+                setTab("delivered")
+              }}
+            />
+          }
+          aside={
+            <>
+              Only one form? You don't need a bag — route it straight from its own page. Prefer to set the fields yourself first?{" "}
+              <button
+                type="button"
+                className="font-medium text-foreground underline-offset-4 hover:underline"
+                onClick={() => {
+                  setWorkspaceOpened(true)
+                  setTab("delivered")
+                }}
+              >
+                Define the shape by hand
+              </button>
+              .
+            </>
+          }
+        />
+      ) : (
+        <Tabs
+          value={tab}
+          onValueChange={(value) => {
+            setTab(value as BagTab)
+          }}
+        >
+          <TabsList>
+            <TabsTrigger value="delivered">What gets delivered</TabsTrigger>
+            <TabsTrigger value="sources">Sources</TabsTrigger>
+            <TabsTrigger value="send-to">Send to</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="delivered">
-          <Card>
-            <CardContent>
-              {bagFields.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No shared schema published yet. Attach a source and publish a shape for this bag to normalise to.
-                </p>
-              ) : (
-                <ul className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
-                  {bagFields.map((field) => (
-                    <li key={field} className="flex items-center justify-between px-3 py-2 text-sm">
-                      <span className="font-mono">{field}</span>
-                      {requiredFields.includes(field) && <Badge variant="outline">required</Badge>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="delivered">
+            <Card>
+              <CardContent className="flex flex-col gap-4">
+                <TabIntro
+                  title="The shape"
+                  body={
+                    schema === undefined
+                      ? "The fields every delivery from this bag will carry. Attaching the first form fills this in automatically — or set the fields yourself here."
+                      : "Every delivery from this bag carries exactly these fields, whichever form the submission came from. Fields a form doesn't provide arrive empty; anything extra a form sends is kept under “extras”."
+                  }
+                />
+                <ShapeEditor key={schema?.version ?? 0} bagId={bagId} schema={schema} forms={allForms} />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="sources">
-          {/* The generated StreamSource type only requires `id` (the OpenAPI doc under-specifies
-             this route's Zod shape); the server always populates the rest. */}
-          <SourcesTab
-            bagId={bagId}
-            bagFields={bagFields}
-            requiredFields={requiredFields}
-            sources={(stream.data.sources ?? []) as unknown as SourcesTabSource[]}
-          />
-        </TabsContent>
+          <TabsContent value="sources">
+            <SourcesTab
+              bagId={bagId}
+              bagFields={bagFields}
+              requiredFields={requiredFields}
+              sources={sources}
+              formsById={formsById}
+              allForms={allForms}
+            />
+          </TabsContent>
 
-        <TabsContent value="send-to">
-          <RoutesList subject={{ streamId: bagId }} />
-        </TabsContent>
+          <TabsContent value="send-to">
+            <div className="flex flex-col gap-4">
+              <TabIntro
+                title="Where the bag goes"
+                body="One route here delivers every form in the bag — instead of a route per form. Each delivery uses the shape above."
+              />
+              <RoutesList subject={{ streamId: bagId }} />
+            </div>
+          </TabsContent>
 
-        <TabsContent value="preview">
-          <PreviewTab bagId={bagId} sources={(stream.data.sources ?? []) as unknown as { readonly form_id: string }[]} />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="preview">
+            <div className="flex flex-col gap-4">
+              <TabIntro
+                title="Try it on a real submission"
+                body="Pick a recent submission from one of the attached forms and see exactly what this bag would deliver for it. Nothing is sent."
+              />
+              <PreviewTab bagId={bagId} sources={sources} formsById={formsById} />
+            </div>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   )
 }
 
-/** A form's fields as the mapping editor's "known fields" list — declared schema properties
- * (managed/enforced forms) union'd with the keys of its most recent submission (observe-mode
- * forms have no declared schema at all, but still have real field names worth offering). */
-function useFormKnownFields(formId: string | undefined): readonly string[] {
-  const schema = useFormSchema(formId)
-  const submissions = useFormSubmissions(formId)
-  const fromSchema = Object.keys(
-    (schema.data?.json_schema as { properties?: Record<string, unknown> } | undefined)?.properties ?? {},
+function TabIntro({ title, body }: { readonly title: string; readonly body: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <h2 className="text-sm font-medium">{title}</h2>
+      <p className="max-w-2xl text-sm text-muted-foreground text-pretty">{body}</p>
+    </div>
   )
-  const fromSubmission = Object.keys(submissions.data?.data[0]?.data ?? {})
-  return Array.from(new Set([...fromSchema, ...fromSubmission]))
+}
+
+/** The API's wording is for agents ("stream", ids, endpoints); the dashboard says the same
+ * thing in the user's words. Only the one code people actually hit here gets a translation —
+ * everything else shows the server's own message and hint. */
+function toastAttachError(error: unknown, formName: string | undefined) {
+  if (error instanceof PostbagApiError && error.code === "stream_schema_missing") {
+    toast.error(`${formName === undefined ? "That form" : `“${formName}”`} has no fields yet.`, {
+      description:
+        "It hasn't received a submission and has no published schema, so there's nothing to shape the bag from. Send it one test submission, pick another form, or define the shape by hand.",
+      duration: 8000,
+    })
+    return
+  }
+  toastApiError(error, "Couldn't attach that form — try again.")
+}
+
+/** The explainer's one action: pick a form, attach it, done. The server copies the form's
+ * fields as the bag's first shape and maps the form onto it one-to-one. */
+function FirstFormAttach({
+  bagId,
+  forms,
+  onAttached,
+}: {
+  readonly bagId: string
+  readonly forms: readonly FormRef[]
+  readonly onAttached: () => void
+}) {
+  const addSource = useAddStreamSource(bagId)
+  const [formId, setFormId] = useState<string | undefined>(undefined)
+  const selected = forms.find((f) => f.id === formId)
+
+  async function attach() {
+    if (formId === undefined) return
+    try {
+      await addSource.mutateAsync({ form_id: formId })
+      toast.success(`${selected?.name ?? "Form"} attached.`, {
+        description: "Its fields are now the bag's shape. Attach more forms under Sources, then send the bag somewhere.",
+      })
+      onAttached()
+    } catch (error) {
+      toastAttachError(error, selected?.name)
+    }
+  }
+
+  if (forms.length === 0) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-muted-foreground">You have no forms yet — a bag needs at least one to collect from.</p>
+        <Button asChild className="w-fit">
+          <Link to="/forms">Create a form first</Link>
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={formId ?? ""} onValueChange={setFormId}>
+          <SelectTrigger className="w-64" aria-label="Form to attach">
+            <SelectValue placeholder="Choose your first form…" />
+          </SelectTrigger>
+          <SelectContent>
+            {forms.map((f) => (
+              <SelectItem key={f.id} value={f.id}>
+                {f.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button onClick={() => void attach()} disabled={formId === undefined || addSource.isPending} className="gap-1.5">
+          <Plus className="size-4" />
+          {addSource.isPending ? "Attaching…" : "Attach form"}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {selected === undefined
+          ? "Its fields become the bag's shape. You can change the shape any time."
+          : `“${selected.name}”'s fields become the bag's shape. You can change it any time.`}
+      </p>
+    </div>
+  )
 }
 
 function SourcesTab({
@@ -128,38 +284,45 @@ function SourcesTab({
   bagFields,
   requiredFields,
   sources,
+  formsById,
+  allForms,
 }: {
   readonly bagId: string
   readonly bagFields: readonly string[]
   readonly requiredFields: readonly string[]
-  readonly sources: readonly SourcesTabSource[]
+  readonly sources: readonly Source[]
+  readonly formsById: ReadonlyMap<string, string>
+  readonly allForms: readonly FormRef[]
 }) {
-  const forms = useForms()
   const attachedFormIds = new Set(sources.map((s) => s.form_id))
-  const attachable = (forms.data?.data ?? []).filter((f) => !attachedFormIds.has(f.id))
+  const attachable = allForms.filter((f) => !attachedFormIds.has(f.id))
 
   return (
     <div className="flex flex-col gap-4">
+      <TabIntro
+        title="Forms in this bag"
+        body="Every submission these forms receive lands in the bag. Each form is matched onto the shape field by field — we flag any required field that still has nothing pointing at it."
+      />
       {sources.length === 0 ? (
-        <EmptyState title="No forms attached" description="Attach a form to start mapping its fields into this bag." />
+        <EmptyState
+          title="No forms in this bag yet"
+          description={
+            bagFields.length === 0
+              ? "Attach the first one below — its fields become the bag's shape, nothing to write."
+              : "Attach a form below and match its fields to the shape."
+          }
+        />
       ) : (
         <div className="flex flex-col gap-4">
           {sources.map((source) => (
-            <Card key={source.id}>
-              <CardContent className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-sm text-muted-foreground">{source.form_id}</span>
-                  <Badge variant={source.mapping_status === "valid" ? "success" : "warning"}>
-                    {source.mapping_status === "valid" ? "Mapped" : `Missing ${source.missing.join(", ")}`}
-                  </Badge>
-                </div>
-                {bagFields.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Publish a schema for this bag to map fields.</p>
-                ) : (
-                  <SourceFieldEditor bagId={bagId} source={source} bagFields={bagFields} requiredFields={requiredFields} />
-                )}
-              </CardContent>
-            </Card>
+            <SourceCard
+              key={source.id}
+              bagId={bagId}
+              source={source}
+              formName={formsById.get(source.form_id)}
+              bagFields={bagFields}
+              requiredFields={requiredFields}
+            />
           ))}
         </div>
       )}
@@ -169,14 +332,91 @@ function SourcesTab({
   )
 }
 
+function SourceCard({
+  bagId,
+  source,
+  formName,
+  bagFields,
+  requiredFields,
+}: {
+  readonly bagId: string
+  readonly source: Source
+  readonly formName: string | undefined
+  readonly bagFields: readonly string[]
+  readonly requiredFields: readonly string[]
+}) {
+  const known = useFormKnownFields(source.form_id)
+  const removeSource = useRemoveStreamSource(bagId)
+
+  async function detach() {
+    try {
+      await removeSource.mutateAsync(source.id)
+      toast.success(`${formName ?? "Form"} detached.`, { description: "Its submissions stay where they are — they just stop landing in this bag." })
+    } catch (error) {
+      toastApiError(error, "Couldn't detach that form — try again.")
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <Link to="/forms/$formId" params={{ formId: source.form_id }} className="truncate text-sm font-medium hover:underline">
+              {formName ?? "Form"}
+            </Link>
+            <span className="font-mono text-xs text-muted-foreground">{source.form_id}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={source.mapping_status === "valid" ? "success" : "warning"}>
+              {source.mapping_status === "valid" ? "All fields matched" : `Missing ${source.missing.join(", ")}`}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground hover:text-destructive"
+              onClick={() => void detach()}
+              disabled={removeSource.isPending}
+            >
+              <Unlink className="size-3.5" />
+              Detach
+            </Button>
+          </div>
+        </div>
+        {bagFields.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Give the bag a shape under “What gets delivered” to match this form's fields.</p>
+        ) : (
+          <MappingEditor
+            streamId={bagId}
+            sourceId={source.id}
+            bagFields={bagFields}
+            requiredFields={requiredFields}
+            formFields={known.fields}
+            initialMapping={source.mapping}
+            missing={source.missing}
+          />
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 const UNMAPPED = "__unmapped__"
 const CONST = "__const__"
 
+type MappingDraft = Record<string, { from?: string; const?: unknown }>
+
+/** Fields with the same name on both sides start matched; only the rest need a decision. */
+function identityDraft(bagFields: readonly string[], formFields: readonly string[]): MappingDraft {
+  const known = new Set(formFields)
+  return Object.fromEntries(bagFields.filter((f) => known.has(f)).map((f) => [f, { from: f }]))
+}
+
 /** Attaching a form to a bag with required fields must include a complete mapping in the
- * same call — `POST /v1/streams/{id}/sources` 422s (`mapping_incomplete`) otherwise, per
- * `packages/core/src/mapping.ts#validateMapping`. So the "Match fields" editor runs *before*
- * the form is attached, not after; the API's 422 (with its `missing` list) drives the error
- * state shown here if a required field still isn't covered. */
+ * same call — `POST /v1/streams/{id}/sources` 422s (`mapping_incomplete`) otherwise. So the
+ * "match fields" editor runs *before* the form is attached; the API's `missing` list drives
+ * the error state if a required field still isn't covered. On a bag with no shape yet the
+ * server derives one from the form, so there is nothing to match. */
 function AttachFormPanel({
   bagId,
   bagFields,
@@ -186,13 +426,22 @@ function AttachFormPanel({
   readonly bagId: string
   readonly bagFields: readonly string[]
   readonly requiredFields: readonly string[]
-  readonly attachable: readonly { readonly id: string; readonly name: string }[]
+  readonly attachable: readonly FormRef[]
 }) {
   const addSource = useAddStreamSource(bagId)
   const [pendingFormId, setPendingFormId] = useState<string | undefined>(undefined)
-  const [mapping, setMapping] = useState<Record<string, { from?: string; const?: unknown }>>({})
+  const [mapping, setMapping] = useState<MappingDraft>({})
   const [serverMissing, setServerMissing] = useState<readonly string[]>([])
-  const formFields = useFormKnownFields(pendingFormId)
+  const known = useFormKnownFields(pendingFormId)
+  const seededFor = useRef<string | undefined>(undefined)
+  const pendingForm = attachable.find((f) => f.id === pendingFormId)
+
+  // Pre-match same-named fields once the form's fields are known (one-shot per selection).
+  useEffect(() => {
+    if (pendingFormId === undefined || known.pending || seededFor.current === pendingFormId) return
+    seededFor.current = pendingFormId
+    setMapping(identityDraft(bagFields, known.fields))
+  }, [pendingFormId, known.pending, known.fields, bagFields])
 
   function selectForm(id: string) {
     setPendingFormId(id)
@@ -215,43 +464,80 @@ function AttachFormPanel({
     if (pendingFormId === undefined) return
     try {
       await addSource.mutateAsync({ form_id: pendingFormId, mapping } as unknown as Parameters<typeof addSource.mutateAsync>[0])
-      toast.success("Form attached.")
+      toast.success(`${pendingForm?.name ?? "Form"} attached.`, {
+        description: bagFields.length === 0 ? "Its fields are now the bag's shape." : undefined,
+      })
       setPendingFormId(undefined)
       setMapping({})
       setServerMissing([])
+      seededFor.current = undefined
     } catch (error) {
       if (error instanceof PostbagApiError) {
         const details = error.details as { readonly missing?: readonly string[] } | undefined
         setServerMissing(details?.missing ?? [])
-        toast.error(error.message)
-      } else {
-        toast.error("Could not attach form.")
       }
+      toastAttachError(error, pendingForm?.name)
     }
   }
 
+  if (attachable.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Every form you have is already in this bag.{" "}
+        <Link to="/forms" className="font-medium text-foreground underline-offset-4 hover:underline">
+          Create another form
+        </Link>{" "}
+        to add one.
+      </p>
+    )
+  }
+
+  const matched = bagFields.filter((f) => mapping[f] !== undefined).length
+
   return (
     <div className="flex flex-col gap-3">
-      <Select
-        value={pendingFormId ?? ""}
-        onValueChange={selectForm}
-      >
-        <SelectTrigger className="w-64">
-          <SelectValue placeholder="Attach a form…" />
-        </SelectTrigger>
-        <SelectContent>
-          {attachable.map((f) => (
-            <SelectItem key={f.id} value={f.id}>
-              {f.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={pendingFormId ?? ""} onValueChange={selectForm}>
+          <SelectTrigger className="w-64" aria-label="Form to attach">
+            <SelectValue placeholder="Attach another form…" />
+          </SelectTrigger>
+          <SelectContent>
+            {attachable.map((f) => (
+              <SelectItem key={f.id} value={f.id}>
+                {f.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant={pendingFormId === undefined ? "outline" : "default"}
+          className="gap-1.5"
+          disabled={pendingFormId === undefined || addSource.isPending}
+          onClick={() => void attach()}
+        >
+          <Plus className="size-4" />
+          {addSource.isPending ? "Attaching…" : "Attach form"}
+        </Button>
+      </div>
+
+      {pendingFormId !== undefined && bagFields.length === 0 && (
+        <p className="text-xs text-muted-foreground">This is the bag's first form, so its fields become the bag's shape — nothing to match yet.</p>
+      )}
 
       {pendingFormId !== undefined && bagFields.length > 0 && (
         <Card>
           <CardContent className="flex flex-col gap-3">
-            <p className="text-xs text-muted-foreground">Match fields before attaching — required fields need a mapping.</p>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-sm font-medium">Match {pendingForm?.name ?? "this form"}'s fields to the shape</p>
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {matched} of {bagFields.length} matched
+                {known.pending ? " · reading the form's fields…" : ""}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground text-pretty">
+              Same-named fields are matched already. Required fields need something pointing at them before the form can join; optional
+              ones can stay unmatched and simply arrive empty.
+            </p>
             <div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
               {bagFields.map((field) => {
                 const required = requiredFields.includes(field)
@@ -269,19 +555,20 @@ function AttachFormPanel({
                         <Input
                           className="h-8 w-36"
                           placeholder="value"
+                          aria-label={`Fixed value for ${field}`}
                           onChange={(e) => {
                             setMapping((m) => ({ ...m, [field]: { const: e.target.value } }))
                           }}
                         />
                       )}
                       <Select value={current} onValueChange={(v) => { onSelect(field, v) }}>
-                        <SelectTrigger className="h-8 w-44">
+                        <SelectTrigger className="h-8 w-48" aria-label={`Source for ${field}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={UNMAPPED}>Leave unmapped</SelectItem>
+                          <SelectItem value={UNMAPPED}>Leave empty</SelectItem>
                           <SelectItem value={CONST}>Fixed value</SelectItem>
-                          {formFields.map((f) => (
+                          {known.fields.map((f) => (
                             <SelectItem key={f} value={`field:${f}`}>
                               {f}
                             </SelectItem>
@@ -296,51 +583,18 @@ function AttachFormPanel({
           </CardContent>
         </Card>
       )}
-
-      <Button
-        variant="outline"
-        className="w-fit gap-1.5"
-        disabled={pendingFormId === undefined || addSource.isPending}
-        onClick={() => void attach()}
-      >
-        <Plus className="size-4" />
-        {addSource.isPending ? "Attaching…" : "Attach form"}
-      </Button>
     </div>
-  )
-}
-
-function SourceFieldEditor({
-  bagId,
-  source,
-  bagFields,
-  requiredFields,
-}: {
-  readonly bagId: string
-  readonly source: SourcesTabSource
-  readonly bagFields: readonly string[]
-  readonly requiredFields: readonly string[]
-}) {
-  const formFields = useFormKnownFields(source.form_id)
-  return (
-    <MappingEditor
-      streamId={bagId}
-      sourceId={source.id}
-      bagFields={bagFields}
-      requiredFields={requiredFields}
-      formFields={formFields}
-      initialMapping={source.mapping}
-      missing={source.missing}
-    />
   )
 }
 
 function PreviewTab({
   bagId,
   sources,
+  formsById,
 }: {
   readonly bagId: string
-  readonly sources: readonly { readonly form_id: string }[]
+  readonly sources: readonly Source[]
+  readonly formsById: ReadonlyMap<string, string>
 }) {
   const [formId, setFormId] = useState<string | undefined>(sources[0]?.form_id)
   const submissions = useFormSubmissions(formId)
@@ -351,16 +605,22 @@ function PreviewTab({
     if (formId === undefined || submissionId === undefined) return
     const submission = submissions.data?.data.find((s) => s.id === submissionId)
     if (submission === undefined) return
-    await preview.mutateAsync({ formId, data: submission.data })
+    try {
+      await preview.mutateAsync({ formId, data: submission.data })
+    } catch (error) {
+      toastApiError(error, "Couldn't run the preview — try again.")
+    }
   }
 
   if (sources.length === 0) {
-    return <EmptyState title="Attach a form first" description="Preview needs at least one source with recent submissions." />
+    return <EmptyState title="Nothing to preview yet" description="Attach a form under Sources first — preview maps one of its real submissions through the bag." />
   }
+
+  const recent = submissions.data?.data ?? []
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Select
           value={formId ?? ""}
           onValueChange={(v) => {
@@ -368,36 +628,36 @@ function PreviewTab({
             setSubmissionId(undefined)
           }}
         >
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="Choose a source form" />
+          <SelectTrigger className="w-64 [&>span]:truncate" aria-label="Form">
+            <SelectValue placeholder="Choose a form" />
           </SelectTrigger>
           <SelectContent>
             {sources.map((s) => (
               <SelectItem key={s.form_id} value={s.form_id}>
-                {s.form_id}
+                {formsById.get(s.form_id) ?? s.form_id}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Select value={submissionId ?? ""} onValueChange={setSubmissionId}>
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Choose a recent submission" />
+        <Select value={submissionId ?? ""} onValueChange={setSubmissionId} disabled={recent.length === 0}>
+          <SelectTrigger className="w-80 [&>span]:truncate" aria-label="Submission">
+            <SelectValue placeholder={submissions.isPending ? "Loading submissions…" : recent.length === 0 ? "No submissions on this form yet" : "Choose a recent submission"} />
           </SelectTrigger>
           <SelectContent>
-            {(submissions.data?.data ?? []).map((s) => (
+            {recent.map((s) => (
               <SelectItem key={s.id} value={s.id}>
-                {s.id} · {new Date(s.received_at).toLocaleString()}
+                <span className="font-mono text-xs">{s.id}</span> · {formatDateTime(s.received_at)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Button onClick={() => void run()} disabled={submissionId === undefined || preview.isPending}>
-          {preview.isPending ? "Mapping…" : "Preview"}
+          {preview.isPending ? "Mapping…" : "Show what would be delivered"}
         </Button>
       </div>
 
       {preview.data !== undefined && (
-        <Card>
+        <Card className="animate-in fade-in-0 slide-in-from-bottom-1 duration-(--duration-fast)">
           <CardContent className="flex flex-col gap-3">
             {preview.data.problems.length > 0 && (
               <ul className="flex flex-col gap-1">
@@ -408,9 +668,16 @@ function PreviewTab({
                 ))}
               </ul>
             )}
+            <p className="text-xs text-muted-foreground">This is the payload a destination would receive.</p>
             <pre className="overflow-auto rounded-lg border border-border/70 bg-muted/50 p-4 font-mono text-[13px]">
               <code>{JSON.stringify(preview.data.payload, null, 2)}</code>
             </pre>
+            {Object.keys(preview.data.extras).length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Fields the form sent that aren't in the shape travel along under <span className="font-mono">extras</span>:{" "}
+                <span className="font-mono">{Object.keys(preview.data.extras).join(", ")}</span>.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

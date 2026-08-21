@@ -254,6 +254,67 @@
     }
   }
 
+  /* Bag explainer — the bag "breathes" each time a submission lands (four arrivals per
+     loop, timed to the SMIL token flights in components/bag-explainer.tsx). */
+  .bag-explainer-bag {
+    transform-box: fill-box;
+    transform-origin: 50% 60%;
+    animation: bag-breathe var(--bag-loop) var(--bag-ease) infinite;
+  }
+  @keyframes bag-breathe {
+    0%,
+    23%,
+    29%,
+    40%,
+    46%,
+    57%,
+    63%,
+    74%,
+    80%,
+    100% {
+      transform: scale(1);
+    }
+    26%,
+    43%,
+    60%,
+    77% {
+      transform: scale(var(--bag-breathe-scale));
+    }
+  }
+  .bag-explainer-stamp {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: bag-stamp var(--bag-loop) var(--bag-ease) infinite;
+  }
+  @keyframes bag-stamp {
+    0%,
+    24%,
+    30%,
+    41%,
+    47%,
+    58%,
+    64%,
+    75%,
+    81%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    27%,
+    44%,
+    61%,
+    78% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bag-explainer-bag,
+    .bag-explainer-stamp {
+      animation: none !important;
+    }
+  }
+
   /* Field-preview truncation on inbox rows: fades to transparent rather than a hard
      ellipsis clip, so a long "key: value · key: value" chain reads as continuing offscreen. */
   .fade-truncate {

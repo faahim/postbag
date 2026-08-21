@@ -1541,7 +1541,7 @@
     "method": "post",
     "path": "/v1/streams",
     "summary": "Create a stream (optionally with its first schema version and sources)",
-    "description": "A stream (shown as 'Bag' in the dashboard) fans one canonical schema in from many forms.",
+    "description": "A stream (shown as 'Bag' in the dashboard) collects submissions from many forms into one shared shape. Pass `schema` to define that shape up front, or omit it and pass `sources` — the first source's form then provides version 1 (copied from its published schema, its inferred draft, or the fields seen in recent submissions) with an identity mapping, so `{ name, sources: [{ form_id }] }` is a complete request.",
     "tags": [
       "streams"
     ],
@@ -1874,7 +1874,7 @@
     "method": "post",
     "path": "/v1/streams/{streamId}/sources",
     "summary": "Attach a form or selector with a mapping",
-    "description": "Fails 422 mapping_incomplete (with the missing fields listed) if the mapping does not cover every field the stream's current schema requires — a form can't join a stream it can't feed.",
+    "description": "If the stream has no schema yet, the attached form provides version 1 (copied from its published schema, its inferred draft, or the fields seen in recent submissions) and an identity mapping is used when `mapping` is omitted — so attaching the first form never needs a hand-written schema. Fails 422 stream_schema_missing if neither the stream nor the form has any fields to work from. Fails 422 mapping_incomplete (with the missing fields listed) if the mapping does not cover every field the stream's schema requires — a form can't join a stream it can't feed.",
     "tags": [
       "streams"
     ],

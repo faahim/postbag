@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
-import { EmptyState } from "@/components/empty-state"
+import { BagExplainer } from "@/components/bag-explainer"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatCount } from "@/lib/format"
 import { useCreateStream, useStreams } from "@/lib/queries/streams"
 
-const createBagSchema = z.object({ name: z.string().min(1, "Name your bag.") })
+const createBagSchema = z.object({ name: z.string().trim().min(1, "Give the bag a name.") })
 
 export const Route = createFileRoute("/_app/bags/")({
   component: BagsIndexRoute,
@@ -31,7 +31,7 @@ function BagsIndexRoute() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Bags</h1>
-          <p className="text-sm text-muted-foreground">Group forms that should land in one shared shape.</p>
+          <p className="text-sm text-muted-foreground">Collect several forms into one shape, and send them on together.</p>
         </div>
         <Button
           onClick={() => {
@@ -47,18 +47,21 @@ function BagsIndexRoute() {
       {streams.isLoading ? (
         <Skeleton className="h-32 w-full" />
       ) : streams.data === undefined || streams.data.length === 0 ? (
-        <EmptyState
-          title="No bags yet"
-          description="A bag collects submissions from several forms into one normalised shape — useful once you're routing more than one form to the same place."
+        <BagExplainer
+          title="Many forms in. One tidy shape out."
+          lede="Say the same contact form lives on three of your sites, and each one names its fields a little differently — fullName, name, Namn. A bag takes everything those forms receive and lines it up into one shape, so wherever you send it — an inbox, Telegram, a webhook — the same fields always arrive in the same places."
           action={
             <Button
               onClick={() => {
                 setOpen(true)
               }}
+              className="gap-1.5"
             >
-              Create a bag
+              <Plus className="size-4" />
+              Create your first bag
             </Button>
           }
+          aside="Only one form? You don't need a bag yet — route it straight from its own page. Bags earn their keep once two or more forms should land in the same place."
         />
       ) : (
         <Table>
@@ -116,7 +119,7 @@ function CreateBagDialog({ open, onOpenChange }: { readonly open: boolean; reado
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New bag</DialogTitle>
-          <DialogDescription>Attach forms to it once it exists.</DialogDescription>
+          <DialogDescription>Name it after what lands in it — “Leads”, “Support requests”. You'll attach the first form next.</DialogDescription>
         </DialogHeader>
         <form
           onSubmit={(e) => {

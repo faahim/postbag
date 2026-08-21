@@ -87,6 +87,13 @@
   --ease-linear: linear;
   --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
   --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
+
+  /* Bag explainer ("the sorting office") — one loop of forms flowing into a bag and one
+     shape flowing out. Durations are scene-length, not interaction-length, so they don't
+     reuse the interaction scale above. */
+  --bag-loop: 5200ms;
+  --bag-breathe-scale: 1.035;
+  --bag-ease: var(--ease-smooth-out);
   --distance-micro: 4px;
   --distance-small: 6px;
   --distance-base: 8px;

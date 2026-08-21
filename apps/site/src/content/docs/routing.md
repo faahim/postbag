@@ -25,6 +25,8 @@ POST /v1/streams { "name": "Vending leads", "slug": "vending-leads",
 
 Sources are explicit (`form_id`) or selectors (`tag:vending`, `project:prj_…`). Each carries a mapping. `GET /v1/streams/{id}/preview` shows recent submissions mapped through the current mappings.
 
+**You don't have to write the schema first.** A stream with no schema takes its version 1 from the first form you attach — copied from the form's published schema, else its inferred draft, else the fields seen in its recent submissions — and that form gets an identity mapping. So `POST /v1/streams { "name": "Leads", "sources": [{ "form_id": "fm_…" }] }` is a complete request, and so is `POST /v1/streams/{id}/sources { "form_id": "fm_…" }` on an empty stream. Forms attached after that map onto the shape the first one set. If neither the stream nor the form has any fields yet (a brand-new form with no submissions), the call fails `422 stream_schema_missing` with a hint.
+
 ## Mappings
 
 ```json

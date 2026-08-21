@@ -29,6 +29,7 @@ Every error response has the shape:
 | `unsupported_media_type` | 415 | File uploads are not supported yet; send text fields only. |
 | `validation_failed` | 422 | Correct the fields described in `details.issues` and retry. |
 | `mapping_incomplete` | 422 | Map every required stream field before attaching; `details` lists them. |
+| `stream_schema_missing` | 422 | The stream has no schema and the attached source can't provide one. Attach a form that has a published schema or a submission (its fields become version 1), or `POST /v1/streams/{id}/schema`. |
 | `schema_violation` | 422 | Publish a compatible schema or correct the submitted fields. |
 | `expressions_not_enabled` | 422 | Use `from`, `const` or `default` until expressions ship. |
 | `rate_limited` | 429 | Retry after the indicated delay (`Retry-After`). The submission was stored as quarantined. |

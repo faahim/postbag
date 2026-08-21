@@ -1,8 +1,9 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
-import { applyMapping, newId, PostbagError, StreamInputSchema, validateMapping, type Mapping } from "@postbag/core"
+import { applyMapping, inferSchema, newId, PostbagError, StreamInputSchema, validateMapping, type Mapping } from "@postbag/core"
 import { and, count, desc, eq, gte, lt, or, type SQL } from "drizzle-orm"
 import {
   events,
+  formSchemaDrafts,
   formSchemas,
   forms,
   routes,
@@ -44,6 +45,132 @@ function slugify(value: string): string {
     .replaceAll(/[^a-z0-9]+/gu, "-")
     .replaceAll(/^-+|-+$/gu, "")
   return base.length === 0 ? "stream" : base.slice(0, 50)
+}
+
+/** The first few lines of a transaction or the plain client — both expose the query builder. */
+type Queryable = Pick<Database, "select" | "insert" | "update">
+
+type DerivedSchema = {
+  readonly jsonSchema: Record<string, unknown>
+  readonly ui: Record<string, unknown>
+  readonly origin: "form_schema" | "inferred_draft" | "submissions"
+  readonly formName: string
+}
+
+/** Where a stream's *first* schema comes from when a form is attached before one exists:
+ * the form's published schema, else its inferred (unpublished) draft, else the fields seen
+ * in its recent submissions. `null` means the form has nothing to copy yet. Nobody should
+ * have to hand-write JSON Schema to start a Bag — the first form *is* the shape. */
+async function deriveSchemaFromForm(
+  db: Queryable,
+  organizationId: string,
+  formId: string,
+): Promise<DerivedSchema | null> {
+  const [form] = await db
+    .select()
+    .from(forms)
+    .where(and(eq(forms.organizationId, organizationId), eq(forms.id, formId)))
+    .limit(1)
+  if (form === undefined) throw new PostbagError("not_found", "No form with that id.")
+
+  if (form.currentSchemaVersion !== null) {
+    const [published] = await db
+      .select({ jsonSchema: formSchemas.jsonSchema, ui: formSchemas.ui })
+      .from(formSchemas)
+      .where(and(eq(formSchemas.formId, form.id), eq(formSchemas.version, form.currentSchemaVersion)))
+      .limit(1)
+    if (published !== undefined) {
+      return { jsonSchema: { ...published.jsonSchema }, ui: { ...published.ui }, origin: "form_schema", formName: form.name }
+    }
+  }
+
+  const [draft] = await db
+    .select({ jsonSchema: formSchemaDrafts.jsonSchema, ui: formSchemaDrafts.ui })
+    .from(formSchemaDrafts)
+    .where(and(eq(formSchemaDrafts.organizationId, organizationId), eq(formSchemaDrafts.formId, form.id)))
+    .limit(1)
+  if (draft !== undefined && Object.keys((draft.jsonSchema["properties"] as object | undefined) ?? {}).length > 0) {
+    return { jsonSchema: { ...draft.jsonSchema }, ui: { ...draft.ui }, origin: "inferred_draft", formName: form.name }
+  }
+
+  const recent = await db
+    .select({ data: submissions.data })
+    .from(submissions)
+    .where(and(eq(submissions.organizationId, organizationId), eq(submissions.formId, form.id)))
+    .orderBy(desc(submissions.receivedAt))
+    .limit(50)
+  if (recent.length === 0) return null
+  const inferred = inferSchema(recent.map((row) => row.data))
+  if (Object.keys(inferred.jsonSchema["properties"] ?? {}).length === 0) return null
+  return {
+    jsonSchema: inferred.jsonSchema as unknown as Record<string, unknown>,
+    ui: inferred.ui as unknown as Record<string, unknown>,
+    origin: "submissions",
+    formName: form.name,
+  }
+}
+
+function schemaFieldNames(jsonSchema: Record<string, unknown>): string[] {
+  const properties = jsonSchema["properties"]
+  return properties !== null && typeof properties === "object" ? Object.keys(properties) : []
+}
+
+/** `{ name: { from: "name" }, … }` — the mapping a form gets onto a schema copied from itself. */
+function identityMapping(jsonSchema: Record<string, unknown>): Record<string, { from: string }> {
+  return Object.fromEntries(schemaFieldNames(jsonSchema).map((field) => [field, { from: field }]))
+}
+
+const DERIVED_CHANGELOG: Record<DerivedSchema["origin"], (formName: string) => string> = {
+  form_schema: (name) => `Version 1 — copied from the published schema of form "${name}".`,
+  inferred_draft: (name) => `Version 1 — copied from the inferred schema of form "${name}".`,
+  submissions: (name) => `Version 1 — inferred from recent submissions to form "${name}".`,
+}
+
+/** Publish version 1 of a stream schema derived from `formId`, or throw `stream_schema_missing`
+ * when nothing can be derived. Returns the stored schema so the caller can validate mappings. */
+async function publishDerivedFirstSchema(
+  db: Queryable,
+  organizationId: string,
+  streamId: string,
+  formId: string | undefined,
+): Promise<{ jsonSchema: Record<string, unknown> }> {
+  if (formId === undefined) {
+    throw new PostbagError(
+      "stream_schema_missing",
+      "This stream has no schema yet, and a selector source has no fields to derive one from.",
+    )
+  }
+  const derived = await deriveSchemaFromForm(db, organizationId, formId)
+  if (derived === null) {
+    const [form] = await db.select({ name: forms.name }).from(forms).where(eq(forms.id, formId)).limit(1)
+    throw new PostbagError(
+      "stream_schema_missing",
+      `This stream has no schema yet, and form "${form?.name ?? formId}" (${formId}) has nothing to derive one from — no published schema and no submissions.`,
+      { form_id: formId },
+    )
+  }
+  const [schemaRow] = await db
+    .insert(streamSchemas)
+    .values({
+      id: newId("ss"),
+      organizationId,
+      streamId,
+      version: 1,
+      jsonSchema: derived.jsonSchema,
+      ui: derived.ui,
+      changelog: DERIVED_CHANGELOG[derived.origin](derived.formName),
+    })
+    .returning()
+  if (schemaRow === undefined) throw new Error("Failed to publish stream schema.")
+  await db.update(streams).set({ currentSchemaVersion: 1, updatedAt: new Date() }).where(eq(streams.id, streamId))
+  await db.insert(events).values({
+    id: newId("ev"),
+    organizationId,
+    type: "stream.schema.changed",
+    subject: { stream_id: streamId },
+    data: { version: 1, derived_from: { form_id: formId, origin: derived.origin } },
+  })
+  return { jsonSchema: schemaRow.jsonSchema }
 }
 
 async function getStreamCounts(db: Database, organizationId: string, streamId: string) {
@@ -90,7 +217,11 @@ const createRouteDef = createRoute({
   operationId: "streams_create",
   tags: ["streams"],
   summary: "Create a stream (optionally with its first schema version and sources)",
-  description: "A stream (shown as 'Bag' in the dashboard) fans one canonical schema in from many forms.",
+  description:
+    "A stream (shown as 'Bag' in the dashboard) collects submissions from many forms into one shared shape. " +
+    "Pass `schema` to define that shape up front, or omit it and pass `sources` — the first source's form then " +
+    "provides version 1 (copied from its published schema, its inferred draft, or the fields seen in recent " +
+    "submissions) with an identity mapping, so `{ name, sources: [{ form_id }] }` is a complete request.",
   request: { body: { content: { "application/json": { schema: SafeStreamInputSchema } } } },
   responses: {
     201: { description: "created", content: { "application/json": { schema: StreamSchema } } },
@@ -192,8 +323,12 @@ const attachSourceRoute = createRoute({
   tags: ["streams"],
   summary: "Attach a form or selector with a mapping",
   description:
-    "Fails 422 mapping_incomplete (with the missing fields listed) if the mapping does not cover every " +
-    "field the stream's current schema requires — a form can't join a stream it can't feed.",
+    "If the stream has no schema yet, the attached form provides version 1 (copied from its published schema, " +
+    "its inferred draft, or the fields seen in recent submissions) and an identity mapping is used when `mapping` " +
+    "is omitted — so attaching the first form never needs a hand-written schema. Fails 422 stream_schema_missing " +
+    "if neither the stream nor the form has any fields to work from. Fails 422 mapping_incomplete (with the " +
+    "missing fields listed) if the mapping does not cover every field the stream's schema requires — a form " +
+    "can't join a stream it can't feed.",
   request: {
     params: z.object({ streamId: IdSchema }),
     body: { content: { "application/json": { schema: SafeStreamSourceInputSchema } } },
@@ -342,13 +477,22 @@ export function registerStreamRoutes(app: OpenAPIHono<AppEnv>, db: Database): vo
       }
 
       for (const source of input.sources) {
+        let mapping = source.mapping
         if (schemaJson === null || schemaVersion === null) {
-          throw new PostbagError("validation_failed", "Attach sources only after (or while) publishing a schema.")
+          const derived = await publishDerivedFirstSchema(tx, scope.organizationId, createdStream.id, source.form_id)
+          schemaJson = derived.jsonSchema
+          schemaVersion = 1
+          if (mapping === undefined || Object.keys(mapping).length === 0) mapping = identityMapping(schemaJson)
         }
         let formSchemaJson: Record<string, unknown> | undefined
         if (source.form_id !== undefined) {
-          const [form] = await tx.select().from(forms).where(eq(forms.id, source.form_id)).limit(1)
-          if (form?.currentSchemaVersion !== null && form?.currentSchemaVersion !== undefined) {
+          const [form] = await tx
+            .select()
+            .from(forms)
+            .where(and(eq(forms.organizationId, scope.organizationId), eq(forms.id, source.form_id)))
+            .limit(1)
+          if (form === undefined) throw new PostbagError("not_found", "No form with that id.")
+          if (form.currentSchemaVersion !== null) {
             const [formSchema] = await tx
               .select({ jsonSchema: formSchemas.jsonSchema })
               .from(formSchemas)
@@ -357,7 +501,7 @@ export function registerStreamRoutes(app: OpenAPIHono<AppEnv>, db: Database): vo
             formSchemaJson = formSchema?.jsonSchema
           }
         }
-        const validation = validateMapping(source.mapping as unknown as Mapping, schemaJson, formSchemaJson)
+        const validation = validateMapping(mapping as unknown as Mapping, schemaJson, formSchemaJson)
         if (validation.status === "incomplete") {
           throw new PostbagError(
             "mapping_incomplete",
@@ -371,7 +515,7 @@ export function registerStreamRoutes(app: OpenAPIHono<AppEnv>, db: Database): vo
           streamId: createdStream.id,
           formId: source.form_id,
           selector: source.selector,
-          mapping: source.mapping,
+          mapping,
           mappingStatus: validation.status,
           missing: [...validation.missing],
           streamSchemaVersion: schemaVersion,
@@ -409,6 +553,7 @@ export function registerStreamRoutes(app: OpenAPIHono<AppEnv>, db: Database): vo
           json_schema: asJson(schemaRow.jsonSchema),
           ui: asJson(schemaRow.ui),
           version: schemaRow.version,
+          ...(schemaRow.changelog === null ? {} : { changelog: schemaRow.changelog }),
           created_at: schemaRow.createdAt.toISOString(),
         }
       }
@@ -615,51 +760,70 @@ export function registerStreamRoutes(app: OpenAPIHono<AppEnv>, db: Database): vo
       .where(and(eq(streams.organizationId, scope.organizationId), eq(streams.id, streamId)))
       .limit(1)
     if (stream === undefined) throw new PostbagError("not_found", "No stream with that id.")
-    if (stream.currentSchemaVersion === null) {
-      throw new PostbagError("validation_failed", "Publish a stream schema before attaching sources.")
-    }
-    const [schemaRow] = await db
-      .select({ jsonSchema: streamSchemas.jsonSchema })
-      .from(streamSchemas)
-      .where(and(eq(streamSchemas.streamId, streamId), eq(streamSchemas.version, stream.currentSchemaVersion)))
-      .limit(1)
-    if (schemaRow === undefined) throw new PostbagError("not_found", "Stream schema not found.")
 
-    let formSchemaJson: Record<string, unknown> | undefined
-    if (input.form_id !== undefined) {
-      const [form] = await db.select().from(forms).where(eq(forms.id, input.form_id)).limit(1)
-      if (form?.currentSchemaVersion !== null && form?.currentSchemaVersion !== undefined) {
-        const [formSchema] = await db
-          .select({ jsonSchema: formSchemas.jsonSchema })
-          .from(formSchemas)
-          .where(and(eq(formSchemas.formId, form.id), eq(formSchemas.version, form.currentSchemaVersion)))
+    const created = await db.transaction(async (tx) => {
+      let schemaVersion = stream.currentSchemaVersion
+      let schemaJson: Record<string, unknown>
+      let mapping = input.mapping
+      if (schemaVersion === null) {
+        // First form in, shape out: the stream copies this form's fields as version 1 and
+        // the form maps onto it one-to-one. Nobody starts a Bag by writing JSON Schema.
+        const derived = await publishDerivedFirstSchema(tx, scope.organizationId, streamId, input.form_id)
+        schemaVersion = 1
+        schemaJson = derived.jsonSchema
+        if (mapping === undefined || Object.keys(mapping).length === 0) mapping = identityMapping(schemaJson)
+      } else {
+        const [schemaRow] = await tx
+          .select({ jsonSchema: streamSchemas.jsonSchema })
+          .from(streamSchemas)
+          .where(and(eq(streamSchemas.streamId, streamId), eq(streamSchemas.version, schemaVersion)))
           .limit(1)
-        formSchemaJson = formSchema?.jsonSchema
+        if (schemaRow === undefined) throw new PostbagError("not_found", "Stream schema not found.")
+        schemaJson = schemaRow.jsonSchema
       }
-    }
-    const validation = validateMapping(input.mapping as unknown as Mapping, schemaRow.jsonSchema, formSchemaJson)
-    if (validation.status === "incomplete") {
-      throw new PostbagError(
-        "mapping_incomplete",
-        `Stream requires fields this source does not provide: ${validation.missing.join(", ")}.`,
-        { missing: validation.missing },
-      )
-    }
-    const [created] = await db
-      .insert(streamSources)
-      .values({
-        id: newId("src"),
-        organizationId: scope.organizationId,
-        streamId,
-        formId: input.form_id,
-        selector: input.selector,
-        mapping: input.mapping,
-        mappingStatus: validation.status,
-        missing: [...validation.missing],
-        streamSchemaVersion: stream.currentSchemaVersion,
-      })
-      .returning()
-    if (created === undefined) throw new Error("Failed to attach source.")
+
+      let formSchemaJson: Record<string, unknown> | undefined
+      if (input.form_id !== undefined) {
+        const [form] = await tx
+          .select()
+          .from(forms)
+          .where(and(eq(forms.organizationId, scope.organizationId), eq(forms.id, input.form_id)))
+          .limit(1)
+        if (form === undefined) throw new PostbagError("not_found", "No form with that id.")
+        if (form.currentSchemaVersion !== null) {
+          const [formSchema] = await tx
+            .select({ jsonSchema: formSchemas.jsonSchema })
+            .from(formSchemas)
+            .where(and(eq(formSchemas.formId, form.id), eq(formSchemas.version, form.currentSchemaVersion)))
+            .limit(1)
+          formSchemaJson = formSchema?.jsonSchema
+        }
+      }
+      const validation = validateMapping(mapping as unknown as Mapping, schemaJson, formSchemaJson)
+      if (validation.status === "incomplete") {
+        throw new PostbagError(
+          "mapping_incomplete",
+          `Stream requires fields this source does not provide: ${validation.missing.join(", ")}.`,
+          { missing: validation.missing },
+        )
+      }
+      const [row] = await tx
+        .insert(streamSources)
+        .values({
+          id: newId("src"),
+          organizationId: scope.organizationId,
+          streamId,
+          formId: input.form_id,
+          selector: input.selector,
+          mapping,
+          mappingStatus: validation.status,
+          missing: [...validation.missing],
+          streamSchemaVersion: schemaVersion,
+        })
+        .returning()
+      if (row === undefined) throw new Error("Failed to attach source.")
+      return row
+    })
     const body: z.infer<typeof StreamSourceSchema> = {
       id: created.id,
       form_id: created.formId ?? undefined,

@@ -1,5 +1,5 @@
 import { newId } from "@postbag/core"
-import { events, organization, streams, systemWebhookDeliveries, type Database } from "@postbag/db"
+import { events, organization, streams, submissions, systemWebhookDeliveries, type Database } from "@postbag/db"
 import { eq } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
@@ -242,6 +242,157 @@ integration("/v1 API", () => {
     const body = (await attach.json()) as { error: { code: string; details?: { missing?: string[] } } }
     expect(body.error.code).toBe("mapping_incomplete")
     expect(body.error.details?.missing).toContain("phone")
+
+    await db.delete(streams).where(eq(streams.id, stream.id))
+  })
+
+  it("derives a stream's first schema from the first attached form's published schema, with an identity mapping", async () => {
+    const streamResponse = await harness.app.request(
+      "/v1/streams",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "Derived from form schema" }),
+      }),
+    )
+    expect(streamResponse.status).toBe(201)
+    const stream = (await streamResponse.json()) as { id: string; current_schema_version: number | null }
+    expect(stream.current_schema_version).toBeNull()
+
+    const formResponse = await harness.app.request(
+      "/v1/forms",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: "Contact (published schema)",
+          schema: {
+            json_schema: { type: "object", properties: { name: { type: "string" }, email: { type: "string" } }, required: ["email"] },
+          },
+        }),
+      }),
+    )
+    expect(formResponse.status).toBe(201)
+    const form = (await formResponse.json()) as { id: string }
+
+    // No mapping, no stream schema — the form supplies both.
+    const attach = await harness.app.request(
+      `/v1/streams/${stream.id}/sources`,
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ form_id: form.id }),
+      }),
+    )
+    expect(attach.status).toBe(201)
+    const source = (await attach.json()) as {
+      mapping: Record<string, { from?: string }>
+      mapping_status: string
+      stream_schema_version: number
+    }
+    expect(source.stream_schema_version).toBe(1)
+    expect(source.mapping_status).toBe("valid")
+    expect(source.mapping).toEqual({ name: { from: "name" }, email: { from: "email" } })
+
+    const detail = await harness.app.request(`/v1/streams/${stream.id}`, authed(keyA))
+    const detailBody = (await detail.json()) as {
+      current_schema_version: number | null
+      schema?: { version: number; json_schema: { required?: string[] }; changelog?: string }
+    }
+    expect(detailBody.current_schema_version).toBe(1)
+    expect(detailBody.schema?.json_schema.required).toEqual(["email"])
+    expect(detailBody.schema?.changelog).toContain("Contact (published schema)")
+
+    const changed = await db
+      .select()
+      .from(events)
+      .where(eq(events.organizationId, orgAId))
+    expect(
+      changed.some((e) => e.type === "stream.schema.changed" && (e.subject as { stream_id?: string }).stream_id === stream.id),
+    ).toBe(true)
+
+    await db.delete(streams).where(eq(streams.id, stream.id))
+  })
+
+  it("derives a stream's first schema from recent submissions when the form has no schema", async () => {
+    const formResponse = await harness.app.request(
+      "/v1/forms",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "Observe-mode form with data" }),
+      }),
+    )
+    const form = (await formResponse.json()) as { id: string }
+    await db.insert(submissions).values({
+      id: newId("sb"),
+      organizationId: orgAId,
+      formId: form.id,
+      data: { fullName: "Eric", company: "Testing sites" },
+    })
+
+    const streamResponse = await harness.app.request(
+      "/v1/streams",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "Derived from submissions", sources: [{ form_id: form.id }] }),
+      }),
+    )
+    expect(streamResponse.status).toBe(201)
+    const stream = (await streamResponse.json()) as { id: string }
+
+    const detail = await harness.app.request(`/v1/streams/${stream.id}`, authed(keyA))
+    const detailBody = (await detail.json()) as {
+      schema?: { version: number; json_schema: { properties: Record<string, unknown> } }
+      sources?: { mapping: Record<string, unknown>; mapping_status: string }[]
+    }
+    expect(detailBody.schema?.version).toBe(1)
+    expect(Object.keys(detailBody.schema?.json_schema.properties ?? {}).sort()).toEqual(["company", "fullName"])
+    expect(detailBody.sources?.[0]?.mapping_status).toBe("valid")
+    expect(detailBody.sources?.[0]?.mapping).toEqual({ fullName: { from: "fullName" }, company: { from: "company" } })
+
+    await db.delete(streams).where(eq(streams.id, stream.id))
+  })
+
+  it("returns 422 stream_schema_missing when neither the stream nor the form has any fields", async () => {
+    const streamResponse = await harness.app.request(
+      "/v1/streams",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "Nothing to derive" }),
+      }),
+    )
+    const stream = (await streamResponse.json()) as { id: string }
+    const formResponse = await harness.app.request(
+      "/v1/forms",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "Brand new form" }),
+      }),
+    )
+    const form = (await formResponse.json()) as { id: string }
+
+    const attach = await harness.app.request(
+      `/v1/streams/${stream.id}/sources`,
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ form_id: form.id }),
+      }),
+    )
+    expect(attach.status).toBe(422)
+    const body = (await attach.json()) as { error: { code: string; hint: string; details?: { form_id?: string } } }
+    expect(body.error.code).toBe("stream_schema_missing")
+    expect(body.error.hint).toContain("POST /v1/streams/{id}/schema")
+    expect(body.error.details?.form_id).toBe(form.id)
+
+    // The stream stays schema-less — nothing half-published.
+    const detail = await harness.app.request(`/v1/streams/${stream.id}`, authed(keyA))
+    const detailBody = (await detail.json()) as { current_schema_version: number | null }
+    expect(detailBody.current_schema_version).toBeNull()
 
     await db.delete(streams).where(eq(streams.id, stream.id))
   })

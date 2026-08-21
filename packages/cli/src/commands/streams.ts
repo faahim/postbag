@@ -102,11 +102,13 @@ export function registerStreamsCommands(program: Command, deps: CliDeps): void {
   sources
     .command("add")
     .argument("<streamId>", "stream id")
-    .description("Attach a form to a stream with a field mapping")
+    .description(
+      "Attach a form to a stream with a field mapping (a stream with no schema yet takes its version 1 from this form)",
+    )
     .requiredOption("--form <formId>", "the form feeding this stream")
     .option(
       "--mapping <json>",
-      'mapping object keyed by stream schema field, e.g. \'{"email":{"from":"work_email"}}\'',
+      'mapping object keyed by stream schema field, e.g. \'{"email":{"from":"work_email"}}\' (omit on an empty stream for an identity mapping)',
     )
     .option("--data <json>", "full request body as JSON, instead of --form/--mapping")
     .action(async (streamId: string, _opts: unknown, command: Command) => {

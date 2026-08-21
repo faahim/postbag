@@ -113,6 +113,19 @@ the rules and `docs/` for the design.
   `/.well-known/skills/` (bundled into dist by the server build); landing "set up your agent" block; llms.txt section.
   184 tests.
 
+- [x] **Job M (2026-08-22, Bag first-run — Eric's "Publish a stream schema before attaching sources" dead end):**
+  the dashboard could not publish a stream schema, so a fresh Bag was unusable. Fixed end to end: server derives a
+  stream's **version 1 from the first attached form** (published schema → inferred draft → recent submissions; identity
+  mapping; `stream.schema.changed` event records `derived_from`) in both `POST /v1/streams` and
+  `POST /v1/streams/{id}/sources`; new error code `stream_schema_missing` (core + site errors page) replaces the bare
+  422 when nothing can be derived. Dashboard: `BagExplainer` ("the sorting office" SVG/SMIL animation + plain-language
+  copy + numbered steps) on the Bags list and on every fresh bag, first-form attach from the explainer, `ShapeEditor`
+  on "What gets delivered" (fields/type/required, seed from a form, publish vN+1), Sources show form names, pre-match
+  same-named fields on attach, detach, preview by name + `extras` note, header badges. `toastApiError` shows the API
+  `hint` as the toast description app-wide (bags, mapping editor, plan card, members). Docs: routing.md,
+  DOMAIN-MODEL.md (StreamSchema), errors.md, SKILL.md, CLI option help, OpenAPI + MCP operations regenerated.
+  Verified locally in the browser (light + dark); lint 0, typecheck ok, 239/239 tests.
+
 ## Handoff (2026-08-21 ~22:50 UTC — session ended near a usage limit; resume from here)
 
 **Committed and live:** everything above plus job J (agent-first hero, switcher, pricing cards, first-paint reveal fix —

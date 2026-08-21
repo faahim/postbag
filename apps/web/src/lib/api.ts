@@ -1,4 +1,5 @@
 import { createClient, type components } from "@postbag/sdk"
+import { toast } from "sonner"
 
 export type ApiError = components["schemas"]["ErrorEnvelope"]["error"]
 
@@ -38,4 +39,17 @@ export function unwrap<T>(result: { readonly data?: T; readonly error?: unknown 
   }
   if (result.data === undefined) throw new Error("Request returned no data.")
   return result.data
+}
+
+/** Surface an API failure the way the API itself reports it (Golden rule 8): the server's
+ * `message` as the headline and its `hint` — what to do next — as the description. Anything
+ * that isn't a Postbag envelope (network, parsing) gets the caller's plain-language fallback.
+ * Returns the error so callers can still branch on `code` afterwards. */
+export function toastApiError(error: unknown, fallback: string): unknown {
+  if (error instanceof PostbagApiError) {
+    toast.error(error.message, error.hint === undefined ? undefined : { description: error.hint, duration: 8000 })
+  } else {
+    toast.error(fallback)
+  }
+  return error
 }

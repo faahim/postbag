@@ -113,7 +113,9 @@ done.
 ## Vocabulary
 
 `form` — the endpoint a site posts to. `submission` — one received payload.
-`stream` — a named group of forms with a shared output shape. `destination` —
+`stream` — a named group of forms with a shared output shape (a "Bag" in the
+dashboard; attach the first form and its fields become the stream's version-1 schema,
+no hand-written schema needed). `destination` —
 somewhere submissions go (email/telegram/webhook). `route` — form/stream →
 destination with rules. `delivery` — one attempt-tracked send. Never use "endpoint",
 "integration", "channel", "hook" or "entry" as synonyms for these.

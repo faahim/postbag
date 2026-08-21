@@ -107,6 +107,14 @@ Versioned, immutable, same shape as FormSchema (`json_schema` + `ui`). This is t
 deliberate act that creates a new version, emits `stream.schema.changed`, and
 re-validates every source mapping.
 
+**Version 1 is usually derived, not written.** Attaching the first source (a `form_id`)
+to a stream with no schema publishes version 1 copied from that form — its published
+schema, else its inferred draft, else the fields seen in its recent submissions — and
+gives the form an identity mapping. The changelog records where it came from. A stream
+that can't derive anything (selector source, or a form with no schema and no
+submissions) rejects the attach with `stream_schema_missing` rather than publishing an
+empty shape. Later versions are published explicitly.
+
 ## Mapping
 
 Per (stream, form): how that form's fields produce the stream schema's fields.

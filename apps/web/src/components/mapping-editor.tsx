@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PostbagApiError } from "@/lib/api"
+import { PostbagApiError, toastApiError } from "@/lib/api"
 import { useUpdateStreamSource } from "@/lib/queries/streams"
 
 type MappingRule = { readonly from?: string; readonly const?: unknown }
@@ -61,10 +61,8 @@ export function MappingEditor({
       if (error instanceof PostbagApiError) {
         const details = error.details as { readonly missing?: readonly string[] } | undefined
         setLiveMissing(details?.missing ?? [])
-        toast.error(error.message)
-      } else {
-        toast.error("Could not save the mapping.")
       }
+      toastApiError(error, "Couldn't save the mapping — try again.")
     }
   }
 
