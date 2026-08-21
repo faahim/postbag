@@ -5,6 +5,16 @@ const BooleanFromString = z
   .optional()
   .transform((value) => value !== "false" && value !== "0")
 
+// Defaults false (unlike BooleanFromString above, which defaults true) — RLS_ENFORCED
+// must stay off until an operator opts in explicitly. See job D §5 / migration
+// 0003_rls_second_fence.sql: the flag is defined and the database-level fence (role +
+// policies) is fully wired and tested, but the request-path integration (SET LOCAL ROLE
+// + SET LOCAL app.org_id per org-scoped request) is NOT implemented — see PROGRESS.md.
+const BooleanFlagDefaultFalse = z
+  .string()
+  .optional()
+  .transform((value) => value === "true" || value === "1")
+
 const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
@@ -16,6 +26,7 @@ const EnvSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   MAIL_FROM: z.string().default("Postbag <postbag@updates.withfaahim.com>"),
   MIGRATE_ON_BOOT: BooleanFromString,
+  RLS_ENFORCED: BooleanFlagDefaultFalse,
 })
 
 export type Env = {
@@ -29,6 +40,7 @@ export type Env = {
   readonly RESEND_API_KEY?: string | undefined
   readonly MAIL_FROM: string
   readonly MIGRATE_ON_BOOT: boolean
+  readonly RLS_ENFORCED: boolean
 }
 
 export function loadEnv(source: Readonly<Record<string, string | undefined>> = process.env): Env {

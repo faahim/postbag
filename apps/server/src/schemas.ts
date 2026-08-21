@@ -266,6 +266,23 @@ export const SystemWebhookSchema = z
   })
   .openapi("SystemWebhook")
 
+export const SystemWebhookDeliverySchema = z
+  .object({
+    id: IdSchema,
+    webhook_id: IdSchema,
+    event_id: IdSchema,
+    event_type: z.string(),
+    status: z.enum(["pending", "sending", "sent", "failed", "dead"]),
+    attempts: z.number().int(),
+    next_attempt_at: TimestampSchema.nullable(),
+    payload: JsonRecord,
+    last_response: DeliveryResultSchema.optional(),
+    last_error: z.string().nullable(),
+    created_at: TimestampSchema,
+    sent_at: TimestampSchema.nullable(),
+  })
+  .openapi("SystemWebhookDelivery")
+
 export const errorResponses = {
   400: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
   401: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },

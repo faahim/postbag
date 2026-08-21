@@ -2,7 +2,7 @@ import { renderTemplate } from "@postbag/core"
 import { Resend } from "resend"
 import { z } from "zod"
 
-import type { DestinationAdapter, Payload } from "./types.js"
+import { templateContext, type DestinationAdapter, type DigestSubmission, type Payload } from "./types.js"
 
 export const EmailConfigSchema = z.object({
   to: z.array(z.email()).min(1),
@@ -64,6 +64,30 @@ function extractAddress(mailFrom: string): string {
   return match?.[1] ?? mailFrom
 }
 
+function digestHtmlBody(displayName: string, submissions: readonly DigestSubmission[]): string {
+  const sections = submissions
+    .map((submission) => {
+      const rows = fieldRows(submission.data)
+        .map(
+          (row) =>
+            `<tr><td style="padding:2px 12px 2px 0;color:#666;vertical-align:top;white-space:nowrap"><strong>${escapeHtml(row.key)}</strong></td><td style="padding:2px 0">${escapeHtml(row.value)}</td></tr>`,
+        )
+        .join("")
+      return `<tr><td colspan="2" style="padding:12px 0 4px;border-top:1px solid #eee;color:#999;font-size:12px">${escapeHtml(submission.received_at)}</td></tr>${rows}`
+    })
+    .join("")
+  return `<div><h2 style="margin:0 0 12px">Digest — ${String(submissions.length)} submission(s) — ${escapeHtml(displayName)}</h2><table cellpadding="0" cellspacing="0">${sections}</table></div>`
+}
+
+function digestTextBody(displayName: string, submissions: readonly DigestSubmission[]): string {
+  const sections = submissions.flatMap((submission) => [
+    "",
+    `— ${submission.received_at} —`,
+    ...fieldRows(submission.data).map((row) => `${row.key}: ${row.value}`),
+  ])
+  return [`Digest — ${String(submissions.length)} submission(s) — ${displayName}`, ...sections].join("\n")
+}
+
 export function createEmailAdapter(
   options: CreateEmailAdapterOptions,
 ): DestinationAdapter<EmailConfig> {
@@ -74,11 +98,8 @@ export function createEmailAdapter(
     if (client === null) {
       return { ok: false, status_code: null, latency_ms: 0, error: "RESEND_API_KEY is not configured." }
     }
-    const formSlug = ctx.form?.slug ?? ctx.stream?.slug ?? "submission"
-    const subject = renderTemplate(config.subject_template, {
-      form: { name: formSlug, slug: formSlug },
-      data: payload,
-    })
+    const displayName = ctx.form?.name ?? ctx.stream?.name ?? "submission"
+    const subject = renderTemplate(config.subject_template, templateContext(ctx, payload))
     const replyToField =
       typeof ctx.meta["reply_to_field"] === "string" ? ctx.meta["reply_to_field"] : null
     const from =
@@ -93,10 +114,44 @@ export function createEmailAdapter(
         from,
         to,
         subject,
-        html: htmlBody(formSlug, payload),
-        text: textBody(formSlug, payload),
+        html: htmlBody(displayName, payload),
+        text: textBody(displayName, payload),
         ...(cc.length > 0 ? { cc } : {}),
         ...(replyToAddress === undefined ? {} : { replyTo: replyToAddress }),
+      })
+      const latency_ms = Date.now() - start
+      if (result.error !== null) {
+        return { ok: false, status_code: null, latency_ms, error: result.error.message }
+      }
+      return { ok: true, status_code: 200, latency_ms, response_excerpt: result.data.id }
+    } catch (error) {
+      return {
+        ok: false,
+        status_code: null,
+        latency_ms: Date.now() - start,
+        error: error instanceof Error ? error.message : "Unknown email delivery error.",
+      }
+    }
+  }
+
+  const deliverDigest: DestinationAdapter<EmailConfig>["deliverDigest"] = async (config, submissions, ctx) => {
+    const start = Date.now()
+    if (client === null) {
+      return { ok: false, status_code: null, latency_ms: 0, error: "RESEND_API_KEY is not configured." }
+    }
+    const displayName = ctx.form?.name ?? ctx.stream?.name ?? "submission"
+    const from =
+      config.from_name === undefined
+        ? options.mailFrom
+        : `${config.from_name} <${extractAddress(options.mailFrom)}>`
+    try {
+      const result = await client.emails.send({
+        from,
+        to: [...config.to],
+        subject: `Digest: ${String(submissions.length)} new submission(s) for ${displayName}`,
+        html: digestHtmlBody(displayName, submissions),
+        text: digestTextBody(displayName, submissions),
+        ...(config.cc.length > 0 ? { cc: [...config.cc] } : {}),
       })
       const latency_ms = Date.now() - start
       if (result.error !== null) {
@@ -122,11 +177,14 @@ export function createEmailAdapter(
         deliveryId: "test",
         eventType: "submission.received",
         schemaVersion: null,
-        form: { id: "fm_test", slug: "test" },
+        form: { id: "fm_test", name: "Test", slug: "test" },
+        project: null,
         stream: null,
+        submission: null,
         extras: {},
         meta: {},
       }),
     deliver,
+    deliverDigest,
   }
 }

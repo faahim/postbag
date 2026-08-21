@@ -78,3 +78,33 @@ export const formSchemas = pgTable(
     }).onDelete("cascade"),
   ],
 )
+
+// Job D §4: an inferred, *unpublished* schema for an `observe`-mode form with no schema
+// yet. One row per form (overwritten on re-infer) — publishing is still the explicit act
+// of inserting a `form_schemas` version; a draft never becomes one on its own.
+export const formSchemaDrafts = pgTable(
+  "form_schema_drafts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("fsd")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    formId: text("form_id").notNull(),
+    jsonSchema: jsonb("json_schema").$type<Readonly<Record<string, unknown>>>().notNull(),
+    ui: jsonb("ui").$type<Readonly<Record<string, unknown>>>().default({}).notNull(),
+    sampleCount: integer("sample_count").default(0).notNull(),
+    inferredAt: timestamp("inferred_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("form_schema_drafts_organization_id_idx").on(table.organizationId),
+    uniqueIndex("form_schema_drafts_id_organization_unique").on(table.id, table.organizationId),
+    uniqueIndex("form_schema_drafts_form_unique").on(table.formId),
+    foreignKey({
+      columns: [table.formId, table.organizationId],
+      foreignColumns: [forms.id, forms.organizationId],
+      name: "form_schema_drafts_form_organization_fk",
+    }).onDelete("cascade"),
+  ],
+)

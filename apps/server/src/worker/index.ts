@@ -1,12 +1,12 @@
-import { maxAttemptsFor, newId, nextAttemptAt, type DeliveryResult } from "@postbag/core"
+import { maxAttemptsFor, nextAttemptAt, type DeliveryResult } from "@postbag/core"
 import { and, eq } from "drizzle-orm"
 import {
   claimDeliveries,
   deliveries,
   destinations,
-  events,
   forms,
   listenDeliveries,
+  projects,
   routes,
   streams,
   submissions,
@@ -18,11 +18,19 @@ import {
 import type { AnyDestinationAdapter, DeliveryContext } from "../destinations/types.js"
 import type { Env } from "../env.js"
 import type { Logger } from "../logger.js"
+import { runDigestSweep } from "./digests.js"
+import { runSchemaInferenceSweep } from "./housekeeping.js"
+import { recordEvent } from "./shared.js"
+import { processSystemWebhookDeliveries } from "./systemWebhooks.js"
 
 const CONCURRENCY = 5
 const HEARTBEAT_INTERVAL_MS = 10_000
 const WAKE_TICK_MS = 15_000
 const FAILING_THRESHOLD = 5
+// ARCHITECTURE.md "The worker": "Digest loop: once per period per digest route" — runs
+// every minute. "Housekeeping: schema inference for observe forms" — every 10 minutes.
+const DIGEST_INTERVAL_MS = 60_000
+const HOUSEKEEPING_INTERVAL_MS = 10 * 60_000
 
 export type WorkerHandle = {
   stop(): Promise<void>
@@ -49,21 +57,33 @@ async function buildContext(db: Database, claimed: ClaimedDelivery): Promise<Del
     .where(and(eq(submissions.organizationId, claimed.organizationId), eq(submissions.id, claimed.submissionId)))
     .limit(1)
 
-  let form: { readonly id: string; readonly slug: string } | null = null
+  // Job D 1b: every destination's template context carries the real form/project/stream
+  // names (not just slugs) — {{form.name}} was rendering the slug because the worker
+  // never fetched the name.
+  let form: DeliveryContext["form"] = null
+  let project: DeliveryContext["project"] = null
   const formId = route.formId ?? submission?.formId
   if (formId !== undefined) {
     const [row] = await db
-      .select({ id: forms.id, slug: forms.slug })
+      .select({ id: forms.id, name: forms.name, slug: forms.slug, projectId: forms.projectId })
       .from(forms)
       .where(and(eq(forms.organizationId, claimed.organizationId), eq(forms.id, formId)))
       .limit(1)
-    if (row !== undefined) form = row
+    if (row !== undefined) {
+      form = { id: row.id, name: row.name, slug: row.slug }
+      const [projectRow] = await db
+        .select({ id: projects.id, name: projects.name, slug: projects.slug })
+        .from(projects)
+        .where(and(eq(projects.organizationId, claimed.organizationId), eq(projects.id, row.projectId)))
+        .limit(1)
+      if (projectRow !== undefined) project = projectRow
+    }
   }
 
-  let stream: { readonly id: string; readonly slug: string } | null = null
+  let stream: DeliveryContext["stream"] = null
   if (route.streamId !== null) {
     const [row] = await db
-      .select({ id: streams.id, slug: streams.slug })
+      .select({ id: streams.id, name: streams.name, slug: streams.slug })
       .from(streams)
       .where(and(eq(streams.organizationId, claimed.organizationId), eq(streams.id, route.streamId)))
       .limit(1)
@@ -75,20 +95,13 @@ async function buildContext(db: Database, claimed: ClaimedDelivery): Promise<Del
     eventType: "submission.received",
     schemaVersion: claimed.schemaVersion,
     form,
+    project,
     stream,
+    submission:
+      submission === undefined ? null : { id: submission.id, received_at: submission.receivedAt.toISOString() },
     extras: {},
     meta: submission?.meta ?? {},
   }
-}
-
-async function recordEvent(
-  db: Database,
-  organizationId: string,
-  type: string,
-  subject: Readonly<Record<string, unknown>>,
-  data: Readonly<Record<string, unknown>> = {},
-): Promise<void> {
-  await db.insert(events).values({ id: newId("ev"), organizationId, type, subject, data })
 }
 
 async function markDestinationOutcome(
@@ -307,6 +320,18 @@ export function startWorker(
     })
   }, HEARTBEAT_INTERVAL_MS)
 
+  const digestTimer = setInterval(() => {
+    runDigestSweep(db, log, registry).catch((error: unknown) => {
+      log.error({ err: error }, "digest sweep failed")
+    })
+  }, DIGEST_INTERVAL_MS)
+
+  const housekeepingTimer = setInterval(() => {
+    runSchemaInferenceSweep(db, log).catch((error: unknown) => {
+      log.error({ err: error }, "schema inference sweep failed")
+    })
+  }, HOUSEKEEPING_INTERVAL_MS)
+
   listenDeliveries(env.DATABASE_URL, () => wake?.())
     .then((stop) => {
       unlisten = stop
@@ -319,10 +344,11 @@ export function startWorker(
     await heartbeat(db, workerId)
     while (!state.stopped) {
       const claimed = await claimDeliveries(db, { limit: CONCURRENCY, workerId })
+      const claimedWebhooks = await processSystemWebhookDeliveries(db, log, workerId)
       if (claimed.length > 0) {
         await Promise.all(claimed.map((delivery) => processDelivery(db, log, registry, delivery)))
-        continue
       }
+      if (claimed.length > 0 || claimedWebhooks > 0) continue
       await new Promise<void>((resolve) => {
         const timer = setTimeout(resolve, WAKE_TICK_MS)
         wake = () => {
@@ -339,6 +365,8 @@ export function startWorker(
       state.stopped = true
       wake?.()
       clearInterval(heartbeatTimer)
+      clearInterval(digestTimer)
+      clearInterval(housekeepingTimer)
       await loopPromise
       if (unlisten !== null) await unlisten()
     },

@@ -1,5 +1,6 @@
 import { desc, eq } from "drizzle-orm"
 import { member, type Database } from "@postbag/db"
+import { expandScopes } from "@postbag/auth"
 import type { MiddlewareHandler } from "hono"
 
 import type { Auth } from "../authSetup.js"
@@ -55,7 +56,9 @@ export function requireOrg(auth: Auth, db: Database): MiddlewareHandler<{ Variab
       const scope: RequestScope = {
         organizationId: result.key.referenceId,
         actor: { type: "api_key", apiKeyId: result.key.id },
-        scopes: scopesFromMetadata(result.key.metadata),
+        // Effective scopes: manage ⊇ read ⊇ submit (@postbag/auth). Expanding here means
+        // every downstream `assertScope` check and the /v1/me echo see the same set.
+        scopes: expandScopes(scopesFromMetadata(result.key.metadata)),
       }
       c.set("scope", scope)
       await next()

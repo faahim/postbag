@@ -93,7 +93,7 @@ function dateKey(local: LocalDateTime, daysBefore: number): string {
   return `${year}-${month}-${day}`
 }
 
-function digestPeriodKey(mode: Extract<RouteMode, { readonly type: "digest" }>, at: Date): string {
+export function digestPeriodKey(mode: Extract<RouteMode, { readonly type: "digest" }>, at: Date): string {
   const fields = mode.cron.trim().split(/\s+/u)
   const minute = Number(fields[0])
   const hour = Number(fields[1])

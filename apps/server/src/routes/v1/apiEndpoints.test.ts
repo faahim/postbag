@@ -1,5 +1,5 @@
 import { newId } from "@postbag/core"
-import { organization, streams, type Database } from "@postbag/db"
+import { events, organization, streams, systemWebhookDeliveries, type Database } from "@postbag/db"
 import { eq } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
@@ -15,6 +15,7 @@ integration("/v1 API", () => {
   let keyA: string
   let keyB: string
   let readOnlyKey: string
+  let manageOnlyKey: string
 
   beforeAll(async () => {
     harness = buildHarness()
@@ -26,6 +27,7 @@ integration("/v1 API", () => {
     keyA = await createTestApiKey(harness.auth, orgAId, orgA.userId, ["manage", "read", "submit"])
     keyB = await createTestApiKey(harness.auth, orgBId, orgB.userId, ["manage", "read", "submit"])
     readOnlyKey = await createTestApiKey(harness.auth, orgAId, orgA.userId, ["read"])
+    manageOnlyKey = await createTestApiKey(harness.auth, orgAId, orgA.userId, ["manage"])
   })
 
   afterAll(async () => {
@@ -58,6 +60,47 @@ integration("/v1 API", () => {
     const body = (await response.json()) as { organization: { id: string }; key: { scopes: string[] } }
     expect(body.organization.id).toBe(orgAId)
     expect(body.key.scopes.sort()).toEqual(["manage", "read", "submit"])
+  })
+
+  // Job D 1a: a `manage`-only key is refused `read` in the production smoke test.
+  // manage ⊇ read ⊇ submit — a manage key must satisfy every read-scoped call.
+  it("a manage-only key satisfies read-scoped endpoints and /v1/me echoes the effective scopes", async () => {
+    const listForms = await harness.app.request("/v1/forms", authed(manageOnlyKey))
+    expect(listForms.status).toBe(200)
+
+    const me = await harness.app.request("/v1/me", authed(manageOnlyKey))
+    expect(me.status).toBe(200)
+    const meBody = (await me.json()) as { key: { scopes: string[] } }
+    expect(meBody.key.scopes.sort()).toEqual(["manage", "read", "submit"])
+  })
+
+  it("a read-only key does not satisfy manage-scoped endpoints", async () => {
+    const me = await harness.app.request("/v1/me", authed(readOnlyKey))
+    const meBody = (await me.json()) as { key: { scopes: string[] } }
+    expect(meBody.key.scopes.sort()).toEqual(["read", "submit"])
+  })
+
+  it("POST /v1/api-keys defaults to [\"manage\"] when scopes is omitted", async () => {
+    const email = `${newId("usr")}@example.test`
+    const signUp = await harness.app.request("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, password: "correct horse battery staple", name: "Scope Default" }),
+    })
+    const cookie = signUp.headers.get("set-cookie")?.split(";")[0]
+
+    const created = await harness.app.request("/v1/api-keys", {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: cookie ?? "" },
+      body: JSON.stringify({ name: "default-scoped" }),
+    })
+    expect(created.status).toBe(201)
+    const createdBody = (await created.json()) as { scopes: string[] }
+    expect(createdBody.scopes).toEqual(["manage"])
+
+    const me = await harness.app.request("/v1/me", { headers: { cookie: cookie ?? "" } })
+    const meBody = (await me.json()) as { organization: { id: string } }
+    await db.delete(organization).where(eq(organization.id, meBody.organization.id))
   })
 
   it("rejects a manage-only action from a read-scoped key with 403", async () => {
@@ -201,6 +244,38 @@ integration("/v1 API", () => {
     expect(body.error.details?.missing).toContain("phone")
 
     await db.delete(streams).where(eq(streams.id, stream.id))
+  })
+
+  it("GET /v1/webhooks/{id}/deliveries returns cursor-paginated delivery history", async () => {
+    const createWebhook = await harness.app.request(
+      "/v1/webhooks",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/hook", events: ["submission.received"] }),
+      }),
+    )
+    expect(createWebhook.status).toBe(201)
+    const webhook = (await createWebhook.json()) as { id: string }
+
+    // Inserting a matching event is enough — the `dispatch_system_webhooks` trigger
+    // (job D §2) enqueues the system_webhook_deliveries row itself.
+    await db
+      .insert(events)
+      .values({ id: newId("ev"), organizationId: orgAId, type: "submission.received", subject: {}, data: {} })
+
+    const list = await harness.app.request(`/v1/webhooks/${webhook.id}/deliveries`, authed(keyA))
+    expect(list.status).toBe(200)
+    const body = (await list.json()) as { data: { id: string; status: string; webhook_id: string }[] }
+    expect(body.data).toHaveLength(1)
+    expect(body.data[0]?.status).toBe("pending")
+    expect(body.data[0]?.webhook_id).toBe(webhook.id)
+
+    // Org B cannot see org A's webhook deliveries.
+    const fromOrgB = await harness.app.request(`/v1/webhooks/${webhook.id}/deliveries`, authed(keyB))
+    expect(fromOrgB.status).toBe(404)
+
+    await db.delete(systemWebhookDeliveries).where(eq(systemWebhookDeliveries.webhookId, webhook.id))
   })
 
   it("/health reports db up and a version", async () => {

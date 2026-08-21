@@ -7,6 +7,7 @@ import type {
   routes,
   streams,
   submissions,
+  systemWebhookDeliveries,
   systemWebhooks,
 } from "@postbag/db"
 /** Mirrors what `z.json()` (core's schemas) and Hono's `JSONValue` both infer to. Drizzle
@@ -29,6 +30,7 @@ export type DestinationRow = typeof destinations.$inferSelect
 export type RouteRow = typeof routes.$inferSelect
 export type EventRow = typeof events.$inferSelect
 export type SystemWebhookRow = typeof systemWebhooks.$inferSelect
+export type SystemWebhookDeliveryRow = typeof systemWebhookDeliveries.$inferSelect
 
 export function serializeProject(row: ProjectRow) {
   return { id: row.id, slug: row.slug, name: row.name, tags: row.tags, created_at: row.createdAt.toISOString() }
@@ -159,4 +161,21 @@ export function serializeEvent(row: EventRow) {
 
 export function serializeSystemWebhook(row: SystemWebhookRow) {
   return { id: row.id, url: row.url, events: row.events, enabled: row.enabled, health: row.health as Health }
+}
+
+export function serializeSystemWebhookDelivery(row: SystemWebhookDeliveryRow) {
+  return {
+    id: row.id,
+    webhook_id: row.webhookId,
+    event_id: row.eventId,
+    event_type: row.eventType,
+    status: row.status as "pending" | "sending" | "sent" | "failed" | "dead",
+    attempts: row.attempts,
+    next_attempt_at: row.nextAttemptAt?.toISOString() ?? null,
+    payload: asJson(row.payload),
+    last_response: row.lastResponse === null ? undefined : asJson(row.lastResponse),
+    last_error: row.lastError,
+    created_at: row.createdAt.toISOString(),
+    sent_at: row.sentAt?.toISOString() ?? null,
+  }
 }

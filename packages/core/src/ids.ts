@@ -16,6 +16,8 @@ export const ID_PREFIXES = [
   "ev",
   "dr",
   "wh",
+  "whd",
+  "fsd",
   "fl",
 ] as const
 

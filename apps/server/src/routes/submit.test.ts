@@ -160,6 +160,76 @@ integration("submit path", () => {
     expect(response.headers.get("access-control-allow-origin")).toBe("*")
   })
 
+  it("resolves the client ip from CF-Connecting-IP first, then X-Forwarded-For, then unknown", async () => {
+    const formCf = await createForm()
+    const cfResponse = await harness.app.request(`/s/${formCf.id}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.9",
+        "x-forwarded-for": "198.51.100.1, 10.0.0.1",
+      },
+      body: JSON.stringify({ email: "cf@example.com" }),
+    })
+    const cfBody = (await cfResponse.json()) as { submission_id: string }
+    const [cfRow] = await db.select().from(submissions).where(eq(submissions.id, cfBody.submission_id))
+    expect((cfRow?.meta as { ip?: string } | undefined)?.ip).toBe("203.0.113.9")
+
+    const formXff = await createForm()
+    const xffResponse = await harness.app.request(`/s/${formXff.id}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-forwarded-for": "198.51.100.7, 10.0.0.1" },
+      body: JSON.stringify({ email: "xff@example.com" }),
+    })
+    const xffBody = (await xffResponse.json()) as { submission_id: string }
+    const [xffRow] = await db.select().from(submissions).where(eq(submissions.id, xffBody.submission_id))
+    expect((xffRow?.meta as { ip?: string } | undefined)?.ip).toBe("198.51.100.7")
+
+    const formNone = await createForm()
+    const noneResponse = await harness.app.request(`/s/${formNone.id}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "none@example.com" }),
+    })
+    const noneBody = (await noneResponse.json()) as { submission_id: string }
+    const [noneRow] = await db.select().from(submissions).where(eq(submissions.id, noneBody.submission_id))
+    expect((noneRow?.meta as { ip?: string } | undefined)?.ip).toBe("unknown")
+  })
+
+  it("records CF-IPCountry as the submission's country", async () => {
+    const form = await createForm()
+    const response = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-ipcountry": "SE" },
+      body: JSON.stringify({ email: "se@example.com" }),
+    })
+    const body = (await response.json()) as { submission_id: string }
+    const [row] = await db.select().from(submissions).where(eq(submissions.id, body.submission_id))
+    expect((row?.meta as { country?: string } | undefined)?.country).toBe("SE")
+  })
+
+  it("rate-limits by the resolved CF-Connecting-IP, not X-Forwarded-For", async () => {
+    const form = await createForm({ settings: { rate_limit: { per_minute: 1, burst: 1 } } })
+    const headers = {
+      "content-type": "application/json",
+      "cf-connecting-ip": "203.0.113.55",
+      "x-forwarded-for": "10.0.0.1",
+    }
+    const first = await harness.app.request(`/s/${form.id}`, { method: "POST", headers, body: JSON.stringify({ email: "1@example.com" }) })
+    const firstBody = (await first.json()) as { status: string }
+    expect(firstBody.status).toBe("received")
+
+    const second = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { ...headers, "x-forwarded-for": "10.0.0.2" },
+      body: JSON.stringify({ email: "2@example.com" }),
+    })
+    const secondBody = (await second.json()) as { status: string; submission_id: string }
+    expect(secondBody.status).toBe("quarantined")
+    const [row] = await db.select().from(submissions).where(eq(submissions.id, secondBody.submission_id))
+    expect(row?.quarantineReason).toBe("rate_limited")
+  })
+
   it("returns 404 for an unknown form id", async () => {
     const response = await harness.app.request("/s/fm_doesnotexist1", {
       method: "POST",

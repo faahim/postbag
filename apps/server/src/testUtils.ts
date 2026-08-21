@@ -24,6 +24,7 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     TZ: "UTC",
     MAIL_FROM: "Postbag <postbag@updates.withfaahim.com>",
     MIGRATE_ON_BOOT: false,
+    RLS_ENFORCED: false,
     ...overrides,
   }
 }

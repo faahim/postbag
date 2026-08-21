@@ -2,8 +2,8 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 
 import { newId, verifyWebhookSignature } from "@postbag/core"
 import { deliveries, destinations, forms, organization, routes, submissions } from "@postbag/db"
-import { and, eq } from "drizzle-orm"
-import { afterAll, afterEach, describe, expect, it } from "vitest"
+import { and, eq, sql } from "drizzle-orm"
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 
 import { buildHarness, seedOrganization, TEST_DATABASE_URL, type TestHarness } from "../testUtils.js"
 import { startWorker, type WorkerHandle } from "./index.js"
@@ -33,6 +33,15 @@ integration("worker webhook delivery", () => {
   const harness: TestHarness = buildHarness()
   const workers: WorkerHandle[] = []
   const seededOrganizationIds: string[] = []
+
+  // Job D 1d: `claimDeliveries` claims globally, not per-org. A dirty DB — leftover
+  // pending/failed rows from a crashed prior run, or another test file that seeded
+  // deliveries and never got a chance to clean them up — would sit in the claim query's
+  // path and eat a worker's 10s HTTP timeout before this file's own fixtures get a turn.
+  // Truncating once up front makes every test in this file deterministic on a dirty DB.
+  beforeAll(async () => {
+    await harness.db.execute(sql`truncate table deliveries`)
+  })
 
   afterEach(async () => {
     while (workers.length > 0) {
@@ -104,7 +113,11 @@ integration("worker webhook delivery", () => {
    * `attempts` counter has moved past `initialAttempts` (a fresh 'failed' from the
    * claim increment, not the seed's initial 'failed' state used to simulate a retry).
    */
-  async function waitForOutcome(organizationId: string, deliveryId: string, initialAttempts: number, timeoutMs = 8_000) {
+  // Job D 1d: the full workspace `pnpm test` run has this project's tests share CPU with
+  // apps/web's Vite transform and every other package's suite; a short deadline here was
+  // observed to trip under that contention even though the worker behaves correctly.
+  // 18s leaves margin under the file's 20s hook/test timeout.
+  async function waitForOutcome(organizationId: string, deliveryId: string, initialAttempts: number, timeoutMs = 18_000) {
     const deadline = Date.now() + timeoutMs
     for (;;) {
       const [row] = await harness.db

@@ -10,7 +10,7 @@ import { errorResponses, ScopeSchema } from "../../schemas.js"
 
 const ApiKeyCreateInputSchema = z.object({
   name: z.string().min(1).optional(),
-  scopes: z.array(ScopeSchema).min(1).default(["read", "submit"]),
+  scopes: z.array(ScopeSchema).min(1).default(["manage"]),
 })
 
 const ApiKeyCreatedSchema = z.object({

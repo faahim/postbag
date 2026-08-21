@@ -56,6 +56,10 @@ export const deliveries = pgTable(
     routeId: text("route_id").notNull(),
     destinationId: text("destination_id").notNull(),
     digestId: text("digest_id"),
+    // Job D §3: set at submit time for digest-mode routes (core's digestPeriodKey), so the
+    // digest worker loop can group pending deliveries by (route_id, digest_period_key)
+    // without recomputing routing decisions.
+    digestPeriodKey: text("digest_period_key"),
     status: text("status").default("pending").notNull(),
     skipReason: text("skip_reason"),
     attempts: integer("attempts").default(0).notNull(),
@@ -73,6 +77,7 @@ export const deliveries = pgTable(
   (table) => [
     index("deliveries_organization_id_idx").on(table.organizationId),
     index("deliveries_claim_idx").on(table.status, table.nextAttemptAt),
+    index("deliveries_digest_group_idx").on(table.routeId, table.digestPeriodKey),
     uniqueIndex("deliveries_id_organization_unique").on(table.id, table.organizationId),
     uniqueIndex("deliveries_submission_route_unique").on(table.submissionId, table.routeId),
     foreignKey({

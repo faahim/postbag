@@ -5,6 +5,7 @@ import {
   driftEvents,
   events,
   forms,
+  formSchemaDrafts,
   formSchemas,
   streamSchemas,
   streamSources,
@@ -18,6 +19,7 @@ import { assertScope, type AppEnv } from "../../lib/scope.js"
 import { renderEmbed } from "../../lib/snippets.js"
 import { getFormById, getFormCounts, getFormStreams } from "../../repo/forms.js"
 import { resolveProjectRef } from "../../repo/projects.js"
+import { inferFormSchemaDraft } from "../../repo/schemaInference.js"
 import { asJson, serializeForm, serializeSubmission, type Json } from "../../repo/serialize.js"
 import {
   CursorQuerySchema,
@@ -144,6 +146,18 @@ const schemaVersionsRoute = createRoute({
   request: { params: z.object({ formId: z.string() }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: z.array(SchemaVersionSchema) } } },
+  },
+})
+
+const inferSchemaRoute = createRoute({
+  method: "post",
+  path: "/v1/forms/{formId}/schema/infer",
+  tags: ["forms"],
+  summary: "Infer a draft schema now, from recent submissions (observe mode, no schema yet)",
+  request: { params: z.object({ formId: z.string() }) },
+  responses: {
+    200: { description: "ok", content: { "application/json": { schema: SchemaVersionSchema } } },
+    ...errorResponses,
   },
 })
 
@@ -445,7 +459,22 @@ export function registerFormRoutes(app: OpenAPIHono<AppEnv>, db: Database, appUr
     const row = await getFormById(db, scope.organizationId, formId)
     if (row === null) throw new PostbagError("not_found", "No form with that id.")
     if (row.currentSchemaVersion === null) {
-      throw new PostbagError("not_found", "This form has no published schema.")
+      // Job D §4: observe-mode forms with no published schema fall back to the inferred
+      // draft (if the housekeeping loop or an on-demand infer has produced one). This is
+      // never a version — publishing is still the explicit act.
+      const [draft] = await db
+        .select()
+        .from(formSchemaDrafts)
+        .where(and(eq(formSchemaDrafts.organizationId, scope.organizationId), eq(formSchemaDrafts.formId, formId)))
+        .limit(1)
+      if (draft === undefined) throw new PostbagError("not_found", "This form has no published schema.")
+      const body: z.infer<typeof SchemaVersionSchema> = {
+        json_schema: asJson(draft.jsonSchema),
+        ui: asJson(draft.ui),
+        inferred: true,
+        created_at: draft.inferredAt.toISOString(),
+      }
+      return c.json(body)
     }
     const [schemaRow] = await db
       .select()
@@ -558,6 +587,36 @@ export function registerFormRoutes(app: OpenAPIHono<AppEnv>, db: Database, appUr
       version: row.version,
       created_at: row.createdAt.toISOString(),
     }))
+    return c.json(body)
+  })
+
+  app.openapi(inferSchemaRoute, async (c) => {
+    const scope = c.var.scope
+    assertScope(scope, "manage")
+    const { formId } = c.req.valid("param")
+    const row = await getFormById(db, scope.organizationId, formId)
+    if (row === null) throw new PostbagError("not_found", "No form with that id.")
+    if (row.schemaMode !== "observe" || row.currentSchemaVersion !== null) {
+      throw new PostbagError(
+        "conflict",
+        "Schema inference only runs for observe-mode forms that have no published schema yet.",
+      )
+    }
+    const sampleCount = await inferFormSchemaDraft(db, scope.organizationId, formId)
+    const [draft] = await db
+      .select()
+      .from(formSchemaDrafts)
+      .where(and(eq(formSchemaDrafts.organizationId, scope.organizationId), eq(formSchemaDrafts.formId, formId)))
+      .limit(1)
+    if (sampleCount === null || draft === undefined) {
+      throw new PostbagError("not_found", "No non-spam submissions yet to infer a schema from.")
+    }
+    const body: z.infer<typeof SchemaVersionSchema> = {
+      json_schema: asJson(draft.jsonSchema),
+      ui: asJson(draft.ui),
+      inferred: true,
+      created_at: draft.inferredAt.toISOString(),
+    }
     return c.json(body)
   })
 

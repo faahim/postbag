@@ -1,12 +1,18 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
 import { newId, PostbagError, SystemWebhookInputSchema } from "@postbag/core"
 import { and, desc, eq, lt, or, type SQL } from "drizzle-orm"
-import { events, systemWebhooks, type Database } from "@postbag/db"
+import { events, systemWebhookDeliveries, systemWebhooks, type Database } from "@postbag/db"
 
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
-import { serializeEvent, serializeSystemWebhook } from "../../repo/serialize.js"
-import { CursorQuerySchema, errorResponses, EventSchema, SystemWebhookSchema } from "../../schemas.js"
+import { serializeEvent, serializeSystemWebhook, serializeSystemWebhookDelivery } from "../../repo/serialize.js"
+import {
+  CursorQuerySchema,
+  errorResponses,
+  EventSchema,
+  SystemWebhookDeliverySchema,
+  SystemWebhookSchema,
+} from "../../schemas.js"
 
 const EventListSchema = z.object({ data: z.array(EventSchema), next_cursor: z.string().nullable() })
 
@@ -63,6 +69,23 @@ const deleteWebhookRoute = createRoute({
   summary: "Delete",
   request: { params: z.object({ webhookId: z.string() }) },
   responses: { 204: { description: "deleted" }, ...errorResponses },
+})
+
+const WebhookDeliveryListSchema = z.object({
+  data: z.array(SystemWebhookDeliverySchema),
+  next_cursor: z.string().nullable(),
+})
+
+const listWebhookDeliveriesRoute = createRoute({
+  method: "get",
+  path: "/v1/webhooks/{webhookId}/deliveries",
+  tags: ["events"],
+  summary: "Delivery history for a system webhook",
+  request: { params: z.object({ webhookId: z.string() }), query: CursorQuerySchema },
+  responses: {
+    200: { description: "ok", content: { "application/json": { schema: WebhookDeliveryListSchema } } },
+    ...errorResponses,
+  },
 })
 
 export function registerEventRoutes(app: OpenAPIHono<AppEnv>, db: Database): void {
@@ -155,5 +178,44 @@ export function registerEventRoutes(app: OpenAPIHono<AppEnv>, db: Database): voi
       .delete(systemWebhooks)
       .where(and(eq(systemWebhooks.organizationId, scope.organizationId), eq(systemWebhooks.id, webhookId)))
     return c.body(null, 204)
+  })
+
+  app.openapi(listWebhookDeliveriesRoute, async (c) => {
+    const scope = c.var.scope
+    assertScope(scope, "read")
+    const { webhookId } = c.req.valid("param")
+    const [webhook] = await db
+      .select({ id: systemWebhooks.id })
+      .from(systemWebhooks)
+      .where(and(eq(systemWebhooks.organizationId, scope.organizationId), eq(systemWebhooks.id, webhookId)))
+      .limit(1)
+    if (webhook === undefined) throw new PostbagError("not_found", "No webhook with that id.")
+
+    const query = c.req.valid("query")
+    const limit = parseLimit(query.limit)
+    const cursor = query.cursor === undefined ? null : decodeCursor(query.cursor)
+    const conditions: SQL[] = [
+      eq(systemWebhookDeliveries.organizationId, scope.organizationId),
+      eq(systemWebhookDeliveries.webhookId, webhookId),
+    ]
+    if (cursor !== null) {
+      const cursorCondition = or(
+        lt(systemWebhookDeliveries.createdAt, cursor.createdAt),
+        and(eq(systemWebhookDeliveries.createdAt, cursor.createdAt), lt(systemWebhookDeliveries.id, cursor.id)),
+      )
+      if (cursorCondition !== undefined) conditions.push(cursorCondition)
+    }
+    const rows = await db
+      .select()
+      .from(systemWebhookDeliveries)
+      .where(and(...conditions))
+      .orderBy(desc(systemWebhookDeliveries.createdAt), desc(systemWebhookDeliveries.id))
+      .limit(limit + 1)
+    const { data, nextCursor } = page(rows, limit)
+    const body: z.infer<typeof WebhookDeliveryListSchema> = {
+      data: data.map(serializeSystemWebhookDelivery),
+      next_cursor: nextCursor,
+    }
+    return c.json(body)
   })
 }
