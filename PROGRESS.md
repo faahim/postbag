@@ -112,11 +112,14 @@ the rules and `docs/` for the design.
 
 0. Design session with Fahim on the dashboard (see Job E verdict). Screenshots: session scratchpad `web-shots/` (before) and `web-shots-v2/` (after).
 1. Wire RLS into the request path (`RLS_ENFORCED=true`: per-request transaction with `SET LOCAL ROLE postbag_app` + `set_config('app.org_id')`); then flip the default on. Sync `api/openapi.yaml` with the generated doc (new: `/v1/forms/{id}/schema/infer`, `/v1/webhooks/{id}/deliveries`, `SchemaVersion.inferred`).
-2. ~~CLI + MCP~~ built (job F). **Publish:** npm login + `@postbag` org done 2026-08-21; `pnpm -r publish` was refused
-   (account enforces 2FA/OTP at publish — E403). Either Fahim runs `pnpm -r publish --access public --no-git-checks`
-   (prompts OTP) or creates a granular token with *bypass 2FA* + publish on `@postbag` and `postbag`, stores it as the
-   GitHub secret `NPM_TOKEN` (`gh secret set NPM_TOKEN`), then tag `v0.1.0` → `release.yml`. After: MCP registry
-   (`server.json` ready), flip site copy from "in progress", make the repo public (gitleaks clean).
+2. ~~CLI + MCP~~ built (job F). **Publish — trusted publishing (OIDC), not tokens.** npm is deprecating
+   bypass-2FA granular tokens (no publish after ~Jan 2027; github.blog changelog 2026-07-08), and a GAT returned E404
+   on first publish anyway. npm rule: a package must exist before `npm trust` can be configured, so the first version is
+   a human publish with OTP: `pnpm -r publish --access public --no-git-checks`; then per package
+   `npm trust github <pkg> --repo faahim/postbag --workflow release.yml --allow-publish` (npm ≥ 11.15). `release.yml`
+   already publishes via OIDC on `v*` tags with no secret; delete the `NPM_TOKEN` secret + revoke the GAT afterwards.
+   Then: MCP registry (`server.json` ready), flip site copy from "in progress", make the repo public (gitleaks clean;
+   also unlocks provenance).
 2b. **Legal pages before selling (agent drafts, Fahim supplies entity name/address):** Terms, Privacy
    Policy, DPA for operators, sub-processor list (Resend, Cloudflare, the hosting provider, Polar),
    GDPR Art. 27 EU-representative answer for a non-EU entity. Pages at `/legal/terms/`, `/legal/privacy/`, `/legal/dpa/`.
