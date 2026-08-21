@@ -112,22 +112,24 @@ the rules and `docs/` for the design.
 
 0. Design session with Fahim on the dashboard (see Job E verdict). Screenshots: session scratchpad `web-shots/` (before) and `web-shots-v2/` (after).
 1. Wire RLS into the request path (`RLS_ENFORCED=true`: per-request transaction with `SET LOCAL ROLE postbag_app` + `set_config('app.org_id')`); then flip the default on. Sync `api/openapi.yaml` with the generated doc (new: `/v1/forms/{id}/schema/infer`, `/v1/webhooks/{id}/deliveries`, `SchemaVersion.inferred`).
-2. ~~CLI + MCP~~ built (job F). **Publish:** `npm login` on the Mac, create the `@postbag` org on npmjs.com, add
-   `NPM_TOKEN` as a GitHub secret, `pnpm release:version 0.1.0` + tag `v0.1.0` → `release.yml`; then MCP registry
-   (`server.json` ready), flip site copy from "in progress", and make the repo public (gitleaks clean).
+2. ~~CLI + MCP~~ built (job F). **Publish:** npm login + `@postbag` org done 2026-08-21; `pnpm -r publish` was refused
+   (account enforces 2FA/OTP at publish — E403). Either Fahim runs `pnpm -r publish --access public --no-git-checks`
+   (prompts OTP) or creates a granular token with *bypass 2FA* + publish on `@postbag` and `postbag`, stores it as the
+   GitHub secret `NPM_TOKEN` (`gh secret set NPM_TOKEN`), then tag `v0.1.0` → `release.yml`. After: MCP registry
+   (`server.json` ready), flip site copy from "in progress", make the repo public (gitleaks clean).
 2b. **Legal pages before selling (agent drafts, Fahim supplies entity name/address):** Terms, Privacy
    Policy, DPA for operators, sub-processor list (Resend, Cloudflare, the hosting provider, Polar),
    GDPR Art. 27 EU-representative answer for a non-EU entity. Pages at `/legal/terms/`, `/legal/privacy/`, `/legal/dpa/`.
 2c. **Human (Phase 3 gate):** create the Polar organisation, complete KYC with Bangladeshi documents and a
    local bank account, confirm a sandbox sale and a real test payout land. If it fails → Paddle via a
    superseding ADR. No billing code merges before this.
-2d. **Social login — Google (non-negotiable) + GitHub** (spec `tasks/job-G-social-login.md`; Better Auth 1.6
-   `socialProviders` + `account.accountLinking.trustedProviders`, no new deps). Status 2026-08-21: GitHub OAuth app
-   created (client id `Ov23li80jqB1DXPzvMsP`, callbacks `https://postbag.dev/api/auth/callback/github` +
-   `http://localhost:3000/...`); secret pending Fahim's 2FA. Google: GCP project **`postbag-dev`** created via gcloud,
-   consent screen (External, support + contact = afiur.fahim@gmail.com) staged pending Fahim's policy tick; then create
-   a Web OAuth client with the same two callback URIs (`/google`) and publish the app to production (non-sensitive
-   scopes only → no verification). Secrets go to Coolify env `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET` — never the repo.
+2d. ~~Social login~~ **live 2026-08-21 14:40 UTC.** Google + GitHub buttons on `postbag.dev/app/sign-in`;
+   `/v1/auth/providers` → `["google","github"]`. GitHub OAuth app `Postbag` (client id `Ov23li80jqB1DXPzvMsP`,
+   callbacks postbag.dev + localhost:3000). Google: GCP project **`postbag-dev`**, consent screen published
+   **In production** (External, non-sensitive scopes, privacy URL `/about/#privacy` — replace with `/legal/privacy/`
+   once 2b ships), web client "Postbag web" (`596015045839-…apps.googleusercontent.com`), same two callbacks.
+   Secrets live only in Coolify env (`GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET`). Verified: both buttons
+   hand off to the right provider with the right redirect_uri; a full login round-trip is Fahim's to try.
 2f. **Email verification on password sign-up** (follow-up to social login): Better Auth `emailVerification`
    with `sendOnSignUp: true` via Resend (`requireEmailVerification` stays false so the 3-minute test holds).
    Until a password account is verified, Better Auth will not auto-link a same-email Google/GitHub sign-in
