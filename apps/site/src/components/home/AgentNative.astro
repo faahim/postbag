@@ -5,7 +5,7 @@ import { API_URL, LLMS_URL, OPENAPI_URL } from "@/config"
 
 const promptText = `Set up a contact form on this site with Postbag. Read ${LLMS_URL} first.`
 const skillInstall = `npx skills add faahim/postbag --skill postbag
-# works once the repo is public — or fetch the file directly:
+# or fetch the file directly:
 curl ${API_URL}/.well-known/skills/postbag/SKILL.md`
 const mcpAndCli = `npx -y @postbag/mcp   # env: POSTBAG_API_KEY=pb_live_…
 npx postbag login     # CLI: email code → API key, saved for next time`
