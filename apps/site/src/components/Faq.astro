@@ -1,0 +1,19 @@
+---
+import type { Faq } from "@/lib/seo"
+interface Props { items: Faq[]; title?: string; class?: string }
+const { items, title = "Questions, answered", class: className = "" } = Astro.props
+---
+<section class={`container-x ${className}`} aria-labelledby="faq-heading">
+  <h2 id="faq-heading" class="text-3xl font-semibold sm:text-4xl">{title}</h2>
+  <div class="mt-8 max-w-3xl divide-y divide-border border-y border-border">
+    {items.map((f) => (
+      <details class="group py-1">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-6 py-4 text-[17px] font-medium [&::-webkit-details-marker]:hidden">
+          <span>{f.q}</span>
+          <svg class="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300 ease-[var(--ease-smooth-out)] group-open:rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </summary>
+        <div class="pb-5 pr-10 text-[16px] leading-relaxed text-muted-foreground" set:html={f.a} />
+      </details>
+    ))}
+  </div>
+</section>

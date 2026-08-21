@@ -40,8 +40,9 @@ never lost. (Inherited from the lead pipeline this generalises; see
 
 ## Status
 
-**Phase 0 — design.** No code yet. The contract is being written first because for an
-agent-native product the contract *is* the product. See [`docs/ROADMAP.md`](./docs/ROADMAP.md).
+**Phase 1 — MVP live** at [postbag.withfaahim.com](https://postbag.withfaahim.com) (site, docs, dashboard at
+`/app`, API at `/v1`). See [`PROGRESS.md`](./PROGRESS.md) for the live blueprint and
+[`docs/ROADMAP.md`](./docs/ROADMAP.md) for phases.
 
 ## Documentation
 

@@ -1,0 +1,30 @@
+---
+import Base from "@/layouts/Base.astro"
+import Breadcrumbs from "@/components/Breadcrumbs.astro"
+import { ERROR_CODES } from "@/content/errors"
+import { breadcrumbLd, webPageLd } from "@/lib/seo"
+import { SITE_URL } from "@/config"
+
+export function getStaticPaths() {
+  return ERROR_CODES.map((e) => ({ params: { code: e.code }, props: { e } }))
+}
+const { e } = Astro.props
+const path = `/docs/errors/${e.code}/`
+const title = `${e.code} (${e.status}): Postbag API error`
+const crumbs = [ { name: "Home", href: "/" }, { name: "Docs", href: "/docs/" }, { name: "Error codes", href: "/docs/errors/" }, { name: e.code, href: path } ]
+const ld = [ webPageLd({ url: `${SITE_URL}${path}`, name: title, description: e.hint }), breadcrumbLd(crumbs) ]
+---
+<Base title={title} description={`Postbag API error ${e.code} (HTTP ${e.status}): ${e.hint} ${e.more}`} canonical={path} ld={ld} ogImage="/og/docs.png">
+  <div class="container-x max-w-3xl pt-10 pb-16">
+    <Breadcrumbs crumbs={crumbs} class="mb-6" />
+    <p class="font-mono text-sm text-muted-foreground">HTTP {e.status}</p>
+    <h1 class="mt-1 font-mono text-3xl font-semibold sm:text-4xl">{e.code}</h1>
+    <div class="prose-pb mt-6">
+      <p><strong>What to do:</strong> {e.hint}</p>
+      <p>{e.more}</p>
+      <h2>Shape</h2>
+      <pre><code>{`{ "error": { "code": "${e.code}", "message": "…", "hint": "${e.hint}", "docs": "${SITE_URL}${path}" } }`}</code></pre>
+      <p>All codes are listed on the <a href="/docs/errors/">error reference</a>. Conventions for the envelope, hints and <code>next[]</code> are in the <a href="/docs/api/">API overview</a>.</p>
+    </div>
+  </div>
+</Base>

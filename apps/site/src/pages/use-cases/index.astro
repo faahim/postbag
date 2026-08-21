@@ -1,0 +1,29 @@
+---
+import Base from "@/layouts/Base.astro"
+import PageHeader from "@/components/PageHeader.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import { USE_CASES } from "@/content/usecases"
+import { breadcrumbLd, webPageLd } from "@/lib/seo"
+import { SITE_URL } from "@/config"
+const crumbs = [ { name: "Home", href: "/" }, { name: "Use cases", href: "/use-cases/" } ]
+const title = "Postbag use cases: contact forms, agencies, lead routing, AI-built sites, static sites"
+const description = "How people use Postbag: a contact form backend for one site, stream routing for agencies and site fleets, lead routing into CRMs and partners, form backends for AI-built websites, and forms on static and JAMstack sites."
+const ld = [ webPageLd({ url: `${SITE_URL}/use-cases/`, name: title, description }), breadcrumbLd(crumbs) ]
+---
+<Base title="Use cases" description={description} canonical="/use-cases/" ld={ld}>
+  <PageHeader title="Two personas, one product." lede="The solo developer with one contact form and the operator with fifteen sites feeding one partner. Postbag serves both; the advanced model stays hidden until the second persona needs it." crumbs={crumbs} />
+  <section class="container-x">
+    <ul class="grid gap-4 md:grid-cols-2" data-reveal-group="60">
+      {USE_CASES.map((u) => (
+        <li data-reveal>
+          <a href={`/use-cases/${u.slug}/`} class="card flex h-full flex-col p-6 transition-[box-shadow,transform] duration-200 ease-[var(--ease-smooth-out)] hover:-translate-y-0.5 hover:shadow-md">
+            <h2 class="text-xl font-semibold">{u.nav}</h2>
+            <p class="mt-2 flex-1 text-[15px] leading-relaxed text-muted-foreground">{u.lede}</p>
+            <span class="mt-4 text-sm font-medium text-primary">Read more →</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+  <CtaBand />
+</Base>

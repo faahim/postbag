@@ -15,7 +15,10 @@ RUN pnpm --filter @postbag/core build \
  && pnpm --filter @postbag/auth build \
  && pnpm --filter @postbag/sdk build \
  && pnpm --filter @postbag/server build \
- && pnpm --filter @postbag/web build
+ && pnpm --filter @postbag/web build \
+ && pnpm --filter @postbag/site build
+# apps/site's Astro build writes into apps/server/dist/site (served at `/` by
+# apps/server/src/routes/staticSite.ts); SITE_URL defaults to the production origin.
 # apps/web's Vite build writes straight into apps/server/dist/public — the exact path
 # apps/server/src/routes/staticApp.ts resolves its static root to (`../public` relative
 # to the compiled dist/routes/staticApp.js) — so the SPA rides along in the next step.

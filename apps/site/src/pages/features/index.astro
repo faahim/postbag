@@ -1,0 +1,44 @@
+---
+import Base from "@/layouts/Base.astro"
+import PageHeader from "@/components/PageHeader.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import { FEATURES } from "@/content/features"
+import { breadcrumbLd, webPageLd } from "@/lib/seo"
+import { SITE_URL } from "@/config"
+import { ArrowRight } from "@lucide/astro"
+import { Image } from "astro:assets"
+import dashboardForm from "@/assets/dashboard-form.png"
+const crumbs = [ { name: "Home", href: "/" }, { name: "Features", href: "/features/" } ]
+const title = "Postbag features: routing, durable delivery, destinations, schemas, spam protection, self-hosting"
+const description = "What Postbag does: a submit endpoint for any HTML form, durable storage with an attempt-tracked outbox, routing with streams and mappings, email/Telegram/webhook destinations, versioned schemas with drift detection, layered spam protection, and one-container self-hosting."
+const ld = [ webPageLd({ url: `${SITE_URL}/features/`, name: title, description }), breadcrumbLd(crumbs) ]
+---
+<Base title="Features" description={description} canonical="/features/" ld={ld} ogImage="/og/features.png">
+  <PageHeader title="Everything a form backend should do, and the routing most of them skip." lede="Postbag receives forms, stores every submission durably, and delivers each one by rules. Six capabilities carry the product; each has its own page with specifics, code and limits." crumbs={crumbs} />
+  <section class="container-x">
+    <ul class="grid gap-4 md:grid-cols-2" data-reveal-group="70">
+      {FEATURES.map((f) => (
+        <li data-reveal>
+          <a href={`/features/${f.slug}/`} class="card group flex h-full flex-col p-6 transition-[box-shadow,transform] duration-200 ease-[var(--ease-smooth-out)] hover:-translate-y-0.5 hover:shadow-md">
+            <h2 class="text-xl font-semibold">{f.nav}</h2>
+            <p class="mt-2 flex-1 text-[15px] leading-relaxed text-muted-foreground">{f.lede}</p>
+            <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">Read more <ArrowRight size={16} class="transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" /></span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+  <section class="container-x mt-20" aria-labelledby="dash-heading">
+    <h2 id="dash-heading" class="text-3xl font-semibold sm:text-4xl">And a dashboard that is just another API client.</h2>
+    <p class="mt-4 max-w-2xl text-lg text-muted-foreground">Forms, a live inbox, destinations, routes, streams (shown as Bags), deliveries, events and API keys. Everything it does goes through the same <code class="font-mono text-[0.9em]">/v1</code> an agent uses; there is no UI-only capability.</p>
+    <figure class="mt-8" data-reveal>
+      <Image src={dashboardForm} alt="The Postbag dashboard showing a form's page: its submit URL, the Inbox, Embed, Fields, Send to and Settings tabs, and two received submissions" class="shot h-auto w-full" widths={[720, 1200, 1440]} sizes="(min-width: 1180px) 1180px, 100vw" loading="lazy" />
+      <figcaption class="mt-3 text-sm text-muted-foreground">A form in the production dashboard. Real screenshot, real submissions.</figcaption>
+    </figure>
+  </section>
+  <section class="container-x mt-20"><div class="prose-pb max-w-3xl">
+    <h2>What is a form backend?</h2>
+    <p>A form backend is a hosted endpoint that receives HTML form submissions so a website does not need server code of its own. The site's <code>&lt;form action&gt;</code> points at the backend; the backend stores the submission and notifies someone. Postbag is a form backend that also <strong>routes</strong>: it can group many forms into one stream, map their differing fields onto one versioned schema, and deliver that shape to several destinations with rules, while keeping every submission as a durable row. It is multi-tenant, self-hostable, and driven entirely through one API so that AI agents can set it up without a browser.</p>
+  </div></section>
+  <CtaBand />
+</Base>

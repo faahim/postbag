@@ -1,0 +1,252 @@
+@import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/jetbrains-mono";
+
+/*
+ * Postbag marketing site — identity coat (docs/DESIGN.md §2), shared with the dashboard:
+ * near-neutral warm paper, wax-seal red accent, Instrument Sans + JetBrains Mono. The site
+ * adds one display face (Bricolage Grotesque) for headlines. Colours exist only here.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --background: oklch(0.985 0.004 80);
+  --foreground: oklch(0.2 0.012 55);
+  --surface: oklch(0.995 0.0025 80);
+  --surface-2: oklch(0.955 0.006 65);
+  --muted: oklch(0.955 0.006 65);
+  --muted-foreground: oklch(0.48 0.014 55);
+  --border: oklch(0.9 0.008 65);
+  --border-strong: oklch(0.84 0.01 65);
+  --primary: oklch(0.55 0.19 25);
+  --primary-hover: oklch(0.5 0.19 25);
+  --primary-foreground: oklch(0.99 0.006 80);
+  --accent: oklch(0.945 0.024 30);
+  --accent-foreground: oklch(0.4 0.16 25);
+  --success: oklch(0.6 0.135 152);
+  --warning: oklch(0.7 0.15 82);
+  --ink-code: oklch(0.22 0.012 55);
+  --ring: oklch(0.55 0.19 25 / 0.5);
+  --radius: 0.5rem;
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 55 / 0.05), 0 1px 1px oklch(0.2 0.02 55 / 0.04);
+  --shadow-md:
+    0 4px 10px oklch(0.2 0.02 55 / 0.06), 0 1px 3px oklch(0.2 0.02 55 / 0.06), 0 0 0 1px oklch(0.2 0.02 55 / 0.03);
+  --shadow-lg:
+    0 12px 24px oklch(0.2 0.02 55 / 0.08), 0 4px 8px oklch(0.2 0.02 55 / 0.05), 0 0 0 1px oklch(0.2 0.02 55 / 0.03);
+  --shadow-xl:
+    0 24px 48px oklch(0.2 0.02 55 / 0.12), 0 8px 16px oklch(0.2 0.02 55 / 0.06), 0 0 0 1px oklch(0.2 0.02 55 / 0.03);
+  --image-outline: rgba(0, 0, 0, 0.1);
+
+  --font-display: "Bricolage Grotesque Variable", "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* motion tokens — same scale the dashboard uses */
+  --duration-micro: 80ms;
+  --duration-quick: 150ms;
+  --duration-fast: 250ms;
+  --duration-medium: 350ms;
+  --duration-slow: 500ms;
+  --duration-reveal: 700ms;
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --distance-reveal: 18px;
+  --scale-press: 0.96;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.165 0.011 55);
+  --foreground: oklch(0.95 0.006 70);
+  --surface: oklch(0.198 0.012 55);
+  --surface-2: oklch(0.235 0.012 55);
+  --muted: oklch(0.255 0.012 55);
+  --muted-foreground: oklch(0.66 0.013 60);
+  --border: oklch(0.31 0.013 55 / 0.7);
+  --border-strong: oklch(0.38 0.013 55);
+  --primary: oklch(0.685 0.17 25);
+  --primary-hover: oklch(0.73 0.17 25);
+  --primary-foreground: oklch(0.15 0.014 45);
+  --accent: oklch(0.275 0.032 25);
+  --accent-foreground: oklch(0.85 0.06 32);
+  --success: oklch(0.68 0.125 152);
+  --warning: oklch(0.75 0.14 82);
+  --ink-code: oklch(0.93 0.006 70);
+  --ring: oklch(0.685 0.17 25 / 0.55);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.28), 0 1px 1px oklch(0 0 0 / 0.22);
+  --shadow-md: 0 4px 10px oklch(0 0 0 / 0.32), 0 1px 3px oklch(0 0 0 / 0.26), 0 0 0 1px oklch(1 0 0 / 0.04);
+  --shadow-lg: 0 12px 24px oklch(0 0 0 / 0.4), 0 4px 8px oklch(0 0 0 / 0.28), 0 0 0 1px oklch(1 0 0 / 0.05);
+  --shadow-xl: 0 24px 48px oklch(0 0 0 / 0.5), 0 8px 16px oklch(0 0 0 / 0.3), 0 0 0 1px oklch(1 0 0 / 0.06);
+  --image-outline: rgba(255, 255, 255, 0.1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-ring: var(--ring);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 16px);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --ease-smooth-out: var(--ease-smooth-out);
+  --ease-bounce: var(--ease-bounce);
+  --breakpoint-xs: 30rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+  html, body { overflow-x: clip; }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    min-height: 100dvh;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+    font-variation-settings: "opsz" 96, "wdth" 100;
+  }
+  p, li { text-wrap: pretty; }
+  code, kbd, pre, .font-mono { font-variant-numeric: tabular-nums; }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  ::selection { background: var(--accent); color: var(--accent-foreground); }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+}
+
+@layer components {
+  .container-x { @apply mx-auto w-full max-w-[1180px] px-5 sm:px-8; }
+
+  /* Buttons: one radius system (soft, 8px), press scale 0.96, explicit transitions. */
+  .btn {
+    @apply inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 text-[15px] font-medium;
+    transition-property: background-color, color, border-color, box-shadow, transform;
+    transition-duration: var(--duration-quick);
+    transition-timing-function: var(--ease-smooth-out);
+  }
+  .btn:active { transform: scale(var(--scale-press)); }
+  .btn-primary { background: var(--primary); color: var(--primary-foreground); box-shadow: var(--shadow-sm); }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary { background: var(--surface); color: var(--foreground); box-shadow: 0 0 0 1px var(--border-strong) inset; }
+  .btn-secondary:hover { background: var(--surface-2); }
+  .btn-ghost { color: var(--foreground); }
+  .btn-ghost:hover { background: var(--surface-2); }
+  .btn-sm { @apply h-9 px-3.5 text-sm; }
+
+  .prose-pb {
+    @apply text-[17px] leading-[1.65] text-foreground;
+  }
+  .prose-pb > * + * { margin-top: 1.1em; }
+  .prose-pb h2 { @apply mt-12 mb-4 text-[1.75rem] leading-tight font-semibold; scroll-margin-top: 6rem; }
+  .prose-pb h3 { @apply mt-9 mb-3 text-[1.25rem] leading-snug font-semibold; scroll-margin-top: 6rem; }
+  .prose-pb h4 { @apply mt-6 mb-2 text-base font-semibold; }
+  .prose-pb a { @apply text-primary underline decoration-primary/30 underline-offset-[3px]; transition: text-decoration-color var(--duration-quick); }
+  .prose-pb a:hover { text-decoration-color: var(--primary); }
+  .prose-pb ul { @apply list-disc pl-6; }
+  .prose-pb ol { @apply list-decimal pl-6; }
+  .prose-pb li + li { margin-top: 0.35em; }
+  .prose-pb code:not(pre code) {
+    @apply rounded-sm bg-surface-2 px-1.5 py-0.5 font-mono text-[0.86em] text-foreground;
+  }
+  .prose-pb pre {
+    @apply overflow-x-auto rounded-lg p-4 text-[13.5px] leading-relaxed;
+    box-shadow: 0 0 0 1px var(--border) inset;
+    background: var(--surface) !important;
+  }
+  .prose-pb pre code { background: transparent; padding: 0; }
+  .prose-pb .code-panel pre { box-shadow: none; padding: 0; border-radius: 0; background: transparent !important; }
+  .prose-pb .code-panel { margin-top: 1.1em; }
+  .prose-pb table { @apply w-full border-collapse text-[15px]; }
+  .prose-pb th { @apply border-b border-border-strong px-3 py-2 text-left font-semibold; }
+  .prose-pb td { @apply border-b px-3 py-2 align-top; }
+  .prose-pb .table-wrap { @apply -mx-1 overflow-x-auto px-1; }
+  .prose-pb blockquote { @apply border-l-2 border-primary/50 pl-4 text-muted-foreground; }
+  .prose-pb hr { @apply my-10 border-border; }
+  .prose-pb strong { @apply font-semibold; }
+
+  .card { @apply rounded-xl bg-surface; box-shadow: 0 0 0 1px var(--border) inset; }
+  .hairline { box-shadow: 0 0 0 1px var(--border) inset; }
+  .code-panel {
+    @apply rounded-xl bg-surface font-mono text-[13px] leading-relaxed;
+    box-shadow: var(--shadow-md);
+  }
+  .dark .code-panel { box-shadow: var(--shadow-lg); }
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 font-mono text-xs text-muted-foreground; }
+  .shot { border-radius: var(--radius-xl); outline: 1px solid var(--image-outline); outline-offset: -1px; box-shadow: var(--shadow-xl); }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .display-tight { letter-spacing: -0.03em; }
+}
+
+/* ---- Scroll reveals (Motion's inView toggles data-in). Reduced motion → shown instantly. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(var(--distance-reveal));
+  transition:
+    opacity var(--duration-reveal) var(--ease-smooth-out),
+    transform var(--duration-reveal) var(--ease-smooth-out);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+[data-reveal][data-in] { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+.no-js [data-reveal] { opacity: 1; transform: none; }
+/* If the reveal script never runs (blocked, failed), force everything visible after 2 s. */
+@keyframes reveal-force-visible { to { opacity: 1; transform: none; } }
+html:not(.reveal-ready) [data-reveal] { animation: reveal-force-visible 0s 2s forwards; }
+
+/* Shiki dual themes */
+.astro-code,
+.astro-code span {
+  color: var(--shiki-light) !important;
+  background-color: transparent !important;
+}
+.dark .astro-code,
+.dark .astro-code span {
+  color: var(--shiki-dark) !important;
+}

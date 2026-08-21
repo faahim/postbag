@@ -1,0 +1,16 @@
+---
+import { getCollection, render } from "astro:content"
+import DocsLayout from "@/layouts/DocsLayout.astro"
+import CtaBand from "@/components/CtaBand.astro"
+
+export async function getStaticPaths() {
+  const docs = await getCollection("docs")
+  return docs.map((d) => ({ params: { slug: d.id === "index" ? undefined : d.id }, props: { doc: d } }))
+}
+const { doc } = Astro.props
+const { Content, headings } = await render(doc)
+---
+<DocsLayout title={doc.data.title} description={doc.data.description} slug={doc.id} published={doc.data.published} modified={doc.data.modified} headings={headings}>
+  <Content />
+  <Fragment slot="after"><CtaBand /></Fragment>
+</DocsLayout>

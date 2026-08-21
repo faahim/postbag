@@ -1,0 +1,44 @@
+---
+import Base from "@/layouts/Base.astro"
+import Hero from "@/components/home/Hero.astro"
+import Integration from "@/components/home/Integration.astro"
+import Journey from "@/components/home/Journey.astro"
+import AgentNative from "@/components/home/AgentNative.astro"
+import Operator from "@/components/home/Operator.astro"
+import Guarantees from "@/components/home/Guarantees.astro"
+import Destinations from "@/components/home/Destinations.astro"
+import SelfHost from "@/components/home/SelfHost.astro"
+import Faq from "@/components/Faq.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import { faqLd, softwareLd, webPageLd } from "@/lib/seo"
+import { DESCRIPTION, SITE_URL } from "@/config"
+
+const faqs = [
+  { q: "What is Postbag?", a: "Postbag is a form backend that routes. You point an HTML form (or a fetch call) at a Postbag submit URL; Postbag stores every submission durably and then delivers it to email, Telegram and signed webhooks according to routes you configure. It is multi-tenant, self-hostable, and agent-native: everything in the dashboard is available through the same /v1 API." },
+  { q: "What is a form backend?", a: "A form backend is a service that receives HTML form submissions so a website does not need its own server code. The site's <code>&lt;form action&gt;</code> points at the backend, which stores the data and notifies you. Postbag adds routing on top: grouping many forms into one stream, mapping fields onto one schema, and delivering to several destinations with rules." },
+  { q: "Do I need JavaScript or an SDK?", a: "No. A plain HTML form posting to your submit URL works; Postbag answers with a 303 redirect to your page. JSON and fetch work too. The API returns ready-made snippets for HTML, fetch, React, Astro and Next.js server actions for each form." },
+  { q: "Does Postbag ever drop submissions?", a: "No. Spam, schema violations, rate-limit overflow, rejected origins and over-quota submissions are all stored with a status (received, quarantined or spam) and are visible in the inbox and the API. Data is only deleted by your action or your retention policy." },
+  { q: "How is Postbag different from Formspree, Formspark or Getform?", a: "Three things: every submission is a durable row with an attempt-tracked delivery outbox; streams let many forms with different field names map onto one versioned schema and go to one partner or CRM; and the whole product is driven by one API with llms.txt, OpenAPI, a one-call quickstart and test submissions, so AI agents can set it up end to end. It also self-hosts as one container plus Postgres. See the <a href='/compare/'>comparison pages</a>." },
+  { q: "Which destinations are supported?", a: "Email (via Resend, with Reply-To set from the submission), Telegram bot messages, and webhooks signed with HMAC-SHA256. Webhooks are the universal extension point; Slack and Discord are planned next." },
+  { q: "Can AI agents like Claude Code or Cursor use Postbag?", a: "Yes. An agent with only an API key can read GET /llms.txt and /openapi.json, call GET /v1/me, create a working routed form with POST /v1/quickstart, post a test submission with _test: true, and poll the resulting delivery ids to confirm it was sent. Every error carries a hint and a docs link; every create returns next steps." },
+  { q: "Can I self-host Postbag?", a: "Yes. Postbag runs as one Docker image (api, worker or both) against one Postgres database, with a docker-compose file. The hosted product is the same image with billing turned on; no feature depends on a cloud-only service without a self-host path." },
+  { q: "How much does it cost?", a: "The free plan includes 5 forms, 1,000 submissions a month, 5 destinations and 90-day retention. Paid plans are not yet on sale while billing is being finished; see <a href='/pricing/'>pricing</a> for the planned limits." },
+]
+const ld = [
+  softwareLd(),
+  webPageLd({ url: `${SITE_URL}/`, name: "Postbag: the form backend that routes", description: DESCRIPTION }),
+  faqLd(faqs),
+]
+---
+<Base title="Postbag: the form backend that routes" description={DESCRIPTION} canonical="/" ld={ld}>
+  <Hero />
+  <Integration />
+  <Journey />
+  <AgentNative />
+  <Operator />
+  <Guarantees />
+  <Destinations />
+  <SelfHost />
+  <Faq items={faqs} class="mt-28 sm:mt-36" />
+  <CtaBand />
+</Base>

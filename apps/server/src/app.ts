@@ -15,6 +15,7 @@ import { requestId } from "./middleware/requestId.js"
 import { requireOrg } from "./middleware/requireOrg.js"
 import { registerHealthRoute } from "./routes/health.js"
 import { registerAppStatic } from "./routes/staticApp.js"
+import { registerSiteStatic } from "./routes/staticSite.js"
 import { registerSubmitRoutes } from "./routes/submit.js"
 import { registerApiKeyRoutes } from "./routes/v1/apiKeys.js"
 import { registerDeliveryRoutes } from "./routes/v1/deliveries.js"
@@ -94,7 +95,9 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
     servers: [{ url: env.APP_URL }],
   })
 
-  registerAppStatic(app)
+  // Marketing/docs site at `/` when built in; otherwise `/` redirects to the dashboard.
+  const hasSite = registerSiteStatic(app, env.APP_URL)
+  registerAppStatic(app, { redirectRoot: !hasSite })
 
   return app
 }

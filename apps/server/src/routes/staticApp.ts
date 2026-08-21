@@ -11,7 +11,7 @@ const PLACEHOLDER_HTML =
   '<body style="font-family: system-ui, sans-serif; display: grid; place-items: center; height: 100vh; margin: 0;">' +
   "<p>The Postbag dashboard has not been built into this image yet.</p></body></html>"
 
-export function registerAppStatic(app: Hono<AppEnv>): void {
+export function registerAppStatic(app: Hono<AppEnv>, options: { readonly redirectRoot?: boolean } = {}): void {
   // Built output lives in dist/public. When running from source (tsx), import.meta.url is
   // under src/, so also look at ../../dist/public so `pnpm dev` serves a previously built SPA.
   const builtDir = fileURLToPath(new URL("../public", import.meta.url))
@@ -19,7 +19,7 @@ export function registerAppStatic(app: Hono<AppEnv>): void {
   const publicDir = [builtDir, sourceDir].find((dir) => existsSync(`${dir}/index.html`)) ?? builtDir
   const hasPublicDir = existsSync(publicDir) && existsSync(`${publicDir}/index.html`)
 
-  app.get("/", (c) => c.redirect("/app", 302))
+  if (options.redirectRoot ?? true) app.get("/", (c) => c.redirect("/app", 302))
 
   if (!hasPublicDir) {
     app.get("/app", (c) => c.html(PLACEHOLDER_HTML))

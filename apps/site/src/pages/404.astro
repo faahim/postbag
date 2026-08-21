@@ -1,0 +1,16 @@
+---
+import Base from "@/layouts/Base.astro"
+import Postmark from "@/components/Postmark.astro"
+---
+<Base title="Page not found" description="This page does not exist. Every Postbag error has a hint; here is one." noindex>
+  <section class="container-x flex min-h-[60vh] flex-col items-start justify-center py-20">
+    <Postmark status="dead" size={56} />
+    <p class="mt-6 font-mono text-sm text-muted-foreground">404 · not_found</p>
+    <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">Returned to sender.</h1>
+    <p class="mt-4 max-w-md text-lg text-muted-foreground">Hint: check the address. If a link on this site brought you here, it is a bug; <a href="/about/#contact" class="text-primary underline-offset-4 hover:underline">tell us</a>.</p>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href="/" class="btn btn-primary">Home</a>
+      <a href="/docs/" class="btn btn-secondary">Docs</a>
+    </div>
+  </section>
+</Base>

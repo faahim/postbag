@@ -11,6 +11,7 @@
     "dev": "pnpm --recursive --parallel dev",
     "dev:server": "pnpm --filter @postbag/core build && pnpm --filter @postbag/db build && pnpm --filter @postbag/auth build && pnpm --filter @postbag/server dev",
     "dev:web": "pnpm --filter @postbag/sdk build && pnpm --filter @postbag/web dev",
+    "dev:site": "pnpm --filter @postbag/site dev",
     "build": "pnpm --recursive build",
     "typecheck": "pnpm --filter @postbag/core build && pnpm --filter @postbag/db build && pnpm --filter @postbag/auth build && pnpm --filter @postbag/sdk build && pnpm --recursive typecheck",
     "test": "pnpm --filter @postbag/core build && pnpm --filter @postbag/db build && pnpm --filter @postbag/auth build && pnpm --filter @postbag/sdk build && vitest run --config vitest.workspace.ts --coverage",

@@ -1,0 +1,43 @@
+---
+import Base from "@/layouts/Base.astro"
+import PageHeader from "@/components/PageHeader.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import Faq from "@/components/Faq.astro"
+import { COMPETITORS } from "@/content/compare"
+import { breadcrumbLd, faqLd, webPageLd } from "@/lib/seo"
+import { SITE_URL } from "@/config"
+const crumbs = [ { name: "Home", href: "/" }, { name: "Compare", href: "/compare/" } ]
+const title = "Form backend alternatives: Postbag compared with Formspree, Formspark, Getform, Basin, Web3Forms and Netlify Forms"
+const description = "Looking for a Formspree alternative or the best form backend for a static site? Side-by-side comparisons of Postbag with Formspree, Formspark, Getform (Forminit), Basin, Web3Forms and Netlify Forms on free tiers, APIs, signed webhooks, spam, uploads, self-hosting, schemas, multi-site routing and AI-agent support. Facts checked August 2026."
+const faqs = [
+  { q: "What is the best form backend for static sites?", a: "It depends on what you need after the email. For one site and one inbox most services work. If you run several sites, need a durable record of every submission and delivery, want signed webhooks into a CRM, want to self-host, or want an AI agent to set it up, Postbag is built for exactly that." },
+  { q: "Which form backends offer a free tier?", a: "All of the ones compared here do. As of August 2026: Postbag 1,000 submissions/month across 5 forms; Formspree 50; Formspark 250 (one-time, 10 forms); Forminit 100 (1 form); Basin 50 (1 form); Web3Forms 250; Netlify Forms 100 on legacy plans. Check each vendor's page for current numbers." },
+  { q: "Which form backends sign their webhooks?", a: "Postbag (Postbag-Signature, HMAC-SHA256), Formspree (Formspree-Signature) and Basin (X-Basin-Signature) do; Netlify uses JWS when a secret is set. Formspark's documentation says it does not currently sign webhooks." },
+  { q: "Which form backend can I self-host?", a: "Of the services compared here, only Postbag is designed to self-host: one Docker image plus Postgres, the same image as the hosted product." },
+]
+const ld = [ webPageLd({ url: `${SITE_URL}/compare/`, name: title, description, modified: "2026-08-21" }), breadcrumbLd(crumbs), faqLd(faqs) ]
+---
+<Base title="Compare form backends" description={description} canonical="/compare/" ld={ld} ogImage="/og/compare.png">
+  <PageHeader title="Form backend alternatives, compared honestly." lede="Each page puts Postbag next to one service on the same twelve capabilities, with the vendor's own pages as sources and a date on every fact. Where we could not verify something, we say so." crumbs={crumbs} modified="2026-08-21" />
+  <section class="container-x">
+    <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group="60">
+      {COMPETITORS.map((c) => (
+        <li data-reveal>
+          <a href={`/compare/${c.slug}/`} class="card flex h-full flex-col p-6 transition-[box-shadow,transform] duration-200 ease-[var(--ease-smooth-out)] hover:-translate-y-0.5 hover:shadow-md">
+            <h2 class="text-xl font-semibold">Postbag vs {c.name}</h2>
+            <p class="mt-2 flex-1 text-[15px] leading-relaxed text-muted-foreground">{c.lede}</p>
+            <span class="mt-4 text-sm font-medium text-primary">Read the comparison →</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+  <section class="container-x mt-20"><div class="prose-pb max-w-3xl">
+    <h2>How we compare</h2>
+    <p>Twelve capabilities, the same on every page: free tier, entry price, management API, webhooks and whether they are signed, email, chat destinations, spam protection, file uploads, self-hosting, schemas and drift, many-sites-to-one-destination routing, and support for AI agents. Sources are the vendors' own pricing and documentation pages, fetched in August 2026 and linked on each page. We do not rate, we list.</p>
+    <h2>What is usually the deciding factor</h2>
+    <p>For one site: price and captcha options. For several sites or a partner integration: whether submissions are a durable record, whether webhooks are signed and retried, and whether many forms can be normalised to one shape. For agent-built sites: whether the backend can be set up and verified through an API without a human. Postbag was built around the second and third questions.</p>
+  </div></section>
+  <Faq items={faqs} class="mt-20" />
+  <CtaBand />
+</Base>

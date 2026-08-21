@@ -45,6 +45,7 @@ packages/core      pure domain — validation, mapping, routing, spam, templates
 packages/db        Drizzle schema, migrations, repositories
 apps/server        Hono: /s/{id} submit, /v1 API, auth, worker entrypoints, serves the SPA
 apps/web           Vite + React dashboard (ADR-003, proposed)
+apps/site          Astro marketing + docs site, served at `/` by apps/server (SEO/GEO; content facts mirror the code)
 packages/sdk       generated TypeScript client
 packages/cli       `postbag` CLI
 packages/mcp       MCP server

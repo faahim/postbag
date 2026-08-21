@@ -1,0 +1,15 @@
+---
+import type { Crumb } from "@/lib/seo"
+interface Props { crumbs: Crumb[]; class?: string }
+const { crumbs, class: className = "" } = Astro.props
+---
+<nav aria-label="Breadcrumb" class={`text-sm text-muted-foreground ${className}`}>
+  <ol class="flex flex-wrap items-center gap-1.5">
+    {crumbs.map((c, i) => (
+      <li class="flex items-center gap-1.5">
+        {i > 0 && <span aria-hidden="true" class="text-border-strong">/</span>}
+        {i === crumbs.length - 1 ? <span aria-current="page" class="text-foreground">{c.name}</span> : <a href={c.href} class="hover:text-foreground">{c.name}</a>}
+      </li>
+    ))}
+  </ol>
+</nav>

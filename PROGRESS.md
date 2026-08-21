@@ -8,6 +8,11 @@ the rules and `docs/` for the design.
 ## Current state (update this block, don't append)
 
 - **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in *Next up*.
+- **Marketing/docs site:** `apps/site` (Astro 5 static, Tailwind v4, Motion), built into `apps/server/dist/site`
+  and served at `/` by `apps/server/src/routes/staticSite.ts` (same image; `/app`, `/v1`, `/s`, `/health`,
+  `/llms.txt`, `/openapi.json` reserved). `SITE_URL` env (default `https://postbag.withfaahim.com`) sets canonical URLs;
+  `PUBLIC_API_URL` if the API ever moves. Demo forms in prod org, project `site`: hero demo `fm_73c74vjq6z24`
+  (no routes, `_test` only), about-page contact `fm_h6eetntqdbp6` (email route to the owner).
 - **Repo:** `github.com/faahim/postbag` (private), default branch `main`
 - **Deploy target:** Coolify (control plane `kolkobja.tarpore.com`) → server **megh-oracle**
   (`140.245.57.24`, arm64, uuid `a8w4s8cg0go4kwo0g0gk8co0`). Coolify project "Postbag".
@@ -40,6 +45,15 @@ the rules and `docs/` for the design.
 
 ## Done
 
+- [x] **Marketing + docs site (2026-08-21):** `apps/site`. Home (live demo form, scroll-driven "journey", agent
+  transcript, streams diagram, invariants, destinations, self-host, FAQ), `/for-ai-agents/`, `/features/*` (6),
+  `/docs/*` (13 pages + `/docs/errors/{code}/` for every API error code; Markdown twins at `index.md`,
+  `/llms-full.txt`), `/compare/*` (6 competitors, facts sourced and dated), `/use-cases/*` (5), `/glossary/`,
+  `/pricing/`, `/changelog/`, `/about/` (real contact form), 404. SEO/GEO: JSON-LD graph (Organization, WebSite,
+  SoftwareApplication, BreadcrumbList, FAQPage, TechArticle, DefinedTermSet), canonical/OG/Twitter, sitemap,
+  robots.txt allowing AI crawlers, `Accept: text/markdown` negotiation on the server, `X-Robots-Tag: noindex` on
+  Markdown twins. Verified: astro check, eslint, server tests 43/43, built site served by the server locally.
+
 - [x] Phase 0 docs committed (`042d820`).
 - [x] GitHub repo created, pushed, default branch `main`.
 - [x] DNS `postbag.withfaahim.com` created (proxied).
@@ -64,7 +78,10 @@ the rules and `docs/` for the design.
 1. Wire RLS into the request path (`RLS_ENFORCED=true`: per-request transaction with `SET LOCAL ROLE postbag_app` + `set_config('app.org_id')`); then flip the default on. Sync `api/openapi.yaml` with the generated doc (new: `/v1/forms/{id}/schema/infer`, `/v1/webhooks/{id}/deliveries`, `SchemaVersion.inferred`).
 2. CLI + MCP thin clients over `packages/sdk`.
 3. Dogfood: portfolio contact form → Postbag. Then Smedja `forge` provisioning.
-4. Marketing site (`apps/site`, Astro SSR, SEO+GEO) — Phase 3 but the domain decision (postbag.dev?) should happen earlier.
+4. ~~Marketing site~~ shipped (see Done). Still open: **domain decision** (postbag.dev? a product domain beats
+   `postbag.withfaahim.com` for SEO/GEO; change `SITE_URL` + Coolify `APP_URL` + Resend domain together), Bing
+   Webmaster Tools + Google Search Console verification and IndexNow, confirm Cloudflare "block AI bots" is off for
+   the zone, publish SDK/CLI/MCP to npm + MCP registry (the site's agent pages say these are in progress).
 
 - **Email:** Resend account = the key in `~/Developer/vendingmachine-stuff/.env` (only account on disk;
   `updates.withfaahim.com` belongs to some other account). Sending domain

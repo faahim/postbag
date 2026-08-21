@@ -1,0 +1,38 @@
+---
+import Base from "@/layouts/Base.astro"
+import PageHeader from "@/components/PageHeader.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import { SITE_URL } from "@/config"
+import { breadcrumbLd, webPageLd } from "@/lib/seo"
+const crumbs = [ { name: "Home", href: "/" }, { name: "Changelog", href: "/changelog/" } ]
+// Dated from the repository history. Newest first.
+const entries = [
+  { date: "2026-08-21", title: "Marketing and documentation site", items: ["Public site with docs, comparisons, use cases and glossary, served by the same container at /.", "Markdown twins of every docs page and llms-full.txt for agents; Accept: text/markdown honoured.", "A live demo form on the home page posting real test submissions."] },
+  { date: "2026-08-21", title: "Dashboard polish", items: ["Display-scale first-run headline, accent postmark brand mark, staggered \"It arrived\" reveal.", "Inbox id chips, postmark delivery status, delivery timeline, collapsible metadata."] },
+  { date: "2026-08-21", title: "Server follow-ups", items: ["Scope implication (manage ⊇ read ⊇ submit).", "Client IP and country from Cloudflare headers.", "Organization system webhooks dispatched from a Postgres trigger, with GET /v1/webhooks/{id}/deliveries.", "Digest routes: one payload per period, unique by (route, period).", "Schema inference for observe forms: POST /v1/forms/{id}/schema/infer.", "Row-level security policies and the postbag_app role in migrations."] },
+  { date: "2026-08-21", title: "Production verified end to end", items: ["Signup → GET /v1/me → API key → POST /v1/quickstart → real submission → email delivered in about a second."] },
+  { date: "2026-08-20", title: "Dashboard and SDK", items: ["Vite + React dashboard at /app: forms, inbox, destinations, routes, streams (\"Bags\"), deliveries, events, API keys, settings, command palette, live inbox.", "@postbag/sdk generated from the OpenAPI document."] },
+  { date: "2026-08-20", title: "Server", items: ["Submit path with honeypot, origin allowlist, rate limit, Turnstile, _redirect, _test, idempotency.", "Full /v1 API, Better Auth with API keys, organization provisioning on signup.", "Worker with email, Telegram and webhook adapters; /health; /llms.txt; generated /openapi.json; multi-stage Docker image."] },
+  { date: "2026-08-20", title: "Core, database, auth", items: ["Pure domain package: validation, mapping, routing decisions, spam heuristics, templates, ids, signing, backoff.", "Drizzle schema with 23 tables and migrations; claim and notify helpers.", "Better Auth with organization-owned API keys."] },
+  { date: "2026-08-19", title: "Contract", items: ["Principles, domain model, architecture, agent-native spec, design system, roadmap, ADRs 001 to 005, and the OpenAPI sketch."] },
+]
+const ld = [ webPageLd({ url: `${SITE_URL}/changelog/`, name: "Postbag changelog", description: "What shipped in Postbag and when.", modified: entries[0]!.date }), breadcrumbLd(crumbs) ]
+---
+<Base title="Changelog" description="What has shipped in Postbag and when: the form backend's submit path, API, worker, dashboard, agent surface, system webhooks, digests, schema inference, row-level security, and this site." canonical="/changelog/" ld={ld} modified={entries[0]!.date}>
+  <PageHeader title="Changelog" lede="What shipped, when. Newest first. Dates are from the repository history." crumbs={crumbs} modified={entries[0]!.date} />
+  <section class="container-x max-w-3xl">
+    <ol class="grid gap-10">
+      {entries.map((e) => (
+        <li class="grid gap-2 sm:grid-cols-[140px_1fr] sm:gap-8">
+          <time datetime={e.date} class="font-mono text-sm text-muted-foreground tabular">{e.date}</time>
+          <div>
+            <h2 class="text-xl font-semibold">{e.title}</h2>
+            <ul class="prose-pb mt-2 list-disc pl-5 text-[15px]">{e.items.map((i) => <li>{i}</li>)}</ul>
+          </div>
+        </li>
+      ))}
+    </ol>
+    <p class="mt-12 text-[15px] text-muted-foreground">Next: row-level security enforced per request, CLI and MCP server as thin clients over the SDK, Slack and Discord destinations, expression mappings and filters, file uploads, billing.</p>
+  </section>
+  <CtaBand />
+</Base>

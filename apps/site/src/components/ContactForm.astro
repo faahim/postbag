@@ -1,0 +1,44 @@
+---
+/** The site's own contact form: a real Postbag form (project "site") routed to the owner's email. Dogfooding. */
+import Postmark from "@/components/Postmark.astro"
+import { API_URL } from "@/config"
+interface Props { formId: string }
+const { formId } = Astro.props
+const action = `${API_URL}/s/${formId}`
+const inputClass = "h-11 rounded-md bg-background px-3 font-normal text-foreground shadow-[inset_0_0_0_1px_var(--border-strong)] outline-none transition-shadow duration-150 placeholder:text-muted-foreground/70 focus:shadow-[inset_0_0_0_1px_var(--primary),0_0_0_3px_var(--ring)]"
+---
+<form id="site-contact" class="card max-w-xl p-6" action={action} method="POST" novalidate>
+  <div class="grid gap-4">
+    <label class="grid gap-1.5 text-sm font-medium"><span>Email</span><input name="email" type="email" required autocomplete="email" class={inputClass} /></label>
+    <label class="grid gap-1.5 text-sm font-medium"><span>Name</span><input name="name" type="text" autocomplete="name" class={inputClass} /></label>
+    <label class="grid gap-1.5 text-sm font-medium"><span>Message</span><textarea name="message" required rows="5" class={`${inputClass} h-auto py-2.5`}></textarea></label>
+    <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
+    <input type="hidden" name="_redirect" value="/about/?sent=1#contact" />
+    <div class="flex items-center justify-between gap-4">
+      <p class="text-xs text-muted-foreground">This form is a Postbag form. Of course it is.</p>
+      <button type="submit" class="btn btn-primary btn-sm" data-submit><span data-label>Send message</span></button>
+    </div>
+    <div data-ok class="hidden items-center gap-3 rounded-md bg-accent/60 px-4 py-3 text-sm" aria-live="polite"><Postmark status="sent" size={24} /> <span>Received. Expect a reply by email.</span></div>
+    <div data-err class="hidden rounded-md bg-surface-2 px-4 py-3 text-sm text-muted-foreground" aria-live="polite"></div>
+  </div>
+</form>
+<script>
+  const form = document.getElementById("site-contact") as HTMLFormElement | null
+  if (form) {
+    const ok = form.querySelector<HTMLElement>("[data-ok]")!, err = form.querySelector<HTMLElement>("[data-err]")!
+    const btn = form.querySelector<HTMLButtonElement>("[data-submit]")!, label = btn.querySelector<HTMLElement>("[data-label]")!
+    if (new URLSearchParams(location.search).get("sent") === "1") { ok.classList.remove("hidden"); ok.classList.add("flex") }
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault()
+      if (!form.reportValidity()) return
+      const body: Record<string, unknown> = {}
+      new FormData(form).forEach((v, k) => { if (k !== "_redirect") body[k] = v })
+      btn.disabled = true; label.textContent = "Sending"; err.classList.add("hidden")
+      try {
+        const res = await fetch(form.action, { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify(body) })
+        if (res.ok) { ok.classList.remove("hidden"); ok.classList.add("flex"); label.textContent = "Sent"; form.querySelectorAll<HTMLInputElement>("input[name], textarea").forEach((i) => { if (!i.name.startsWith("_")) i.value = "" }) }
+        else { const t = await res.text(); err.textContent = `The API answered ${res.status}: ${t.slice(0, 300)}`; err.classList.remove("hidden"); btn.disabled = false; label.textContent = "Send message" }
+      } catch { err.textContent = "Could not reach the API. Without JavaScript this form still posts and redirects."; err.classList.remove("hidden"); btn.disabled = false; label.textContent = "Send message" }
+    })
+  }
+</script>

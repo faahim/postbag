@@ -1,0 +1,90 @@
+---
+import Base from "@/layouts/Base.astro"
+import PageHeader from "@/components/PageHeader.astro"
+import CodeBlock from "@/components/CodeBlock.astro"
+import Faq from "@/components/Faq.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import { API_URL, EXAMPLE, LLMS_URL, OPENAPI_URL, SITE_URL } from "@/config"
+import { breadcrumbLd, faqLd, webPageLd } from "@/lib/seo"
+
+const crumbs = [ { name: "Home", href: "/" }, { name: "For AI agents", href: "/for-ai-agents/" } ]
+const title = "Postbag for AI agents: a form backend an agent can set up end to end with one API key"
+const description = "Postbag is agent-native: llms.txt and OpenAPI for discovery, GET /v1/me for context, POST /v1/quickstart for a working routed form in one call, _test submissions to verify delivery, errors with hints and docs links, idempotent creates. Built for Claude Code, Cursor, Codex and any agent with an API key."
+const faqs = [
+  { q: "What does an AI agent need to use Postbag?", a: "An API key (pb_live_…) with the manage scope. From there it can read /llms.txt and /openapi.json, call GET /v1/me, create a routed form with POST /v1/quickstart, verify with a _test submission, and add destinations or streams, all without a browser." },
+  { q: "How does an agent verify that a form actually works?", a: "It posts to the submit URL with <code>_test: true</code>. The response includes the submission id and delivery ids; polling <code>GET /v1/deliveries/{id}</code> shows <code>sent</code> along with the provider's response. Test submissions are excluded from quotas." },
+  { q: "Is there an MCP server or CLI?", a: "Both are in progress and will be thin clients over the same /v1 API and the generated SDK. Today the recommended path is the HTTP API directly; it is small and fully described by <code>/openapi.json</code>. Nothing the CLI or MCP server will do is impossible over HTTP." },
+  { q: "What happens when an agent makes a mistake?", a: "Every error is <code>{ code, message, hint, docs }</code>. The hint says what to do next; docs is a deep link into <a href='/docs/errors/'>the error reference</a>. Validation errors list the offending fields. Incomplete stream mappings fail at attach time with the missing fields listed." },
+  { q: "Is it safe for an agent to re-run a setup script?", a: "Yes. <code>Idempotency-Key</code> is honoured on every POST under /v1, and creates accept <code>if_exists: \"return\"</code> so re-running returns the same objects instead of duplicates or errors." },
+  { q: "How should a site repo remember its Postbag wiring?", a: "The convention is a <code>postbag.json</code> at the repo root with <code>form_id</code>, <code>submit_url</code> and <code>project</code>, and a line in CLAUDE.md or AGENTS.md saying forms on this site post to Postbag. Later sessions, human or agent, find the wiring there." },
+]
+const ld = [ webPageLd({ url: `${SITE_URL}/for-ai-agents/`, name: title, description }), breadcrumbLd(crumbs), faqLd(faqs) ]
+
+const steps = [
+  { n: "Discover", body: "Read GET /llms.txt (Markdown, written for agents) or GET /openapi.json (the full contract, generated from the live routes). Then GET /v1/me: organization, scopes, plan limits and counts of what already exists.", code: `curl ${API_URL}/llms.txt\ncurl ${API_URL}/v1/me -H "Authorization: Bearer pb_live_…"` },
+  { n: "Create", body: "POST /v1/quickstart creates the project if missing, the form, an email destination and a direct route, idempotently by (project, name). It returns the submit URL, embed snippets for HTML, fetch, React, Astro and Next.js, a verification recipe, and next[] calls.", code: `curl -X POST ${API_URL}/v1/quickstart -H "Authorization: Bearer pb_live_…" -d '{\n  "name": "Portfolio contact",\n  "notify_email": "me@example.com",\n  "origin": "https://example.com",\n  "project": "portfolio"\n}'` },
+  { n: "Verify", body: "Post a test submission. The response carries the submission id and delivery ids; poll a delivery until it is sent. No inbox to check, no human in the loop.", code: `curl -X POST ${API_URL}/s/${EXAMPLE.form} -H "content-type: application/json" \\\n  -d '{"email":"agent@example.com","message":"test","_test":true}'\n# → { "ok": true, "submission_id": "${EXAMPLE.submission}", "status": "received", "deliveries": ["${EXAMPLE.delivery}"] }\n\ncurl ${API_URL}/v1/deliveries/${EXAMPLE.delivery} -H "Authorization: Bearer pb_live_…"\n# → { "status": "sent", "attempts": 1, "response": { "status": 200, "latency_ms": 412 } }` },
+  { n: "Wire", body: "Add destinations and routes with individual calls, test any destination with POST /v1/destinations/{id}/test, and write postbag.json into the repo so the next session finds it.", code: `curl -X POST ${API_URL}/v1/destinations -H "Authorization: Bearer pb_live_…" -d '{\n  "type": "webhook", "name": "CRM", "config": { "url": "https://crm.example.com/hooks/postbag", "secret": "…" }\n}'\ncurl -X POST ${API_URL}/v1/destinations/${EXAMPLE.destination}/test -H "Authorization: Bearer pb_live_…"` },
+]
+const principles = [
+  { t: "Discoverable", b: "llms.txt, openapi.json, and /v1/me. Accept: text/markdown on the site root returns the agent onboarding page." },
+  { t: "One call to a working form", b: "POST /v1/quickstart. Everything it does is also available as individual calls; it is a convenience, not a special path." },
+  { t: "Verifiable", b: "_test submissions return delivery ids to poll. Destinations have a /test endpoint that returns the provider's response." },
+  { t: "Schema-aware, fleet-aware", b: "GET /v1/streams/{id} returns the stream schema and a form template; POST /v1/forms with from_template creates a form that is pre-attached with a valid mapping. An agent cannot produce a form the stream does not understand." },
+  { t: "Idempotent and safe to retry", b: "Idempotency-Key on every POST. if_exists: \"return\" on creates. Re-running setup is a no-op, not a mess." },
+  { t: "Errors that teach", b: "{ code, message, hint, docs } on every error; next[] on every create. Ids are prefixed so they are self-describing in logs and conversation." },
+]
+const snippet = `# CLAUDE.md / AGENTS.md (site repo)
+Forms on this site post to Postbag. Config lives in postbag.json (form_id, submit_url, project).
+To add a form: POST ${API_URL}/v1/forms with the project slug, then use the embed from the response.
+Never hand-write a submit URL. Verify with a _test submission and poll the delivery.`
+---
+<Base title="For AI agents" description={description} canonical="/for-ai-agents/" ld={ld} ogImage="/og/agents.png">
+  <PageHeader title="Built for the agents that build websites." lede="Everything a human can do in the dashboard, an agent can do with an API key. The exit test for this property: a coding agent in a fresh site repo, given only a key, ships a working contact form with email and Telegram in one conversation." crumbs={crumbs}>
+    <div class="mt-6 flex flex-wrap gap-3">
+      <a href={LLMS_URL} class="btn btn-primary">Read llms.txt</a>
+      <a href={OPENAPI_URL} class="btn btn-secondary">openapi.json</a>
+      <a href="/docs/agents/" class="btn btn-secondary">Agent guide</a>
+    </div>
+  </PageHeader>
+
+  <section class="container-x" aria-labelledby="flow-heading">
+    <h2 id="flow-heading" class="text-3xl font-semibold sm:text-4xl">Four calls from nothing to verified.</h2>
+    <ol class="mt-10 grid gap-12">
+      {steps.map((s, i) => (
+        <li class="grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-12" data-reveal>
+          <div>
+            <h3 class="text-2xl font-semibold"><span class="font-mono text-base text-primary tabular">{i + 1}</span> {s.n}</h3>
+            <p class="mt-3 text-[16px] leading-relaxed text-muted-foreground">{s.body}</p>
+          </div>
+          <div class="min-w-0"><CodeBlock code={s.code} lang="bash" dense /></div>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="container-x mt-24" aria-labelledby="principles-heading">
+    <h2 id="principles-heading" class="text-3xl font-semibold sm:text-4xl">What agent-native means here</h2>
+    <p class="mt-4 max-w-2xl text-lg text-muted-foreground">It is a property the whole surface has, checked on every change, not a page in the docs.</p>
+    <dl class="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group="60">
+      {principles.map((p) => (
+        <div class="border-t border-border-strong pt-4" data-reveal>
+          <dt class="font-display text-lg font-semibold">{p.t}</dt>
+          <dd class="mt-2 text-[15px] leading-relaxed text-muted-foreground">{p.b}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  <section class="container-x mt-24 grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16" aria-labelledby="repo-heading">
+    <div data-reveal>
+      <h2 id="repo-heading" class="text-3xl font-semibold sm:text-4xl">Leave the wiring where the next agent will look.</h2>
+      <p class="mt-4 text-lg leading-relaxed text-muted-foreground">Site factories and agent scaffolds should write <code class="font-mono text-[0.9em]">postbag.json</code> into the repo and a line into CLAUDE.md or AGENTS.md. The next session, human or agent, finds the form id without guessing. Never hand-write a submit URL.</p>
+      <p class="mt-4 text-[15px] text-muted-foreground">Coming next as thin clients over the same API: <code class="font-mono text-[0.9em]">npx postbag init</code> (writes postbag.json) and an MCP server whose tools mirror the API one to one plus <code class="font-mono text-[0.9em]">postbag_quickstart</code> and <code class="font-mono text-[0.9em]">postbag_explain</code>.</p>
+    </div>
+    <div class="min-w-0" data-reveal style="--reveal-delay: 120ms"><CodeBlock code={snippet} lang="markdown" title="CLAUDE.md" /></div>
+  </section>
+
+  <Faq items={faqs} class="mt-24" title="Agent questions" />
+  <CtaBand title="Give your agent a key." body="Create an account, mint an API key with the manage scope, and hand it to Claude Code, Cursor or Codex with one instruction: read /llms.txt and set up a contact form." secondary={{ href: "/docs/agents/", label: "Agent guide" }} />
+</Base>

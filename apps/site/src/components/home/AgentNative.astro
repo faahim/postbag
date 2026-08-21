@@ -1,0 +1,56 @@
+---
+import CodeBlock from "@/components/CodeBlock.astro"
+import { API_URL, EXAMPLE, LLMS_URL, OPENAPI_URL } from "@/config"
+const transcript = `$ curl ${API_URL}/v1/me -H "Authorization: Bearer pb_live_…"
+{ "organization": { "id": "org_3yv5z3", "slug": "acme", "plan": "free", "timezone": "Europe/Stockholm" },
+  "key": { "prefix": "pb_live_", "scopes": ["manage"] },
+  "counts": { "projects": 1, "forms": 0, "streams": 0, "destinations": 0, "routes": 0 },
+  "limits": { "forms": 5, "submissions_per_month": 1000, "used": { "forms": 0, "submissions_this_month": 0 } } }
+
+$ curl -X POST ${API_URL}/v1/quickstart -H "Authorization: Bearer pb_live_…" \\
+  -d '{ "name": "Portfolio contact", "notify_email": "me@example.com", "project": "portfolio" }'
+{ "form": { "id": "${EXAMPLE.form}", "submit_url": "${API_URL}/s/${EXAMPLE.form}" },
+  "embed": { "html": "<form action=…>", "fetch": "…", "react": "…", "astro": "…", "nextjs_action": "…" },
+  "verify": { "curl": "curl -X POST … -d '{\\"_test\\":true,…}'", "then": "GET /v1/forms/${EXAMPLE.form}/submissions?limit=1" },
+  "next": [ { "why": "Add Telegram", "call": "POST /v1/destinations", "body": { "type": "telegram", … } } ] }
+
+$ curl -X POST ${API_URL}/s/${EXAMPLE.form} -d '{"email":"a@b.se","message":"hi","_test":true}'
+{ "ok": true, "submission_id": "${EXAMPLE.submission}", "status": "received", "deliveries": ["${EXAMPLE.delivery}"] }
+
+$ curl ${API_URL}/v1/deliveries/${EXAMPLE.delivery} -H "Authorization: Bearer pb_live_…"
+{ "id": "${EXAMPLE.delivery}", "status": "sent", "attempts": 1, "response": { "status": 200, "latency_ms": 412 } }`
+const props = [
+  { k: "Discoverable", v: `GET /llms.txt and GET /openapi.json describe the whole surface. GET /v1/me says who you are, what you can do, and what already exists.` },
+  { k: "One call to a working form", v: "POST /v1/quickstart creates the project, form, email destination and route, idempotently, and returns embed snippets plus a verification recipe." },
+  { k: "Verifiable without a browser", v: "Submit with _test: true and get back submission and delivery ids to poll. POST /v1/destinations/{id}/test returns the provider's response inline." },
+  { k: "Errors that teach", v: "Every error is { code, message, hint, docs }. Every create returns next[]: follow-up calls with ready-to-send bodies." },
+  { k: "Safe to retry", v: "Idempotency-Key on every POST under /v1. Creates accept if_exists: \"return\", so a re-run setup script gets the same objects back." },
+  { k: "Self-describing ids", v: "fm_, sb_, st_, ds_, rt_, dl_, prj_. An id in a log or a chat tells you what it is." },
+]
+---
+<section class="container-x mt-28 sm:mt-36" aria-labelledby="agents-heading" id="agents">
+  <div class="max-w-2xl" data-reveal>
+    <h2 id="agents-heading" class="text-3xl font-semibold sm:text-4xl">Everything a human can do in the dashboard, an agent can do with an API key.</h2>
+    <p class="mt-4 text-lg leading-relaxed text-muted-foreground">
+      Agent-native is a property, not a feature. The test: a coding agent holding only a key goes from a fresh site repo to a working, verified, routed form, without a browser and without a human.
+    </p>
+  </div>
+  <div class="mt-10 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-12">
+    <div class="min-w-0" data-reveal>
+      <CodeBlock code={transcript} lang="bash" title="one conversation, four calls" dense />
+    </div>
+    <dl class="grid gap-5 sm:grid-cols-2 lg:grid-cols-1" data-reveal-group="60">
+      {props.map((p) => (
+        <div class="border-l-2 border-primary/40 pl-4" data-reveal>
+          <dt class="font-display text-[17px] font-semibold">{p.k}</dt>
+          <dd class="mt-1 text-[15px] leading-relaxed text-muted-foreground">{p.v}</dd>
+        </div>
+      ))}
+    </dl>
+  </div>
+  <div class="mt-8 flex flex-wrap items-center gap-3" data-reveal>
+    <a href="/for-ai-agents/" class="btn btn-primary">How agents use Postbag</a>
+    <a href={LLMS_URL} class="btn btn-secondary">llms.txt</a>
+    <a href={OPENAPI_URL} class="btn btn-secondary">openapi.json</a>
+  </div>
+</section>

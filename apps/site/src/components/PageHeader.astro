@@ -1,0 +1,14 @@
+---
+import Breadcrumbs from "@/components/Breadcrumbs.astro"
+import type { Crumb } from "@/lib/seo"
+interface Props { title: string; lede: string; crumbs?: Crumb[]; eyebrow?: string; modified?: string }
+const { title, lede, crumbs, eyebrow, modified } = Astro.props
+---
+<header class="container-x pt-10 pb-8 sm:pt-14 sm:pb-12">
+  {crumbs && <Breadcrumbs crumbs={crumbs} class="mb-6" />}
+  {eyebrow && <p class="mb-3 font-mono text-[12px] uppercase tracking-[0.14em] text-primary">{eyebrow}</p>}
+  <h1 class="max-w-4xl text-4xl font-semibold leading-[1.05] sm:text-5xl lg:text-[3.5rem]">{title}</h1>
+  <p class="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">{lede}</p>
+  {modified && <p class="mt-4 text-xs text-muted-foreground">Last updated <time datetime={modified}>{new Date(modified).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</time></p>}
+  <slot />
+</header>

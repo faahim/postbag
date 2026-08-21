@@ -1,0 +1,51 @@
+---
+import Base from "@/layouts/Base.astro"
+import PageHeader from "@/components/PageHeader.astro"
+import Faq from "@/components/Faq.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import { PLANS, SIGNUP_URL, SITE_URL } from "@/config"
+import { breadcrumbLd, faqLd, softwareLd, webPageLd } from "@/lib/seo"
+const crumbs = [ { name: "Home", href: "/" }, { name: "Pricing", href: "/pricing/" } ]
+const faqs = [
+  { q: "Is Postbag free?", a: "Yes. The free plan includes 5 forms, 1,000 submissions a month, 5 destinations and 90-day retention, with every feature: streams, schemas, signed webhooks, the full API. Paid plans are not yet on sale while billing is being built." },
+  { q: "What happens if I go over the submission limit?", a: "Submissions are still stored and flagged over quota; delivery pauses until the plan allows. Nothing is dropped. Test submissions (_test: true) do not count." },
+  { q: "Do the paid plans have different features?", a: "No. Plans differ only in limits: forms, submissions per month, destinations and retention. Every plan has the whole product, including the API and agent features." },
+  { q: "What does self-hosting cost?", a: "Nothing from us. You run the image against your own Postgres with effectively unlimited limits. The repository is private during the first phase; get in touch for access." },
+]
+const fmt = (n: number) => n.toLocaleString("en-US")
+const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postbag pricing", description: "Postbag plan limits: Free (5 forms, 1,000 submissions/month), Pro and Team (not yet on sale), and free self-hosting." }), breadcrumbLd(crumbs), faqLd(faqs) ]
+---
+<Base title="Pricing" description="Postbag pricing: a free plan with 5 forms, 1,000 submissions a month, 5 destinations and 90-day retention, every feature included. Pro and Team plans with higher limits are coming; self-hosting is free with unlimited limits." canonical="/pricing/" ld={ld}>
+  <PageHeader title="Every feature on every plan. Plans differ only in limits." lede="There is no feature gate in Postbag: streams, schemas, signed webhooks and the agent surface are on the free plan. Paid plans raise the numbers. Billing is still being built, so only Free is available today." crumbs={crumbs} />
+  <section class="container-x">
+    <div class="grid gap-4 lg:grid-cols-4" data-reveal-group="70">
+      {PLANS.map((p) => (
+        <div class={`card flex flex-col p-6 ${p.id === "free" ? "shadow-md ring-1 ring-primary/30" : ""}`} data-reveal>
+          <h2 class="text-xl font-semibold">{p.name}</h2>
+          <p class="mt-1 font-display text-3xl font-semibold tabular">{p.id === "free" ? "$0" : <span class="text-muted-foreground">Soon</span>}</p>
+          <dl class="mt-5 grid flex-1 gap-2 text-[15px]">
+            <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Forms</dt><dd class="tabular">{fmt(p.forms)}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Submissions / month</dt><dd class="tabular">{fmt(p.submissions)}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Destinations</dt><dd class="tabular">{fmt(p.destinations)}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Retention</dt><dd class="tabular">{p.retention} days</dd></div>
+          </dl>
+          {p.id === "free" ? <a href={SIGNUP_URL} class="btn btn-primary mt-6">Create a form</a> : <span class="btn btn-secondary mt-6 cursor-default opacity-70" aria-disabled="true">Not yet on sale</span>}
+        </div>
+      ))}
+      <div class="card flex flex-col bg-foreground p-6 text-background" data-reveal>
+        <h2 class="text-xl font-semibold text-background">Self-host</h2>
+        <p class="mt-1 font-display text-3xl font-semibold">Free</p>
+        <dl class="mt-5 grid flex-1 gap-2 text-[15px] text-background/80">
+          <div class="flex justify-between gap-4"><dt>Forms</dt><dd>Unlimited</dd></div>
+          <div class="flex justify-between gap-4"><dt>Submissions</dt><dd>Unlimited</dd></div>
+          <div class="flex justify-between gap-4"><dt>Destinations</dt><dd>Unlimited</dd></div>
+          <div class="flex justify-between gap-4"><dt>Retention</dt><dd>Your policy</dd></div>
+        </dl>
+        <a href="/docs/self-hosting/" class="btn mt-6 bg-background/10 text-background hover:bg-background/20">Self-host guide</a>
+      </div>
+    </div>
+    <p class="mt-6 max-w-3xl text-[15px] text-muted-foreground">Every plan includes: unlimited projects, streams and routes; email, Telegram and signed webhook destinations; schemas, drift and inference; the full API, llms.txt and OpenAPI; the dashboard. Limits mirror <code class="font-mono text-[0.9em]">GET /v1/me</code>.</p>
+  </section>
+  <Faq items={faqs} class="mt-20" title="Pricing questions" />
+  <CtaBand />
+</Base>

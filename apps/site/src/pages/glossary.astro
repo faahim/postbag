@@ -1,0 +1,48 @@
+---
+import Base from "@/layouts/Base.astro"
+import PageHeader from "@/components/PageHeader.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import { breadcrumbLd, webPageLd } from "@/lib/seo"
+import { SITE_URL } from "@/config"
+const crumbs = [ { name: "Home", href: "/" }, { name: "Glossary", href: "/glossary/" } ]
+const terms = [
+  { t: "Form backend", d: "A hosted service that receives HTML form submissions so a website needs no server code of its own. The site's form action points at the backend, which stores the submission and notifies someone. Postbag is a form backend that also routes." },
+  { t: "Organization", d: "The tenant. Owns everything: projects, forms, streams, destinations, routes, API keys. Every row in Postbag carries an organization_id. UI label: Workspace." },
+  { t: "Project", d: "A folder for forms, grouping them for humans (a client, a niche, a site). Projects are never a routing boundary; routing is done by streams. A Default project exists from signup." },
+  { t: "Form", d: "The thing a website posts to. Identified publicly by a prefixed id such as fm_8f3kq2 that appears in the submit URL and is not secret. Has tags, settings (allowed origins, redirect, honeypot, rate limit, Turnstile) and a schema mode." },
+  { t: "Submission", d: "One received payload (sb_…). Has data (the submitted fields), status (received, quarantined or spam), spam score and reasons, meta (ip, user agent, origin, country, received_at) and the schema version it was validated against." },
+  { t: "Form schema", d: "A versioned, immutable declaration of what a form collects: JSON Schema plus UI hints. New version = new row. UI label: Fields." },
+  { t: "Schema mode", d: "observe (accept everything, detect drift, infer), enforce (validate, quarantine violations) or managed (Postbag owns the schema and serves it at /s/{id}/schema)." },
+  { t: "Stream", d: "A named group of forms with a shared, versioned output shape. The operator's primary object: all vending leads, all AI-app signups. UI label: Bag." },
+  { t: "Stream schema", d: "The outbound contract a stream's routes deliver. Versioned and immutable; changing it creates a new version and re-validates every mapping. UI label: What gets delivered." },
+  { t: "Mapping", d: "A form's field → stream field assignment: from (direct), const (literal), default, and later expr. Unmapped fields ride along under extras. A mapping is valid or incomplete. UI label: Match fields." },
+  { t: "Destination", d: "Somewhere submissions can be sent: email, telegram, webhook (signed). Organization-level and reusable across routes; testable with a sample payload." },
+  { t: "Route", d: "form or stream → destination, with rules: mode (instant or digest), window, quality, enabled. UI label: Send to." },
+  { t: "Delivery", d: "One attempt-tracked send of one submission via one route (dl_…). The outbox. Statuses: pending, sending, sent, failed, dead, skipped. Keeps the payload snapshot, attempts, last error and the provider's response." },
+  { t: "Digest", d: "For digest-mode routes, one delivery grouping a period's submissions, unique per (route, period)." },
+  { t: "Drift", d: "A change in what a form actually receives versus its declared schema: new_field, missing_field or type_change. Recorded as a drift event until resolved. UI label: Change detected." },
+  { t: "Outbox", d: "The pattern where work to be done (deliveries) is written in the same transaction as the data that caused it, then drained by a worker. The database makes it correct; events make it fast." },
+  { t: "Quarantine", d: "A submission status for outcomes that are stored but not delivered by default: schema_violation, rate_limited, origin_rejected, turnstile_failed. Visible and reversible." },
+  { t: "Agent-native", d: "A property of the whole surface: an agent holding only an API key can discover the API, create what it needs, receive embed snippets, verify a test submission arrived, and wire a destination, without a browser or a human." },
+]
+const ld = [
+  webPageLd({ url: `${SITE_URL}/glossary/`, name: "Postbag glossary", description: "Definitions of the fixed Postbag vocabulary: form backend, organization, project, form, submission, schema, stream, mapping, destination, route, delivery, drift, outbox, quarantine, agent-native." }),
+  breadcrumbLd(crumbs),
+  { "@type": "DefinedTermSet", "@id": `${SITE_URL}/glossary/#terms`, name: "Postbag vocabulary", hasDefinedTerm: terms.map((x) => ({ "@type": "DefinedTerm", name: x.t, description: x.d, inDefinedTermSet: `${SITE_URL}/glossary/#terms` })) },
+]
+---
+<Base title="Glossary: the Postbag vocabulary" description="Definitions of the fixed Postbag vocabulary: form backend, organization, project, form, submission, schema, stream, mapping, destination, route, delivery, drift, outbox, quarantine, agent-native. One word per concept, no synonyms." canonical="/glossary/" ld={ld} ogImage="/og/docs.png">
+  <PageHeader title="One word per concept." lede="The vocabulary is fixed across the API, the dashboard, the docs and this site. The API uses the engineering word; the dashboard may show a friendlier label, but it is a label, not a second concept." crumbs={crumbs} />
+  <section class="container-x">
+    <dl class="grid gap-x-12 gap-y-8 md:grid-cols-2">
+      {terms.map((x) => (
+        <div id={x.t.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-")} class="scroll-mt-24 border-t border-border-strong pt-4">
+          <dt class="font-display text-xl font-semibold">{x.t}</dt>
+          <dd class="mt-2 text-[15.5px] leading-relaxed text-muted-foreground">{x.d}</dd>
+        </div>
+      ))}
+    </dl>
+    <p class="mt-10 max-w-2xl text-[15px] text-muted-foreground">Words Postbag does <strong>not</strong> use, to avoid two names for one thing: endpoint (as a noun for form), integration, channel, hook (for destination), entry, response (for submission), pipeline.</p>
+  </section>
+  <CtaBand />
+</Base>

@@ -13,6 +13,10 @@ export default tseslint.config(
       // /openapi.json — not hand-written, not worth holding to our style rules.
       "packages/sdk/src/schema.d.ts",
       "apps/web/src/routeTree.gen.ts",
+      // Astro site: generated types, config and build scripts are plain JS/Node.
+      "apps/site/.astro/**",
+      "apps/site/astro.config.mjs",
+      "apps/site/scripts/**",
     ],
   },
   eslint.configs.recommended,

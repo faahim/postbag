@@ -1,0 +1,35 @@
+---
+import Base from "@/layouts/Base.astro"
+import PageHeader from "@/components/PageHeader.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import ContactForm from "@/components/ContactForm.astro"
+import { AUTHOR, GITHUB_URL, SITE_URL } from "@/config"
+import { breadcrumbLd, webPageLd } from "@/lib/seo"
+const crumbs = [ { name: "Home", href: "/" }, { name: "About", href: "/about/" } ]
+const ld = [ webPageLd({ url: `${SITE_URL}/about/`, name: "About Postbag", description: "Who builds Postbag and why: a form backend that routes, generalised from a live lead pipeline, built in Sweden by Fahim." }), breadcrumbLd(crumbs), { "@type": "AboutPage", url: `${SITE_URL}/about/`, mainEntity: { "@id": `${SITE_URL}/#organization` } } ]
+---
+<Base title="About" description="Postbag is a form backend that routes, built by Fahim in Sweden. It generalises a live lead pipeline that fed one partner from many vending-machine websites, and it is built agent-first so the sites AI agents build can wire their own forms." canonical="/about/" ld={ld}>
+  <PageHeader title="Built from a pipeline that could not lose a lead." lede="Postbag generalises a lead pipeline that fed one partner from many small vending-machine websites. The constraints that pipeline had to meet became the product's principles." crumbs={crumbs} />
+  <div class="container-x"><article class="prose-pb max-w-3xl">
+    <h2>Why it exists</h2>
+    <p>Every website has forms; every form needs somewhere to go. The established form backends solve "somewhere" for one site. They fall over when fifteen sites feed one partner with fifteen slightly different forms, when a lead must never be lost even if the CRM is down, or when the person building the site is an AI agent with an API key and no browser. Postbag is the source of truth for what each form collects, what each downstream system receives, and the versioned contract between them.</p>
+    <h2>Principles, briefly</h2>
+    <ul>
+      <li><strong>Never lose a submission.</strong> Spam, violations, quota, rate limits: store with a status. Deletion only by the user or by retention.</li>
+      <li><strong>Contract first.</strong> The OpenAPI document is the truth; dashboard, SDK and agents are clients of the same API.</li>
+      <li><strong>Two personas, one test each.</strong> Solo dev: first email in under three minutes. Operator: fifteen sites to one partner without code.</li>
+      <li><strong>Defaults make concepts disappear.</strong> Projects, streams, schemas and mappings exist only once you need them.</li>
+      <li><strong>Self-hostable by design.</strong> One image, one Postgres. The hosted product is the same image.</li>
+      <li><strong>Agent-native is a property, not a feature.</strong></li>
+      <li><strong>Beautiful by default.</strong> A screen that works but feels off is not done.</li>
+    </ul>
+    <h2>Who</h2>
+    <p>Postbag is built by <a href={AUTHOR.url}>{AUTHOR.name}</a>, an independent developer in Sweden who runs a fleet of small business websites and the systems behind them. The business timezone is Europe/Stockholm. The code lives at <a href={GITHUB_URL}>{GITHUB_URL}</a> (private during the first phase).</p>
+    <h2 id="contact">Contact</h2>
+    <p>Questions, self-hosting access, security reports: use the form below. It posts to a Postbag form in our own account and is routed to the founder's inbox by email. For product status see the <a href="/changelog/">changelog</a>.</p>
+    <ContactForm formId="fm_h6eetntqdbp6" />
+    <h2 id="privacy">Privacy, in plain words</h2>
+    <p>Postbag stores the submissions your forms receive, with the metadata needed to deliver and protect them (IP, user agent, origin, country, timestamps). Data is kept for your plan's retention period or until you delete it, and is sent only to the destinations you configure. Email is delivered through Resend. This site sets no tracking cookies; the only client-side storage is your light/dark preference.</p>
+  </article></div>
+  <CtaBand />
+</Base>

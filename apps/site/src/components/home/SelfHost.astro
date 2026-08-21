@@ -1,0 +1,38 @@
+---
+import CodeBlock from "@/components/CodeBlock.astro"
+const compose = `services:
+  db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: postbag, POSTGRES_USER: postbag, POSTGRES_PASSWORD: change-me }
+    volumes: [ "postbag-postgres:/var/lib/postgresql/data" ]
+  postbag:
+    build: .            # one image: api + worker, POSTBAG_ROLE=all
+    depends_on: [ db ]
+    environment:
+      DATABASE_URL: postgres://postbag:change-me@db:5432/postbag
+      APP_URL: https://forms.example.com
+      BETTER_AUTH_SECRET: change-me-too
+      POSTBAG_ROLE: all
+      MIGRATE_ON_BOOT: "true"
+      RESEND_API_KEY: re_…
+      MAIL_FROM: "Forms <forms@example.com>"
+    ports: [ "3000:3000" ]
+volumes: { postbag-postgres: {} }`
+---
+<section class="container-x mt-28 sm:mt-36" aria-labelledby="selfhost-heading" id="self-host">
+  <div class="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+    <div class="max-w-lg" data-reveal>
+      <h2 id="selfhost-heading" class="text-3xl font-semibold sm:text-4xl">Self-hostable by design. The hosted product is the same image.</h2>
+      <p class="mt-4 text-lg leading-relaxed text-muted-foreground">One container, one Postgres, one compose file. <code class="font-mono text-[0.9em]">api</code>, <code class="font-mono text-[0.9em]">worker</code> and <code class="font-mono text-[0.9em]">all</code> are entrypoints of the same image. Migrations run on boot if you ask. Signups can be disabled for a single-org install.</p>
+      <ul class="mt-6 space-y-2 text-[15px] text-muted-foreground">
+        <li>Multi-arch image: arm64 and amd64.</li>
+        <li>Row-level security policies ship in the migrations as a second fence.</li>
+        <li>Health at <code class="font-mono text-[0.9em]">/health</code>: database, worker heartbeat, oldest pending delivery age.</li>
+      </ul>
+      <a href="/docs/self-hosting/" class="mt-6 inline-flex items-center gap-1.5 text-[15px] font-medium text-primary underline-offset-4 hover:underline">Self-host guide <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="min-w-0" data-reveal style="--reveal-delay: 120ms">
+      <CodeBlock code={compose} lang="yaml" title="docker-compose.yml" dense />
+    </div>
+  </div>
+</section>

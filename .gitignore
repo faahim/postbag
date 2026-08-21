@@ -7,3 +7,5 @@ dist/
 .DS_Store
 .turbo/
 coverage/
+.playwright-mcp/
+apps/site/.astro/

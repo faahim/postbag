@@ -1,0 +1,65 @@
+---
+import Postmark from "@/components/Postmark.astro"
+import { LOGIN_URL, SIGNUP_URL } from "@/config"
+const links = [
+  { href: "/features/", label: "Features" },
+  { href: "/for-ai-agents/", label: "For AI agents" },
+  { href: "/docs/", label: "Docs" },
+  { href: "/pricing/", label: "Pricing" },
+  { href: "/compare/", label: "Compare" },
+]
+const current = Astro.url.pathname
+---
+<header class="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+  <nav class="container-x flex h-16 items-center justify-between gap-6" aria-label="Primary">
+    <a href="/" class="flex items-center gap-2.5 font-display text-[19px] font-semibold tracking-tight" aria-label="Postbag home">
+      <Postmark status="sent" tone="accent" size={24} title="Postbag" />
+      Postbag
+    </a>
+    <ul class="hidden items-center gap-1 md:flex">
+      {links.map((l) => (
+        <li>
+          <a
+            href={l.href}
+            aria-current={current.startsWith(l.href) ? "page" : undefined}
+            class="rounded-md px-3 py-2 text-[15px] text-muted-foreground transition-colors duration-150 hover:bg-surface-2 hover:text-foreground aria-[current=page]:text-foreground"
+          >{l.label}</a>
+        </li>
+      ))}
+    </ul>
+    <div class="flex items-center gap-2">
+      <button type="button" id="theme-toggle" class="btn btn-ghost h-10 w-10 px-0" aria-label="Toggle dark mode" title="Toggle theme">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="hidden dark:block" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="dark:hidden" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+      </button>
+      <a href={LOGIN_URL} class="btn btn-ghost btn-sm hidden sm:inline-flex">Sign in</a>
+      <a href={SIGNUP_URL} class="btn btn-primary btn-sm">Create a form</a>
+      <button type="button" id="nav-toggle" class="btn btn-ghost h-10 w-10 px-0 md:hidden" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </nav>
+  <div id="mobile-nav" hidden class="border-t border-border bg-background md:hidden">
+    <ul class="container-x flex flex-col py-3">
+      {links.map((l) => (
+        <li><a href={l.href} class="block rounded-md px-3 py-2.5 text-[15px] hover:bg-surface-2">{l.label}</a></li>
+      ))}
+      <li><a href={LOGIN_URL} class="block rounded-md px-3 py-2.5 text-[15px] hover:bg-surface-2">Sign in</a></li>
+    </ul>
+  </div>
+</header>
+<script>
+  const toggle = document.getElementById("theme-toggle")
+  toggle?.addEventListener("click", () => {
+    const dark = document.documentElement.classList.toggle("dark")
+    try { localStorage.setItem("postbag-site-theme", dark ? "dark" : "light") } catch {}
+  })
+  const navToggle = document.getElementById("nav-toggle")
+  const mobile = document.getElementById("mobile-nav")
+  navToggle?.addEventListener("click", () => {
+    const open = mobile?.hasAttribute("hidden")
+    if (open) mobile?.removeAttribute("hidden")
+    else mobile?.setAttribute("hidden", "")
+    navToggle.setAttribute("aria-expanded", String(open))
+  })
+</script>

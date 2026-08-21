@@ -1,0 +1,24 @@
+---
+import Postmark from "@/components/Postmark.astro"
+import { SIGNUP_URL } from "@/config"
+interface Props { title?: string; body?: string; primary?: { href: string; label: string }; secondary?: { href: string; label: string } }
+const {
+  title = "Your first form is three minutes away.",
+  body = "Sign up, get a submit URL, point a form at it. The first submission lands in your inbox and your email. Everything else appears when you need it.",
+  primary = { href: SIGNUP_URL, label: "Create a form" },
+  secondary = { href: "/docs/quickstart/", label: "Read the quickstart" },
+} = Astro.props
+---
+<section class="container-x mt-24">
+  <div class="relative overflow-hidden rounded-2xl bg-foreground px-6 py-14 text-background sm:px-12 sm:py-16" data-reveal>
+    <Postmark size={420} tone="current" class="pointer-events-none absolute -right-24 -top-28 opacity-[0.07]" title="" />
+    <div class="relative max-w-2xl">
+      <h2 class="text-3xl font-semibold text-background sm:text-4xl">{title}</h2>
+      <p class="mt-4 text-base leading-relaxed text-background/75 sm:text-lg">{body}</p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href={primary.href} class="btn btn-primary">{primary.label}</a>
+        <a href={secondary.href} class="btn bg-background/10 text-background hover:bg-background/20">{secondary.label}</a>
+      </div>
+    </div>
+  </div>
+</section>
