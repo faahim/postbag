@@ -116,7 +116,7 @@ the rules and `docs/` for the design.
    bypass-2FA granular tokens (no publish after ~Jan 2027; github.blog changelog 2026-07-08), and a GAT returned E404
    on first publish anyway. npm rule: a package must exist before `npm trust` can be configured, so the first version is
    a human publish with OTP: `pnpm -r publish --access public --no-git-checks`; then per package
-   `npm trust github <pkg> --repo faahim/postbag --workflow release.yml --allow-publish` (npm ≥ 11.15). `release.yml`
+   `npm trust github <pkg> --file release.yml --repo faahim/postbag --allow-publish --yes` (npm ≥ 11.15). `release.yml`
    already publishes via OIDC on `v*` tags with no secret; delete the `NPM_TOKEN` secret + revoke the GAT afterwards.
    Then: MCP registry (`server.json` ready), flip site copy from "in progress", make the repo public (gitleaks clean;
    also unlocks provenance).

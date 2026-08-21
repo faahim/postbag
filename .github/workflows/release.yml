@@ -7,7 +7,7 @@ name: Release
 # the very first version of each package is published by a human with 2FA):
 #   1. pnpm -r publish --access public --no-git-checks        # once, locally, with OTP
 #   2. for p in postbag @postbag/sdk @postbag/mcp; do
-#        npm trust github "$p" --repo faahim/postbag --workflow release.yml --allow-publish
+#        npm trust github "$p" --file release.yml --repo faahim/postbag --allow-publish --yes
 #      done                                                   # npm >= 11.15, prompts 2FA
 # After that: bump with `pnpm release:version <v>`, commit, push tag `v<v>` → this runs.
 # pnpm exchanges the GitHub OIDC token for a short-lived npm token by itself
