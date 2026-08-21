@@ -118,22 +118,17 @@ the rules and `docs/` for the design.
 **Committed and live:** everything above plus job J (agent-first hero, switcher, pricing cards, first-paint reveal fix —
 `e6a6088`, deploying on push). Edge caching on. Production on dekhval-1 (EU). Repo public. npm + MCP registry published.
 
-**In flight when the session ended:**
-1. **Job K — `tasks/job-K-plan-grants.md`** (plan_source, grant codes, admin mint gated by `PLATFORM_ADMIN_EMAILS`,
-   org-scoped redeem, Settings → Plan card, CLI `plan`/`admin plan-grants`, expiry housekeeping, `canStartCheckout`).
-   A Sonnet agent had **uncommitted partial work** in `packages/db` (new migration), `packages/core`, `apps/server`
-   (`routes/v1/plan.ts`, `planGrants.ts`, …), `apps/web`, `packages/cli`. **Addendum requested by Fahim:** a playful VIP
-   badge for `plan_source = complimentary` orgs (topbar beside the org/user name + Plan card; accent pill, copy like
-   "VIP · friend of the house", tooltip "Complimentary plan, courtesy of Postbag", small entrance moment, reduced-motion
-   safe, driven only by `/v1/me.plan_source`). **Resume:** `git status`, read the partial files, finish the spec, run
-   `pnpm lint && pnpm typecheck && DATABASE_URL=postgres://postbag:postbag@localhost:5433/postbag pnpm test`,
-   regenerate contract/SDK/MCP, commit, push. Then mint a code for Eric and one for Fahim (`PLATFORM_ADMIN_EMAILS`
-   must be set on Coolify app `jfw5odopfompxmpq7ffgrtn9` → `afiur.fahim@gmail.com`).
-2. **Job L — `tasks/job-L-members-and-org-switcher.md`** — spec ready; start after K is committed (overlapping files).
-   Fahim said go.
-3. **Hero polish (small, not done):** centre the Prompt/Skill/MCP/CLI segmented control under the prompt block
-   (it is left-aligned in a centred layout), and make sure the prompt's wrapped layout is CSS-only at first paint
-   (the 300 ms screenshot showed a single clipped line that wraps later — check `CodeBlock` `wrap` prop / Shiki output).
+**State:** Job K **committed `6c9208f`** (plan_source, grant codes, VIP badge; `PLATFORM_ADMIN_EMAILS=afiur.fahim@gmail.com`
+set on the EU app — takes effect on the deploy of `6c9208f`). **Job L** (members/invitations/roles/org switcher,
+`tasks/job-L-members-and-org-switcher.md`) — agent launched 2026-08-21 ~22:55 UTC; if the session died, its partial work
+is uncommitted in the working tree: read it, finish the spec, run the gates, commit.
+
+**To do right after K's deploy is healthy:** mint codes —
+`postbag admin plan-grants create --plan pro --note "Eric" --days 365` and one for Fahim — with Fahim's key
+(`~/.postbag/credentials`; its org owner email is the admin). Hand the code to Eric; he redeems in Settings → Plan.
+
+**Hero polish (small, not done):** centre the Prompt/Skill/MCP/CLI segmented control under the prompt block; make
+sure the prompt's wrapped layout is CSS-only at first paint (300 ms screenshot showed a single clipped line).
 
 **Decisions today (all recorded above in detail):** AGPL+MIT; Polar (token is for org "pushkunni" — create a "Postbag"
 org when billing starts); prices; anonymous quickstart declined; repo public; EU hosting; legal identity = Md Afiur
