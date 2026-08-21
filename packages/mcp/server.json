@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "dev.postbag/mcp",
-  "description": "Postbag \u2014 a form backend that routes. One MCP tool per API operation, plus quickstart and explain, so an agent holding only an API key can create and manage forms, streams, destinations, routes and deliveries.",
+  "description": "Form backend that routes: one tool per Postbag API operation, plus quickstart and explain.",
   "repository": {
     "url": "https://github.com/faahim/postbag",
     "source": "github"
