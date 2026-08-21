@@ -21,12 +21,12 @@ import { Route as AppBagsBagIdRouteImport } from './routes/_app/bags/$bagId'
 import { Route as AppDeliveriesIndexRouteImport } from './routes/_app/deliveries/index'
 import { Route as AppDestinationsIndexRouteImport } from './routes/_app/destinations/index'
 import { Route as AppEventsIndexRouteImport } from './routes/_app/events/index'
+import { Route as AppEventsWebhooksRouteImport } from './routes/_app/events/webhooks'
 import { Route as AppFormsIndexRouteImport } from './routes/_app/forms/index'
 import { Route as AppFormsFormIdRouteImport } from './routes/_app/forms/$formId'
 import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox/index'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
 import { Route as AppSettingsMembersRouteImport } from './routes/_app/settings/members'
-import { Route as AppSettingsWebhooksRouteImport } from './routes/_app/settings/webhooks'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -87,6 +87,11 @@ const AppEventsIndexRoute = AppEventsIndexRouteImport.update({
   path: '/events/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEventsWebhooksRoute = AppEventsWebhooksRouteImport.update({
+  id: '/events/webhooks',
+  path: '/events/webhooks',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFormsIndexRoute = AppFormsIndexRouteImport.update({
   id: '/forms/',
   path: '/forms/',
@@ -112,11 +117,6 @@ const AppSettingsMembersRoute = AppSettingsMembersRouteImport.update({
   path: '/settings/members',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSettingsWebhooksRoute = AppSettingsWebhooksRouteImport.update({
-  id: '/settings/webhooks',
-  path: '/settings/webhooks',
-  getParentRoute: () => AppRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -125,9 +125,9 @@ export interface FileRoutesByFullPath {
   '/first-run': typeof AppFirstRunRoute
   '/invitations/$id': typeof InvitationsIdRoute
   '/bags/$bagId': typeof AppBagsBagIdRoute
+  '/events/webhooks': typeof AppEventsWebhooksRoute
   '/forms/$formId': typeof AppFormsFormIdRoute
   '/settings/members': typeof AppSettingsMembersRoute
-  '/settings/webhooks': typeof AppSettingsWebhooksRoute
   '/api-keys/': typeof AppApiKeysIndexRoute
   '/bags/': typeof AppBagsIndexRoute
   '/deliveries/': typeof AppDeliveriesIndexRoute
@@ -144,9 +144,9 @@ export interface FileRoutesByTo {
   '/first-run': typeof AppFirstRunRoute
   '/invitations/$id': typeof InvitationsIdRoute
   '/bags/$bagId': typeof AppBagsBagIdRoute
+  '/events/webhooks': typeof AppEventsWebhooksRoute
   '/forms/$formId': typeof AppFormsFormIdRoute
   '/settings/members': typeof AppSettingsMembersRoute
-  '/settings/webhooks': typeof AppSettingsWebhooksRoute
   '/api-keys': typeof AppApiKeysIndexRoute
   '/bags': typeof AppBagsIndexRoute
   '/deliveries': typeof AppDeliveriesIndexRoute
@@ -165,9 +165,9 @@ export interface FileRoutesById {
   '/_app/first-run': typeof AppFirstRunRoute
   '/invitations/$id': typeof InvitationsIdRoute
   '/_app/bags/$bagId': typeof AppBagsBagIdRoute
+  '/_app/events/webhooks': typeof AppEventsWebhooksRoute
   '/_app/forms/$formId': typeof AppFormsFormIdRoute
   '/_app/settings/members': typeof AppSettingsMembersRoute
-  '/_app/settings/webhooks': typeof AppSettingsWebhooksRoute
   '/_app/api-keys/': typeof AppApiKeysIndexRoute
   '/_app/bags/': typeof AppBagsIndexRoute
   '/_app/deliveries/': typeof AppDeliveriesIndexRoute
@@ -186,9 +186,9 @@ export interface FileRouteTypes {
     | '/first-run'
     | '/invitations/$id'
     | '/bags/$bagId'
+    | '/events/webhooks'
     | '/forms/$formId'
     | '/settings/members'
-    | '/settings/webhooks'
     | '/api-keys/'
     | '/bags/'
     | '/deliveries/'
@@ -205,9 +205,9 @@ export interface FileRouteTypes {
     | '/first-run'
     | '/invitations/$id'
     | '/bags/$bagId'
+    | '/events/webhooks'
     | '/forms/$formId'
     | '/settings/members'
-    | '/settings/webhooks'
     | '/api-keys'
     | '/bags'
     | '/deliveries'
@@ -225,9 +225,9 @@ export interface FileRouteTypes {
     | '/_app/first-run'
     | '/invitations/$id'
     | '/_app/bags/$bagId'
+    | '/_app/events/webhooks'
     | '/_app/forms/$formId'
     | '/_app/settings/members'
-    | '/_app/settings/webhooks'
     | '/_app/api-keys/'
     | '/_app/bags/'
     | '/_app/deliveries/'
@@ -332,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEventsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/events/webhooks': {
+      id: '/_app/events/webhooks'
+      path: '/events/webhooks'
+      fullPath: '/events/webhooks'
+      preLoaderRoute: typeof AppEventsWebhooksRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/forms/': {
       id: '/_app/forms/'
       path: '/forms'
@@ -367,22 +374,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsMembersRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/settings/webhooks': {
-      id: '/_app/settings/webhooks'
-      path: '/settings/webhooks'
-      fullPath: '/settings/webhooks'
-      preLoaderRoute: typeof AppSettingsWebhooksRouteImport
-      parentRoute: typeof AppRoute
-    }
   }
 }
 
 interface AppRouteChildren {
   AppFirstRunRoute: typeof AppFirstRunRoute
   AppBagsBagIdRoute: typeof AppBagsBagIdRoute
+  AppEventsWebhooksRoute: typeof AppEventsWebhooksRoute
   AppFormsFormIdRoute: typeof AppFormsFormIdRoute
   AppSettingsMembersRoute: typeof AppSettingsMembersRoute
-  AppSettingsWebhooksRoute: typeof AppSettingsWebhooksRoute
   AppApiKeysIndexRoute: typeof AppApiKeysIndexRoute
   AppBagsIndexRoute: typeof AppBagsIndexRoute
   AppDeliveriesIndexRoute: typeof AppDeliveriesIndexRoute
@@ -396,9 +396,9 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppFirstRunRoute: AppFirstRunRoute,
   AppBagsBagIdRoute: AppBagsBagIdRoute,
+  AppEventsWebhooksRoute: AppEventsWebhooksRoute,
   AppFormsFormIdRoute: AppFormsFormIdRoute,
   AppSettingsMembersRoute: AppSettingsMembersRoute,
-  AppSettingsWebhooksRoute: AppSettingsWebhooksRoute,
   AppApiKeysIndexRoute: AppApiKeysIndexRoute,
   AppBagsIndexRoute: AppBagsIndexRoute,
   AppDeliveriesIndexRoute: AppDeliveriesIndexRoute,

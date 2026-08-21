@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { EmptyState } from "@/components/empty-state"
+import { EventsNav } from "@/components/events-nav"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatDateTime } from "@/lib/format"
@@ -27,6 +28,8 @@ function EventsRoute() {
         <p className="text-sm text-muted-foreground">Everything that happened, most recent first.</p>
       </div>
 
+      <EventsNav />
+
       {events.isLoading ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 6 }, (_, i) => (
@@ -34,7 +37,10 @@ function EventsRoute() {
           ))}
         </div>
       ) : events.data === undefined || events.data.data.length === 0 ? (
-        <EmptyState title="No events yet" description="Every submission, delivery and change to your workspace shows up here." />
+        <EmptyState
+          title="No events yet"
+          description="Every submission, delivery and change to your workspace shows up here — and can be pushed to you via an event webhook."
+        />
       ) : (
         <ol className="flex flex-col">
           {events.data.data.map((event, i) => (

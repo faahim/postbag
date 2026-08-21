@@ -135,7 +135,7 @@ the rules and `docs/` for the design.
 - [x] **API-vs-dashboard sweep (2026-08-22):** diffed the 76 OpenAPI operations against the 53 the dashboard called.
   Fixed the human-facing gaps: **delete submission** (drawer, confirmed); **route delivery mode** — add-route dialog
   offers instant / daily digest / weekly digest (time, weekday, org timezone) and the routes list shows the mode,
-  destination summary and a paused badge, with confirmed removal; **Settings → Webhooks** (org-level system webhooks:
+  destination summary and a paused badge, with confirmed removal; **Events → Webhooks** (org-level system webhooks, a tab beside the event log so they don't collide with webhook *destinations*:
   list, add with grouped event checkboxes + secret, pause/resume, remove, recent deliveries); **schema version history**
   on the form's Fields tab. Left agent/admin-only on purpose: auth codes, plan grants, single-resource GETs, schema
   infer (the Fields tab's "Publish what we're seeing" covers it). **Projects** stay hidden in the UI (Principle 1).

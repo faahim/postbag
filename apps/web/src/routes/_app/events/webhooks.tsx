@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { ChevronDown, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
@@ -8,7 +8,7 @@ import { z } from "zod"
 
 import { EmptyState } from "@/components/empty-state"
 import { Postmark, type PostmarkStatus } from "@/components/postmark"
-import { SettingsNav } from "@/components/settings-nav"
+import { EventsNav } from "@/components/events-nav"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -31,8 +31,8 @@ import {
 } from "@/lib/queries/webhooks"
 import { cn } from "@/lib/utils"
 
-export const Route = createFileRoute("/_app/settings/webhooks")({
-  component: WebhooksSettingsRoute,
+export const Route = createFileRoute("/_app/events/webhooks")({
+  component: EventWebhooksRoute,
 })
 
 const ALL_EVENTS: readonly SystemEventType[] = SYSTEM_EVENT_GROUPS.flatMap((g) => g.events)
@@ -43,25 +43,32 @@ const HEALTH = {
   unknown: { dot: "bg-muted-foreground/40", label: "No deliveries yet" },
 } as const
 
-function WebhooksSettingsRoute() {
+function EventWebhooksRoute() {
   const webhooks = useSystemWebhooks()
   const [adding, setAdding] = useState(false)
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">Settings</h1>
-        <p className="text-sm text-muted-foreground">Workspace name, plan and timezone.</p>
+        <h1 className="text-xl font-semibold">Events</h1>
+        <p className="text-sm text-muted-foreground">Everything that happened, most recent first.</p>
       </div>
 
-      <SettingsNav />
+      <EventsNav />
 
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-sm font-medium">Webhooks</h2>
+          <h2 className="text-sm font-medium">Event webhooks</h2>
           <p className="max-w-xl text-sm text-muted-foreground text-pretty">
-            Get a signed HTTP call whenever something happens in this workspace — a submission arrives, a delivery fails, a schema
-            changes. These are workspace-wide; to send the submissions themselves somewhere, use a destination.
+            Get a signed HTTP call whenever one of these events happens — a submission arrives, a delivery fails, a schema changes.
+            They notify your own code, a Zap or a bot about the workspace.
+          </p>
+          <p className="max-w-xl text-xs text-muted-foreground text-pretty">
+            Want the submissions themselves delivered to your endpoint? That's a{" "}
+            <Link to="/destinations" className="font-medium text-foreground underline-offset-4 hover:underline">
+              webhook destination
+            </Link>
+            , not an event webhook.
           </p>
         </div>
         {!adding && (
@@ -93,7 +100,7 @@ function WebhooksSettingsRoute() {
       ) : webhooks.data === undefined || webhooks.data.length === 0 ? (
         !adding && (
           <EmptyState
-            title="No webhooks yet"
+            title="No event webhooks yet"
             description="Add one to be told about new submissions, failed deliveries or schema changes — your own code, a Zap, a Slack bot."
             action={
               <Button
