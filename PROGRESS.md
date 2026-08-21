@@ -123,7 +123,8 @@ the rules and `docs/` for the design.
 2b. **Legal pages before selling (agent drafts, Fahim supplies entity name/address):** Terms, Privacy
    Policy, DPA for operators, sub-processor list (Resend, Cloudflare, the hosting provider, Polar),
    GDPR Art. 27 EU-representative answer for a non-EU entity. Pages at `/legal/terms/`, `/legal/privacy/`, `/legal/dpa/`.
-2c. **Human (Phase 3 gate):** create the Polar organisation, complete KYC with Bangladeshi documents and a
+2c. **Polar:** organisation access token created by Fahim 2026-08-21 — stored as Coolify env `POLAR_ACCESS_TOKEN` on both apps
+   (unused by code until Phase 3 billing) and at `~/.config/postbag/polar-access-token` (600). Still human: complete KYC with Bangladeshi documents and a
    local bank account, confirm a sandbox sale and a real test payout land. If it fails → Paddle via a
    superseding ADR. No billing code merges before this.
 2d. ~~Social login~~ **live 2026-08-21 14:40 UTC.** Google + GitHub buttons on `postbag.dev/app/sign-in`;
