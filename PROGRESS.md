@@ -171,6 +171,12 @@ the rules and `docs/` for the design.
   not configured yet: add a Cloudflare R2 (S3-compatible) bucket as a Coolify S3 storage and flip `save_s3` — do this
   before the first paying customer.
 - No uptime monitor yet (`/health` is the probe to use).
+- **EU cut-over verified 2026-08-21 16:20 UTC:** Let's Encrypt certs issued on dekhval-1 for all four hostnames (Traefik
+  needed an app restart to retry ACME after the DNS flip); `postbag.withfaahim.com` back to 200. Gotcha: dekhval-1 throttles
+  SSH after a burst of sessions — batch commands into one session.
+- **Google consent screen** links `/legal/privacy/` + `/legal/terms/`; Google asks for "branding verification" (Search
+  Console proof of postbag.dev) before showing the app name instead of the domain — do together with the Search Console
+  + IndexNow item (DNS TXT verification; Fahim's Google login in the browser).
 - **hello@postbag.dev** → Cloudflare Email Routing rule → afiur.fahim@gmail.com (set up 2026-08-21 in the Cloudflare
   dashboard; the API token in `~/Developer/smedja/.env` has no Email Routing scope). Apex MX records are Cloudflare's;
   Resend sends from `send.postbag.dev`, so they don't collide.
