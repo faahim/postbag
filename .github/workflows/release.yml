@@ -18,7 +18,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # npm provenance
+  id-token: write # npm provenance (unused until the repo is public)
 
 jobs:
   publish:
@@ -41,4 +41,5 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '--dry-run' || '' }}
-        run: pnpm -r publish --access public --no-git-checks --provenance $DRY
+        # --provenance needs a public source repository; re-enable once faahim/postbag is public.
+        run: pnpm -r publish --access public --no-git-checks $DRY
