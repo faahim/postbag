@@ -10,3 +10,5 @@ that supersedes it. Template: Context → Decision → Alternatives → Conseque
 | [003](./ADR-003-dashboard-packaging.md) | Dashboard is a Vite SPA served by the API container | Proposed |
 | [004](./ADR-004-two-schema-layers.md) | Form schema and stream schema are separate, versioned contracts | Accepted 2026-08-21 |
 | [005](./ADR-005-expression-language.md) | Expression language for mappings, filters, transforms | Proposed (JSONata) |
+| [006](./ADR-006-license-and-business-model.md) | Open source: AGPL-3.0 server, MIT clients; hosted plans differ only in limits | Accepted 2026-08-21 |
+| [007](./ADR-007-billing-provider.md) | Billing through a Merchant of Record (Polar; Paddle fallback), not Stripe | Accepted 2026-08-21 |

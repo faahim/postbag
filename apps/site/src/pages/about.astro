@@ -3,7 +3,7 @@ import Base from "@/layouts/Base.astro"
 import PageHeader from "@/components/PageHeader.astro"
 import CtaBand from "@/components/CtaBand.astro"
 import ContactForm from "@/components/ContactForm.astro"
-import { AUTHOR, GITHUB_URL, SITE_URL } from "@/config"
+import { AUTHOR, GITHUB_URL, SITE_CONTACT_FORM_ID, SITE_URL } from "@/config"
 import { breadcrumbLd, webPageLd } from "@/lib/seo"
 const crumbs = [ { name: "Home", href: "/" }, { name: "About", href: "/about/" } ]
 const ld = [ webPageLd({ url: `${SITE_URL}/about/`, name: "About Postbag", description: "Who builds Postbag and why: a form backend that routes, generalised from a live lead pipeline, built in Sweden by Fahim." }), breadcrumbLd(crumbs), { "@type": "AboutPage", url: `${SITE_URL}/about/`, mainEntity: { "@id": `${SITE_URL}/#organization` } } ]
@@ -27,7 +27,7 @@ const ld = [ webPageLd({ url: `${SITE_URL}/about/`, name: "About Postbag", descr
     <p>Postbag is built by <a href={AUTHOR.url}>{AUTHOR.name}</a>, an independent developer in Sweden who runs a fleet of small business websites and the systems behind them. The business timezone is Europe/Stockholm. The code lives at <a href={GITHUB_URL}>{GITHUB_URL}</a> (private during the first phase).</p>
     <h2 id="contact">Contact</h2>
     <p>Questions, self-hosting access, security reports: use the form below. It posts to a Postbag form in our own account and is routed to the founder's inbox by email. For product status see the <a href="/changelog/">changelog</a>.</p>
-    <ContactForm formId="fm_h6eetntqdbp6" />
+    <ContactForm formId={SITE_CONTACT_FORM_ID} />
     <h2 id="privacy">Privacy, in plain words</h2>
     <p>Postbag stores the submissions your forms receive, with the metadata needed to deliver and protect them (IP, user agent, origin, country, timestamps). Data is kept for your plan's retention period or until you delete it, and is sent only to the destinations you configure. Email is delivered through Resend. This site sets no tracking cookies; the only client-side storage is your light/dark preference.</p>
   </article></div>

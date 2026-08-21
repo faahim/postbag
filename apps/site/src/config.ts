@@ -28,12 +28,18 @@ export const EXAMPLE = {
   route: "rt_0c3v8k",
 }
 
-/** Plan limits, mirrored from apps/server/src/lib/plan.ts. Billing is not live yet. */
+/**
+ * Plan limits, mirrored from apps/server/src/lib/plan.ts. Prices per ADR-006 (USD per month;
+ * `yearly` is the per-month price when billed yearly). Billing is not live yet (ADR-007).
+ */
 export const PLANS = [
-  { id: "free", name: "Free", forms: 5, submissions: 1_000, destinations: 5, retention: 90 },
-  { id: "pro", name: "Pro", forms: 50, submissions: 50_000, destinations: 50, retention: 365 },
-  { id: "team", name: "Team", forms: 500, submissions: 500_000, destinations: 500, retention: 730 },
+  { id: "free", name: "Free", monthly: 0, yearly: 0, forms: 5, submissions: 1_000, destinations: 5, retention: 90 },
+  { id: "pro", name: "Pro", monthly: 15, yearly: 12, forms: 50, submissions: 50_000, destinations: 50, retention: 365 },
+  { id: "team", name: "Team", monthly: 49, yearly: 39, forms: 500, submissions: 500_000, destinations: 500, retention: 730 },
 ] as const
+
+/** The site's own Postbag form (project "site", observe mode) — contact form and pricing notify list. */
+export const SITE_CONTACT_FORM_ID = "fm_h6eetntqdbp6"
 
 /** Destination types with an adapter in apps/server/src/destinations/registry.ts. */
 export const DESTINATIONS = [

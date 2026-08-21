@@ -47,3 +47,10 @@ never lost. (Inherited from the lead pipeline this generalises; see
 ## Documentation
 
 Start at [`docs/README.md`](./docs/README.md).
+
+## License
+
+The server, dashboard, site and domain packages (`apps/*`, `packages/core`, `packages/db`,
+`packages/auth`) are licensed under [AGPL-3.0](./LICENSE). The client packages that run
+inside your own code — `@postbag/sdk`, the `postbag` CLI and `@postbag/mcp` — are
+[MIT](./packages/sdk/LICENSE). Rationale in [ADR-006](./docs/decisions/ADR-006-license-and-business-model.md).

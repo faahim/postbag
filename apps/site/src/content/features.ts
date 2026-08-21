@@ -142,7 +142,7 @@ export const FEATURES: Feature[] = [
       { h: "What is different from the hosted product", p: ["Nothing in features. Plan limits are effectively unlimited under the selfhost plan. You bring your own email domain. Billing does not exist."] },
     ],
     faqs: [
-      { q: "Is Postbag open source?", a: "The repository is private while the product is in its first phase. Self-hosting parity is designed in from the start (one image, one database, no cloud-only dependencies); ask if you need access for a self-hosted deployment." },
+      { q: "Is Postbag open source?", a: "Yes. The server is AGPL-3.0 and the client packages (SDK, CLI, MCP server) are MIT. Self-hosting parity is designed in from the start (one image, one database, no cloud-only dependencies). The repository opens publicly with the first npm release; ask if you need access before that." },
       { q: "Can I run the API and the worker separately?", a: "Yes. Start two containers from the same image with <code>POSTBAG_ROLE=api</code> and <code>POSTBAG_ROLE=worker</code>. Several workers are safe." },
       { q: "Do I need Redis or a queue?", a: "No. Postgres is the only stateful dependency; the deliveries table is the queue." },
     ],

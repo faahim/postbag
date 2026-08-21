@@ -42,6 +42,17 @@ the rules and `docs/` for the design.
   `apps/site`, Phase 3. Nothing public-facing is rendered client-side.
 - ADR-005 accepted: JSONata for mapping expressions, filters, transforms (Phase 2).
 - Hosting: megh-oracle chosen over dekhval-1 (Hermes load) and kolkobja (control plane, low RAM).
+- **Business model + licence (ADR-006, 2026-08-21):** open source + hosted, plans differ only in
+  limits. `AGPL-3.0-only` for root/apps/core/db/auth; `MIT` for sdk/cli/mcp. No CLA (DCO). Prices
+  published on `/pricing` ahead of billing: Free $0 · Pro $15/mo ($12 yearly) · Team $49/mo ($39 yearly).
+- **Billing provider (ADR-007):** **Polar** as Merchant of Record, Paddle fallback. Dodo Payments was
+  evaluated and rejected: Bangladesh (the legal entity's country) is not an eligible merchant country.
+  Stripe direct was never available for the same reason. Polar pays Bangladesh via Stripe Connect
+  Express cross-border payouts ("Preview" tier — KYC + a real test payout must succeed before billing code merges).
+- **Domain:** `postbag.dev` (Fahim buying 2026-08-21). `.app` as a cheap defensive redirect; skip `.io`.
+- **Repo goes public** with the first npm release. gitleaks full-history scan 2026-08-21: 18 commits, no leaks.
+- npm names `postbag`, `@postbag/sdk`, `@postbag/mcp`, `@postbag/cli` and the `@postbag` scope were all
+  free on 2026-08-21; MCP registry has no `postbag` entry.
 
 ## Done
 
@@ -76,10 +87,21 @@ the rules and `docs/` for the design.
 
 0. Design session with Fahim on the dashboard (see Job E verdict). Screenshots: session scratchpad `web-shots/` (before) and `web-shots-v2/` (after).
 1. Wire RLS into the request path (`RLS_ENFORCED=true`: per-request transaction with `SET LOCAL ROLE postbag_app` + `set_config('app.org_id')`); then flip the default on. Sync `api/openapi.yaml` with the generated doc (new: `/v1/forms/{id}/schema/infer`, `/v1/webhooks/{id}/deliveries`, `SchemaVersion.inferred`).
-2. CLI + MCP thin clients over `packages/sdk`.
+2. CLI + MCP thin clients over `packages/sdk` (spec to write: `tasks/job-F-cli-mcp.md`). Prereqs inside
+   the job: add `operationId` + `bearerAuth` securityScheme to every `/v1` route (the generated doc has
+   none — tool/command names derive from them), sync `api/openapi.yaml`, flip `@postbag/sdk` to public,
+   Changesets + `NPM_TOKEN` publish workflow. **Human:** `npm login` on the Mac, create the `@postbag`
+   org on npmjs.com, add `NPM_TOKEN` as a GitHub secret, decide the moment the repo flips public.
+2b. **Legal pages before selling (agent drafts, Fahim supplies entity name/address):** Terms, Privacy
+   Policy, DPA for operators, sub-processor list (Resend, Cloudflare, the hosting provider, Polar),
+   GDPR Art. 27 EU-representative answer for a non-EU entity. Pages at `/legal/terms/`, `/legal/privacy/`, `/legal/dpa/`.
+2c. **Human (Phase 3 gate):** create the Polar organisation, complete KYC with Bangladeshi documents and a
+   local bank account, confirm a sandbox sale and a real test payout land. If it fails → Paddle via a
+   superseding ADR. No billing code merges before this.
 3. Dogfood: portfolio contact form → Postbag. Then Smedja `forge` provisioning.
-4. ~~Marketing site~~ shipped (see Done). Still open: **domain decision** (postbag.dev? a product domain beats
-   `postbag.withfaahim.com` for SEO/GEO; change `SITE_URL` + Coolify `APP_URL` + Resend domain together), Bing
+4. ~~Marketing site~~ shipped (see Done). Still open: **domain cut-over to `postbag.dev`** (decided; change
+   `SITE_URL` + Coolify `APP_URL` + Resend sending domain together, and add `https://postbag.dev` to
+   `allowed_origins` on the site form `fm_h6eetntqdbp6` or the contact + pricing-notify forms break), Bing
    Webmaster Tools + Google Search Console verification and IndexNow, confirm Cloudflare "block AI bots" is off for
    the zone, publish SDK/CLI/MCP to npm + MCP registry (the site's agent pages say these are in progress).
 
