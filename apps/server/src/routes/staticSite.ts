@@ -76,10 +76,20 @@ function safeJoin(root: string, urlPath: string): string | null {
   return full.startsWith(root) ? full : null
 }
 
+/**
+ * Cache policy for the static site. Browsers keep pages briefly; the CDN (Cloudflare, which
+ * honours `s-maxage` and `stale-while-revalidate` when a cache rule makes HTML eligible) keeps
+ * them for ten minutes and serves stale for a day while it refetches, so a deploy is visible
+ * worldwide within minutes without any purge step. Hashed `/_astro/*` assets are immutable.
+ * Markdown twins and llms.txt get the same policy; the Cloudflare cache rule keys requests
+ * with `Accept: text/markdown` out of the cache so the negotiation stays correct.
+ */
+const PAGE_CACHE = "public, max-age=300, s-maxage=600, stale-while-revalidate=86400"
+
 function cacheControl(path: string): string {
   if (path.startsWith("/_astro/")) return "public, max-age=31536000, immutable"
-  if (/\.(?:png|jpe?g|webp|avif|svg|ico|woff2?)$/u.test(path)) return "public, max-age=86400"
-  return "public, max-age=300, must-revalidate"
+  if (/\.(?:png|jpe?g|webp|avif|svg|ico|woff2?)$/u.test(path)) return "public, max-age=86400, s-maxage=604800"
+  return PAGE_CACHE
 }
 
 export function registerSiteStatic(app: Hono<AppEnv>, appUrl: string): boolean {
@@ -95,6 +105,7 @@ export function registerSiteStatic(app: Hono<AppEnv>, appUrl: string): boolean {
     // Agents asking the root for Markdown get the onboarding page (docs/AGENT-NATIVE.md §1).
     if (path === "/" && prefersMarkdown(c.req.header("accept"))) {
       c.header("content-type", "text/markdown; charset=utf-8")
+      c.header("cache-control", PAGE_CACHE)
       c.header("vary", "accept")
       return c.body(renderLlmsTxt(appUrl))
     }
@@ -114,6 +125,7 @@ export function registerSiteStatic(app: Hono<AppEnv>, appUrl: string): boolean {
       const twin = file.replace(/index\.html$/u, "index.md")
       if (existsSync(twin)) {
         c.header("content-type", "text/markdown; charset=utf-8")
+        c.header("cache-control", PAGE_CACHE)
         c.header("vary", "accept")
         c.header("x-robots-tag", "noindex")
         return c.body(readFileSync(twin))

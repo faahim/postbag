@@ -101,6 +101,7 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
 
   app.get("/llms.txt", (c) => {
     c.header("content-type", "text/markdown; charset=utf-8")
+    c.header("cache-control", "public, max-age=300, s-maxage=600, stale-while-revalidate=86400")
     return c.body(renderLlmsTxt(env.APP_URL))
   })
 
