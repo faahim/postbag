@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 
 import { AuthSplitLayout } from "@/components/auth-split-layout"
+import { SocialButtons } from "@/components/social-buttons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,6 +42,8 @@ function SignUpRoute() {
           <h2 className="text-2xl font-semibold text-balance">Create your workspace</h2>
           <p className="text-sm text-muted-foreground">One form and one email, in under three minutes.</p>
         </div>
+
+        <SocialButtons intent="sign-up" />
 
         <form
           onSubmit={(e) => {

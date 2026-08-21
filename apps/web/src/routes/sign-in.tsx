@@ -2,21 +2,43 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
+import { z } from "zod"
 
 import { AuthSplitLayout } from "@/components/auth-split-layout"
+import { SocialButtons } from "@/components/social-buttons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signIn } from "@/lib/auth-client"
 import { signInSchema, type SignInValues } from "@/lib/auth-schemas"
 
+const searchSchema = z.object({ error: z.string().optional() })
+
 export const Route = createFileRoute("/sign-in")({
   component: SignInRoute,
+  validateSearch: searchSchema,
 })
+
+// Job G 1d/2a: `errorCallbackURL` sends the browser back here as `/app/sign-in?error=oauth`
+// (or any other Better Auth error code) when a social round trip doesn't complete.
+const OAUTH_ERROR_MESSAGE = "Google or GitHub sign-in didn't complete. Try again or use your email and password."
+// Better Auth refuses to auto-link a social account to an existing password account whose
+// email was never verified (it would let a pre-registered attacker capture the session).
+// The safe path is an authenticated link from Settings.
+const NOT_LINKED_MESSAGE =
+  "This email already has a password account. Sign in with your password, then connect Google or GitHub under Settings → Connected accounts."
+
+function oauthErrorMessage(code: string | undefined): string | null {
+  if (code === undefined) return null
+  return code === "account_not_linked" ? NOT_LINKED_MESSAGE : OAUTH_ERROR_MESSAGE
+}
 
 function SignInRoute() {
   const navigate = useNavigate()
-  const [formError, setFormError] = useState<string | null>(null)
+  const search = Route.useSearch()
+  // Seeded from `?error=` (job G 1d): a failed OAuth round trip lands here with that param,
+  // and this reuses the same error surface the email form already has below.
+  const [formError, setFormError] = useState<string | null>(oauthErrorMessage(search.error))
   const {
     register,
     handleSubmit,
@@ -40,6 +62,8 @@ function SignInRoute() {
           <h2 className="text-2xl font-semibold text-balance">Welcome back</h2>
           <p className="text-sm text-muted-foreground">Sign in to your Postbag workspace.</p>
         </div>
+
+        <SocialButtons intent="sign-in" />
 
         <form
           onSubmit={(e) => {

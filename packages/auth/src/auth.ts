@@ -12,6 +12,11 @@ export type CreatedAuthUser = {
   readonly email: string
 }
 
+export type SocialProviderConfig = {
+  readonly clientId: string
+  readonly clientSecret: string
+}
+
 export type CreateAuthOptions = {
   readonly db: Database
   readonly secret: string
@@ -23,6 +28,18 @@ export type CreateAuthOptions = {
    * default project — kept out of this package so it stays a thin auth config.
    */
   readonly onUserCreated?: (user: CreatedAuthUser) => Promise<void>
+  /**
+   * Google/GitHub OAuth. Self-host parity (Principle 7): both are optional and every
+   * provider omitted here is simply absent from Better Auth's `socialProviders` — the
+   * server decides which are enabled from env (a provider is on iff both its client id and
+   * secret are set; see apps/server/src/env.ts and authSetup.ts).
+   */
+  readonly socialProviders?:
+    | {
+        readonly google?: SocialProviderConfig
+        readonly github?: SocialProviderConfig
+      }
+    | undefined
 }
 
 function authRecordId(model: string): string {
@@ -49,6 +66,21 @@ export function createAuth(options: CreateAuthOptions) {
     baseURL: options.baseURL,
     trustedOrigins: [...options.trustedOrigins],
     emailAndPassword: { enabled: true },
+    socialProviders: options.socialProviders,
+    account: {
+      accountLinking: {
+        // Better Auth defaults (kept deliberately): a social sign-in auto-links to an
+        // existing same-email user only when the provider asserts the email is verified
+        // (Google and GitHub-primary both do) AND the local account's email is verified.
+        // Do NOT add `trustedProviders` or `requireLocalEmailVerified: false` to make
+        // never-verified password accounts link: an attacker who pre-registers the
+        // victim's email with a password would then receive the victim's Google/GitHub
+        // session. Password sign-ups get verification emails so they become linkable
+        // (PROGRESS.md 2f); until then the UI tells them to sign in with the password and
+        // connect the provider from Settings (an authenticated `linkSocial`, which is safe).
+        enabled: true,
+      },
+    },
     session: {
       cookieCache: { enabled: true, maxAge: 5 * 60 },
     },

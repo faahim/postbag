@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { ConnectedAccountsCard } from "@/components/connected-accounts-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -79,6 +80,8 @@ function SettingsRoute() {
           </CardContent>
         </Card>
       )}
+
+      <ConnectedAccountsCard />
     </div>
   )
 }

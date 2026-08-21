@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/v1/auth/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Which sign-in methods this instance has configured
+         * @description Public, unauthenticated — no API key needed. Email+password is always available. `social` lists only the OAuth providers this instance has both a client id and secret for (self-host parity: a self-hosted instance with neither configured returns an empty list). The dashboard calls this once, cached, to decide which social sign-in buttons to render.
+         */
+        get: operations["auth_providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me": {
         parameters: {
             query?: never;
@@ -993,6 +1013,30 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    auth_providers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        email_password: boolean;
+                        social: ("google" | "github")[];
+                        sign_in_url: string;
+                    };
+                };
+            };
+        };
+    };
     me_get: {
         parameters: {
             query?: never;

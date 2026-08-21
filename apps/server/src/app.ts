@@ -19,6 +19,7 @@ import { registerAppStatic } from "./routes/staticApp.js"
 import { registerSiteStatic } from "./routes/staticSite.js"
 import { registerSubmitRoutes } from "./routes/submit.js"
 import { registerApiKeyRoutes } from "./routes/v1/apiKeys.js"
+import { registerAuthProviderRoutes } from "./routes/v1/authProviders.js"
 import { registerDeliveryRoutes } from "./routes/v1/deliveries.js"
 import { registerDestinationRoutes } from "./routes/v1/destinations.js"
 import { registerEventRoutes } from "./routes/v1/events.js"
@@ -64,6 +65,11 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
 
   // Public submit path — no auth, no /v1 middleware.
   registerSubmitRoutes(app, { db, env, logger, rateLimiter })
+
+  // Public discovery endpoint — no auth, registered before requireOrg like the submit path
+  // above, even though its path is under /v1/*: the SPA calls this before sign-in to decide
+  // which social buttons to render, so it must work with zero credentials.
+  registerAuthProviderRoutes(app, env)
 
   // Better Auth handles /api/auth/* itself.
   app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw))

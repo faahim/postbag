@@ -660,6 +660,42 @@ components:
         - sent_at
   parameters: {}
 paths:
+  /v1/auth/providers:
+    get:
+      operationId: auth_providers
+      tags:
+        - discovery
+      summary: Which sign-in methods this instance has configured
+      description: "Public, unauthenticated — no API key needed. Email+password is
+        always available. `social` lists only the OAuth providers this instance
+        has both a client id and secret for (self-host parity: a self-hosted
+        instance with neither configured returns an empty list). The dashboard
+        calls this once, cached, to decide which social sign-in buttons to
+        render."
+      security: []
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email_password:
+                    type: boolean
+                  social:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                        - google
+                        - github
+                  sign_in_url:
+                    type: string
+                required:
+                  - email_password
+                  - social
+                  - sign_in_url
   /v1/me:
     get:
       operationId: me_get

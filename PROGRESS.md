@@ -114,6 +114,11 @@ the rules and `docs/` for the design.
    consent screen (External, support + contact = afiur.fahim@gmail.com) staged pending Fahim's policy tick; then create
    a Web OAuth client with the same two callback URIs (`/google`) and publish the app to production (non-sensitive
    scopes only → no verification). Secrets go to Coolify env `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET` — never the repo.
+2f. **Email verification on password sign-up** (follow-up to social login): Better Auth `emailVerification`
+   with `sendOnSignUp: true` via Resend (`requireEmailVerification` stays false so the 3-minute test holds).
+   Until a password account is verified, Better Auth will not auto-link a same-email Google/GitHub sign-in
+   (by design — pre-registration takeover); the sign-in page explains to use the password and connect from
+   Settings. Also: resend-verification button in Settings → Profile.
 2e. **Agent onboarding, here.now-style** (proposal, 2026-08-21): (a) agent-assisted signup without a browser —
    `POST /v1/auth/request-code {email}` → emailed 6-digit code (Better Auth `emailOTP` plugin) →
    `POST /v1/auth/verify-code {email, code, key_name}` creates user+org if new and returns a `pb_live_` manage key

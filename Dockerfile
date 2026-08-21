@@ -10,6 +10,10 @@ FROM base AS build
 WORKDIR /repo
 COPY . .
 RUN pnpm install --frozen-lockfile
+# Hosted build only: lets the dashboard reserve space for the social sign-in buttons while
+# it fetches /v1/auth/providers (no layout shift). Self-host builds leave it unset.
+ARG VITE_HOSTED
+ENV VITE_HOSTED=$VITE_HOSTED
 RUN pnpm --filter @postbag/core build \
  && pnpm --filter @postbag/db build \
  && pnpm --filter @postbag/auth build \

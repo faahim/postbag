@@ -51,11 +51,21 @@ describe("generated OpenAPI document", () => {
     const health = allOperations(doc).find(({ path }) => path === "/health")
     expect(health?.op.security).toEqual([])
 
-    const v1Operations = allOperations(doc).filter(({ path }) => path.startsWith("/v1/"))
+    // GET /v1/auth/providers is deliberately public (job G 1c) — the SPA calls it before
+    // sign-in even loads, so it carries its own `security: []` override instead of
+    // inheriting the document default. Every other /v1/* operation still inherits it.
+    const v1Operations = allOperations(doc).filter(({ path }) => path.startsWith("/v1/") && path !== "/v1/auth/providers")
     expect(v1Operations.length).toBeGreaterThan(0)
     for (const { path, method, op } of v1Operations) {
       // No per-operation override — they inherit the document-level `security: [{ bearerAuth: [] }]`.
       expect(op.security, `${method.toUpperCase()} ${path} should inherit the document security default`).toBeUndefined()
     }
+  })
+
+  it("GET /v1/auth/providers is public (operationId auth_providers, security: [])", async () => {
+    const doc = (await generateOpenapiDocument()) as unknown as OpenapiDoc
+    const op = doc.paths["/v1/auth/providers"]?.["get"]
+    expect(op?.operationId).toBe("auth_providers")
+    expect(op?.security).toEqual([])
   })
 })

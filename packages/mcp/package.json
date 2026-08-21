@@ -43,7 +43,7 @@
   "scripts": {
     "dev": "tsc -p tsconfig.json --watch",
     "generate": "node --experimental-strip-types scripts/generate.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && mkdir -p dist/generated && cp src/generated/operations.json dist/generated/operations.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },

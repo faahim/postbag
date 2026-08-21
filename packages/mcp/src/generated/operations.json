@@ -1,0 +1,2677 @@
+[
+  {
+    "operationId": "auth_providers",
+    "method": "get",
+    "path": "/v1/auth/providers",
+    "summary": "Which sign-in methods this instance has configured",
+    "description": "Public, unauthenticated — no API key needed. Email+password is always available. `social` lists only the OAuth providers this instance has both a client id and secret for (self-host parity: a self-hosted instance with neither configured returns an empty list). The dashboard calls this once, cached, to decide which social sign-in buttons to render.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": null
+  },
+  {
+    "operationId": "me_get",
+    "method": "get",
+    "path": "/v1/me",
+    "summary": "Identify the caller and summarise the organization",
+    "description": "The first call an agent holding only an API key should make: who it is, which org, which scopes the key has, plan limits and usage, and what already exists (counts). Call this before anything else.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": null
+  },
+  {
+    "operationId": "api_keys_list",
+    "method": "get",
+    "path": "/v1/api-keys",
+    "summary": "List API keys for the active organization",
+    "description": "Prefixes only — full key values are never returned again after creation.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": null
+  },
+  {
+    "operationId": "api_keys_create",
+    "method": "post",
+    "path": "/v1/api-keys",
+    "summary": "Create an API key for the active organization (session only)",
+    "description": "Requires a signed-in dashboard session, not another API key — an agent cannot mint its own first key this way. The full key is only ever returned once, in this response; store it immediately.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A label to tell keys apart, e.g. 'CI deploy key'."
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "manage",
+              "read",
+              "submit"
+            ]
+          },
+          "minItems": 1,
+          "default": [
+            "manage"
+          ],
+          "description": "manage ⊇ read ⊇ submit — a manage key satisfies every read- or submit-scoped call too."
+        }
+      }
+    }
+  },
+  {
+    "operationId": "api_keys_revoke",
+    "method": "delete",
+    "path": "/v1/api-keys/{id}",
+    "summary": "Delete an API key",
+    "description": "Revokes the key immediately; any client still using it starts getting 401s.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "description": "The API key id (not the key value itself)."
+        },
+        "description": "The API key id (not the key value itself)."
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "quickstart",
+    "method": "post",
+    "path": "/v1/quickstart",
+    "summary": "One call to a working, routed form",
+    "description": "Creates (idempotently, by name within project) the project if missing, the form, a destination for whichever of notify_email/telegram/webhook was given, and a direct route, then returns the form, an embeddable snippet, a curl command to verify delivery, and next steps. Everything it does is also available as individual calls (POST /v1/forms, /v1/destinations, /v1/routes); this is a convenience, not a special path.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project": {
+          "type": "string",
+          "default": "default"
+        },
+        "origin": {
+          "type": "string",
+          "format": "uri"
+        },
+        "notify_email": {
+          "type": "string",
+          "format": "email"
+        },
+        "telegram": {
+          "type": "object",
+          "properties": {
+            "bot_token": {
+              "type": "string"
+            },
+            "chat_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "bot_token",
+            "chat_id"
+          ]
+        },
+        "webhook": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "secret": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "url"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "redirect_url": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    }
+  },
+  {
+    "operationId": "projects_list",
+    "method": "get",
+    "path": "/v1/projects",
+    "summary": "List projects",
+    "tags": [
+      "projects"
+    ],
+    "params": [
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "projects_create",
+    "method": "post",
+    "path": "/v1/projects",
+    "summary": "Create a project",
+    "description": "A project groups forms — one per site or app. Pass `if_exists: \"return\"` to make this call safe to re-run.",
+    "tags": [
+      "projects"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,62}$/u"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "if_exists": {
+          "type": "string",
+          "enum": [
+            "error",
+            "return"
+          ],
+          "default": "error"
+        }
+      }
+    }
+  },
+  {
+    "operationId": "projects_get",
+    "method": "get",
+    "path": "/v1/projects/{projectId}",
+    "summary": "Get a project",
+    "tags": [
+      "projects"
+    ],
+    "params": [
+      {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "projects_update",
+    "method": "patch",
+    "path": "/v1/projects/{projectId}",
+    "summary": "Update a project",
+    "tags": [
+      "projects"
+    ],
+    "params": [
+      {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,62}$/u"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "if_exists": {
+          "type": "string",
+          "enum": [
+            "error",
+            "return"
+          ],
+          "default": "error"
+        }
+      }
+    }
+  },
+  {
+    "operationId": "projects_delete",
+    "method": "delete",
+    "path": "/v1/projects/{projectId}",
+    "summary": "Delete an empty project",
+    "description": "Fails with 409 while the project still has forms — delete or move them first.",
+    "tags": [
+      "projects"
+    ],
+    "params": [
+      {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "forms_list",
+    "method": "get",
+    "path": "/v1/forms",
+    "summary": "List forms",
+    "tags": [
+      "forms"
+    ],
+    "params": [
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      {
+        "name": "project",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to one project id."
+        },
+        "description": "Filter to one project id."
+      },
+      {
+        "name": "tag",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to forms carrying this tag."
+        },
+        "description": "Filter to forms carrying this tag."
+      },
+      {
+        "name": "stream",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to forms attached to this stream id."
+        },
+        "description": "Filter to forms attached to this stream id."
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "forms_create",
+    "method": "post",
+    "path": "/v1/forms",
+    "summary": "Create a form",
+    "description": "Pass `from_template` (a stream id) to attach the new form to that stream with a schema copied 1:1 from it, so the mapping is trivially complete. Pass `if_exists: \"return\"` to make this call safe to re-run.",
+    "tags": [
+      "forms"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,62}$/u"
+        },
+        "project": {
+          "type": "string",
+          "default": "default"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "paused"
+          ],
+          "default": "active"
+        },
+        "schema_mode": {
+          "type": "string",
+          "enum": [
+            "observe",
+            "enforce",
+            "managed"
+          ],
+          "default": "observe"
+        },
+        "settings": {
+          "type": "object",
+          "properties": {
+            "allowed_origins": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uri"
+              },
+              "default": []
+            },
+            "redirect_url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "honeypot_field": {
+              "type": "string",
+              "default": "_gotcha"
+            },
+            "turnstile": {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "rate_limit": {
+              "type": "object",
+              "properties": {
+                "per_minute": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "default": 10
+                },
+                "burst": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "default": 20
+                }
+              }
+            },
+            "reply_to_field": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "json_schema": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness."
+            },
+            "ui": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "description": "Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets."
+            },
+            "changelog": {
+              "type": "string",
+              "description": "A short human note on what changed in this version, shown in the version history."
+            }
+          },
+          "required": [
+            "json_schema"
+          ]
+        },
+        "from_template": {
+          "type": "string"
+        },
+        "if_exists": {
+          "type": "string",
+          "enum": [
+            "error",
+            "return"
+          ],
+          "default": "error"
+        }
+      }
+    }
+  },
+  {
+    "operationId": "forms_get",
+    "method": "get",
+    "path": "/v1/forms/{formId}",
+    "summary": "Get a form",
+    "tags": [
+      "forms"
+    ],
+    "params": [
+      {
+        "name": "formId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "forms_update",
+    "method": "patch",
+    "path": "/v1/forms/{formId}",
+    "summary": "Update a form",
+    "tags": [
+      "forms"
+    ],
+    "params": [
+      {
+        "name": "formId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,62}$/u"
+        },
+        "project": {
+          "type": "string",
+          "default": "default"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "paused"
+          ],
+          "default": "active"
+        },
+        "schema_mode": {
+          "type": "string",
+          "enum": [
+            "observe",
+            "enforce",
+            "managed"
+          ],
+          "default": "observe"
+        },
+        "settings": {
+          "type": "object",
+          "properties": {
+            "allowed_origins": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uri"
+              },
+              "default": []
+            },
+            "redirect_url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "honeypot_field": {
+              "type": "string",
+              "default": "_gotcha"
+            },
+            "turnstile": {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "rate_limit": {
+              "type": "object",
+              "properties": {
+                "per_minute": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "default": 10
+                },
+                "burst": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "default": 20
+                }
+              }
+            },
+            "reply_to_field": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "json_schema": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness."
+            },
+            "ui": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "description": "Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets."
+            },
+            "changelog": {
+              "type": "string",
+              "description": "A short human note on what changed in this version, shown in the version history."
+            }
+          },
+          "required": [
+            "json_schema"
+          ]
+        },
+        "from_template": {
+          "type": "string"
+        },
+        "if_exists": {
+          "type": "string",
+          "enum": [
+            "error",
+            "return"
+          ],
+          "default": "error"
+        }
+      }
+    }
+  },
+  {
+    "operationId": "forms_delete",
+    "method": "delete",
+    "path": "/v1/forms/{formId}",
+    "summary": "Delete a form",
+    "tags": [
+      "forms"
+    ],
+    "params": [
+      {
+        "name": "formId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "forms_embed",
+    "method": "get",
+    "path": "/v1/forms/{formId}/embed",
+    "summary": "Embed snippets",
+    "description": "Ready-to-paste HTML, fetch, React, Astro and Next.js server-action snippets for this form's submit URL.",
+    "tags": [
+      "forms"
+    ],
+    "params": [
+      {
+        "name": "formId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "forms_schema_get",
+    "method": "get",
+    "path": "/v1/forms/{formId}/schema",
+    "summary": "Current schema version",
+    "description": "For observe-mode forms with no published version yet, falls back to the last inferred draft (marked `inferred: true`) if one exists; publishing is still a separate, explicit act.",
+    "tags": [
+      "forms"
+    ],
+    "params": [
+      {
+        "name": "formId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "forms_schema_publish",
+    "method": "post",
+    "path": "/v1/forms/{formId}/schema",
+    "summary": "Publish a new schema version",
+    "description": "Schemas are immutable versions — this always creates version N+1, never mutates an existing one.",
+    "tags": [
+      "forms"
+    ],
+    "params": [
+      {
+        "name": "formId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "json_schema": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness."
+        },
+        "ui": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "description": "Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets."
+        },
+        "changelog": {
+          "type": "string",
+          "description": "A short human note on what changed in this version, shown in the version history."
+        }
+      },
+      "required": [
+        "json_schema"
+      ]
+    }
+  },
+  {
+    "operationId": "forms_schema_versions",
+    "method": "get",
+    "path": "/v1/forms/{formId}/schema/versions",
+    "summary": "All schema versions",
+    "tags": [
+      "forms"
+    ],
+    "params": [
+      {
+        "name": "formId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "forms_schema_infer",
+    "method": "post",
+    "path": "/v1/forms/{formId}/schema/infer",
+    "summary": "Infer a draft schema now, from recent submissions (observe mode, no schema yet)",
+    "description": "Only for observe-mode forms with no published schema. Looks at recent non-spam submissions and produces a draft schema; call forms_schema_publish with the result (or an edited version of it) to make it real.",
+    "tags": [
+      "forms"
+    ],
+    "params": [
+      {
+        "name": "formId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "forms_drift",
+    "method": "get",
+    "path": "/v1/forms/{formId}/drift",
+    "summary": "Unresolved drift events",
+    "description": "Fields submitters are sending that the published schema doesn't declare. Resolve by publishing an updated schema.",
+    "tags": [
+      "forms"
+    ],
+    "params": [
+      {
+        "name": "formId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "forms_submissions_list",
+    "method": "get",
+    "path": "/v1/forms/{formId}/submissions",
+    "summary": "List submissions for a form",
+    "tags": [
+      "submissions"
+    ],
+    "params": [
+      {
+        "name": "formId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter by status: received, quarantined or spam."
+        },
+        "description": "Filter by status: received, quarantined or spam."
+      },
+      {
+        "name": "since",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "ISO timestamp; only submissions received after this."
+        },
+        "description": "ISO timestamp; only submissions received after this."
+      },
+      {
+        "name": "q",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Free-text search over submission data."
+        },
+        "description": "Free-text search over submission data."
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "submissions_list",
+    "method": "get",
+    "path": "/v1/submissions",
+    "summary": "Search submissions across the organization",
+    "tags": [
+      "submissions"
+    ],
+    "params": [
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      {
+        "name": "stream",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to submissions routed through this stream id."
+        },
+        "description": "Filter to submissions routed through this stream id."
+      },
+      {
+        "name": "form",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to one form id."
+        },
+        "description": "Filter to one form id."
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter by status: received, quarantined or spam."
+        },
+        "description": "Filter by status: received, quarantined or spam."
+      },
+      {
+        "name": "q",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Free-text search over submission data."
+        },
+        "description": "Free-text search over submission data."
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "submissions_get",
+    "method": "get",
+    "path": "/v1/submissions/{submissionId}",
+    "summary": "Get a submission with its deliveries",
+    "tags": [
+      "submissions"
+    ],
+    "params": [
+      {
+        "name": "submissionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "submissions_update",
+    "method": "patch",
+    "path": "/v1/submissions/{submissionId}",
+    "summary": "Change status (re-routes if moving to received)",
+    "description": "Moving a quarantined submission to `received` re-runs routing and queues deliveries for it.",
+    "tags": [
+      "submissions"
+    ],
+    "params": [
+      {
+        "name": "submissionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "received",
+            "quarantined",
+            "spam"
+          ]
+        }
+      },
+      "required": [
+        "status"
+      ]
+    }
+  },
+  {
+    "operationId": "submissions_delete",
+    "method": "delete",
+    "path": "/v1/submissions/{submissionId}",
+    "summary": "Delete permanently (GDPR)",
+    "description": "Irreversible. Use for data-subject deletion requests; deliveries already sent are unaffected.",
+    "tags": [
+      "submissions"
+    ],
+    "params": [
+      {
+        "name": "submissionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "streams_list",
+    "method": "get",
+    "path": "/v1/streams",
+    "summary": "List streams",
+    "tags": [
+      "streams"
+    ],
+    "params": [
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "streams_create",
+    "method": "post",
+    "path": "/v1/streams",
+    "summary": "Create a stream (optionally with its first schema version and sources)",
+    "description": "A stream (shown as 'Bag' in the dashboard) fans one canonical schema in from many forms.",
+    "tags": [
+      "streams"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,62}$/u"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "json_schema": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness."
+            },
+            "ui": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "description": "Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets."
+            },
+            "changelog": {
+              "type": "string",
+              "description": "A short human note on what changed in this version, shown in the version history."
+            }
+          },
+          "required": [
+            "json_schema"
+          ]
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "form_id": {
+                "type": "string",
+                "description": "The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported)."
+              },
+              "selector": {
+                "type": "string",
+                "description": "Reserved for non-form sources (not yet implemented)."
+              },
+              "mapping": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "description": "Copy this field's value from the source form's submitted data."
+                    },
+                    "const": {
+                      "description": "Use this fixed value instead of anything from the source."
+                    },
+                    "expr": {
+                      "type": "string",
+                      "description": "A JSONata expression evaluated against the source's data."
+                    },
+                    "default": {
+                      "description": "Fallback value when the resolved value is missing."
+                    }
+                  }
+                },
+                "description": "Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete."
+              }
+            }
+          },
+          "default": []
+        },
+        "if_exists": {
+          "type": "string",
+          "enum": [
+            "error",
+            "return"
+          ],
+          "default": "error"
+        }
+      }
+    }
+  },
+  {
+    "operationId": "streams_get",
+    "method": "get",
+    "path": "/v1/streams/{streamId}",
+    "summary": "Get a stream with schema, sources, mapping status and routes",
+    "tags": [
+      "streams"
+    ],
+    "params": [
+      {
+        "name": "streamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "streams_update",
+    "method": "patch",
+    "path": "/v1/streams/{streamId}",
+    "summary": "Update name/slug",
+    "tags": [
+      "streams"
+    ],
+    "params": [
+      {
+        "name": "streamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,62}$/u"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "json_schema": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness."
+            },
+            "ui": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "description": "Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets."
+            },
+            "changelog": {
+              "type": "string",
+              "description": "A short human note on what changed in this version, shown in the version history."
+            }
+          },
+          "required": [
+            "json_schema"
+          ]
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "form_id": {
+                "type": "string",
+                "description": "The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported)."
+              },
+              "selector": {
+                "type": "string",
+                "description": "Reserved for non-form sources (not yet implemented)."
+              },
+              "mapping": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "description": "Copy this field's value from the source form's submitted data."
+                    },
+                    "const": {
+                      "description": "Use this fixed value instead of anything from the source."
+                    },
+                    "expr": {
+                      "type": "string",
+                      "description": "A JSONata expression evaluated against the source's data."
+                    },
+                    "default": {
+                      "description": "Fallback value when the resolved value is missing."
+                    }
+                  }
+                },
+                "description": "Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete."
+              }
+            }
+          },
+          "default": []
+        },
+        "if_exists": {
+          "type": "string",
+          "enum": [
+            "error",
+            "return"
+          ],
+          "default": "error"
+        }
+      }
+    }
+  },
+  {
+    "operationId": "streams_delete",
+    "method": "delete",
+    "path": "/v1/streams/{streamId}",
+    "summary": "Delete a stream",
+    "tags": [
+      "streams"
+    ],
+    "params": [
+      {
+        "name": "streamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "streams_schema_get",
+    "method": "get",
+    "path": "/v1/streams/{streamId}/schema",
+    "summary": "Current stream schema",
+    "tags": [
+      "streams"
+    ],
+    "params": [
+      {
+        "name": "streamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "streams_schema_publish",
+    "method": "post",
+    "path": "/v1/streams/{streamId}/schema",
+    "summary": "Publish a new stream schema version",
+    "description": "Schemas are immutable versions — this always creates version N+1. Re-validates every attached source's mapping against the new schema and returns the updated mapping statuses alongside it.",
+    "tags": [
+      "streams"
+    ],
+    "params": [
+      {
+        "name": "streamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "json_schema": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness."
+        },
+        "ui": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "description": "Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets."
+        },
+        "changelog": {
+          "type": "string",
+          "description": "A short human note on what changed in this version, shown in the version history."
+        }
+      },
+      "required": [
+        "json_schema"
+      ]
+    }
+  },
+  {
+    "operationId": "streams_sources_list",
+    "method": "get",
+    "path": "/v1/streams/{streamId}/sources",
+    "summary": "List sources and their mapping status",
+    "tags": [
+      "streams"
+    ],
+    "params": [
+      {
+        "name": "streamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "streams_sources_add",
+    "method": "post",
+    "path": "/v1/streams/{streamId}/sources",
+    "summary": "Attach a form or selector with a mapping",
+    "description": "Fails 422 mapping_incomplete (with the missing fields listed) if the mapping does not cover every field the stream's current schema requires — a form can't join a stream it can't feed.",
+    "tags": [
+      "streams"
+    ],
+    "params": [
+      {
+        "name": "streamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "form_id": {
+          "type": "string",
+          "description": "The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported)."
+        },
+        "selector": {
+          "type": "string",
+          "description": "Reserved for non-form sources (not yet implemented)."
+        },
+        "mapping": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "Copy this field's value from the source form's submitted data."
+              },
+              "const": {
+                "description": "Use this fixed value instead of anything from the source."
+              },
+              "expr": {
+                "type": "string",
+                "description": "A JSONata expression evaluated against the source's data."
+              },
+              "default": {
+                "description": "Fallback value when the resolved value is missing."
+              }
+            }
+          },
+          "description": "Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete."
+        }
+      }
+    }
+  },
+  {
+    "operationId": "streams_sources_update",
+    "method": "patch",
+    "path": "/v1/streams/{streamId}/sources/{sourceId}",
+    "summary": "Update the mapping",
+    "tags": [
+      "streams"
+    ],
+    "params": [
+      {
+        "name": "streamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      },
+      {
+        "name": "sourceId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "form_id": {
+          "type": "string",
+          "description": "The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported)."
+        },
+        "selector": {
+          "type": "string",
+          "description": "Reserved for non-form sources (not yet implemented)."
+        },
+        "mapping": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "Copy this field's value from the source form's submitted data."
+              },
+              "const": {
+                "description": "Use this fixed value instead of anything from the source."
+              },
+              "expr": {
+                "type": "string",
+                "description": "A JSONata expression evaluated against the source's data."
+              },
+              "default": {
+                "description": "Fallback value when the resolved value is missing."
+              }
+            }
+          },
+          "description": "Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete."
+        }
+      }
+    }
+  },
+  {
+    "operationId": "streams_sources_remove",
+    "method": "delete",
+    "path": "/v1/streams/{streamId}/sources/{sourceId}",
+    "summary": "Detach",
+    "tags": [
+      "streams"
+    ],
+    "params": [
+      {
+        "name": "streamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      },
+      {
+        "name": "sourceId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "streams_preview",
+    "method": "post",
+    "path": "/v1/streams/{streamId}/preview",
+    "summary": "Run a sample submission through a source's mapping",
+    "description": "Dry-runs a form's attached mapping against sample data without storing anything — useful before publishing a schema change.",
+    "tags": [
+      "streams"
+    ],
+    "params": [
+      {
+        "name": "streamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "form_id": {
+          "type": "string",
+          "example": "fm_8f3kq2",
+          "description": "The form whose attached mapping to run."
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Sample submission data to map through."
+        }
+      },
+      "required": [
+        "form_id",
+        "data"
+      ]
+    }
+  },
+  {
+    "operationId": "destinations_list",
+    "method": "get",
+    "path": "/v1/destinations",
+    "summary": "List destinations (secrets redacted)",
+    "tags": [
+      "destinations"
+    ],
+    "params": [
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "destinations_create",
+    "method": "post",
+    "path": "/v1/destinations",
+    "summary": "Create a destination",
+    "description": "type is one of email, telegram, webhook, slack, discord; config shape depends on type. Call destinations_test after creating to verify it works.",
+    "tags": [
+      "destinations"
+    ],
+    "params": [],
+    "body": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "email"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "to": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "minItems": 1
+                },
+                "cc": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "default": []
+                },
+                "subject_template": {
+                  "type": "string",
+                  "default": "New submission: {{form.name}}"
+                },
+                "from_name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "to"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "config"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "telegram"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "bot_token": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "chat_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "template": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bot_token",
+                "chat_id"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "config"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "webhook"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "secret": {
+                  "type": "string"
+                },
+                "headers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "default": {}
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "config"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "slack"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "template": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "config"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "discord"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "template": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "config"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "operationId": "destinations_get",
+    "method": "get",
+    "path": "/v1/destinations/{destinationId}",
+    "summary": "Get a destination (secrets redacted)",
+    "tags": [
+      "destinations"
+    ],
+    "params": [
+      {
+        "name": "destinationId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "destinations_update",
+    "method": "patch",
+    "path": "/v1/destinations/{destinationId}",
+    "summary": "Update config",
+    "tags": [
+      "destinations"
+    ],
+    "params": [
+      {
+        "name": "destinationId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "A display label for this destination."
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Merged shallowly into the existing config (type-specific: to/cc for email, chat_id/bot_token for telegram, url/secret for webhook)."
+        }
+      }
+    }
+  },
+  {
+    "operationId": "destinations_delete",
+    "method": "delete",
+    "path": "/v1/destinations/{destinationId}",
+    "summary": "Delete (fails if routes reference it)",
+    "description": "Fails with 409 while a route still points at this destination — delete or repoint those routes first.",
+    "tags": [
+      "destinations"
+    ],
+    "params": [
+      {
+        "name": "destinationId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "destinations_test",
+    "method": "post",
+    "path": "/v1/destinations/{destinationId}/test",
+    "summary": "Send a sample payload now and return the provider response",
+    "description": "Verifies a destination is actually reachable and configured correctly — do this right after creating one, before wiring routes to it.",
+    "tags": [
+      "destinations"
+    ],
+    "params": [
+      {
+        "name": "destinationId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "sample": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Override the default sample payload sent for the test."
+        }
+      }
+    }
+  },
+  {
+    "operationId": "routes_list",
+    "method": "get",
+    "path": "/v1/routes",
+    "summary": "List routes",
+    "tags": [
+      "routes"
+    ],
+    "params": [
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      {
+        "name": "form",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to routes whose source is this form id."
+        },
+        "description": "Filter to routes whose source is this form id."
+      },
+      {
+        "name": "stream",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to routes whose source is this stream id."
+        },
+        "description": "Filter to routes whose source is this stream id."
+      },
+      {
+        "name": "destination",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to routes pointing at this destination id."
+        },
+        "description": "Filter to routes pointing at this destination id."
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "routes_create",
+    "method": "post",
+    "path": "/v1/routes",
+    "summary": "Create a route (source is exactly one of form_id / stream_id)",
+    "description": "A route ties one source (a form or a stream) to one destination, with a mode (instant or digest) and optional filter/transform/quality rules.",
+    "tags": [
+      "routes"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "form_id": {
+          "type": "string"
+        },
+        "stream_id": {
+          "type": "string"
+        },
+        "destination_id": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "mode": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "instant"
+                  ]
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "digest"
+                  ]
+                },
+                "cron": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "timezone": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "type",
+                "cron",
+                "timezone"
+              ]
+            }
+          ],
+          "default": {
+            "type": "instant"
+          }
+        },
+        "window": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "until": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            }
+          }
+        },
+        "quality": {
+          "type": "object",
+          "properties": {
+            "exclude_spam": {
+              "type": "boolean",
+              "default": true
+            },
+            "exclude_quarantined": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "filter": {
+          "type": "string"
+        },
+        "transform": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "destination_id"
+      ]
+    }
+  },
+  {
+    "operationId": "routes_get",
+    "method": "get",
+    "path": "/v1/routes/{routeId}",
+    "summary": "Get a route",
+    "tags": [
+      "routes"
+    ],
+    "params": [
+      {
+        "name": "routeId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "routes_update",
+    "method": "patch",
+    "path": "/v1/routes/{routeId}",
+    "summary": "Update rules / enable / disable",
+    "tags": [
+      "routes"
+    ],
+    "params": [
+      {
+        "name": "routeId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Disable a route without deleting it."
+        },
+        "mode": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "instant",
+                "digest"
+              ]
+            },
+            "cron": {
+              "type": "string",
+              "description": "Cron expression for digest mode, e.g. '0 9 * * *'."
+            },
+            "timezone": {
+              "type": "string",
+              "description": "IANA timezone the cron runs in; defaults to the org's timezone."
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "description": "instant delivers as submissions arrive; digest batches into one payload per period."
+        },
+        "window": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "until": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            }
+          },
+          "description": "Only deliver submissions received in this ISO datetime range."
+        },
+        "quality": {
+          "type": "object",
+          "properties": {
+            "exclude_spam": {
+              "type": "boolean"
+            },
+            "exclude_quarantined": {
+              "type": "boolean"
+            }
+          },
+          "description": "Defaults to excluding spam and quarantined submissions from delivery."
+        },
+        "filter": {
+          "type": "string",
+          "description": "A JSONata boolean expression; only matching submissions are delivered."
+        },
+        "transform": {
+          "type": "string",
+          "description": "A JSONata expression applied to the payload before delivery."
+        }
+      }
+    }
+  },
+  {
+    "operationId": "routes_delete",
+    "method": "delete",
+    "path": "/v1/routes/{routeId}",
+    "summary": "Delete a route",
+    "tags": [
+      "routes"
+    ],
+    "params": [
+      {
+        "name": "routeId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "deliveries_list",
+    "method": "get",
+    "path": "/v1/deliveries",
+    "summary": "List deliveries (the outbox)",
+    "description": "A submission is a row before it is anything else; delivery is this outbox drained by a worker. Poll here to confirm a submission actually arrived at its destination.",
+    "tags": [
+      "deliveries"
+    ],
+    "params": [
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter by status: pending, sending, sent, failed, dead or skipped."
+        },
+        "description": "Filter by status: pending, sending, sent, failed, dead or skipped."
+      },
+      {
+        "name": "route",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to one route id."
+        },
+        "description": "Filter to one route id."
+      },
+      {
+        "name": "destination",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to one destination id."
+        },
+        "description": "Filter to one destination id."
+      },
+      {
+        "name": "submission",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to one submission id."
+        },
+        "description": "Filter to one submission id."
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "deliveries_get",
+    "method": "get",
+    "path": "/v1/deliveries/{deliveryId}",
+    "summary": "Get a delivery with payload snapshot and last response",
+    "tags": [
+      "deliveries"
+    ],
+    "params": [
+      {
+        "name": "deliveryId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "deliveries_retry",
+    "method": "post",
+    "path": "/v1/deliveries/{deliveryId}/retry",
+    "summary": "Re-snapshot the payload against current mapping/transform and queue again",
+    "description": "Use after fixing a destination's config or a stream's mapping so a `failed` or `dead` delivery gets another chance.",
+    "tags": [
+      "deliveries"
+    ],
+    "params": [
+      {
+        "name": "deliveryId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "events_list",
+    "method": "get",
+    "path": "/v1/events",
+    "summary": "Organization event log",
+    "description": "Every notable thing that happened in this org — form.created, form.schema.changed, stream.schema.changed, submission.received, and more. System webhooks (below) are just subscriptions to this same log.",
+    "tags": [
+      "events"
+    ],
+    "params": [
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      {
+        "name": "type",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter to one event type, e.g. 'submission.received'."
+        },
+        "description": "Filter to one event type, e.g. 'submission.received'."
+      },
+      {
+        "name": "since",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "ISO timestamp; only events after this."
+        },
+        "description": "ISO timestamp; only events after this."
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "webhooks_list",
+    "method": "get",
+    "path": "/v1/webhooks",
+    "summary": "List system webhooks",
+    "description": "System webhooks notify an external system when org events happen (not to be confused with a webhook destination, which delivers submissions).",
+    "tags": [
+      "events"
+    ],
+    "params": [],
+    "body": null
+  },
+  {
+    "operationId": "webhooks_create",
+    "method": "post",
+    "path": "/v1/webhooks",
+    "summary": "Subscribe a URL to event types",
+    "description": "Every delivery is signed with the returned (or supplied) secret so the receiver can verify authenticity.",
+    "tags": [
+      "events"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "submission.received",
+              "submission.quarantined",
+              "submission.spam",
+              "delivery.sent",
+              "delivery.failed",
+              "delivery.dead",
+              "digest.ready",
+              "form.created",
+              "form.schema.changed",
+              "stream.schema.changed",
+              "drift.detected",
+              "drift.resolved",
+              "destination.failing",
+              "destination.recovered"
+            ]
+          },
+          "minItems": 1
+        },
+        "secret": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "url",
+        "events"
+      ]
+    }
+  },
+  {
+    "operationId": "webhooks_update",
+    "method": "patch",
+    "path": "/v1/webhooks/{webhookId}",
+    "summary": "Update a system webhook",
+    "tags": [
+      "events"
+    ],
+    "params": [
+      {
+        "name": "webhookId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "submission.received",
+              "submission.quarantined",
+              "submission.spam",
+              "delivery.sent",
+              "delivery.failed",
+              "delivery.dead",
+              "digest.ready",
+              "form.created",
+              "form.schema.changed",
+              "stream.schema.changed",
+              "drift.detected",
+              "drift.resolved",
+              "destination.failing",
+              "destination.recovered"
+            ]
+          },
+          "minItems": 1
+        },
+        "secret": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  },
+  {
+    "operationId": "webhooks_delete",
+    "method": "delete",
+    "path": "/v1/webhooks/{webhookId}",
+    "summary": "Delete a system webhook",
+    "tags": [
+      "events"
+    ],
+    "params": [
+      {
+        "name": "webhookId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "webhooks_deliveries",
+    "method": "get",
+    "path": "/v1/webhooks/{webhookId}/deliveries",
+    "summary": "Delivery history for a system webhook",
+    "tags": [
+      "events"
+    ],
+    "params": [
+      {
+        "name": "webhookId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "health_get",
+    "method": "get",
+    "path": "/health",
+    "summary": "Liveness and readiness",
+    "description": "Public, unauthenticated. Reports database connectivity, worker heartbeat and the oldest pending delivery age.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": null
+  }
+]
