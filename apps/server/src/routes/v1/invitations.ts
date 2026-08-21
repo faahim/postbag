@@ -1,5 +1,5 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
-import { newId, PostbagError } from "@postbag/core"
+import { newId, PostbagError, sameMailbox } from "@postbag/core"
 import { and, desc, eq } from "drizzle-orm"
 import { events, invitation, member, organization, user, type Database } from "@postbag/db"
 
@@ -307,7 +307,9 @@ export function registerInvitationRoutes(app: OpenAPIHono<AppEnv>, auth: Auth, d
 
     const [sessionUser] = await db.select({ email: user.email }).from(user).where(eq(user.id, scope.actor.userId)).limit(1)
     if (sessionUser === undefined) throw new Error("Session user not found.")
-    if (sessionUser.email.trim().toLowerCase() !== row.email) {
+    // Same *mailbox*, not same string: Gmail ignores dots, `+tags` route to the base address
+    // (packages/core/src/email.ts). The invitation reached this person's inbox by definition.
+    if (!sameMailbox(sessionUser.email, row.email)) {
       throw new PostbagError(
         "invitation_email_mismatch",
         "This invitation was sent to a different email address than the one you're signed in with.",

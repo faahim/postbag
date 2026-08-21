@@ -1,4 +1,5 @@
 export * from "./backoff.js"
+export * from "./email.js"
 export * from "./errors.js"
 export * from "./ids.js"
 export * from "./mapping.js"

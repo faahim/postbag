@@ -225,6 +225,33 @@ integration("/v1/invitations", () => {
     expect(again.status).toBe(409)
   })
 
+  it("accept: a Gmail dot/plus variant of the invited address is the same mailbox", async () => {
+    const stem = newId("usr").replace(/_/gu, "")
+    const created = await harness.app.request("/v1/invitations", {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: owner.cookie },
+      body: JSON.stringify({ email: `${stem}fahim@gmail.com`, role: "member" }),
+    })
+    expect(created.status).toBe(201)
+    const { id } = (await created.json()) as { readonly id: string }
+
+    // Signed up with dots and a +tag — Gmail delivers both to the same inbox.
+    const signUp = await harness.app.request("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: `${stem}.fahim+postbag@googlemail.com`, password: "correct horse battery staple", name: "Dotted" }),
+    })
+    expect(signUp.status).toBeLessThan(400)
+    const cookie = signUp.headers.get("set-cookie")?.split(";")[0]
+    if (cookie === undefined) throw new Error("no cookie")
+    await trackPersonalOrg(cookie)
+
+    const accept = await harness.app.request(`/v1/invitations/${id}/accept`, { method: "POST", headers: { cookie } })
+    expect(accept.status).toBe(200)
+    const body = (await accept.json()) as { readonly organization: { readonly id: string } }
+    expect(body.organization.id).toBe(orgId)
+  })
+
   it("accept: an expired invitation is refused (410)", async () => {
     const expiredEmail = `expired-${newId("usr")}@example.test`
     const id = newId("iv")

@@ -242,6 +242,10 @@ tokens in `~/Developer/smedja/.env` (Cloudflare token: DNS only; no Email Routin
   governing law Bangladesh. Production is in **Germany** (Hetzner, `dekhval-1`) since 2026-08-21 16:04 UTC; the legal pages say so.
 
 ## Gotchas learned
+- **Email identity is mailbox identity, not string identity.** Invitation accept compares with `sameMailbox()`
+  (`packages/core/src/email.ts`): case/whitespace folded, `+tag` stripped everywhere, dots ignored on
+  gmail.com/googlemail.com only. Found when Fahim was invited as `afiurfahim@gmail.com` but signed in as
+  `afiur.fahim@gmail.com` (2026-08-22). Never rewrite addresses for *sending*, only for comparison.
 
 - pnpm 11: build-script approval lives in `pnpm-workspace.yaml` under `allowBuilds:` (not `package.json.pnpm`).
 - Local dev Postgres: `docker compose up -d db` → `postgres://postbag:postbag@localhost:5433/postbag` (OrbStack). To reset it, drop **both** `public` and `drizzle` schemas (drizzle tracks applied migrations in `drizzle.__drizzle_migrations`) and `drop role postbag_app`.
