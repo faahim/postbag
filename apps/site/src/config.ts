@@ -29,7 +29,7 @@ export const LEGAL = {
   email: "hello@postbag.dev",
   governingLaw: "Bangladesh",
   effectiveDate: "2026-08-21",
-  dataLocation: "Singapore (Oracle Cloud Infrastructure); migration to an EU region is planned",
+  dataLocation: "Germany (Hetzner Online, Nuremberg — European Union)",
 } as const
 
 /** Example ids used in copy. Formats match packages/core/src/ids.ts prefixes. */
@@ -67,7 +67,7 @@ export const SUBPROCESSORS = [
     location: "Global network (Cloudflare, Inc., US-based)",
   },
   {
-    name: "Oracle Cloud Infrastructure",
+    name: "Hetzner Online GmbH",
     purpose: "Hosts the production application server and Postgres database",
     data: "All account and submission data",
     location: LEGAL.dataLocation,

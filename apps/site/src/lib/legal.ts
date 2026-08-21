@@ -117,7 +117,7 @@ Account data is visible to ${LEGAL.operator} as operator, and to the sub-process
 
 ### International transfers
 
-${LEGAL.operator} operates Postbag from ${LEGAL.address}. Data is currently hosted in ${LEGAL.dataLocation}. All data in transit is encrypted with TLS, and access to production systems is limited to the operator.
+${LEGAL.operator} operates Postbag from ${LEGAL.address}. Data is hosted in ${LEGAL.dataLocation}. All data in transit is encrypted with TLS, and access to production systems is limited to the operator.
 
 ### Children
 
@@ -209,7 +209,7 @@ We provide this DPA and our [security documentation](/docs/security/) in place o
 
 ## International transfers
 
-Data is currently hosted in ${LEGAL.dataLocation}. Where personal data leaves the EEA, we rely on TLS in transit and limit access to the operator; EU hosting is planned.
+Data is hosted in ${LEGAL.dataLocation}. The operator administers it from outside the EEA; that access is over TLS and limited to the operator.
 
 ## Contact
 

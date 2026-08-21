@@ -14,13 +14,17 @@ the rules and `docs/` for the design.
   `PUBLIC_API_URL` if the API ever moves. Demo forms in prod org, project `site`: hero demo `fm_73c74vjq6z24`
   (no routes, `_test` only), about-page contact `fm_h6eetntqdbp6` (email route to the owner).
 - **Repo:** `github.com/faahim/postbag` (**public** since 2026-08-21; AGPL-3.0 + MIT clients), default branch `main`
-- **Deploy target:** Coolify (control plane `kolkobja.tarpore.com`) → server **megh-oracle**
-  (`140.245.57.24`, arm64, uuid `a8w4s8cg0go4kwo0g0gk8co0`). Coolify project "Postbag".
+- **Deploy target (since 2026-08-21 16:04 UTC):** Coolify (control plane `kolkobja.tarpore.com`) → server **dekhval-1**
+  (Hetzner Nuremberg, DE/EU, `159.69.144.166`, x86_64, uuid `lksgcsw84skoc8o0488o40og`). App **`postbag-eu`**
+  `jfw5odopfompxmpq7ffgrtn9`, Postgres 16 **`postbag-db-eu`** `oxowkoj5egbcqjibdnoy30sf` (backup schedule
+  `lsvi1rsnoo8erhsfugiznstn`, daily 03:00, 14 d local). Migrated from **megh-oracle** (Oracle Singapore, arm64) by
+  pg_dump/restore; the old app `ertar2xhyn50wzetdjzzin2g` is **stopped** (domains set to a placeholder) and the old DB
+  `fmeduf0fi7ax0dvsdhsvtewb` kept for rollback — delete both after a week. Root SSH works to both servers from Fahim's Mac.
 - **Domain:** **`postbag.dev`** (canonical, `APP_URL`) + alias `api.postbag.dev`; zone id `84f7a4a0b32316b3d420ef347d6d494a`
   (Afiur.fahim@gmail.com Cloudflare account). A records (proxied) → megh-oracle. Legacy `postbag.withfaahim.com`
   (zone `4f548539cadf02e52a52ef6957a82e3f`) stays served as an extra Coolify domain so old submit URLs keep working;
   redirect non-`/s` `/v1` paths to postbag.dev (see Next up).
-- **Coolify resources:** project `8ngphk5sjmqmwtzvdlr17wcs` · app `ertar2xhyn50wzetdjzzin2g`
+- **Coolify resources:** project `8ngphk5sjmqmwtzvdlr17wcs` · (old) app `ertar2xhyn50wzetdjzzin2g`
   (GitHub App uuid `y0sw00scw8w8k8co0occwgsc`, repo `faahim/postbag`, branch `main`, Dockerfile
   build pack, port 3000, health `/health`, connected to predefined network) · Postgres 16
   `fmeduf0fi7ax0dvsdhsvtewb` (internal host = that uuid, db/user `postbag`). App env vars set:
@@ -171,8 +175,7 @@ the rules and `docs/` for the design.
   dashboard; the API token in `~/Developer/smedja/.env` has no Email Routing scope). Apex MX records are Cloudflare's;
   Resend sends from `send.postbag.dev`, so they don't collide.
 - **Legal identity (job I):** operator Md Afiur Rahman, trading as Postbag, Dhaka 1209, Bangladesh, hello@postbag.dev;
-  governing law Bangladesh. Production is in **Singapore** (Oracle Cloud, `megh-oracle`) — the pages say so; EU
-  migration (Fahim has an EU server) is the next infra item.
+  governing law Bangladesh. Production is in **Germany** (Hetzner, `dekhval-1`) since 2026-08-21 16:04 UTC; the legal pages say so.
 
 ## Gotchas learned
 
