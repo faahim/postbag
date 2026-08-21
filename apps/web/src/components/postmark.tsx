@@ -26,9 +26,9 @@ function tickTransform(i: number, status: PostmarkStatus): string {
   const angle = (360 / TICKS.length) * i
   if (status === "failed") {
     const jitter = Math.sin(i * 2.7) * 6
-    return `rotate(${(angle + jitter).toFixed(1)})`
+    return `rotate(${(angle + jitter).toFixed(1)} 16 16)`
   }
-  return `rotate(${angle})`
+  return `rotate(${angle} 16 16)`
 }
 
 export type PostmarkProps = {
@@ -83,7 +83,6 @@ export function Postmark({ status, size = 20, className, title, tone = "status" 
             strokeWidth="1.3"
             strokeLinecap="round"
             transform={tickTransform(i, status)}
-            transformOrigin="16 16"
           />
         ))}
       </g>

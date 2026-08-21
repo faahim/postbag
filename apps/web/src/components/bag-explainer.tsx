@@ -4,75 +4,42 @@ import { usePrefersReducedMotion } from "@/lib/motion"
 import { cn } from "@/lib/utils"
 
 /**
- * The bag explainer — "the sorting office".
+ * The bag explainer.
  *
- * Four forms on the left, each drawn a little differently (that is the point: same job,
- * different fields). Their submissions fly into one bag, the postmark stamps each arrival,
- * and one *identical* shape leaves for the destination on the right. Inputs vary, output
- * doesn't — that is everything a Bag is, shown rather than said.
+ * Three forms on the left (their field lines differ a little — that is the point), one
+ * bucket in the middle, one destination on the right. Submissions drop into the bucket as
+ * plain dots; what leaves is a single stamped dot, always the same. Many in, one shape out.
  *
- * Motion is SMIL `animateMotion` along the same paths the dashed guides draw, so the
- * still picture (reduced motion, or a screenshot) already tells the story. The bag's
- * "breathe" and the stamp pulse are CSS keyframes timed to the four arrivals
- * (styles/index.css, `.bag-explainer-*`). Loop length lives in `--bag-loop`.
+ * Quiet on purpose: hairlines, the app's neutrals, and the wax-seal red only on the postmark
+ * and the outgoing dot. Motion is SMIL `animateMotion` along the same lines the diagram
+ * already draws, so the still picture (reduced motion, screenshots) tells the same story.
+ * The postmark brightens on each arrival via CSS (`.bag-explainer-stamp`, styles/index.css).
  */
 
-const LOOP_SECONDS = 5.2
-const IN_DELAYS = [0, 0.9, 1.8, 2.7] as const
-const OUT_OFFSET = 1.55
+const LOOP_SECONDS = 4.8
+const IN_DELAYS = [0, 0.8, 1.6] as const
+const OUT_OFFSET = 1.3
 
-type FormSketch = {
-  readonly cy: number
-  readonly lines: readonly number[]
-  readonly button: boolean
-  /** Width of the single line on the in-flight token — "this one's data is shaped like this". */
-  readonly tokenLine: number
-}
-
-const FORMS: readonly FormSketch[] = [
-  { cy: 38, lines: [48, 30], button: true, tokenLine: 7 },
-  { cy: 88, lines: [34, 56, 42], button: false, tokenLine: 11 },
-  { cy: 138, lines: [58, 26], button: true, tokenLine: 5 },
-  { cy: 188, lines: [40, 40, 40], button: false, tokenLine: 9 },
+const FORM_X = 40
+const FORM_W = 88
+const FORM_H = 32
+const FORM_CY = [56, 100, 144] as const
+const FORM_LINES: readonly (readonly [number, number])[] = [
+  [40, 24],
+  [30, 48],
+  [46, 34],
 ]
 
-const FORM_X = 28
-const FORM_W = 84
-const FORM_H = 44
-const BAG_MOUTH = { x: 316, y: 70 }
-const OUT_PATH = "M 362 168 C 418 178, 468 126, 546 126"
+const MOUTH = { x: 320, y: 54 }
+const IN_END = `${MOUTH.x} ${MOUTH.y}`
+const OUT_PATH = "M 350 100 L 504 100"
+const DEST = { x: 512, cy: 100 }
 
 function inPath(cy: number): string {
-  return `M ${FORM_X + FORM_W + 4} ${cy} C 204 ${cy}, 238 ${BAG_MOUTH.y}, ${BAG_MOUTH.x} ${BAG_MOUTH.y}`
+  return `M ${FORM_X + FORM_W + 4} ${cy} C 224 ${cy}, 256 ${MOUTH.y}, ${IN_END}`
 }
 
 const STAMP_TICKS = Array.from({ length: 12 }, (_, i) => i)
-
-function Token({ line, stamped }: { readonly line: number; readonly stamped: boolean }) {
-  return (
-    <g>
-      <rect
-        x="-9"
-        y="-6"
-        width="18"
-        height="12"
-        rx="3"
-        fill="var(--card)"
-        stroke="var(--muted-foreground)"
-        strokeOpacity="0.8"
-        strokeWidth="1.2"
-      />
-      {stamped ? (
-        <>
-          <circle cx="-3.5" cy="0" r="2.4" fill="var(--primary)" />
-          <line x1="1" y1="0" x2="6" y2="0" stroke="var(--muted-foreground)" strokeWidth="1.6" strokeLinecap="round" />
-        </>
-      ) : (
-        <line x1={-line / 2} y1="0" x2={line / 2} y2="0" stroke="var(--muted-foreground)" strokeWidth="1.6" strokeLinecap="round" />
-      )}
-    </g>
-  )
-}
 
 export function BagFlowIllustration({ className }: { readonly className?: string }) {
   const reducedMotion = usePrefersReducedMotion()
@@ -80,137 +47,109 @@ export function BagFlowIllustration({ className }: { readonly className?: string
 
   return (
     <svg
-      viewBox="0 0 640 226"
+      viewBox="0 24 640 152"
       role="img"
-      aria-label="Four different forms send submissions into one bag; one identical, stamped shape leaves it for a destination."
+      aria-label="Three different forms feed one bucket; one identical, stamped result leaves it for a destination."
       className={cn("h-auto w-full select-none", className)}
       fill="none"
     >
-      {/* guide paths — the still version of the story */}
-      <g stroke="var(--border)" strokeWidth="1.25" strokeDasharray="3 4">
-        {FORMS.map((f) => (
-          <path key={f.cy} d={inPath(f.cy)} />
+      {/* lines — the still version of the story */}
+      <g stroke="var(--border)" strokeWidth="1.25">
+        {FORM_CY.map((cy) => (
+          <path key={cy} d={inPath(cy)} />
         ))}
         <path d={OUT_PATH} />
       </g>
 
-      {/* forms — four sites, four slightly different forms */}
-      {FORMS.map((f, index) => {
-        const top = f.cy - FORM_H / 2
+      {/* forms */}
+      {FORM_CY.map((cy, i) => {
+        const top = cy - FORM_H / 2
+        const [a, b] = FORM_LINES[i] ?? [40, 30]
         return (
-          <g key={f.cy}>
+          <g key={cy}>
             <rect x={FORM_X} y={top} width={FORM_W} height={FORM_H} rx="6" fill="var(--card)" stroke="var(--border)" strokeWidth="1.25" />
-            <g fill="var(--muted-foreground)" opacity="0.45">
-              <circle cx={FORM_X + 9} cy={top + 8} r="1.6" />
-              <circle cx={FORM_X + 15} cy={top + 8} r="1.6" />
-              <circle cx={FORM_X + 21} cy={top + 8} r="1.6" />
+            <g stroke="var(--muted-foreground)" strokeOpacity="0.45" strokeWidth="2" strokeLinecap="round">
+              <line x1={FORM_X + 12} y1={top + 12} x2={FORM_X + 12 + a} y2={top + 12} />
+              <line x1={FORM_X + 12} y1={top + 20} x2={FORM_X + 12 + b} y2={top + 20} />
             </g>
-            {f.lines.map((w, i) => (
-              <line
-                key={i}
-                x1={FORM_X + 9}
-                y1={top + 18 + i * 7}
-                x2={FORM_X + 9 + w}
-                y2={top + 18 + i * 7}
-                stroke="var(--muted-foreground)"
-                strokeOpacity="0.45"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-              />
-            ))}
-            {f.button && (
-              <rect x={FORM_X + 9} y={top + FORM_H - 11} width="20" height="5" rx="2.5" fill="var(--primary)" opacity="0.75" />
-            )}
             {!reducedMotion && (
               <g opacity="0">
-                <Token line={f.tokenLine} stamped={false} />
+                <circle r="3.5" fill="var(--muted-foreground)" />
                 <animateMotion
                   dur={dur}
-                  begin={`${IN_DELAYS[index] ?? 0}s`}
+                  begin={`${IN_DELAYS[i] ?? 0}s`}
                   repeatCount="indefinite"
-                  path={inPath(f.cy)}
+                  path={inPath(cy)}
                   keyPoints="0;1;1"
                   keyTimes="0;0.25;1"
                   calcMode="spline"
                   keySplines="0.22 1 0.36 1;0 0 1 1"
                 />
-                <animate
-                  attributeName="opacity"
-                  dur={dur}
-                  begin={`${IN_DELAYS[index] ?? 0}s`}
-                  repeatCount="indefinite"
-                  values="0;1;1;0;0"
-                  keyTimes="0;0.03;0.21;0.25;1"
-                />
+                <animate attributeName="opacity" dur={dur} begin={`${IN_DELAYS[i] ?? 0}s`} repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;0.03;0.22;0.25;1" />
               </g>
             )}
           </g>
         )
       })}
 
-      {/* the bag */}
-      <g className="bag-explainer-bag">
+      {/* bucket */}
+      <g>
         <path
-          d="M300 72 C 292 86, 268 110, 268 150 C 268 181, 290 193, 318 193 C 346 193, 368 181, 368 150 C 368 110, 344 86, 336 72 Z"
+          d="M292 62 L300 140 Q301 146 307 146 L333 146 Q339 146 340 140 L348 62 Z"
           fill="var(--muted)"
           stroke="var(--foreground)"
-          strokeOpacity="0.6"
+          strokeOpacity="0.55"
           strokeWidth="1.5"
           strokeLinejoin="round"
         />
-        <path d="M298 70 Q318 60 338 70" stroke="var(--foreground)" strokeOpacity="0.6" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M300 80 Q318 90 336 80" stroke="var(--foreground)" strokeOpacity="0.35" strokeWidth="1.25" strokeLinecap="round" />
+        <line x1="286" y1="62" x2="354" y2="62" stroke="var(--foreground)" strokeOpacity="0.55" strokeWidth="2" strokeLinecap="round" />
         {/* postmark — the stamp each arrival gets */}
-        <g className="bag-explainer-stamp" stroke="var(--primary)" opacity="0.55">
-          <circle cx="318" cy="142" r="15" strokeWidth="1.4" />
-          <circle cx="318" cy="142" r="10.5" strokeWidth="1" opacity="0.7" />
+        <g className="bag-explainer-stamp" stroke="var(--primary)">
+          <circle cx="320" cy="106" r="11" strokeWidth="1.3" />
+          <circle cx="320" cy="106" r="7.5" strokeWidth="0.9" opacity="0.7" />
           {STAMP_TICKS.map((i) => (
             <line
               key={i}
-              x1="318"
-              y1="128.5"
-              x2="318"
-              y2="131.5"
-              strokeWidth="1.3"
+              x1="320"
+              y1="96.2"
+              x2="320"
+              y2="98.4"
+              strokeWidth="1.1"
               strokeLinecap="round"
-              transform={`rotate(${(360 / STAMP_TICKS.length) * i} 318 142)`}
+              transform={`rotate(${(360 / STAMP_TICKS.length) * i} 320 106)`}
             />
           ))}
-          <circle cx="318" cy="142" r="2" fill="var(--primary)" stroke="none" />
+          <circle cx="320" cy="106" r="1.6" fill="var(--primary)" stroke="none" />
         </g>
       </g>
 
-      {/* out — one identical shape per arrival */}
+      {/* out — one stamped result per arrival */}
       {!reducedMotion &&
         IN_DELAYS.map((delay) => (
           <g key={delay} opacity="0">
-            <Token line={8} stamped />
+            <circle r="3.5" fill="var(--primary)" />
             <animateMotion
               dur={dur}
               begin={`${delay + OUT_OFFSET}s`}
               repeatCount="indefinite"
               path={OUT_PATH}
               keyPoints="0;1;1"
-              keyTimes="0;0.22;1"
+              keyTimes="0;0.2;1"
               calcMode="spline"
               keySplines="0.22 1 0.36 1;0 0 1 1"
             />
-            <animate
-              attributeName="opacity"
-              dur={dur}
-              begin={`${delay + OUT_OFFSET}s`}
-              repeatCount="indefinite"
-              values="0;1;1;0;0"
-              keyTimes="0;0.03;0.19;0.22;1"
-            />
+            <animate attributeName="opacity" dur={dur} begin={`${delay + OUT_OFFSET}s`} repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;0.03;0.17;0.2;1" />
           </g>
         ))}
 
-      {/* destination — an inbox, a chat, a webhook: wherever you send it */}
+      {/* destination — the one shape, wherever it goes */}
       <g>
-        <rect x="550" y="102" width="64" height="48" rx="8" fill="var(--card)" stroke="var(--border)" strokeWidth="1.25" />
-        <rect x="567" y="117" width="30" height="20" rx="3" stroke="var(--foreground)" strokeOpacity="0.6" strokeWidth="1.4" />
-        <path d="M567 119 L582 130 L597 119" stroke="var(--foreground)" strokeOpacity="0.6" strokeWidth="1.4" strokeLinejoin="round" />
+        <rect x={DEST.x} y={DEST.cy - FORM_H / 2} width={FORM_W} height={FORM_H} rx="6" fill="var(--card)" stroke="var(--border)" strokeWidth="1.25" />
+        <circle cx={DEST.x + 16} cy={DEST.cy} r="3.5" fill="var(--primary)" />
+        <g stroke="var(--muted-foreground)" strokeOpacity="0.45" strokeWidth="2" strokeLinecap="round">
+          <line x1={DEST.x + 26} y1={DEST.cy - 4} x2={DEST.x + 70} y2={DEST.cy - 4} />
+          <line x1={DEST.x + 26} y1={DEST.cy + 4} x2={DEST.x + 56} y2={DEST.cy + 4} />
+        </g>
       </g>
     </svg>
   )
@@ -231,8 +170,8 @@ const STEPS: readonly { readonly title: string; readonly body: string }[] = [
   },
 ]
 
-/** The warm version of "what is this screen". Used for the Bags list when there are none and
- * as the first thing a fresh bag shows. `action` is the one thing to do next; `aside` is the
+/** The plain-language version of "what is this screen". Used as the empty state of the Bags
+ * list and of a fresh bag's Sources tab. `action` is the one thing to do next; `aside` is the
  * honest escape hatch ("you might not need this"). */
 export function BagExplainer({
   title,
@@ -255,8 +194,8 @@ export function BagExplainer({
         className,
       )}
     >
-      <div className="border-b border-border/70 bg-background/60 px-2 pt-4 pb-2 sm:px-6">
-        <BagFlowIllustration className="mx-auto max-w-3xl" />
+      <div className="border-b border-border/70 bg-background/60 px-4 py-3 sm:px-8">
+        <BagFlowIllustration className="mx-auto max-w-xl" />
       </div>
       <div className="grid gap-8 px-6 py-6 md:grid-cols-[1.1fr_1fr] md:px-8">
         <div className="flex flex-col gap-3">

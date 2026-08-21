@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { Plus } from "lucide-react"
+import { MoreHorizontal, Plus } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -9,12 +9,14 @@ import { z } from "zod"
 import { BagExplainer } from "@/components/bag-explainer"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatCount } from "@/lib/format"
-import { useCreateStream, useStreams } from "@/lib/queries/streams"
+import { toastApiError } from "@/lib/api"
+import { useCreateStream, useDeleteStream, useStreams, useUpdateStream, type Stream } from "@/lib/queries/streams"
 
 const createBagSchema = z.object({ name: z.string().trim().min(1, "Give the bag a name.") })
 
@@ -25,6 +27,7 @@ export const Route = createFileRoute("/_app/bags/")({
 function BagsIndexRoute() {
   const streams = useStreams()
   const [open, setOpen] = useState(false)
+  const [renaming, setRenaming] = useState<Stream | undefined>(undefined)
 
   return (
     <div className="flex flex-col gap-6">
@@ -71,20 +74,31 @@ function BagsIndexRoute() {
               <TableHead className="text-right">Sources</TableHead>
               <TableHead className="text-right">Routes</TableHead>
               <TableHead className="text-right">Submissions (30d)</TableHead>
+              <TableHead className="w-12">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {streams.data.map((s) => (
               <TableRow key={s.id}>
                 <TableCell className="font-medium">
-                  <Link to="/bags/$bagId" params={{ bagId: s.id }}>
+                  <Link to="/bags/$bagId" params={{ bagId: s.id }} className="hover:underline">
                     {s.name}
-                    <span className="ml-2 font-mono text-xs text-muted-foreground">{s.id}</span>
                   </Link>
+                  <span className="ml-2 font-mono text-xs text-muted-foreground">{s.id}</span>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{formatCount(s.counts.sources)}</TableCell>
                 <TableCell className="text-right tabular-nums">{formatCount(s.counts.routes)}</TableCell>
                 <TableCell className="text-right tabular-nums">{formatCount(s.counts.submissions_30d)}</TableCell>
+                <TableCell className="text-right">
+                  <BagRowMenu
+                    bag={s}
+                    onRename={() => {
+                      setRenaming(s)
+                    }}
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -92,6 +106,12 @@ function BagsIndexRoute() {
       )}
 
       <CreateBagDialog open={open} onOpenChange={setOpen} />
+      <RenameBagDialog
+        bag={renaming}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setRenaming(undefined)
+        }}
+      />
     </div>
   )
 }
@@ -136,6 +156,92 @@ function CreateBagDialog({ open, onOpenChange }: { readonly open: boolean; reado
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Creating…" : "Create bag"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function BagRowMenu({ bag, onRename }: { readonly bag: Stream; readonly onRename: () => void }) {
+  const navigate = useNavigate()
+  const deleteStream = useDeleteStream()
+
+  async function remove() {
+    const routes = bag.counts.routes
+    const detail = routes > 0 ? ` Its ${routes} ${routes === 1 ? "route stops" : "routes stop"} delivering.` : ""
+    if (!window.confirm(`Delete “${bag.name}”? The forms in it and their submissions are kept; only the bag goes.${detail}`)) return
+    try {
+      await deleteStream.mutateAsync(bag.id)
+      toast.success(`${bag.name} deleted.`)
+    } catch (error) {
+      toastApiError(error, "Couldn't delete that bag — try again.")
+    }
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" aria-label={`Actions for ${bag.name}`}>
+          <MoreHorizontal className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => void navigate({ to: "/bags/$bagId", params: { bagId: bag.id } })}>Open</DropdownMenuItem>
+        <DropdownMenuItem onSelect={onRename}>Rename</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onSelect={() => void remove()}>
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+const renameBagSchema = z.object({ name: z.string().trim().min(1, "Give the bag a name.") })
+
+export function RenameBagDialog({ bag, onOpenChange }: { readonly bag: Stream | undefined; readonly onOpenChange: (open: boolean) => void }) {
+  const updateStream = useUpdateStream(bag?.id ?? "")
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<z.infer<typeof renameBagSchema>>({ resolver: zodResolver(renameBagSchema), values: { name: bag?.name ?? "" } })
+
+  const onSubmit = handleSubmit(async (values) => {
+    if (bag === undefined) return
+    try {
+      await updateStream.mutateAsync({ name: values.name })
+      toast.success(`Renamed to ${values.name}.`)
+      onOpenChange(false)
+    } catch (error) {
+      toastApiError(error, "Couldn't rename the bag — try again.")
+    }
+  })
+
+  return (
+    <Dialog open={bag !== undefined} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rename bag</DialogTitle>
+          <DialogDescription>Routes, forms and the bag's id stay exactly as they are.</DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            void onSubmit(e)
+          }}
+          className="flex flex-col gap-4"
+          noValidate
+        >
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="rename-bag-name">Name</Label>
+            <Input id="rename-bag-name" {...register("name")} aria-invalid={errors.name !== undefined} />
+            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving…" : "Save name"}
             </Button>
           </DialogFooter>
         </form>

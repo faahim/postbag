@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, Plus, Unlink } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -20,7 +21,14 @@ import { useFormKnownFields } from "@/lib/form-fields"
 import { formatDateTime } from "@/lib/format"
 import { useForms } from "@/lib/queries/forms"
 import { useFormSubmissions } from "@/lib/queries/submissions"
-import { useAddStreamSource, useRemoveStreamSource, useStream, useStreamPreview } from "@/lib/queries/streams"
+import {
+  useAddStreamSource,
+  useDeleteStream,
+  useRemoveStreamSource,
+  useStream,
+  useStreamPreview,
+  useUpdateStream,
+} from "@/lib/queries/streams"
 
 // The generated StreamSource type only requires `id` (the OpenAPI doc under-specifies this
 // route's Zod shape) — the server always populates the rest, so the UI can rely on it.
@@ -33,7 +41,7 @@ type Source = {
 }
 
 type FormRef = { readonly id: string; readonly name: string }
-type BagTab = "delivered" | "sources" | "send-to" | "preview"
+type BagTab = "delivered" | "sources" | "send-to" | "preview" | "settings"
 
 export const Route = createFileRoute("/_app/bags/$bagId")({
   component: BagDetailRoute,
@@ -43,8 +51,9 @@ function BagDetailRoute() {
   const { bagId } = Route.useParams()
   const stream = useStream(bagId)
   const forms = useForms()
-  const [tab, setTab] = useState<BagTab>("delivered")
-  const [workspaceOpened, setWorkspaceOpened] = useState(false)
+  // Undefined until the user picks one: a fresh bag opens on Sources (the one thing to do),
+  // a working bag on its shape.
+  const [chosenTab, setTab] = useState<BagTab | undefined>(undefined)
 
   if (stream.isPending || stream.data === undefined) {
     return (
@@ -65,6 +74,7 @@ function BagDetailRoute() {
   const allForms: readonly FormRef[] = forms.data?.data ?? []
   const formsById = new Map(allForms.map((f) => [f.id, f.name]))
   const fresh = schema === undefined && sources.length === 0
+  const tab: BagTab = chosenTab ?? (fresh ? "sources" : "delivered")
 
   return (
     <div className="flex flex-col gap-6">
@@ -76,7 +86,7 @@ function BagDetailRoute() {
           <h1 className="text-xl font-semibold">{bag.name}</h1>
           <span className="font-mono text-xs text-muted-foreground">{bag.id}</span>
         </div>
-        {!fresh && (
+        {(
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <Badge variant={schema === undefined ? "warning" : "muted"}>
               {schema === undefined ? "No shape yet" : `Shape v${schema.version ?? 1} · ${bagFields.length} ${bagFields.length === 1 ? "field" : "fields"}`}
@@ -91,37 +101,7 @@ function BagDetailRoute() {
         )}
       </div>
 
-      {fresh && !workspaceOpened ? (
-        <BagExplainer
-          title="Many forms in. One tidy shape out."
-          lede="Say the same contact form lives on three of your sites, and each one names its fields a little differently — fullName, name, Namn. A bag takes everything those forms receive and lines it up into one shape, so wherever you send it — an inbox, Telegram, a webhook — the same fields always arrive in the same places."
-          action={
-            <FirstFormAttach
-              bagId={bagId}
-              forms={allForms}
-              onAttached={() => {
-                setTab("delivered")
-              }}
-            />
-          }
-          aside={
-            <>
-              Only one form? You don't need a bag — route it straight from its own page. Prefer to set the fields yourself first?{" "}
-              <button
-                type="button"
-                className="font-medium text-foreground underline-offset-4 hover:underline"
-                onClick={() => {
-                  setWorkspaceOpened(true)
-                  setTab("delivered")
-                }}
-              >
-                Define the shape by hand
-              </button>
-              .
-            </>
-          }
-        />
-      ) : (
+      {(
         <Tabs
           value={tab}
           onValueChange={(value) => {
@@ -133,6 +113,7 @@ function BagDetailRoute() {
             <TabsTrigger value="sources">Sources</TabsTrigger>
             <TabsTrigger value="send-to">Send to</TabsTrigger>
             <TabsTrigger value="preview">Preview</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="delivered">
@@ -152,14 +133,45 @@ function BagDetailRoute() {
           </TabsContent>
 
           <TabsContent value="sources">
-            <SourcesTab
-              bagId={bagId}
-              bagFields={bagFields}
-              requiredFields={requiredFields}
-              sources={sources}
-              formsById={formsById}
-              allForms={allForms}
-            />
+            {fresh ? (
+              <BagExplainer
+                title="Many forms in. One tidy shape out."
+                lede="Say the same contact form lives on three of your sites, and each one names its fields a little differently — fullName, name, Namn. A bag takes everything those forms receive and lines it up into one shape, so wherever you send it — an inbox, Telegram, a webhook — the same fields always arrive in the same places."
+                action={
+                  <FirstFormAttach
+                    bagId={bagId}
+                    forms={allForms}
+                    onAttached={() => {
+                      setTab("delivered")
+                    }}
+                  />
+                }
+                aside={
+                  <>
+                    Only one form? You don't need a bag — route it straight from its own page. Prefer to set the fields yourself first?{" "}
+                    <button
+                      type="button"
+                      className="font-medium text-foreground underline-offset-4 hover:underline"
+                      onClick={() => {
+                        setTab("delivered")
+                      }}
+                    >
+                      Define the shape under “What gets delivered”
+                    </button>
+                    .
+                  </>
+                }
+              />
+            ) : (
+              <SourcesTab
+                bagId={bagId}
+                bagFields={bagFields}
+                requiredFields={requiredFields}
+                sources={sources}
+                formsById={formsById}
+                allForms={allForms}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="send-to">
@@ -181,8 +193,84 @@ function BagDetailRoute() {
               <PreviewTab bagId={bagId} sources={sources} formsById={formsById} />
             </div>
           </TabsContent>
+
+          <TabsContent value="settings">
+            <SettingsTab bagId={bagId} name={bag.name} routeCount={routeCount} />
+          </TabsContent>
         </Tabs>
       )}
+    </div>
+  )
+}
+
+function SettingsTab({ bagId, name, routeCount }: { readonly bagId: string; readonly name: string; readonly routeCount: number }) {
+  const navigate = useNavigate()
+  const updateStream = useUpdateStream(bagId)
+  const deleteStream = useDeleteStream()
+  const [draftName, setDraftName] = useState(name)
+  const trimmed = draftName.trim()
+
+  async function rename() {
+    if (trimmed.length === 0 || trimmed === name) return
+    try {
+      await updateStream.mutateAsync({ name: trimmed })
+      toast.success(`Renamed to ${trimmed}.`)
+    } catch (error) {
+      toastApiError(error, "Couldn't rename the bag — try again.")
+    }
+  }
+
+  async function remove() {
+    const detail = routeCount > 0 ? ` Its ${routeCount} ${routeCount === 1 ? "route stops" : "routes stop"} delivering.` : ""
+    if (!window.confirm(`Delete “${name}”? The forms in it and their submissions are kept; only the bag goes.${detail}`)) return
+    try {
+      await deleteStream.mutateAsync(bagId)
+      toast.success(`${name} deleted.`)
+      await navigate({ to: "/bags" })
+    } catch (error) {
+      toastApiError(error, "Couldn't delete the bag — try again.")
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="bag-rename">Name</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="bag-rename"
+                value={draftName}
+                onChange={(e) => {
+                  setDraftName(e.target.value)
+                }}
+                className="max-w-sm"
+              />
+              <Button onClick={() => void rename()} disabled={trimmed.length === 0 || trimmed === name || updateStream.isPending}>
+                {updateStream.isPending ? "Saving…" : "Save name"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Shown in the dashboard and the API. The id <span className="font-mono">{bagId}</span> never changes.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/40">
+        <CardContent className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-medium text-destructive">Danger zone</h3>
+            <p className="text-xs text-muted-foreground text-pretty">
+              Deletes the bag and its routes. The forms in it and every submission they received are kept.
+            </p>
+          </div>
+          <Button variant="destructive" onClick={() => void remove()} disabled={deleteStream.isPending}>
+            Delete bag
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -54,6 +54,30 @@ export function useCreateStream() {
   })
 }
 
+export function useUpdateStream(streamId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (body: { readonly name?: string; readonly slug?: string }): Promise<Stream> =>
+      unwrap(await api.PATCH("/v1/streams/{streamId}", { params: { path: { streamId } }, body: body as unknown as never })),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["streams"] })
+    },
+  })
+}
+
+export function useDeleteStream() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (streamId: string): Promise<void> => {
+      const result = await api.DELETE("/v1/streams/{streamId}", { params: { path: { streamId } } })
+      if (result.error !== undefined) unwrap(result)
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["streams"] })
+    },
+  })
+}
+
 export function usePublishStreamSchema(streamId: string) {
   const queryClient = useQueryClient()
   return useMutation({
