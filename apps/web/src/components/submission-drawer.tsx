@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, ShieldCheck, ShieldOff } from "lucide-react"
+import { AlertTriangle, ChevronDown, ShieldCheck, ShieldOff, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -10,8 +10,9 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatDateTime, formatRelativeTime, splitPrefixedId } from "@/lib/format"
+import { toastApiError } from "@/lib/api"
 import type { Delivery } from "@/lib/queries/deliveries"
-import { useSubmission, useUpdateSubmissionStatus, type SubmissionDetail } from "@/lib/queries/submissions"
+import { type SubmissionDetail, useDeleteSubmission, useSubmission, useUpdateSubmissionStatus } from "@/lib/queries/submissions"
 
 // A switch (rather than an object-literal lookup) so narrowing stays reliable even
 // though `status` comes off `SubmissionDetail`, an intersection type.
@@ -61,7 +62,12 @@ export function SubmissionDrawer({
               <Skeleton className="h-20 w-full" />
             </div>
           ) : (
-            <SubmissionDetailBody submission={submission} />
+            <SubmissionDetailBody
+              submission={submission}
+              onDeleted={() => {
+                onOpenChange(false)
+              }}
+            />
           )}
         </div>
       </SheetContent>
@@ -69,9 +75,21 @@ export function SubmissionDrawer({
   )
 }
 
-function SubmissionDetailBody({ submission }: { readonly submission: SubmissionDetail }) {
+function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: SubmissionDetail; readonly onDeleted: () => void }) {
   const updateStatus = useUpdateSubmissionStatus()
+  const deleteSubmission = useDeleteSubmission()
   const deliveries: readonly Delivery[] = submission.deliveries ?? []
+
+  async function remove() {
+    if (!window.confirm("Delete this submission permanently? This is the one thing Postbag never does on its own — it can't be undone.")) return
+    try {
+      await deleteSubmission.mutateAsync(submission.id)
+      toast.success("Submission deleted.")
+      onDeleted()
+    } catch (error) {
+      toastApiError(error, "Couldn't delete the submission — try again.")
+    }
+  }
 
   async function markSpam() {
     await updateStatus.mutateAsync({ submissionId: submission.id, status: "spam" })
@@ -150,7 +168,11 @@ function SubmissionDetailBody({ submission }: { readonly submission: SubmissionD
 
       <Separator />
 
-      <div className="flex justify-end gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-destructive" onClick={() => void remove()} disabled={deleteSubmission.isPending}>
+          <Trash2 className="size-3.5" /> Delete
+        </Button>
+        <div className="flex gap-2">
         {submission.status === "spam" ? (
           <Button variant="outline" size="sm" onClick={() => void markNotSpam()} disabled={updateStatus.isPending}>
             <ShieldCheck /> Not spam
@@ -160,6 +182,7 @@ function SubmissionDetailBody({ submission }: { readonly submission: SubmissionD
             <ShieldOff /> Mark spam
           </Button>
         )}
+        </div>
       </div>
     </div>
   )

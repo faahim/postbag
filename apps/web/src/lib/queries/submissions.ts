@@ -86,3 +86,17 @@ export function useUpdateSubmissionStatus() {
     },
   })
 }
+
+export function useDeleteSubmission() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (submissionId: string): Promise<void> => {
+      const result = await api.DELETE("/v1/submissions/{submissionId}", { params: { path: { submissionId } } })
+      if (result.error !== undefined) unwrap(result)
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["submissions"] })
+      await queryClient.invalidateQueries({ queryKey: ["forms"] })
+    },
+  })
+}

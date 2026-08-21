@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { api } from "@/lib/api"
+import { formatRelativeTime } from "@/lib/format"
 import {
   useForm,
   useFormDrift,
@@ -25,6 +26,7 @@ import {
   useFormSchema,
   usePublishFormSchema,
   useUpdateForm,
+  useFormSchemaVersions,
 } from "@/lib/queries/forms"
 import { useFormSubmissions } from "@/lib/queries/submissions"
 
@@ -135,6 +137,7 @@ function EmbedTab({ formId }: { readonly formId: string }) {
 
 function FieldsTab({ formId }: { readonly formId: string }) {
   const schema = useFormSchema(formId)
+  const versions = useFormSchemaVersions(formId)
   const drift = useFormDrift(formId)
   const publish = usePublishFormSchema(formId)
 
@@ -185,6 +188,34 @@ function FieldsTab({ formId }: { readonly formId: string }) {
           )}
         </CardContent>
       </Card>
+
+      {versions.data !== undefined && versions.data.length > 0 && (
+        <Card>
+          <CardContent>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">Version history</h3>
+            <ol className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
+              {[...versions.data]
+                .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+                .map((v) => {
+                  const fieldCount = Object.keys((v.json_schema as { properties?: Record<string, unknown> }).properties ?? {}).length
+                  const current = v.version === schema.data?.version
+                  return (
+                    <li key={v.version ?? v.created_at} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="font-mono text-xs tabular-nums">v{v.version}</span>
+                        {current && <Badge variant="outline">current</Badge>}
+                        {v.inferred === true && <Badge variant="muted">inferred</Badge>}
+                        <span className="truncate text-muted-foreground">{v.changelog ?? `${fieldCount} ${fieldCount === 1 ? "field" : "fields"}`}</span>
+                      </div>
+                      {v.created_at !== undefined && <span className="shrink-0 text-xs text-muted-foreground">{formatRelativeTime(v.created_at)}</span>}
+                    </li>
+                  )
+                })}
+            </ol>
+            <p className="mt-2 text-xs text-muted-foreground">Versions are never edited in place — publishing always adds the next one.</p>
+          </CardContent>
+        </Card>
+      )}
 
       {drift.data !== undefined && drift.data.length > 0 && (
         <Card className="border-warning/40">

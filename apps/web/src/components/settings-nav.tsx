@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 const TABS = [
   { to: "/settings", label: "General" },
   { to: "/settings/members", label: "Members" },
+  { to: "/settings/webhooks", label: "Webhooks" },
 ] as const
 
 export function SettingsNav() {

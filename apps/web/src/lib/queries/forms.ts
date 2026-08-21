@@ -52,6 +52,15 @@ export function useFormSchema(formId: string | undefined) {
   })
 }
 
+export function useFormSchemaVersions(formId: string | undefined) {
+  return useQuery<readonly SchemaVersion[]>({
+    queryKey: ["forms", formId, "schema-versions"],
+    queryFn: async (): Promise<readonly SchemaVersion[]> =>
+      unwrap(await api.GET("/v1/forms/{formId}/schema/versions", { params: { path: { formId: formId ?? "" } } })),
+    enabled: formId !== undefined,
+  })
+}
+
 export function useFormDrift(formId: string | undefined) {
   return useQuery<DriftEvent[]>({
     queryKey: ["forms", formId, "drift"],
