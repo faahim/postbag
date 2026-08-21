@@ -16,7 +16,7 @@ export function CreateDestinationDialog({
           <DialogDescription>Somewhere submissions can be sent.</DialogDescription>
         </DialogHeader>
         <DestinationForm
-          onCreated={() => {
+          onSaved={() => {
             onOpenChange(false)
           }}
         />

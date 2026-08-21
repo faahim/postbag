@@ -110,6 +110,36 @@ const testRoute = createRoute({
   },
 })
 
+/** A destination with no name still has to say *where* it goes — "email" tells nobody
+ * anything, "eric@example.com" does. Used when `name` is omitted on create. */
+function defaultName(type: string, config: Record<string, unknown>): string {
+  const first = (value: unknown): string | undefined => {
+    if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : undefined
+    return typeof value === "string" && value.length > 0 ? value : undefined
+  }
+  switch (type) {
+    case "email":
+      return first(config["to"]) ?? "Email"
+    case "telegram": {
+      const chat = first(config["chat_id"])
+      return chat === undefined ? "Telegram" : `Telegram chat ${chat}`
+    }
+    case "webhook":
+    case "slack":
+    case "discord": {
+      const url = first(config["url"])
+      if (url === undefined) return type.charAt(0).toUpperCase() + type.slice(1)
+      try {
+        return new URL(url).host
+      } catch {
+        return url
+      }
+    }
+    default:
+      return type
+  }
+}
+
 function redactFor(registry: ReadonlyMap<string, AnyDestinationAdapter>, row: DestinationRow): unknown {
   const adapter = registry.get(row.type);
   if (adapter === undefined) return row.config
@@ -170,7 +200,7 @@ export function registerDestinationRoutes(
         id: newId("ds"),
         organizationId: scope.organizationId,
         type: input.type,
-        name: input.name ?? input.type,
+        name: input.name ?? defaultName(input.type, parsedConfig as Record<string, unknown>),
         config: parsedConfig as Record<string, unknown>,
         verified: true,
       })

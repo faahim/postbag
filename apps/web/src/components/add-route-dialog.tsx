@@ -56,7 +56,7 @@ export function AddRouteDialog({
         {creatingNew ? (
           <DestinationForm
             submitLabel="Create and send to"
-            onCreated={(destination) => {
+            onSaved={(destination) => {
               void addRoute(destination.id)
             }}
           />

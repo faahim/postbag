@@ -126,6 +126,12 @@ the rules and `docs/` for the design.
   DOMAIN-MODEL.md (StreamSchema), errors.md, SKILL.md, CLI option help, OpenAPI + MCP operations regenerated.
   Verified locally in the browser (light + dark); lint 0, typecheck ok, 239/239 tests.
 
+- [x] **Destinations list (2026-08-22):** rows showed only name + type ("Email / Email"). Now: type icon + badge,
+  a summary of where it sends (to/cc, chat id, URL host+path) from the already-returned redacted config, health dot
+  with tooltip, **Edit** (sheet; blank secret = keep), delete with confirm + hinted errors. Email form accepts several
+  recipients, cc and a subject template. Unnamed destinations are named after where they send
+  (`eric@example.com`, `hooks.example.com`, `Telegram chat …`) instead of their type.
+
 ## Handoff (2026-08-21 ~22:50 UTC — session ended near a usage limit; resume from here)
 
 **Committed and live:** everything above plus job J (agent-first hero, switcher, pricing cards, first-paint reveal fix —

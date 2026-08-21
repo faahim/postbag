@@ -76,7 +76,7 @@ function DestinationsRoute() {
           </SheetHeader>
           <div className="px-6 pb-6">
             <DestinationForm
-              onCreated={() => {
+              onSaved={() => {
                 setOpen(false)
               }}
             />

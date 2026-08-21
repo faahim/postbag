@@ -8,76 +8,156 @@ import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { toastApiError } from "@/lib/api"
 import { cn } from "@/lib/utils"
-import { useCreateDestination, type DestinationInput } from "@/lib/queries/destinations"
+import { useCreateDestination, useUpdateDestination, type Destination, type DestinationInput } from "@/lib/queries/destinations"
 
-const TYPES = [
+export const DESTINATION_TYPES = [
   { value: "email", label: "Email", icon: Mail },
   { value: "telegram", label: "Telegram", icon: SendIcon },
   { value: "webhook", label: "Webhook", icon: Webhook },
   { value: "slack", label: "Slack", icon: MessageCircle },
   { value: "discord", label: "Discord", icon: MessageCircle },
 ] as const
-type DestinationType = (typeof TYPES)[number]["value"]
+export type DestinationType = (typeof DESTINATION_TYPES)[number]["value"]
 
-const schemas: Record<DestinationType, z.ZodType> = {
-  email: z.object({ name: z.string().optional(), to: z.email("Enter a valid email.") }),
-  telegram: z.object({
-    name: z.string().optional(),
-    bot_token: z.string().min(1, "Required."),
-    chat_id: z.string().min(1, "Required."),
-  }),
-  webhook: z.object({ name: z.string().optional(), url: z.url("Enter a valid URL."), secret: z.string().optional() }),
-  slack: z.object({ name: z.string().optional(), url: z.url("Enter a valid URL.") }),
-  discord: z.object({ name: z.string().optional(), url: z.url("Enter a valid URL.") }),
+/** "a@x.com, b@y.com" → ["a@x.com", "b@y.com"] */
+function splitList(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(/[,\s]+/u)
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0)
 }
 
-type FormValues = { name?: string; to?: string; bot_token?: string; chat_id?: string; url?: string; secret?: string }
+const emailList = (message: string) =>
+  z.string().refine((value) => splitList(value).every((v) => z.email().safeParse(v).success), message)
 
-function toBody(type: DestinationType, values: FormValues): DestinationInput {
-  const name = values.name !== undefined && values.name !== "" ? values.name : undefined
+function schemaFor(type: DestinationType, mode: "create" | "edit"): z.ZodType {
+  const name = z.string().optional()
+  // Secrets are required when creating and optional when editing (blank = keep the current one).
+  const secretField = mode === "create" ? z.string().min(1, "Required.") : z.string().optional()
   switch (type) {
     case "email":
-      return { type, ...(name ? { name } : {}), config: { to: [values.to ?? ""] } }
+      return z.object({
+        name,
+        to: emailList("Enter one or more valid email addresses, separated by commas.").refine((v) => splitList(v).length > 0, "Enter at least one address."),
+        cc: emailList("Enter valid email addresses, separated by commas.").optional(),
+        subject_template: z.string().optional(),
+      })
     case "telegram":
-      return { type, ...(name ? { name } : {}), config: { bot_token: values.bot_token ?? "", chat_id: values.chat_id ?? "" } }
+      return z.object({ name, bot_token: secretField, chat_id: z.string().min(1, "Required.") })
     case "webhook":
-      return {
-        type,
-        ...(name ? { name } : {}),
-        config: { url: values.url ?? "", ...(values.secret !== undefined && values.secret !== "" ? { secret: values.secret } : {}) },
-      }
+      return z.object({ name, url: z.url("Enter a valid URL."), secret: z.string().optional() })
     case "slack":
-      return { type, ...(name ? { name } : {}), config: { url: values.url ?? "" } }
     case "discord":
-      return { type, ...(name ? { name } : {}), config: { url: values.url ?? "" } }
+      return z.object({ name, url: z.url("Enter a valid URL.") })
   }
 }
 
+type FormValues = {
+  name?: string
+  to?: string
+  cc?: string
+  subject_template?: string
+  bot_token?: string
+  chat_id?: string
+  url?: string
+  secret?: string
+}
+
+function configFor(type: DestinationType, values: FormValues, mode: "create" | "edit"): Record<string, unknown> {
+  switch (type) {
+    case "email": {
+      const config: Record<string, unknown> = { to: splitList(values.to), cc: splitList(values.cc) }
+      const subject = values.subject_template?.trim() ?? ""
+      if (subject.length > 0 || mode === "edit") config["subject_template"] = subject.length > 0 ? subject : "New submission: {{form.name}}"
+      return config
+    }
+    case "telegram": {
+      const config: Record<string, unknown> = { chat_id: values.chat_id ?? "" }
+      if ((values.bot_token ?? "").length > 0) config["bot_token"] = values.bot_token
+      return config
+    }
+    case "webhook": {
+      const config: Record<string, unknown> = { url: values.url ?? "" }
+      if ((values.secret ?? "").length > 0) config["secret"] = values.secret
+      return config
+    }
+    case "slack":
+    case "discord":
+      return { url: values.url ?? "" }
+  }
+}
+
+function initialValues(destination: Destination | undefined): FormValues {
+  if (destination === undefined) return {}
+  const config = destination.config as Record<string, unknown>
+  const list = (value: unknown) => (Array.isArray(value) ? value.filter((v): v is string => typeof v === "string").join(", ") : "")
+  const str = (value: unknown) => (typeof value === "string" ? value : "")
+  return {
+    name: destination.name,
+    to: list(config["to"]),
+    cc: list(config["cc"]),
+    subject_template: str(config["subject_template"]),
+    chat_id: str(config["chat_id"]),
+    url: str(config["url"]),
+    // secrets come back redacted — start blank, blank means "keep"
+    bot_token: "",
+    secret: "",
+  }
+}
+
+/**
+ * Create a destination, or edit an existing one (`destination` set). Editing keeps the type
+ * fixed — a destination *is* its type; make a new one to send somewhere else — and treats
+ * blank secret fields as "keep what's there", since the API never returns secrets.
+ */
 export function DestinationForm({
-  onCreated,
-  submitLabel = "Create destination",
+  destination,
+  onSaved,
+  submitLabel,
 }: {
-  readonly onCreated: (destination: { readonly id: string; readonly name: string }) => void
+  readonly destination?: Destination
+  readonly onSaved: (destination: { readonly id: string; readonly name: string }) => void
   readonly submitLabel?: string
 }) {
-  const [type, setType] = useState<DestinationType>("email")
+  const mode = destination === undefined ? "create" : "edit"
+  const [type, setType] = useState<DestinationType>(destination?.type ?? "email")
   const createDestination = useCreateDestination()
+  const updateDestination = useUpdateDestination()
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(schemas[type] as unknown as Parameters<typeof zodResolver>[0]) as unknown as Resolver<FormValues>,
+    resolver: zodResolver(schemaFor(type, mode) as unknown as Parameters<typeof zodResolver>[0]) as unknown as Resolver<FormValues>,
+    defaultValues: initialValues(destination),
   })
 
   const onSubmit = handleSubmit(async (values) => {
-    const created = await createDestination.mutateAsync(toBody(type, values))
-    toast.success(`${created.name} created.`)
-    reset()
-    onCreated({ id: created.id, name: created.name })
+    const name = values.name?.trim() ?? ""
+    try {
+      if (destination === undefined) {
+        const body = { type, ...(name.length > 0 ? { name } : {}), config: configFor(type, values, "create") } as DestinationInput
+        const created = await createDestination.mutateAsync(body)
+        toast.success(`${created.name} created.`)
+        reset()
+        onSaved({ id: created.id, name: created.name })
+      } else {
+        const updated = await updateDestination.mutateAsync({
+          destinationId: destination.id,
+          body: { ...(name.length > 0 ? { name } : {}), config: configFor(type, values, "edit") },
+        })
+        toast.success(`${updated.name} saved.`)
+        onSaved({ id: updated.id, name: updated.name })
+      }
+    } catch (error) {
+      toastApiError(error, mode === "create" ? "Couldn't create the destination — try again." : "Couldn't save the destination — try again.")
+    }
   })
+
+  const typeMeta = DESTINATION_TYPES.find((t) => t.value === type)
 
   return (
     <form
@@ -87,48 +167,82 @@ export function DestinationForm({
       className="flex flex-col gap-4"
       noValidate
     >
-      <div className="grid grid-cols-5 gap-1.5">
-        {TYPES.map((t) => (
-          <button
-            key={t.value}
-            type="button"
-            onClick={() => {
-              setType(t.value)
-              reset()
-            }}
-            className={cn(
-              "flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors duration-(--duration-quick)",
-              type === t.value
-                ? "border-primary/40 bg-accent text-accent-foreground"
-                : "border-border text-muted-foreground hover:bg-muted",
-            )}
-          >
-            <t.icon className="size-4" />
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {mode === "create" ? (
+        <div className="grid grid-cols-5 gap-1.5">
+          {DESTINATION_TYPES.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => {
+                setType(t.value)
+                reset()
+              }}
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors duration-(--duration-quick)",
+                type === t.value ? "border-primary/40 bg-accent text-accent-foreground" : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              <t.icon className="size-4" />
+              {t.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        typeMeta !== undefined && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <typeMeta.icon className="size-4" />
+            <span>
+              {typeMeta.label} · <span className="font-mono text-xs">{destination?.id}</span>
+            </span>
+          </div>
+        )
+      )}
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="dest-name">
           Name <span className="font-normal text-muted-foreground">(optional)</span>
         </Label>
-        <Input id="dest-name" placeholder={TYPES.find((t) => t.value === type)?.label} {...register("name")} />
+        <Input id="dest-name" placeholder={type === "email" ? "Sales inbox" : (typeMeta?.label ?? "")} {...register("name")} />
+        {mode === "create" && <p className="text-xs text-muted-foreground">Left blank, it's named after where it sends — the address, chat or host.</p>}
       </div>
 
       {type === "email" && (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="dest-to">Send to</Label>
-          <Input id="dest-to" type="email" placeholder="you@example.com" {...register("to")} aria-invalid={errors.to !== undefined} />
-          {errors.to && <p className="text-xs text-destructive">{String(errors.to.message)}</p>}
-        </div>
+        <>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="dest-to">Send to</Label>
+            <Input id="dest-to" placeholder="you@example.com, sales@example.com" {...register("to")} aria-invalid={errors.to !== undefined} />
+            {errors.to ? (
+              <p className="text-xs text-destructive">{String(errors.to.message)}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">One or more addresses, separated by commas.</p>
+            )}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="dest-cc">
+              Cc <span className="font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <Input id="dest-cc" placeholder="manager@example.com" {...register("cc")} aria-invalid={errors.cc !== undefined} />
+            {errors.cc && <p className="text-xs text-destructive">{String(errors.cc.message)}</p>}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="dest-subject">
+              Subject <span className="font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <Input id="dest-subject" placeholder="New submission: {{form.name}}" {...register("subject_template")} />
+            <p className="text-xs text-muted-foreground">
+              Can use <span className="font-mono">{"{{form.name}}"}</span> and any submitted field, e.g. <span className="font-mono">{"{{data.email}}"}</span>.
+            </p>
+          </div>
+        </>
       )}
 
       {type === "telegram" && (
         <>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="dest-bot-token">Bot token</Label>
-            <Input id="dest-bot-token" placeholder="123456:ABC-DEF…" {...register("bot_token")} aria-invalid={errors.bot_token !== undefined} />
+            <Label htmlFor="dest-bot-token">
+              Bot token {mode === "edit" && <span className="font-normal text-muted-foreground">(leave blank to keep the current one)</span>}
+            </Label>
+            <Input id="dest-bot-token" placeholder={mode === "edit" ? "••••••••" : "123456:ABC-DEF…"} {...register("bot_token")} aria-invalid={errors.bot_token !== undefined} />
             {errors.bot_token && <p className="text-xs text-destructive">{String(errors.bot_token.message)}</p>}
           </div>
           <div className="flex flex-col gap-1.5">
@@ -150,14 +264,15 @@ export function DestinationForm({
       {type === "webhook" && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="dest-secret">
-            Signing secret <span className="font-normal text-muted-foreground">(optional)</span>
+            Signing secret{" "}
+            <span className="font-normal text-muted-foreground">{mode === "edit" ? "(leave blank to keep the current one)" : "(optional)"}</span>
           </Label>
-          <Input id="dest-secret" placeholder="Used to sign the X-Postbag-Signature header" {...register("secret")} />
+          <Input id="dest-secret" placeholder={mode === "edit" ? "••••••••" : "Used to sign the X-Postbag-Signature header"} {...register("secret")} />
         </div>
       )}
 
       <Button type="submit" disabled={isSubmitting} className="mt-1">
-        {isSubmitting ? "Creating…" : submitLabel}
+        {isSubmitting ? (mode === "create" ? "Creating…" : "Saving…") : (submitLabel ?? (mode === "create" ? "Create destination" : "Save changes"))}
       </Button>
     </form>
   )

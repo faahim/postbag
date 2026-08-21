@@ -397,6 +397,40 @@ integration("/v1 API", () => {
     await db.delete(streams).where(eq(streams.id, stream.id))
   })
 
+  it("names an unnamed destination after where it sends", async () => {
+    const email = await harness.app.request(
+      "/v1/destinations",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type: "email", config: { to: ["eric@example.com"] } }),
+      }),
+    )
+    expect(email.status).toBe(201)
+    expect(((await email.json()) as { name: string }).name).toBe("eric@example.com")
+
+    const webhook = await harness.app.request(
+      "/v1/destinations",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type: "webhook", config: { url: "https://hooks.example.com/postbag/leads" } }),
+      }),
+    )
+    expect(webhook.status).toBe(201)
+    expect(((await webhook.json()) as { name: string }).name).toBe("hooks.example.com")
+
+    const named = await harness.app.request(
+      "/v1/destinations",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type: "email", name: "Sales inbox", config: { to: ["sales@example.com"] } }),
+      }),
+    )
+    expect(((await named.json()) as { name: string }).name).toBe("Sales inbox")
+  })
+
   it("GET /v1/webhooks/{id}/deliveries returns cursor-paginated delivery history", async () => {
     const createWebhook = await harness.app.request(
       "/v1/webhooks",
