@@ -30,13 +30,20 @@ const FORM_LINES: readonly (readonly [number, number])[] = [
   [46, 34],
 ]
 
-const MOUTH = { x: 320, y: 54 }
-const IN_END = `${MOUTH.x} ${MOUTH.y}`
-const OUT_PATH = "M 350 100 L 504 100"
+/** The vessel: a wide, shallow bowl — a big elliptical mouth drawn in light perspective so
+ * there is visibly an *inside* for things to fall into, and a round belly underneath. */
+const VESSEL = { cx: 320, rimY: 74, rx: 46, ry: 10, bottomY: 134 }
+const OUT_PATH = `M ${VESSEL.cx + VESSEL.rx - 4} 100 L 504 100`
 const DEST = { x: 512, cy: 100 }
 
-function inPath(cy: number): string {
-  return `M ${FORM_X + FORM_W + 4} ${cy} C 224 ${cy}, 256 ${MOUTH.y}, ${IN_END}`
+/** Arcs over from the form and comes straight down into the mouth (vertical tangent at the
+ * end — the last control point sits directly above the mouth). */
+function inGuide(cy: number): string {
+  return `M ${FORM_X + FORM_W + 4} ${cy} C 236 ${cy}, ${VESSEL.cx} 36, ${VESSEL.cx} ${VESSEL.rimY - 8}`
+}
+/** The animated dot keeps going a little further — down through the opening. */
+function inFlight(cy: number): string {
+  return `${inGuide(cy)} L ${VESSEL.cx} ${VESSEL.rimY + VESSEL.ry}`
 }
 
 const STAMP_TICKS = Array.from({ length: 12 }, (_, i) => i)
@@ -44,19 +51,22 @@ const STAMP_TICKS = Array.from({ length: 12 }, (_, i) => i)
 export function BagFlowIllustration({ className }: { readonly className?: string }) {
   const reducedMotion = usePrefersReducedMotion()
   const dur = `${LOOP_SECONDS}s`
+  const { cx, rimY, rx, ry, bottomY } = VESSEL
+  const left = cx - rx
+  const right = cx + rx
 
   return (
     <svg
-      viewBox="0 24 640 152"
+      viewBox="0 20 640 156"
       role="img"
-      aria-label="Three different forms feed one bucket; one identical, stamped result leaves it for a destination."
+      aria-label="Three different forms feed one container; one identical, stamped result leaves it for a destination."
       className={cn("h-auto w-full select-none", className)}
       fill="none"
     >
       {/* lines — the still version of the story */}
       <g stroke="var(--border)" strokeWidth="1.25">
         {FORM_CY.map((cy) => (
-          <path key={cy} d={inPath(cy)} />
+          <path key={cy} d={inGuide(cy)} />
         ))}
         <path d={OUT_PATH} />
       </g>
@@ -72,56 +82,60 @@ export function BagFlowIllustration({ className }: { readonly className?: string
               <line x1={FORM_X + 12} y1={top + 12} x2={FORM_X + 12 + a} y2={top + 12} />
               <line x1={FORM_X + 12} y1={top + 20} x2={FORM_X + 12 + b} y2={top + 20} />
             </g>
-            {!reducedMotion && (
-              <g opacity="0">
-                <circle r="3.5" fill="var(--muted-foreground)" />
-                <animateMotion
-                  dur={dur}
-                  begin={`${IN_DELAYS[i] ?? 0}s`}
-                  repeatCount="indefinite"
-                  path={inPath(cy)}
-                  keyPoints="0;1;1"
-                  keyTimes="0;0.25;1"
-                  calcMode="spline"
-                  keySplines="0.22 1 0.36 1;0 0 1 1"
-                />
-                <animate attributeName="opacity" dur={dur} begin={`${IN_DELAYS[i] ?? 0}s`} repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;0.03;0.22;0.25;1" />
-              </g>
-            )}
           </g>
         )
       })}
 
-      {/* bucket */}
-      <g>
+      {/* vessel body + the back half of the rim (dots pass in front of these…) */}
+      <g stroke="var(--foreground)" strokeOpacity="0.55">
         <path
-          d="M292 62 L300 140 Q301 146 307 146 L333 146 Q339 146 340 140 L348 62 Z"
+          d={`M${left} ${rimY} C${left} ${bottomY}, ${right} ${bottomY}, ${right} ${rimY}`}
           fill="var(--muted)"
-          stroke="var(--foreground)"
-          strokeOpacity="0.55"
           strokeWidth="1.5"
           strokeLinejoin="round"
         />
-        <line x1="286" y1="62" x2="354" y2="62" stroke="var(--foreground)" strokeOpacity="0.55" strokeWidth="2" strokeLinecap="round" />
+        <path d={`M${left} ${rimY} A${rx} ${ry} 0 0 1 ${right} ${rimY}`} strokeWidth="1.25" strokeOpacity="0.35" />
         {/* postmark — the stamp each arrival gets */}
-        <g className="bag-explainer-stamp" stroke="var(--primary)">
-          <circle cx="320" cy="106" r="11" strokeWidth="1.3" />
-          <circle cx="320" cy="106" r="7.5" strokeWidth="0.9" opacity="0.7" />
+        <g className="bag-explainer-stamp" stroke="var(--primary)" strokeOpacity="1">
+          <circle cx={cx} cy="104" r="11" strokeWidth="1.3" />
+          <circle cx={cx} cy="104" r="7.5" strokeWidth="0.9" opacity="0.7" />
           {STAMP_TICKS.map((i) => (
             <line
               key={i}
-              x1="320"
-              y1="96.2"
-              x2="320"
-              y2="98.4"
+              x1={cx}
+              y1="94.2"
+              x2={cx}
+              y2="96.4"
               strokeWidth="1.1"
               strokeLinecap="round"
-              transform={`rotate(${(360 / STAMP_TICKS.length) * i} 320 106)`}
+              transform={`rotate(${(360 / STAMP_TICKS.length) * i} ${cx} 104)`}
             />
           ))}
-          <circle cx="320" cy="106" r="1.6" fill="var(--primary)" stroke="none" />
+          <circle cx={cx} cy="104" r="1.6" fill="var(--primary)" stroke="none" />
         </g>
       </g>
+
+      {/* in — dots arc over and drop through the opening */}
+      {!reducedMotion &&
+        FORM_CY.map((cy, i) => (
+          <g key={cy} opacity="0">
+            <circle r="3.5" fill="var(--muted-foreground)" />
+            <animateMotion
+              dur={dur}
+              begin={`${IN_DELAYS[i] ?? 0}s`}
+              repeatCount="indefinite"
+              path={inFlight(cy)}
+              keyPoints="0;1;1"
+              keyTimes="0;0.26;1"
+              calcMode="spline"
+              keySplines="0.3 0.9 0.4 1;0 0 1 1"
+            />
+            <animate attributeName="opacity" dur={dur} begin={`${IN_DELAYS[i] ?? 0}s`} repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;0.03;0.235;0.26;1" />
+          </g>
+        ))}
+
+      {/* …and the front half of the rim sits over them, so they visibly go inside */}
+      <path d={`M${left} ${rimY} A${rx} ${ry} 0 0 0 ${right} ${rimY}`} stroke="var(--foreground)" strokeOpacity="0.55" strokeWidth="1.5" fill="var(--muted)" />
 
       {/* out — one stamped result per arrival */}
       {!reducedMotion &&
