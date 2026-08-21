@@ -12,7 +12,12 @@ const PLACEHOLDER_HTML =
   "<p>The Postbag dashboard has not been built into this image yet.</p></body></html>"
 
 export function registerAppStatic(app: Hono<AppEnv>): void {
-  const publicDir = fileURLToPath(new URL("../public", import.meta.url))
+  // Built output lives in dist/public. When running from source (tsx), import.meta.url is
+  // under src/, so also look at ../../dist/public so `pnpm dev` serves a previously built SPA.
+  const candidates = ["../public", "../../dist/public"].map((rel) =>
+    fileURLToPath(new URL(rel, import.meta.url)),
+  )
+  const publicDir = candidates.find((dir) => existsSync(`${dir}/index.html`)) ?? candidates[0]
   const hasPublicDir = existsSync(publicDir) && existsSync(`${publicDir}/index.html`)
 
   app.get("/", (c) => c.redirect("/app", 302))

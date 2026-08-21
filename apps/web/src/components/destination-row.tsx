@@ -41,7 +41,13 @@ export function DestinationRow({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border/70 px-4 py-3">
+    <div
+      className={cn(
+        "flex flex-col gap-2 rounded-lg border border-border/70 px-4 py-3 shadow-xs",
+        "transition-[transform,box-shadow] duration-(--duration-quick) ease-(--ease-smooth-out)",
+        "hover:-translate-y-px hover:shadow-md",
+      )}
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span

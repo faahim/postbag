@@ -2,7 +2,8 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { EmptyState } from "@/components/empty-state"
-import { formatRelativeTime } from "@/lib/format"
+import { Postmark, type PostmarkStatus } from "@/components/postmark"
+import { formatRelativeTime, splitPrefixedId } from "@/lib/format"
 
 export type SubmissionRow = {
   readonly id: string
@@ -18,6 +19,14 @@ const STATUS_VARIANT = {
   quarantined: "warning",
   spam: "destructive",
 } as const
+
+// A submission's status reads as a postmark, not a plain pill — the same stamp motif
+// used for deliveries: a clean stamp once it's landed, a dashed hold, a struck cancel.
+const STATUS_POSTMARK: Record<SubmissionRow["status"], PostmarkStatus> = {
+  received: "sent",
+  quarantined: "pending",
+  spam: "dead",
+}
 
 function preview(data: Readonly<Record<string, unknown>>): string {
   const entries = Object.entries(data).filter(([key]) => !key.startsWith("_"))
@@ -61,6 +70,7 @@ export function SubmissionsTable({
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead>ID</TableHead>
           <TableHead>Status</TableHead>
           {showFormId && <TableHead>Form</TableHead>}
           <TableHead>Fields</TableHead>
@@ -68,26 +78,40 @@ export function SubmissionsTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.map((row, i) => (
-          <TableRow
-            key={row.id}
-            onClick={() => {
-              onOpen(row.id)
-            }}
-            className="cursor-pointer animate-in fade-in-0 slide-in-from-bottom-0.5"
-            style={{ animationDelay: `${Math.min(i, 8) * 30}ms`, animationDuration: "var(--duration-fast)" }}
-          >
-            <TableCell>
-              <div className="flex items-center gap-1.5">
-                <Badge variant={STATUS_VARIANT[row.status]}>{row.status}</Badge>
-                {row.test && <Badge variant="muted">test</Badge>}
-              </div>
-            </TableCell>
-            {showFormId && <TableCell className="font-mono text-xs text-muted-foreground">{row.form_id}</TableCell>}
-            <TableCell className="max-w-md truncate text-sm text-foreground">{preview(row.data)}</TableCell>
-            <TableCell className="text-right text-xs text-muted-foreground tabular-nums">{formatRelativeTime(row.received_at)}</TableCell>
-          </TableRow>
-        ))}
+        {rows.map((row, i) => {
+          const idParts = splitPrefixedId(row.id)
+          return (
+            <TableRow
+              key={row.id}
+              onClick={() => {
+                onOpen(row.id)
+              }}
+              className="cursor-pointer animate-in fade-in-0 slide-in-from-bottom-0.5"
+              style={{ animationDelay: `${Math.min(i, 8) * 30}ms`, animationDuration: "var(--duration-fast)" }}
+            >
+              <TableCell>
+                <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                  <span className="opacity-60">{idParts.prefix}</span>
+                  {idParts.rest.slice(0, 8)}
+                </span>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant={STATUS_VARIANT[row.status]} className="gap-1">
+                    <Postmark status={STATUS_POSTMARK[row.status]} size={12} />
+                    {row.status}
+                  </Badge>
+                  {row.test && <Badge variant="muted">test</Badge>}
+                </div>
+              </TableCell>
+              {showFormId && <TableCell className="font-mono text-xs text-muted-foreground">{row.form_id}</TableCell>}
+              <TableCell className="max-w-md text-sm text-foreground">
+                <span className="fade-truncate block">{preview(row.data)}</span>
+              </TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground tabular-nums">{formatRelativeTime(row.received_at)}</TableCell>
+            </TableRow>
+          )
+        })}
       </TableBody>
     </Table>
   )

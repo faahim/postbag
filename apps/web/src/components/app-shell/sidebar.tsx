@@ -10,7 +10,7 @@ export function Sidebar() {
   return (
     <aside className="hidden w-56 shrink-0 flex-col border-r border-border/70 bg-card/60 px-3 py-4 md:flex">
       <Link to="/" className="mb-6 flex items-center gap-2 px-2 text-sm font-semibold tracking-tight">
-        <Postmark status="sent" size={22} />
+        <Postmark status="sent" tone="accent" size={22} />
         Postbag
       </Link>
 

@@ -1,8 +1,9 @@
-import { AlertTriangle, ShieldCheck, ShieldOff } from "lucide-react"
+import { AlertTriangle, ChevronDown, ShieldCheck, ShieldOff } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { DeliveryStatusBadge } from "@/components/delivery-status"
-import type { PostmarkStatus } from "@/components/postmark"
+import { Postmark, type PostmarkStatus } from "@/components/postmark"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -116,40 +117,36 @@ function SubmissionDetailBody({ submission }: { readonly submission: SubmissionD
         {deliveries.length === 0 ? (
           <p className="text-sm text-muted-foreground">No routes matched this submission yet.</p>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {deliveries.map((delivery) => (
-              <li key={delivery.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/70 px-3 py-2.5">
-                <div className="flex flex-col gap-0.5">
-                  <DeliveryStatusBadge status={delivery.status as PostmarkStatus} />
-                  <span className="font-mono text-xs text-muted-foreground">{delivery.destination_id}</span>
-                  {delivery.last_error !== null && <span className="text-xs text-destructive">{delivery.last_error}</span>}
+          <ul className="flex flex-col">
+            {deliveries.map((delivery, i) => (
+              <li key={delivery.id} className="relative flex gap-3 pb-4 last:pb-0">
+                {i < deliveries.length - 1 && (
+                  <span aria-hidden className="absolute top-6 bottom-0 left-[9px] w-px bg-border" />
+                )}
+                <div className="relative z-10 flex size-[18px] shrink-0 items-center justify-center rounded-full bg-card">
+                  <Postmark status={delivery.status as PostmarkStatus} size={18} />
                 </div>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {delivery.sent_at !== null
-                    ? formatRelativeTime(delivery.sent_at)
-                    : delivery.next_attempt_at !== null
-                      ? `retry ${formatRelativeTime(delivery.next_attempt_at)}`
-                      : `${delivery.attempts.toString()} attempts`}
-                </span>
+                <div className="flex flex-1 items-start justify-between gap-3 rounded-lg border border-border/70 px-3 py-2.5">
+                  <div className="flex flex-col gap-0.5">
+                    <DeliveryStatusBadge status={delivery.status as PostmarkStatus} />
+                    <span className="font-mono text-xs text-muted-foreground">{delivery.destination_id}</span>
+                    {delivery.last_error !== null && <span className="text-xs text-destructive">{delivery.last_error}</span>}
+                  </div>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                    {delivery.sent_at !== null
+                      ? formatRelativeTime(delivery.sent_at)
+                      : delivery.next_attempt_at !== null
+                        ? `retry ${formatRelativeTime(delivery.next_attempt_at)}`
+                        : `${delivery.attempts.toString()} attempts`}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      {Object.keys(submission.meta).length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Meta</h3>
-          <dl className="flex flex-col gap-1 font-mono text-xs text-muted-foreground">
-            {Object.entries(submission.meta).map(([key, value]) => (
-              <div key={key} className="flex gap-2">
-                <dt className="shrink-0">{key}:</dt>
-                <dd className="truncate">{String(value)}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      )}
+      {Object.keys(submission.meta).length > 0 && <MetaSection meta={submission.meta} />}
 
       <Separator />
 
@@ -165,5 +162,41 @@ function SubmissionDetailBody({ submission }: { readonly submission: SubmissionD
         )}
       </div>
     </div>
+  )
+}
+
+/** transitions-dev accordion (docs/DESIGN.md §3 motion tokens) — request metadata is
+ * useful but secondary, so it starts collapsed and expands without a layout jolt. */
+function MetaSection({ meta }: { readonly meta: Readonly<Record<string, unknown>> }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <section className="t-acc flex flex-col gap-2" data-open={open}>
+      <button
+        type="button"
+        className="t-acc-head flex items-center justify-between text-xs font-medium tracking-wide text-muted-foreground uppercase"
+        aria-expanded={open}
+        onClick={() => {
+          setOpen((v) => !v)
+        }}
+      >
+        Meta
+        <span className="t-acc-chevron">
+          <ChevronDown className="size-3.5" />
+        </span>
+      </button>
+      <div className="t-acc-panel">
+        <div className="t-acc-panel-inner">
+          <dl className="flex flex-col gap-1 pt-1 font-mono text-xs text-muted-foreground">
+            {Object.entries(meta).map(([key, value]) => (
+              <div key={key} className="flex gap-2">
+                <dt className="shrink-0">{key}:</dt>
+                <dd className="truncate">{String(value)}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
+    </section>
   )
 }

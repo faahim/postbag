@@ -45,9 +45,11 @@ function FirstRunRoute() {
   if (quickstart.data === undefined) {
     return (
       <div className="mx-auto flex max-w-lg flex-col gap-8 py-8">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <Postmark status="pending" size={44} />
-          <h1 className="text-2xl font-semibold text-balance">Create your first form</h1>
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Postmark status="pending" tone="accent" size={52} />
+          <h1 className="text-4xl leading-[1.05] font-semibold tracking-tight text-balance md:text-5xl">
+            Create your first form
+          </h1>
           <p className="text-sm text-muted-foreground text-pretty">
             One name, one inbox. We&apos;ll hand you a working endpoint and the snippet to
             drop into your site.
@@ -115,9 +117,11 @@ function QuickstartResult({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-8 py-8">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <Postmark status="sent" size={40} />
-        <h1 className="text-2xl font-semibold text-balance">Your form is live</h1>
+      <div className="flex flex-col items-center gap-3 text-center">
+        <Postmark status="sent" tone="accent" size={48} />
+        <h1 className="text-4xl leading-[1.05] font-semibold tracking-tight text-balance md:text-5xl">
+          Your form is live
+        </h1>
         <p className="text-sm text-muted-foreground text-pretty">
           Drop this into your site, or send a test submission with curl.
         </p>
@@ -160,15 +164,19 @@ function QuickstartResult({
               {first !== undefined && (
                 <>
                   <div className="flex items-center gap-2">
-                    <Postmark status="sent" size={20} />
+                    <Postmark status="sent" tone="accent" size={20} />
                     <p className="text-sm font-medium text-foreground">It arrived.</p>
                     <span className="ml-auto text-xs text-muted-foreground tabular-nums">{formatDateTime(first.received_at)}</span>
                   </div>
                   <dl className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
                     {Object.entries(first.data)
                       .slice(0, 4)
-                      .map(([key, value]) => (
-                        <div key={key} className="flex flex-col gap-0.5 px-3 py-2">
+                      .map(([key, value], i) => (
+                        <div
+                          key={key}
+                          className="flex flex-col gap-0.5 px-3 py-2 animate-in fade-in-0 slide-in-from-bottom-1"
+                          style={{ animationDelay: `${i * 60}ms`, animationDuration: "var(--duration-slow)", animationFillMode: "backwards" }}
+                        >
                           <dt className="font-mono text-xs text-muted-foreground">{key}</dt>
                           <dd className="truncate text-sm">{String(value)}</dd>
                         </div>
