@@ -14,10 +14,9 @@ const PLACEHOLDER_HTML =
 export function registerAppStatic(app: Hono<AppEnv>): void {
   // Built output lives in dist/public. When running from source (tsx), import.meta.url is
   // under src/, so also look at ../../dist/public so `pnpm dev` serves a previously built SPA.
-  const candidates = ["../public", "../../dist/public"].map((rel) =>
-    fileURLToPath(new URL(rel, import.meta.url)),
-  )
-  const publicDir = candidates.find((dir) => existsSync(`${dir}/index.html`)) ?? candidates[0]
+  const builtDir = fileURLToPath(new URL("../public", import.meta.url))
+  const sourceDir = fileURLToPath(new URL("../../dist/public", import.meta.url))
+  const publicDir = [builtDir, sourceDir].find((dir) => existsSync(`${dir}/index.html`)) ?? builtDir
   const hasPublicDir = existsSync(publicDir) && existsSync(`${publicDir}/index.html`)
 
   app.get("/", (c) => c.redirect("/app", 302))
