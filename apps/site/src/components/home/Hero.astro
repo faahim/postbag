@@ -1,128 +1,23 @@
 ---
-import Postmark from "@/components/Postmark.astro"
-import { API_URL, SIGNUP_URL } from "@/config"
-const demoFormId = (import.meta.env.PUBLIC_DEMO_FORM_ID as string | undefined) ?? "fm_73c74vjq6z24"
-const submitUrl = demoFormId ? `${API_URL}/s/${demoFormId}` : undefined
+import AgentPromptSwitcher from "@/components/AgentPromptSwitcher.astro"
+import { SIGNUP_URL } from "@/config"
 ---
-<section class="container-x grid items-center gap-12 pt-14 pb-16 sm:pt-20 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:pt-24 lg:pb-24">
-  <div class="min-w-0 max-w-2xl" data-reveal-group="90">
-    <h1 class="display-tight text-[2.75rem] font-semibold leading-[1.02] sm:text-6xl lg:text-[4rem]" data-reveal>
+<section class="container-x pt-14 pb-16 sm:pt-20 lg:pt-24 lg:pb-24">
+  <div class="mx-auto max-w-[42rem] text-center" data-reveal-group="90">
+    <h1 class="display-tight text-[2.75rem] font-semibold leading-[1.02] sm:text-6xl" data-reveal>
       A form backend that <em class="not-italic text-primary">routes</em>.
     </h1>
-    <p class="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground sm:text-xl" data-reveal>
-      Point an HTML form at a Postbag URL. Submissions are stored first, then delivered to email, Telegram and webhooks by your rules.
+    <p class="mx-auto mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground sm:text-xl" data-reveal>
+      Paste one line into your coding agent and your site has a working, routed contact form. No dashboard, no human in the loop.
     </p>
-    <div class="mt-8 flex flex-wrap items-center gap-3" data-reveal>
-      <a href={SIGNUP_URL} class="btn btn-primary">Create a form</a>
-      <a href="/for-ai-agents/" class="btn btn-secondary">Built for AI agents</a>
-    </div>
   </div>
 
-  <div class="min-w-0" data-reveal style="--reveal-delay: 180ms">
-    {submitUrl ? (
-      <form id="demo-form" class="card relative overflow-hidden p-0 shadow-lg" action={submitUrl} method="POST" novalidate>
-        <div class="flex h-10 items-center justify-between border-b border-border px-4 font-mono text-[12px] text-muted-foreground">
-          <span class="truncate"><span class="text-foreground">POST</span> {submitUrl.replace(/^https?:\/\//u, "")}</span>
-          <span class="chip hidden sm:inline-flex">live</span>
-        </div>
-        <div class="grid gap-4 p-5">
-          <label class="grid gap-1.5 text-sm font-medium">
-            <span>Email</span>
-            <input name="email" type="email" required autocomplete="email" placeholder="you@example.com" class="h-11 rounded-md bg-background px-3 font-normal text-foreground shadow-[inset_0_0_0_1px_var(--border-strong)] outline-none transition-shadow duration-150 placeholder:text-muted-foreground/70 focus:shadow-[inset_0_0_0_1px_var(--primary),0_0_0_3px_var(--ring)]" />
-          </label>
-          <label class="grid gap-1.5 text-sm font-medium">
-            <span>Message</span>
-            <textarea name="message" required rows="3" placeholder="Say hello. This posts to a real Postbag form." class="resize-none rounded-md bg-background px-3 py-2.5 font-normal text-foreground shadow-[inset_0_0_0_1px_var(--border-strong)] outline-none transition-shadow duration-150 placeholder:text-muted-foreground/70 focus:shadow-[inset_0_0_0_1px_var(--primary),0_0_0_3px_var(--ring)]"></textarea>
-          </label>
-          <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
-          <input type="hidden" name="_test" value="true" />
-          <input type="hidden" name="_redirect" value="/?sent=1#demo" />
-          <div class="flex items-center justify-between gap-3">
-            <p class="text-xs text-muted-foreground">Sent with <code class="font-mono">_test: true</code>. Stored, not delivered anywhere.</p>
-            <button type="submit" class="btn btn-primary btn-sm" data-demo-submit>
-              <span data-label>Send</span>
-            </button>
-          </div>
-        </div>
-        <div id="demo-receipt" class="hidden border-t border-border bg-surface-2/60 p-5" aria-live="polite">
-          <div class="flex items-start gap-4">
-            <div class="demo-stamp shrink-0" data-stamp><Postmark status="sent" size={44} title="Received" /></div>
-            <div class="min-w-0 flex-1">
-              <p class="font-display text-lg font-semibold leading-tight">It arrived.</p>
-              <p class="mt-1 text-sm text-muted-foreground">The API's response, verbatim:</p>
-              <pre class="mt-2 overflow-x-auto rounded-md bg-background p-3 font-mono text-[12px] leading-relaxed hairline" data-response></pre>
-            </div>
-          </div>
-        </div>
-        <div id="demo-error" class="hidden border-t border-border p-5 text-sm text-muted-foreground" aria-live="polite"></div>
-      </form>
-    ) : (
-      <div class="card p-6 shadow-lg">
-        <p class="font-mono text-[12px] text-muted-foreground">index.html</p>
-        <pre class="mt-3 overflow-x-auto font-mono text-[13px] leading-relaxed"><code>&lt;form action="{API_URL}/s/fm_8f3kq2" method="POST"&gt;
-  &lt;input name="email" type="email" required&gt;
-  &lt;textarea name="message"&gt;&lt;/textarea&gt;
-  &lt;button&gt;Send&lt;/button&gt;
-&lt;/form&gt;</code></pre>
-      </div>
-    )}
-    <p class="mt-3 text-center text-xs text-muted-foreground">This is a real form on a real Postbag account. Rate-limited like every form.</p>
+  <div class="mx-auto mt-10 max-w-2xl" data-reveal style="--reveal-delay: 120ms">
+    <AgentPromptSwitcher />
+  </div>
+
+  <div class="mx-auto mt-7 flex max-w-2xl flex-col items-center gap-3 text-center" data-reveal style="--reveal-delay: 180ms">
+    <a href={`${SIGNUP_URL}`} class="btn btn-secondary">Or create a form by hand</a>
+    <p class="text-xs text-muted-foreground">Submissions are stored the instant they land, never dropped, and delivered in under three minutes.</p>
   </div>
 </section>
-<style>
-  .demo-stamp { transform: rotate(-12deg) scale(1.6); opacity: 0; filter: blur(4px); }
-  .demo-stamp[data-in] {
-    transform: rotate(-8deg) scale(1);
-    opacity: 1;
-    filter: blur(0);
-    transition: transform 420ms var(--ease-bounce), opacity 300ms var(--ease-smooth-out), filter 300ms var(--ease-smooth-out);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .demo-stamp { transform: rotate(-8deg); opacity: 1; filter: none; }
-    .demo-stamp[data-in] { transition: none; }
-  }
-</style>
-<script>
-  const form = document.getElementById("demo-form") as HTMLFormElement | null
-  if (form) {
-    const receipt = document.getElementById("demo-receipt")!
-    const errorBox = document.getElementById("demo-error")!
-    const out = form.querySelector<HTMLElement>("[data-response]")!
-    const stamp = form.querySelector<HTMLElement>("[data-stamp]")!
-    const btn = form.querySelector<HTMLButtonElement>("[data-demo-submit]")!
-    const label = btn.querySelector<HTMLElement>("[data-label]")!
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault()
-      if (!form.reportValidity()) return
-      const data = new FormData(form)
-      const body: Record<string, unknown> = {}
-      data.forEach((v, k) => { if (k !== "_redirect") body[k] = v })
-      body["_test"] = true
-      btn.disabled = true
-      label.textContent = "Sending"
-      errorBox.classList.add("hidden")
-      try {
-        const res = await fetch(form.action, { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify(body) })
-        const text = await res.text()
-        let pretty = text
-        try { pretty = JSON.stringify(JSON.parse(text), null, 2) } catch {}
-        if (res.ok) {
-          out.textContent = pretty
-          receipt.classList.remove("hidden")
-          requestAnimationFrame(() => requestAnimationFrame(() => stamp.setAttribute("data-in", "")))
-          label.textContent = "Sent"
-        } else {
-          errorBox.textContent = `The API answered ${res.status}. Every error carries code, message, hint and docs:\n${pretty}`
-          errorBox.classList.remove("hidden")
-          label.textContent = "Send"
-          btn.disabled = false
-        }
-      } catch (err) {
-        errorBox.textContent = "Could not reach the API from this browser. The form still works without JavaScript: it posts and redirects."
-        errorBox.classList.remove("hidden")
-        label.textContent = "Send"
-        btn.disabled = false
-      }
-    })
-  }
-</script>

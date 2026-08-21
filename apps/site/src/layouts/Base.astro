@@ -102,6 +102,23 @@ const graph = { "@context": "https://schema.org", "@graph": [organizationLd(), w
       <slot />
     </main>
     {!bare && <Footer />}
+    <script is:inline>
+      // Runs synchronously, before first paint: mark reveal elements already in the initial
+      // viewport as data-in right away, so nothing above the fold flashes hidden while the
+      // deferred reveal script (which owns the below-the-fold scroll animation) loads. See
+      // src/scripts/reveal.ts for the rest of the mechanism.
+      ;(function () {
+        var vh = window.innerHeight || document.documentElement.clientHeight
+        var els = document.querySelectorAll("[data-reveal]")
+        for (var i = 0; i < els.length; i++) {
+          var r = els[i].getBoundingClientRect()
+          // Mirrors reveal.ts's inView amount/margin: visible if any part sits within the
+          // viewport, biased up by the same 12% bottom margin used for the scroll trigger.
+          if (r.top < vh * 0.88 && r.bottom > 0) els[i].setAttribute("data-in", "")
+        }
+        document.documentElement.classList.add("reveal-ready")
+      })()
+    </script>
     <script>
       import "@/scripts/reveal"
     </script>

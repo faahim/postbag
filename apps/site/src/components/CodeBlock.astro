@@ -1,37 +1,57 @@
 ---
 import { Code } from "astro:components"
+import { Copy, Check } from "@lucide/astro"
 import type { ComponentProps } from "astro/types"
 type CodeLang = NonNullable<ComponentProps<typeof Code>["lang"]>
-interface Props { code: string; lang?: CodeLang | string; title?: string; class?: string; copy?: boolean; dense?: boolean }
-const { code, lang = "text", title, class: className = "", copy = true, dense = false } = Astro.props
+interface Props { code: string; lang?: CodeLang | string; title?: string; class?: string; copy?: boolean; dense?: boolean; large?: boolean; wrap?: boolean }
+const { code, lang = "text", title, class: className = "", copy = true, dense = false, large = false, wrap = false } = Astro.props
 ---
 <figure class={`code-panel overflow-hidden ${className}`} data-codeblock>
   {(title || copy) && (
-    <figcaption class="flex h-10 items-center justify-between gap-3 border-b border-border px-4">
+    <figcaption class={`flex items-center justify-between gap-3 border-b border-border px-4 ${large ? "h-12" : "h-10"}`}>
       <span class="truncate font-mono text-[12px] text-muted-foreground">{title}</span>
       {copy && (
-        <button type="button" class="copy-btn relative -mr-1.5 inline-flex h-8 items-center gap-1.5 rounded-md px-2 font-sans text-xs text-muted-foreground transition-colors duration-150 hover:bg-surface-2 hover:text-foreground" data-copy aria-label="Copy code">
-          <span class="copy-label">Copy</span>
-          <span class="copied-label absolute inset-0 hidden items-center justify-center text-success">Copied</span>
+        <button
+          type="button"
+          class={`copy-btn relative -mr-1.5 inline-flex items-center gap-1.5 rounded-md px-2.5 font-sans text-xs font-medium text-muted-foreground transition-colors duration-150 hover:bg-surface-2 hover:text-foreground ${large ? "h-11 min-w-11" : "h-8"}`}
+          data-copy
+          aria-label="Copy code"
+        >
+          <span class="t-icon-swap" data-state="a" aria-hidden="true">
+            <Copy size={14} stroke-width={2} class="t-icon" data-icon="a" />
+            <Check size={14} stroke-width={2} class="t-icon text-success" data-icon="b" />
+          </span>
+          <span class="relative">
+            <span class="copy-label">Copy</span>
+            <span class="copied-label absolute inset-0 hidden items-center justify-center text-success">Copied</span>
+          </span>
         </button>
       )}
     </figcaption>
   )}
-  <div class={`overflow-x-auto ${dense ? "p-3 text-[12.5px]" : "p-4"}`}>
-    <Code code={code} lang={lang as CodeLang} themes={{ light: "github-light", dark: "github-dark-dimmed" }} wrap={false} />
+  <div class={`overflow-x-auto ${large ? "p-5 text-[15px]" : dense ? "p-3 text-[12.5px]" : "p-4"}`}>
+    <Code code={code} lang={lang as CodeLang} themes={{ light: "github-light", dark: "github-dark-dimmed" }} wrap={wrap} />
   </div>
   <pre class="hidden" data-raw>{code}</pre>
 </figure>
 <script>
   document.querySelectorAll<HTMLElement>("[data-codeblock]").forEach((block) => {
     const btn = block.querySelector<HTMLButtonElement>("[data-copy]")
+    const swap = btn?.querySelector<HTMLElement>(".t-icon-swap") ?? null
     const raw = block.querySelector<HTMLElement>("[data-raw]")?.textContent ?? ""
+    let timer: ReturnType<typeof setTimeout> | undefined
     btn?.addEventListener("click", async () => {
       try { await navigator.clipboard.writeText(raw) } catch { return }
+      clearTimeout(timer)
+      swap?.setAttribute("data-state", "b")
       btn.querySelector(".copy-label")?.classList.add("invisible")
       const done = btn.querySelector<HTMLElement>(".copied-label")
       done?.classList.remove("hidden"); done?.classList.add("inline-flex")
-      setTimeout(() => { btn.querySelector(".copy-label")?.classList.remove("invisible"); done?.classList.add("hidden"); done?.classList.remove("inline-flex") }, 1400)
+      timer = setTimeout(() => {
+        swap?.setAttribute("data-state", "a")
+        btn.querySelector(".copy-label")?.classList.remove("invisible")
+        done?.classList.add("hidden"); done?.classList.remove("inline-flex")
+      }, 1400)
     })
   })
 </script>

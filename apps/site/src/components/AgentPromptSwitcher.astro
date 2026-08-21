@@ -1,0 +1,87 @@
+---
+/**
+ * The primary object on the home and for-ai-agents heroes: one copyable prompt, large, with a
+ * Prompt/Skill/MCP/CLI switcher underneath for the other three ways in. Shared between Hero.astro
+ * and for-ai-agents.astro so the two never drift (job J).
+ */
+import CodeBlock from "@/components/CodeBlock.astro"
+import { AGENT_PROMPT } from "@/config"
+interface Props { class?: string }
+const { class: className = "" } = Astro.props
+
+const tabs = [
+  { id: "prompt", label: "Prompt", lang: "text", code: AGENT_PROMPT },
+  { id: "skill", label: "Skill", lang: "bash", code: "npx skills add faahim/postbag --skill postbag" },
+  { id: "mcp", label: "MCP", lang: "bash", code: "POSTBAG_API_KEY=pb_live_… npx -y @postbag/mcp" },
+  { id: "cli", label: "CLI", lang: "bash", code: "npx postbag login\nnpx postbag init" },
+] as const
+---
+<div class={`agent-prompt ${className}`} data-agent-prompt>
+  <div class="panel-stack min-w-0">
+    {tabs.map((t, i) => (
+      <div data-panel={t.id} data-active={i === 0 || undefined}>
+        <CodeBlock code={t.code} lang={t.lang} large wrap={t.lang === "text"} />
+      </div>
+    ))}
+  </div>
+  <p class="mt-3 text-[15px] text-muted-foreground">Works with Claude Code, Cursor, Codex, Windsurf, or any agent that can read a URL.</p>
+  <div class="mt-4 -mx-1 overflow-x-auto px-1">
+    <div class="t-tabs" role="tablist" aria-label="Setup method">
+      <span class="t-tabs-pill" aria-hidden="true"></span>
+      {tabs.map((t, i) => (
+        <button type="button" role="tab" class="t-tab" aria-selected={i === 0 ? "true" : "false"} tabindex={i === 0 ? 0 : -1} data-tab={t.id}>{t.label}</button>
+      ))}
+    </div>
+  </div>
+</div>
+<script>
+  document.querySelectorAll<HTMLElement>("[data-agent-prompt]").forEach((root) => {
+    const bar = root.querySelector<HTMLElement>(".t-tabs")
+    const pill = bar?.querySelector<HTMLElement>(".t-tabs-pill")
+    if (!bar || !pill) return
+    const tabs = Array.from(bar.querySelectorAll<HTMLButtonElement>(".t-tab"))
+    const panels = Array.from(root.querySelectorAll<HTMLElement>("[data-panel]"))
+
+    function moveTo(tab: HTMLButtonElement, animate: boolean) {
+      if (!animate) {
+        const prev = pill!.style.transition
+        pill!.style.transition = "none"
+        pill!.style.transform = `translateX(${tab.offsetLeft}px)`
+        pill!.style.width = `${tab.offsetWidth}px`
+        void pill!.offsetWidth
+        pill!.style.transition = prev
+      } else {
+        pill!.style.transform = `translateX(${tab.offsetLeft}px)`
+        pill!.style.width = `${tab.offsetWidth}px`
+      }
+    }
+    function activate(id: string) {
+      tabs.forEach((t) => {
+        const on = t.dataset.tab === id
+        t.setAttribute("aria-selected", String(on))
+        t.tabIndex = on ? 0 : -1
+      })
+      panels.forEach((p) => {
+        if (p.dataset.panel === id) p.setAttribute("data-active", "")
+        else p.removeAttribute("data-active")
+      })
+    }
+    const active = () => tabs.find((t) => t.getAttribute("aria-selected") === "true") ?? tabs[0]!
+
+    tabs.forEach((tab, i) => {
+      tab.addEventListener("click", () => {
+        activate(tab.dataset.tab!)
+        moveTo(tab, true)
+      })
+      tab.addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return
+        const next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length]!
+        next.focus()
+        activate(next.dataset.tab!)
+        moveTo(next, true)
+      })
+    })
+    requestAnimationFrame(() => moveTo(active(), false))
+    window.addEventListener("resize", () => moveTo(active(), false))
+  })
+</script>

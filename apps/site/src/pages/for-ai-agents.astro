@@ -2,9 +2,9 @@
 import Base from "@/layouts/Base.astro"
 import PageHeader from "@/components/PageHeader.astro"
 import CodeBlock from "@/components/CodeBlock.astro"
+import AgentPromptSwitcher from "@/components/AgentPromptSwitcher.astro"
 import Faq from "@/components/Faq.astro"
 import CtaBand from "@/components/CtaBand.astro"
-import { Bot, Plug, Puzzle } from "@lucide/astro"
 import { API_URL, EXAMPLE, LLMS_URL, OPENAPI_URL, SITE_URL } from "@/config"
 import { breadcrumbLd, faqLd, webPageLd } from "@/lib/seo"
 
@@ -21,21 +21,10 @@ const faqs = [
   { q: "How should a site repo remember its Postbag wiring?", a: "The convention is a <code>postbag.json</code> at the repo root with <code>form_id</code>, <code>submit_url</code> and <code>project</code>, and a line in CLAUDE.md or AGENTS.md saying forms on this site post to Postbag. Later sessions, human or agent, find the wiring there." },
 ]
 
-const promptText = `Set up a contact form on this site with Postbag. Read ${LLMS_URL} first.`
-const skillInstall = `npx skills add faahim/postbag --skill postbag
-# or fetch the file directly:
-curl ${API_URL}/.well-known/skills/postbag/SKILL.md`
-const mcpAndCli = `npx -y @postbag/mcp   # env: POSTBAG_API_KEY=pb_live_…
-npx postbag login     # CLI: email code → API key, saved for next time`
-const options = [
-  { icon: Bot, title: "Paste to your agent", body: "One line. The agent reads llms.txt, mints its own key by email code, and builds the form.", code: promptText, lang: "text" },
-  { icon: Puzzle, title: "Install the skill", body: "An Agent Skill with the decision tree, the quickstart call and the embed snippet already in it.", code: skillInstall, lang: "bash" },
-  { icon: Plug, title: "MCP or CLI", body: "Tools that mirror the API one to one, for agents and terminals that prefer not to shell out to curl.", code: mcpAndCli, lang: "bash" },
-] as const
 const keyFlow = `$ curl -X POST ${API_URL}/v1/auth/request-code -d '{"email":"you@example.com"}'
 { "ok": true, "expires_in": 600, "next": "POST /v1/auth/verify-code with { email, code, key_name }" }
 
-# — a human reads the 6-digit code out of their inbox and gives it to the agent —
+# a human reads the 6-digit code out of their inbox and gives it to the agent
 
 $ curl -X POST ${API_URL}/v1/auth/verify-code -d '{"email":"you@example.com","code":"482913"}'
 { "api_key": "pb_live_…", "organization": { "id": "org_…", "slug": "…", "name": "…" },
@@ -73,20 +62,9 @@ Never hand-write a submit URL. Verify with a _test submission and poll the deliv
 
   <section class="container-x" aria-labelledby="setup-heading">
     <h2 id="setup-heading" class="text-3xl font-semibold text-balance sm:text-4xl">Set up your agent in seconds.</h2>
-    <p class="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">Three ways in, none of them a dashboard.</p>
-    <div class="mt-10 grid gap-5 sm:grid-cols-3" data-reveal-group="80">
-      {options.map((o) => (
-        <div class="card flex flex-col gap-4 p-5" data-reveal>
-          <div class="flex items-center gap-3">
-            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-              <o.icon size={20} stroke-width={1.75} aria-hidden="true" />
-            </span>
-            <h3 class="font-display text-[17px] font-semibold">{o.title}</h3>
-          </div>
-          <p class="text-[15px] leading-relaxed text-muted-foreground">{o.body}</p>
-          <CodeBlock code={o.code} lang={o.lang} dense class="mt-auto" />
-        </div>
-      ))}
+    <p class="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">Paste the prompt, or pick the skill, MCP server or CLI, none of them a dashboard.</p>
+    <div class="mt-10 max-w-2xl" data-reveal>
+      <AgentPromptSwitcher />
     </div>
     <div class="mt-12 grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:gap-12" data-reveal>
       <div>

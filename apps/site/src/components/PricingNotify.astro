@@ -7,43 +7,52 @@ import { API_URL, SITE_CONTACT_FORM_ID } from "@/config"
 interface Props { planId: string; planName: string }
 const { planId, planName } = Astro.props
 const action = `${API_URL}/s/${SITE_CONTACT_FORM_ID}`
-const inputClass = "h-10 min-w-0 flex-1 rounded-md bg-background px-3 text-sm font-normal text-foreground shadow-[inset_0_0_0_1px_var(--border-strong)] outline-none transition-shadow duration-150 placeholder:text-muted-foreground/70 focus:shadow-[inset_0_0_0_1px_var(--primary),0_0_0_3px_var(--ring)]"
+const inputClass = "h-10 min-w-0 flex-1 basis-32 rounded-md bg-background px-3 text-sm font-normal text-foreground shadow-[inset_0_0_0_1px_var(--border-strong)] outline-none transition-shadow duration-150 placeholder:text-muted-foreground/70 focus:shadow-[inset_0_0_0_1px_var(--primary),0_0_0_3px_var(--ring)]"
 ---
-<form class="mt-6 grid gap-2" action={action} method="POST" novalidate data-notify={planId}>
+<form class="mt-6" action={action} method="POST" novalidate data-notify={planId}>
   <input type="hidden" name="topic" value="pricing-notify" />
   <input type="hidden" name="plan" value={planId} />
   <input type="hidden" name="message" value={`Tell me when ${planName} is on sale.`} />
   <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
   <input type="hidden" name="_redirect" value={`/pricing/?notified=${planId}`} />
-  <div class="flex gap-2" data-fields>
+  <div class="flex flex-wrap gap-2" data-fields>
     <label class="sr-only" for={`notify-${planId}`}>Email</label>
     <input id={`notify-${planId}`} name="email" type="email" required autocomplete="email" placeholder="you@example.com" class={inputClass} />
     <button type="submit" class="btn btn-secondary btn-sm shrink-0" data-submit><span data-label>Notify me</span></button>
   </div>
-  <p class="text-xs text-muted-foreground">Not on sale yet. One email when it is; nothing else.</p>
-  <p data-ok class="hidden text-sm" aria-live="polite">Noted. You will hear from us when {planName} opens.</p>
-  <p data-err class="hidden text-xs text-muted-foreground" aria-live="polite"></p>
+  <div class="panel-stack mt-2 min-h-[2.2em]">
+    <p class="text-xs leading-snug text-muted-foreground" data-panel="idle" data-active>Not on sale yet. One email when it is, nothing else.</p>
+    <p class="text-sm leading-snug text-success" data-panel="ok" aria-live="polite">Noted. You will hear from us when {planName} opens.</p>
+  </div>
+  <p data-err class="mt-1 min-h-[1em] text-xs leading-snug text-muted-foreground" aria-live="polite"></p>
 </form>
 <script>
   const forms = document.querySelectorAll<HTMLFormElement>("form[data-notify]")
   const notified = new URLSearchParams(location.search).get("notified")
   forms.forEach((form) => {
-    const ok = form.querySelector<HTMLElement>("[data-ok]")!, err = form.querySelector<HTMLElement>("[data-err]")!
-    const fields = form.querySelector<HTMLElement>("[data-fields]")!, btn = form.querySelector<HTMLButtonElement>("[data-submit]")!
+    const fields = form.querySelector<HTMLElement>("[data-fields]")!
+    const idle = form.querySelector<HTMLElement>('[data-panel="idle"]')!
+    const ok = form.querySelector<HTMLElement>('[data-panel="ok"]')!
+    const err = form.querySelector<HTMLElement>("[data-err]")!
+    const btn = form.querySelector<HTMLButtonElement>("[data-submit]")!
     const label = btn.querySelector<HTMLElement>("[data-label]")!
-    const done = () => { fields.classList.add("hidden"); ok.classList.remove("hidden") }
+    const done = () => {
+      fields.classList.add("hidden")
+      idle.removeAttribute("data-active")
+      ok.setAttribute("data-active", "")
+    }
     if (notified === form.dataset["notify"]) done()
     form.addEventListener("submit", async (e) => {
       e.preventDefault()
       if (!form.reportValidity()) return
       const body: Record<string, unknown> = {}
       new FormData(form).forEach((v, k) => { if (k !== "_redirect") body[k] = v })
-      btn.disabled = true; label.textContent = "Sending"; err.classList.add("hidden")
+      btn.disabled = true; label.textContent = "Sending"; err.textContent = ""
       try {
         const res = await fetch(form.action, { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify(body) })
         if (res.ok) done()
-        else { err.textContent = `The API answered ${res.status}.`; err.classList.remove("hidden"); btn.disabled = false; label.textContent = "Notify me" }
-      } catch { err.textContent = "Could not reach the API. Without JavaScript this form still posts and redirects."; err.classList.remove("hidden"); btn.disabled = false; label.textContent = "Notify me" }
+        else { err.textContent = `The API answered ${res.status}.`; btn.disabled = false; label.textContent = "Notify me" }
+      } catch { err.textContent = "Could not reach the API. Without JavaScript this form still posts and redirects."; btn.disabled = false; label.textContent = "Notify me" }
     })
   })
 </script>

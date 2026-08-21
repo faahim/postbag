@@ -15,6 +15,8 @@ export const LLMS_URL = `${API_URL}/llms.txt`
 export const GITHUB_URL = "https://github.com/faahim/postbag"
 export const AUTHOR = { name: "Fahim", url: "https://faahim.dev" }
 export const TAGLINE = "A form backend that routes."
+/** The single line an agent pastes to set up a form. Shown in the hero, AgentNative and for-ai-agents. */
+export const AGENT_PROMPT = `Set up a contact form on this site with Postbag. Read ${LLMS_URL} first.`
 export const DESCRIPTION =
   "Postbag is a form backend that routes. Point any HTML form at a Postbag endpoint; every submission is stored durably, then delivered to email, Telegram and signed webhooks by rules. Multi-tenant, self-hostable, and built for AI agents: one API key is enough to create, verify and route a form without a browser."
 
