@@ -118,10 +118,16 @@ the rules and `docs/` for the design.
 **Committed and live:** everything above plus job J (agent-first hero, switcher, pricing cards, first-paint reveal fix —
 `e6a6088`, deploying on push). Edge caching on. Production on dekhval-1 (EU). Repo public. npm + MCP registry published.
 
-**State:** Job K **committed `6c9208f`** (plan_source, grant codes, VIP badge; `PLATFORM_ADMIN_EMAILS=afiur.fahim@gmail.com`
-set on the EU app — takes effect on the deploy of `6c9208f`). **Job L** (members/invitations/roles/org switcher,
-`tasks/job-L-members-and-org-switcher.md`) — agent launched 2026-08-21 ~22:55 UTC; if the session died, its partial work
-is uncommitted in the working tree: read it, finish the spec, run the gates, commit.
+**State (2026-08-21 ~23:20 UTC):** Jobs J, K and **L are all committed** (`e6a6088`, `6c9208f`, `af7a860`) — nothing is
+in flight. Note: while job L ran, a second Claude session was working the same spec in the same tree (probably opened
+from this handoff); the agent reconciled both. **If you are that other session: everything is merged and pushed — pull
+`main` and do not re-apply your working copy.** Migrations 0004 (plan grants) and 0005 (invitation.inviter_id nullable)
+run on deploy (`MIGRATE_ON_BOOT=true`).
+
+**Next (priority):** 1) off-server backups — Cloudflare R2 as a Coolify S3 storage + `save_s3` on schedule
+`lsvi1rsnoo8erhsfugiznstn`; 2) email verification on password sign-up (2f); 3) Google branding verification + Search
+Console via DNS TXT; 4) uptime monitor on `/health`; 5) RLS in the request path; 6) Polar "Postbag" org + KYC; 7) CLI unit
+tests for `orgs/members/invitations`; 8) an "invite as owner" path if ever needed (today: invite as admin, then promote).
 
 **Done 2026-08-21 17:08 UTC:** Fahim's org redeemed a Team grant (`plan_source=complimentary`, note "The house");
 a single-use Pro grant (365 d, note "Eric — friend of the house") was minted and the code handed to Fahim in chat —
