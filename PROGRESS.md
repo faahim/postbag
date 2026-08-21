@@ -171,6 +171,13 @@ the rules and `docs/` for the design.
   `3gwbwkbf1mhtbp3gxwd9zw5x` on Postgres `fmeduf0fi7ax0dvsdhsvtewb`, created 2026-08-21). Off-server copies are
   not configured yet: add a Cloudflare R2 (S3-compatible) bucket as a Coolify S3 storage and flip `save_s3` — do this
   before the first paying customer.
+- **Edge caching (2026-08-21):** Cloudflare Cache Rule "Cache marketing site at the edge" on postbag.dev — eligible for
+  cache when host = postbag.dev and path not under `/app`, `/v1`, `/s/`, `/api/`, not `/health`, and the request does
+  **not** send `Accept: text/markdown` (so agent negotiation never hits a cached HTML object); Edge TTL = respect origin
+  `cache-control`. Origin sends `public, max-age=300, s-maxage=600, stale-while-revalidate=86400` for pages/markdown/llms.txt,
+  immutable for `/_astro/*`, 7 d for images/fonts. Smart Tiered Cache on; Browser Cache TTL = Respect Existing Headers
+  (was 4 h). Deploys propagate within ≤10 min without purging. Verified: `/` and `/pricing/` HIT on second request;
+  `/v1/*`, `/app/*`, `/s/*`, markdown requests DYNAMIC. Zone SSL mode is Full (strict) (Fahim, 2026-08-21).
 - No uptime monitor yet (`/health` is the probe to use).
 - **EU cut-over verified 2026-08-21 16:20 UTC:** Let's Encrypt certs issued on dekhval-1 for all four hostnames (Traefik
   needed an app restart to retry ACME after the DNS flip); `postbag.withfaahim.com` back to 200. Gotcha: dekhval-1 throttles
