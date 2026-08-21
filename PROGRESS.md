@@ -13,7 +13,7 @@ the rules and `docs/` for the design.
   `/llms.txt`, `/openapi.json` reserved). `SITE_URL` env (default `https://postbag.dev`) sets canonical URLs;
   `PUBLIC_API_URL` if the API ever moves. Demo forms in prod org, project `site`: hero demo `fm_73c74vjq6z24`
   (no routes, `_test` only), about-page contact `fm_h6eetntqdbp6` (email route to the owner).
-- **Repo:** `github.com/faahim/postbag` (private), default branch `main`
+- **Repo:** `github.com/faahim/postbag` (**public** since 2026-08-21; AGPL-3.0 + MIT clients), default branch `main`
 - **Deploy target:** Coolify (control plane `kolkobja.tarpore.com`) → server **megh-oracle**
   (`140.245.57.24`, arm64, uuid `a8w4s8cg0go4kwo0g0gk8co0`). Coolify project "Postbag".
 - **Domain:** **`postbag.dev`** (canonical, `APP_URL`) + alias `api.postbag.dev`; zone id `84f7a4a0b32316b3d420ef347d6d494a`
@@ -119,8 +119,7 @@ the rules and `docs/` for the design.
    publishing ~Jan 2027 (github.blog 2026-07-08) — we're already off them. **MCP registry:** `dev.postbag/mcp` 0.1.1
    listed (DNS-verified; apex TXT on postbag.dev; key `~/.config/postbag/mcp-registry-ed25519.pem`, login command in
    `release.yml`'s sibling notes above). Each new MCP version: bump `packages/mcp/package.json` + `server.json`, tag,
-   then `mcp-publisher login dns … && mcp-publisher publish`. Site copy flipped. **Still open: make the repo public**
-   (gitleaks clean; unlocks npm provenance and `npx skills add faahim/postbag`).
+   then `mcp-publisher login dns … && mcp-publisher publish`. Site copy flipped. **Repo public since 2026-08-21 15:15 UTC** (gitleaks clean); `--provenance` re-enabled in `release.yml`.
 2b. **Legal pages before selling (agent drafts, Fahim supplies entity name/address):** Terms, Privacy
    Policy, DPA for operators, sub-processor list (Resend, Cloudflare, the hosting provider, Polar),
    GDPR Art. 27 EU-representative answer for a non-EU entity. Pages at `/legal/terms/`, `/legal/privacy/`, `/legal/dpa/`.
@@ -139,7 +138,8 @@ the rules and `docs/` for the design.
    Until a password account is verified, Better Auth will not auto-link a same-email Google/GitHub sign-in
    (by design — pre-registration takeover); the sign-in page explains to use the password and connect from
    Settings. Also: resend-verification button in Settings → Profile.
-2e. **Agent onboarding** — (a)+(b) shipped (job H); (c) anonymous/claimable quickstart awaits Fahim: (a) agent-assisted signup without a browser —
+2e. **Agent onboarding** — (a)+(b) shipped (job H); (c) anonymous/claimable quickstart **declined by Fahim 2026-08-21**
+   (account-first stays; the email-code flow is the fast path). Kept for the record: (a) agent-assisted signup without a browser —
    `POST /v1/auth/request-code {email}` → emailed 6-digit code (Better Auth `emailOTP` plugin) →
    `POST /v1/auth/verify-code {email, code, key_name}` creates user+org if new and returns a `pb_live_` manage key
    the agent stores in `~/.config/postbag/credentials.json`; (b) an Agent Skill in-repo (`skills/postbag/SKILL.md`,

@@ -13,8 +13,8 @@ name: Release
 # pnpm exchanges the GitHub OIDC token for a short-lived npm token by itself
 # (it logs "Skipped OIDC" when no trusted publisher is configured yet).
 #
-# --provenance is added automatically by npm for OIDC publishes from *public* repos;
-# the repo is private today, so provenance starts working the day it goes public.
+# --provenance: the repo is public, so each publish carries a signed attestation linking the
+# tarball to this workflow run (visible on the npm package page).
 
 on:
   push:
@@ -29,7 +29,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # OIDC token for npm trusted publishing
+  id-token: write # OIDC token for npm trusted publishing + provenance
 
 jobs:
   publish:
@@ -52,4 +52,4 @@ jobs:
       - name: Publish (trusted publishing)
         env:
           DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '--dry-run' || '' }}
-        run: pnpm -r publish --access public --no-git-checks $DRY
+        run: pnpm -r publish --access public --no-git-checks --provenance $DRY

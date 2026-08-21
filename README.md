@@ -1,5 +1,11 @@
 # Postbag
 
+[![CI](https://github.com/faahim/postbag/actions/workflows/ci.yml/badge.svg)](https://github.com/faahim/postbag/actions/workflows/ci.yml)
+[![npm: postbag](https://img.shields.io/npm/v/postbag?label=postbag%20CLI)](https://www.npmjs.com/package/postbag)
+[![npm: @postbag/sdk](https://img.shields.io/npm/v/%40postbag%2Fsdk?label=%40postbag%2Fsdk)](https://www.npmjs.com/package/@postbag/sdk)
+[![npm: @postbag/mcp](https://img.shields.io/npm/v/%40postbag%2Fmcp?label=%40postbag%2Fmcp)](https://www.npmjs.com/package/@postbag/mcp)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](./LICENSE)
+
 **A form backend that routes.** Point any HTML form at a Postbag endpoint and it
 lands in your inbox — then goes wherever it should: email, Telegram, a webhook, a
 partner, your CRM. Built for people who run many sites, and for the AI agents that
