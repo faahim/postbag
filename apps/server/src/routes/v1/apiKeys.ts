@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm"
 import { apikey, type Database } from "@postbag/db"
 
 import type { Auth } from "../../authSetup.js"
+import { requireRole } from "../../lib/orgs.js"
 import { assertScope, assertSessionActor } from "../../lib/scope.js"
 import type { AppEnv } from "../../lib/scope.js"
 import { errorResponses, ScopeSchema } from "../../schemas.js"
@@ -79,10 +80,11 @@ const createApiKeyRoute = createRoute({
   path: "/v1/api-keys",
   operationId: "api_keys_create",
   tags: ["discovery"],
-  summary: "Create an API key for the active organization (session only)",
+  summary: "Create an API key for the active organization (session only, owner/admin)",
   description:
     "Requires a signed-in dashboard session, not another API key — an agent cannot mint its own first " +
-    "key this way. The full key is only ever returned once, in this response; store it immediately.",
+    "key this way. Owner or admin (job L). The full key is only ever returned once, in this response; " +
+    "store it immediately.",
   request: { body: { content: { "application/json": { schema: ApiKeyCreateInputSchema } } } },
   responses: {
     201: { description: "created", content: { "application/json": { schema: ApiKeyCreatedSchema } } },
@@ -117,6 +119,7 @@ export function registerApiKeyRoutes(app: OpenAPIHono<AppEnv>, auth: Auth, db: D
   app.openapi(createApiKeyRoute, async (c) => {
     const scope = c.var.scope
     assertSessionActor(scope, "Create API keys from a signed-in session, not another API key.")
+    await requireRole(db, scope, ["owner", "admin"])
     const body = c.req.valid("json")
 
     const createdRecord = await mintApiKey(auth, {
@@ -142,6 +145,7 @@ export function registerApiKeyRoutes(app: OpenAPIHono<AppEnv>, auth: Auth, db: D
   app.openapi(listApiKeysRoute, async (c) => {
     const scope = c.var.scope
     assertScope(scope, "manage")
+    await requireRole(db, scope, ["owner", "admin"])
     const rows = await db
       .select()
       .from(apikey)
@@ -170,6 +174,7 @@ export function registerApiKeyRoutes(app: OpenAPIHono<AppEnv>, auth: Auth, db: D
   app.openapi(deleteApiKeyRoute, async (c) => {
     const scope = c.var.scope
     assertScope(scope, "manage")
+    await requireRole(db, scope, ["owner", "admin"])
     const { id } = c.req.valid("param")
     const [row] = await db
       .select({ id: apikey.id })

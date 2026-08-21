@@ -115,9 +115,10 @@ export const invitation = pgTable(
     role: text("role"),
     status: text("status").default("pending").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
-    inviterId: text("inviter_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+    // Job L: nullable — an invitation created by a manage-scoped API key (no session, no
+    // backing user; see the `apikey` table below, which has no user_id at all) has no
+    // inviter to record. Migration 0005.
+    inviterId: text("inviter_id").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },
   (table) => [index("invitation_organization_id_idx").on(table.organizationId)],

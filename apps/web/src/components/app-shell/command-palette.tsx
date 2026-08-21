@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router"
-import { FilePlus2, Plus, Send } from "lucide-react"
+import { Building2, FilePlus2, Plus, Send } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import {
   CommandDialog,
@@ -12,10 +13,15 @@ import {
   CommandSeparator,
 } from "@/components/ui/command"
 import { NAV_ITEMS } from "@/lib/nav"
+import { useMe } from "@/lib/queries/me"
+import { useSetActiveOrganization } from "@/lib/queries/organizations"
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
+  const me = useMe()
+  const setActive = useSetActiveOrganization()
+  const otherOrganizations = (me.data?.organizations ?? []).filter((org) => !org.is_active)
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -83,6 +89,29 @@ export function CommandPalette() {
             </CommandItem>
           ))}
         </CommandGroup>
+        {otherOrganizations.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Switch to">
+              {otherOrganizations.map((org) => (
+                <CommandItem
+                  key={org.id}
+                  onSelect={() => {
+                    close()
+                    setActive.mutate(org.id, {
+                      onError: () => {
+                        toast.error("Couldn't switch workspace — try again.")
+                      },
+                    })
+                  }}
+                >
+                  <Building2 />
+                  {org.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
       </CommandList>
     </CommandDialog>
   )

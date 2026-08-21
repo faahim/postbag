@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as AppFirstRunRouteImport } from './routes/_app/first-run'
+import { Route as InvitationsIdRouteImport } from './routes/invitations.$id'
 import { Route as AppApiKeysIndexRouteImport } from './routes/_app/api-keys/index'
 import { Route as AppBagsIndexRouteImport } from './routes/_app/bags/index'
 import { Route as AppBagsBagIdRouteImport } from './routes/_app/bags/$bagId'
@@ -24,6 +25,7 @@ import { Route as AppFormsIndexRouteImport } from './routes/_app/forms/index'
 import { Route as AppFormsFormIdRouteImport } from './routes/_app/forms/$formId'
 import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox/index'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
+import { Route as AppSettingsMembersRouteImport } from './routes/_app/settings/members'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -48,6 +50,11 @@ const AppFirstRunRoute = AppFirstRunRouteImport.update({
   id: '/first-run',
   path: '/first-run',
   getParentRoute: () => AppRoute,
+} as any)
+const InvitationsIdRoute = InvitationsIdRouteImport.update({
+  id: '/invitations/$id',
+  path: '/invitations/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppApiKeysIndexRoute = AppApiKeysIndexRouteImport.update({
   id: '/api-keys/',
@@ -99,14 +106,21 @@ const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsMembersRoute = AppSettingsMembersRouteImport.update({
+  id: '/settings/members',
+  path: '/settings/members',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/first-run': typeof AppFirstRunRoute
+  '/invitations/$id': typeof InvitationsIdRoute
   '/bags/$bagId': typeof AppBagsBagIdRoute
   '/forms/$formId': typeof AppFormsFormIdRoute
+  '/settings/members': typeof AppSettingsMembersRoute
   '/api-keys/': typeof AppApiKeysIndexRoute
   '/bags/': typeof AppBagsIndexRoute
   '/deliveries/': typeof AppDeliveriesIndexRoute
@@ -121,8 +135,10 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/first-run': typeof AppFirstRunRoute
+  '/invitations/$id': typeof InvitationsIdRoute
   '/bags/$bagId': typeof AppBagsBagIdRoute
   '/forms/$formId': typeof AppFormsFormIdRoute
+  '/settings/members': typeof AppSettingsMembersRoute
   '/api-keys': typeof AppApiKeysIndexRoute
   '/bags': typeof AppBagsIndexRoute
   '/deliveries': typeof AppDeliveriesIndexRoute
@@ -139,8 +155,10 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/_app/first-run': typeof AppFirstRunRoute
+  '/invitations/$id': typeof InvitationsIdRoute
   '/_app/bags/$bagId': typeof AppBagsBagIdRoute
   '/_app/forms/$formId': typeof AppFormsFormIdRoute
+  '/_app/settings/members': typeof AppSettingsMembersRoute
   '/_app/api-keys/': typeof AppApiKeysIndexRoute
   '/_app/bags/': typeof AppBagsIndexRoute
   '/_app/deliveries/': typeof AppDeliveriesIndexRoute
@@ -157,8 +175,10 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/first-run'
+    | '/invitations/$id'
     | '/bags/$bagId'
     | '/forms/$formId'
+    | '/settings/members'
     | '/api-keys/'
     | '/bags/'
     | '/deliveries/'
@@ -173,8 +193,10 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/first-run'
+    | '/invitations/$id'
     | '/bags/$bagId'
     | '/forms/$formId'
+    | '/settings/members'
     | '/api-keys'
     | '/bags'
     | '/deliveries'
@@ -190,8 +212,10 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/_app/first-run'
+    | '/invitations/$id'
     | '/_app/bags/$bagId'
     | '/_app/forms/$formId'
+    | '/_app/settings/members'
     | '/_app/api-keys/'
     | '/_app/bags/'
     | '/_app/deliveries/'
@@ -207,6 +231,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  InvitationsIdRoute: typeof InvitationsIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -245,6 +270,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/first-run'
       preLoaderRoute: typeof AppFirstRunRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/invitations/$id': {
+      id: '/invitations/$id'
+      path: '/invitations/$id'
+      fullPath: '/invitations/$id'
+      preLoaderRoute: typeof InvitationsIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/api-keys/': {
       id: '/_app/api-keys/'
@@ -316,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/members': {
+      id: '/_app/settings/members'
+      path: '/settings/members'
+      fullPath: '/settings/members'
+      preLoaderRoute: typeof AppSettingsMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -323,6 +362,7 @@ interface AppRouteChildren {
   AppFirstRunRoute: typeof AppFirstRunRoute
   AppBagsBagIdRoute: typeof AppBagsBagIdRoute
   AppFormsFormIdRoute: typeof AppFormsFormIdRoute
+  AppSettingsMembersRoute: typeof AppSettingsMembersRoute
   AppApiKeysIndexRoute: typeof AppApiKeysIndexRoute
   AppBagsIndexRoute: typeof AppBagsIndexRoute
   AppDeliveriesIndexRoute: typeof AppDeliveriesIndexRoute
@@ -337,6 +377,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFirstRunRoute: AppFirstRunRoute,
   AppBagsBagIdRoute: AppBagsBagIdRoute,
   AppFormsFormIdRoute: AppFormsFormIdRoute,
+  AppSettingsMembersRoute: AppSettingsMembersRoute,
   AppApiKeysIndexRoute: AppApiKeysIndexRoute,
   AppBagsIndexRoute: AppBagsIndexRoute,
   AppDeliveriesIndexRoute: AppDeliveriesIndexRoute,
@@ -354,6 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  InvitationsIdRoute: InvitationsIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

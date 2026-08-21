@@ -8,7 +8,10 @@ import { registerDestinationsCommands } from "./commands/destinations.js"
 import { registerEventsCommands } from "./commands/events.js"
 import { registerFormsCommands } from "./commands/forms.js"
 import { registerInitCommand } from "./commands/init.js"
+import { registerInvitationsCommands } from "./commands/invitations.js"
+import { registerMembersCommands } from "./commands/members.js"
 import { registerMiscCommands } from "./commands/misc.js"
+import { registerOrgsCommands } from "./commands/orgs.js"
 import { registerPlanCommands } from "./commands/plan.js"
 import { registerProjectsCommands } from "./commands/projects.js"
 import { registerRoutesCommands } from "./commands/routes.js"
@@ -57,6 +60,9 @@ export function buildProgram(deps: CliDeps = defaultDeps()): Command {
   registerWebhooksCommands(program, deps)
   registerProjectsCommands(program, deps)
   registerApiKeysCommands(program, deps)
+  registerOrgsCommands(program, deps)
+  registerMembersCommands(program, deps)
+  registerInvitationsCommands(program, deps)
   registerPlanCommands(program, deps)
   registerAdminCommands(program, deps)
   registerMiscCommands(program, deps)

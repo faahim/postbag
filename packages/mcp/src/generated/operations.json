@@ -83,6 +83,47 @@
     }
   },
   {
+    "operationId": "invitations_get",
+    "method": "get",
+    "path": "/v1/invitations/{id}",
+    "summary": "Look up a pending invitation (public)",
+    "description": "Public — no credentials required, so the accept page can render the org name and inviter before the visitor signs in. The invited email is masked (email_hint).",
+    "tags": [
+      "discovery"
+    ],
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "invitations_revoke",
+    "method": "delete",
+    "path": "/v1/invitations/{id}",
+    "summary": "Revoke a pending invitation",
+    "tags": [
+      "discovery"
+    ],
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
     "operationId": "me_get",
     "method": "get",
     "path": "/v1/me",
@@ -110,8 +151,8 @@
     "operationId": "api_keys_create",
     "method": "post",
     "path": "/v1/api-keys",
-    "summary": "Create an API key for the active organization (session only)",
-    "description": "Requires a signed-in dashboard session, not another API key — an agent cannot mint its own first key this way. The full key is only ever returned once, in this response; store it immediately.",
+    "summary": "Create an API key for the active organization (session only, owner/admin)",
+    "description": "Requires a signed-in dashboard session, not another API key — an agent cannot mint its own first key this way. Owner or admin (job L). The full key is only ever returned once, in this response; store it immediately.",
     "tags": [
       "discovery"
     ],
@@ -162,6 +203,191 @@
           "description": "The API key id (not the key value itself)."
         },
         "description": "The API key id (not the key value itself)."
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "me_set_active_organization",
+    "method": "post",
+    "path": "/v1/me/active-organization",
+    "summary": "Switch the signed-in session's active organization",
+    "description": "Session only — an API key already resolves to exactly one organization and cannot switch. The caller must already be a member of the target organization (403 forbidden otherwise). Every subsequent /v1 call on this session scopes to the new organization.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "organization_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "organization_id"
+      ]
+    }
+  },
+  {
+    "operationId": "organizations_create",
+    "method": "post",
+    "path": "/v1/organizations",
+    "summary": "Create a new organization and switch to it (session only)",
+    "description": "Session only. Creates the organization (the caller becomes its owner), the same default settings + 'Default' project every signup gets, then makes it this session's active organization.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "name"
+      ]
+    }
+  },
+  {
+    "operationId": "members_list",
+    "method": "get",
+    "path": "/v1/members",
+    "summary": "List the organization's members",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": null
+  },
+  {
+    "operationId": "members_update_role",
+    "method": "patch",
+    "path": "/v1/members/{memberId}",
+    "summary": "Change a member's role (owner only)",
+    "description": "Owner only — an admin cannot promote or demote anyone, including themselves. Cannot demote the organization's last owner (409 last_owner); promote someone else first.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [
+      {
+        "name": "memberId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "description": "The Membership id (not the user id)."
+        },
+        "description": "The Membership id (not the user id)."
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "admin",
+            "member"
+          ]
+        }
+      },
+      "required": [
+        "role"
+      ]
+    }
+  },
+  {
+    "operationId": "members_remove",
+    "method": "delete",
+    "path": "/v1/members/{memberId}",
+    "summary": "Remove a member, or leave the organization",
+    "description": "Owner or admin may remove any other member. A signed-in member may always remove themselves (leave) regardless of role. Either way, the organization's last owner cannot be removed (409 last_owner).",
+    "tags": [
+      "discovery"
+    ],
+    "params": [
+      {
+        "name": "memberId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "description": "The Membership id (not the user id)."
+        },
+        "description": "The Membership id (not the user id)."
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "invitations_list",
+    "method": "get",
+    "path": "/v1/invitations",
+    "summary": "List pending invitations",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": null
+  },
+  {
+    "operationId": "invitations_create",
+    "method": "post",
+    "path": "/v1/invitations",
+    "summary": "Invite someone to the organization",
+    "description": "Owner or admin. Sends an email via Resend when the server has RESEND_API_KEY configured; otherwise the invitation is still created and its accept link can be shared manually. Re-inviting an address with a pending invitation resends it (extends the 7-day expiry) instead of creating a duplicate.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "admin",
+            "member"
+          ],
+          "description": "Invite as admin or member. Promote to owner from Members after they join."
+        }
+      },
+      "required": [
+        "email",
+        "role"
+      ]
+    }
+  },
+  {
+    "operationId": "invitations_accept",
+    "method": "post",
+    "path": "/v1/invitations/{id}/accept",
+    "summary": "Accept an invitation (session only)",
+    "description": "Session only. The signed-in user's email must match the invitation's invited email exactly (403 invitation_email_mismatch otherwise). On success the organization becomes this session's active organization.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
       }
     ],
     "body": null

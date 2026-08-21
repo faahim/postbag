@@ -44,6 +44,205 @@ components:
             - message
       required:
         - error
+    PublicInvitation:
+      type: object
+      properties:
+        organization:
+          type: object
+          properties:
+            name:
+              type: string
+          required:
+            - name
+        invited_by_name:
+          type:
+            - string
+            - "null"
+        role:
+          type: string
+          enum:
+            - owner
+            - admin
+            - member
+        expires_at:
+          type: string
+          example: 2026-08-21T09:00:00.000Z
+        email_hint:
+          type: string
+          description: The invited email, masked, e.g. 'j***@example.com'.
+      required:
+        - organization
+        - invited_by_name
+        - role
+        - expires_at
+        - email_hint
+    OrganizationSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          example: fm_8f3kq2
+        slug:
+          type: string
+        name:
+          type: string
+        role:
+          type:
+            - string
+            - "null"
+          enum:
+            - owner
+            - admin
+            - member
+            - null
+          description: The caller's role in this organization. Null when the caller is an
+            API key — keys are org-scoped, not user-scoped, so they have no
+            membership role of their own.
+        is_active:
+          type: boolean
+      required:
+        - id
+        - slug
+        - name
+        - role
+        - is_active
+    ActiveOrganization:
+      type: object
+      properties:
+        organization:
+          type: object
+          properties:
+            id:
+              type: string
+              example: fm_8f3kq2
+            slug:
+              type: string
+            name:
+              type: string
+          required:
+            - id
+            - slug
+            - name
+      required:
+        - organization
+    Member:
+      type: object
+      properties:
+        id:
+          type: string
+          example: fm_8f3kq2
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            email:
+              type: string
+          required:
+            - id
+            - name
+            - email
+        role:
+          type: string
+          enum:
+            - owner
+            - admin
+            - member
+        joined_at:
+          type: string
+          example: 2026-08-21T09:00:00.000Z
+      required:
+        - id
+        - user
+        - role
+        - joined_at
+    Invitation:
+      type: object
+      properties:
+        id:
+          type: string
+          example: fm_8f3kq2
+        email:
+          type: string
+        role:
+          type: string
+          enum:
+            - owner
+            - admin
+            - member
+        expires_at:
+          type: string
+          example: 2026-08-21T09:00:00.000Z
+        invited_by:
+          type:
+            - object
+            - "null"
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            email:
+              type: string
+          required:
+            - id
+            - name
+            - email
+          description: Null when the invitation was created by an API key rather than a
+            signed-in session.
+        created_at:
+          type: string
+          example: 2026-08-21T09:00:00.000Z
+      required:
+        - id
+        - email
+        - role
+        - expires_at
+        - invited_by
+        - created_at
+    AcceptInvitationResult:
+      type: object
+      properties:
+        organization:
+          type: object
+          properties:
+            id:
+              type: string
+              example: fm_8f3kq2
+            slug:
+              type: string
+            name:
+              type: string
+          required:
+            - id
+            - slug
+            - name
+        role:
+          type: string
+          enum:
+            - owner
+            - admin
+            - member
+        next:
+          type: array
+          items:
+            type: object
+            properties:
+              why:
+                type: string
+              method:
+                type: string
+              path:
+                type: string
+              body:
+                type: object
+                additionalProperties: {}
+      required:
+        - organization
+        - role
+        - next
     PlanRedeemResult:
       allOf:
         - $ref: "#/components/schemas/OrganizationPlan"
@@ -980,6 +1179,115 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/invitations/{id}:
+    get:
+      operationId: invitations_get
+      tags:
+        - discovery
+      summary: Look up a pending invitation (public)
+      description: Public — no credentials required, so the accept page can render the
+        org name and inviter before the visitor signs in. The invited email is
+        masked (email_hint).
+      security: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicInvitation"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    delete:
+      operationId: invitations_revoke
+      tags:
+        - discovery
+      summary: Revoke a pending invitation
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: id
+          in: path
+      responses:
+        "204":
+          description: revoked
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /v1/me:
     get:
       operationId: me_get
@@ -1044,6 +1352,10 @@ paths:
                             - submit
                     required:
                       - scopes
+                  organizations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/OrganizationSummary"
                   counts:
                     type: object
                     properties:
@@ -1107,6 +1419,7 @@ paths:
                 required:
                   - organization
                   - key
+                  - organizations
                   - counts
                   - limits
                   - next
@@ -1115,10 +1428,11 @@ paths:
       operationId: api_keys_create
       tags:
         - discovery
-      summary: Create an API key for the active organization (session only)
+      summary: Create an API key for the active organization (session only, owner/admin)
       description: Requires a signed-in dashboard session, not another API key — an
-        agent cannot mint its own first key this way. The full key is only ever
-        returned once, in this response; store it immediately.
+        agent cannot mint its own first key this way. Owner or admin (job L).
+        The full key is only ever returned once, in this response; store it
+        immediately.
       requestBody:
         content:
           application/json:
@@ -1279,6 +1593,431 @@ paths:
       responses:
         "204":
           description: deleted
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/me/active-organization:
+    post:
+      operationId: me_set_active_organization
+      tags:
+        - discovery
+      summary: Switch the signed-in session's active organization
+      description: Session only — an API key already resolves to exactly one
+        organization and cannot switch. The caller must already be a member of
+        the target organization (403 forbidden otherwise). Every subsequent /v1
+        call on this session scopes to the new organization.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organization_id:
+                  type: string
+              required:
+                - organization_id
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveOrganization"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/organizations:
+    post:
+      operationId: organizations_create
+      tags:
+        - discovery
+      summary: Create a new organization and switch to it (session only)
+      description: Session only. Creates the organization (the caller becomes its
+        owner), the same default settings + 'Default' project every signup gets,
+        then makes it this session's active organization.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                slug:
+                  type: string
+                  minLength: 1
+              required:
+                - name
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationSummary"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/members:
+    get:
+      operationId: members_list
+      tags:
+        - discovery
+      summary: List the organization's members
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+  /v1/members/{memberId}:
+    patch:
+      operationId: members_update_role
+      tags:
+        - discovery
+      summary: Change a member's role (owner only)
+      description: Owner only — an admin cannot promote or demote anyone, including
+        themselves. Cannot demote the organization's last owner (409
+        last_owner); promote someone else first.
+      parameters:
+        - schema:
+            type: string
+            description: The Membership id (not the user id).
+          required: true
+          description: The Membership id (not the user id).
+          name: memberId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum:
+                    - owner
+                    - admin
+                    - member
+              required:
+                - role
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    delete:
+      operationId: members_remove
+      tags:
+        - discovery
+      summary: Remove a member, or leave the organization
+      description: Owner or admin may remove any other member. A signed-in member may
+        always remove themselves (leave) regardless of role. Either way, the
+        organization's last owner cannot be removed (409 last_owner).
+      parameters:
+        - schema:
+            type: string
+            description: The Membership id (not the user id).
+          required: true
+          description: The Membership id (not the user id).
+          name: memberId
+          in: path
+      responses:
+        "204":
+          description: removed
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/invitations:
+    get:
+      operationId: invitations_list
+      tags:
+        - discovery
+      summary: List pending invitations
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invitation"
+    post:
+      operationId: invitations_create
+      tags:
+        - discovery
+      summary: Invite someone to the organization
+      description: Owner or admin. Sends an email via Resend when the server has
+        RESEND_API_KEY configured; otherwise the invitation is still created and
+        its accept link can be shared manually. Re-inviting an address with a
+        pending invitation resends it (extends the 7-day expiry) instead of
+        creating a duplicate.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - member
+                  description: Invite as admin or member. Promote to owner from Members after they
+                    join.
+              required:
+                - email
+                - role
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invitation"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "502":
+          description: The invitation was created, but the email could not be sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/invitations/{id}/accept:
+    post:
+      operationId: invitations_accept
+      tags:
+        - discovery
+      summary: Accept an invitation (session only)
+      description: Session only. The signed-in user's email must match the
+        invitation's invited email exactly (403 invitation_email_mismatch
+        otherwise). On success the organization becomes this session's active
+        organization.
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcceptInvitationResult"
         "400":
           description: Error
           content:

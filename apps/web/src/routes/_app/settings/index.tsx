@@ -1,17 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { toast } from "sonner"
 
 import { ConnectedAccountsCard } from "@/components/connected-accounts-card"
 import { PlanCard } from "@/components/plan-card"
+import { SettingsNav } from "@/components/settings-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { api } from "@/lib/api"
 import { authClient } from "@/lib/auth-client"
+import { useMe } from "@/lib/queries/me"
 
 export const Route = createFileRoute("/_app/settings/")({
   component: SettingsRoute,
@@ -19,13 +20,7 @@ export const Route = createFileRoute("/_app/settings/")({
 
 function SettingsRoute() {
   const queryClient = useQueryClient()
-  const me = useQuery({
-    queryKey: ["me"],
-    queryFn: async () => {
-      const { data } = await api.GET("/v1/me")
-      return data
-    },
-  })
+  const me = useMe()
   const [name, setName] = useState<string | undefined>(undefined)
   const [saving, setSaving] = useState(false)
 
@@ -51,6 +46,8 @@ function SettingsRoute() {
         <h1 className="text-xl font-semibold">Settings</h1>
         <p className="text-sm text-muted-foreground">Workspace name, plan and timezone.</p>
       </div>
+
+      <SettingsNav />
 
       <PlanCard />
 

@@ -21,7 +21,18 @@ function Divider() {
 /** Shared between sign-in and sign-up (job G 2a/2c) — Better Auth handles both intents
  * through the same `signIn.social` call, so `intent` carries no behavioural split; it is
  * exposed for the caller's own layout/analytics hooks (`data-intent` below). */
-export function SocialButtons({ intent, className }: { readonly intent: "sign-in" | "sign-up"; readonly className?: string }) {
+export function SocialButtons({
+  intent,
+  className,
+  callbackURL,
+}: {
+  readonly intent: "sign-in" | "sign-up"
+  readonly className?: string
+  /** Where Better Auth sends the browser after a successful round trip. Defaults to the
+   * dashboard; the invitation accept page overrides this so Google/GitHub sign-in also
+   * lands back on the invitation instead of the default dashboard. */
+  readonly callbackURL?: string
+}) {
   const providers = useAuthProviders()
   const [pendingProvider, setPendingProvider] = useState<SocialProvider | null>(null)
 
@@ -29,8 +40,8 @@ export function SocialButtons({ intent, className }: { readonly intent: "sign-in
     setPendingProvider(provider)
     const { error } = await signIn.social({
       provider,
-      callbackURL: "/app",
-      newUserCallbackURL: "/app?welcome=1",
+      callbackURL: callbackURL ?? "/app",
+      newUserCallbackURL: callbackURL ?? "/app?welcome=1",
       errorCallbackURL: "/app/sign-in?error=oauth",
     })
     // On success Better Auth navigates the browser away immediately — nothing left to do

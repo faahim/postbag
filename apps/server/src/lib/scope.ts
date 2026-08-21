@@ -26,7 +26,10 @@ export function assertScope(scope: RequestScope, required: ApiKeyScope): void {
   }
 }
 
-export function assertSessionActor(scope: RequestScope, message: string): void {
+export function assertSessionActor(
+  scope: RequestScope,
+  message: string,
+): asserts scope is RequestScope & { actor: { readonly type: "session"; readonly userId: string } } {
   if (scope.actor.type !== "session") {
     throw new PostbagError("forbidden", message)
   }

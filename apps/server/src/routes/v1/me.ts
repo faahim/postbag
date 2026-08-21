@@ -1,9 +1,10 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
-import { count, eq } from "drizzle-orm"
+import { asc, count, eq } from "drizzle-orm"
 import {
   apikey,
   destinations,
   forms,
+  member,
   organization,
   organizationSettings,
   projects,
@@ -14,8 +15,9 @@ import {
 } from "@postbag/db"
 
 import { limitsFor } from "../../lib/plan.js"
+import { isMemberRole } from "../../lib/orgs.js"
 import type { AppEnv } from "../../lib/scope.js"
-import { NextSchema, ScopeSchema } from "../../schemas.js"
+import { NextSchema, OrganizationSummarySchema, ScopeSchema } from "../../schemas.js"
 
 const MeSchema = z.object({
   organization: z.object({
@@ -32,6 +34,10 @@ const MeSchema = z.object({
     timezone: z.string(),
   }),
   key: z.object({ prefix: z.string().optional(), scopes: z.array(ScopeSchema) }),
+  // Job L §1: only orgs the caller is a member of — the user's own data, never
+  // cross-tenant. For a session actor this is every Membership row for that user; an API
+  // key has no user of its own (see OrganizationSummarySchema), so it's just its one org.
+  organizations: z.array(OrganizationSummarySchema),
   counts: z.object({
     projects: z.number().int(),
     forms: z.number().int(),
@@ -91,6 +97,30 @@ export function registerMeRoutes(app: OpenAPIHono<AppEnv>, db: Database): void {
     const plan = settingsRow?.plan ?? "free"
     const limits = limitsFor(plan, settingsRow?.limits ?? {})
 
+    let organizations: z.infer<typeof MeSchema>["organizations"]
+    if (scope.actor.type === "session") {
+      const rows = await db
+        .select({
+          id: organization.id,
+          slug: organization.slug,
+          name: organization.name,
+          role: member.role,
+        })
+        .from(member)
+        .innerJoin(organization, eq(organization.id, member.organizationId))
+        .where(eq(member.userId, scope.actor.userId))
+        .orderBy(asc(member.createdAt))
+      organizations = rows.map((row) => ({
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        role: isMemberRole(row.role) ? row.role : "member",
+        is_active: row.id === scope.organizationId,
+      }))
+    } else {
+      organizations = [{ id: org.id, slug: org.slug, name: org.name, role: null, is_active: true }]
+    }
+
     return c.json({
       organization: {
         id: org.id,
@@ -103,6 +133,7 @@ export function registerMeRoutes(app: OpenAPIHono<AppEnv>, db: Database): void {
         timezone: settingsRow?.timezone ?? "UTC",
       },
       key: { prefix: keyPrefix, scopes: [...scope.scopes] },
+      organizations,
       counts: {
         projects: projectCount?.value ?? 0,
         forms: formCount?.value ?? 0,

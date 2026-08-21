@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
+import { z } from "zod"
 
 import { AuthSplitLayout } from "@/components/auth-split-layout"
 import { SocialButtons } from "@/components/social-buttons"
@@ -11,12 +12,16 @@ import { Label } from "@/components/ui/label"
 import { signUp } from "@/lib/auth-client"
 import { signUpSchema, type SignUpValues } from "@/lib/auth-schemas"
 
+const searchSchema = z.object({ redirect: z.string().optional() })
+
 export const Route = createFileRoute("/sign-up")({
   component: SignUpRoute,
+  validateSearch: searchSchema,
 })
 
 function SignUpRoute() {
   const navigate = useNavigate()
+  const search = Route.useSearch()
   const [formError, setFormError] = useState<string | null>(null)
   const {
     register,
@@ -31,8 +36,10 @@ function SignUpRoute() {
       setFormError(error.message ?? "Could not create your account.")
       return
     }
-    // First-run: sole persona test — under three minutes from signup to the embed snippet.
-    await navigate({ to: "/first-run" })
+    // First-run (sole persona test — under three minutes from signup to the embed snippet)
+    // unless the signup came from an invitation accept page, which redirects back there so
+    // the account also joins the inviting organization instead of starting empty.
+    await navigate({ to: search.redirect ?? "/first-run" })
   })
 
   return (
@@ -88,7 +95,11 @@ function SignUpRoute() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have a workspace?{" "}
-          <Link to="/sign-in" className="font-medium text-foreground underline-offset-4 hover:underline">
+          <Link
+            to="/sign-in"
+            search={search.redirect === undefined ? {} : { redirect: search.redirect }}
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
             Sign in
           </Link>
         </p>

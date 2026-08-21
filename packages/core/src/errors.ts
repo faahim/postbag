@@ -46,6 +46,17 @@ export const ERROR_DEFINITIONS = {
     status: 422,
     hint: "Use from, const, or default until expressions ship.",
   },
+  // Job L — members, invitations, roles.
+  invitation_expired: { status: 410, hint: "Ask an owner or admin to invite you again." },
+  invitation_already_used: { status: 409, hint: "This invitation was already accepted or revoked." },
+  invitation_email_mismatch: {
+    status: 403,
+    hint: "Sign out and sign in (or up) with the invited email address, then accept again.",
+  },
+  last_owner: {
+    status: 409,
+    hint: "Promote another member to owner first, or transfer ownership before removing yourself.",
+  },
   internal_error: { status: 500, hint: "Retry; contact support if this persists." },
 } as const
 

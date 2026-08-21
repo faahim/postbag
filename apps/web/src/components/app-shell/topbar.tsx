@@ -1,11 +1,10 @@
-import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { ChevronsUpDown, LogOut, Monitor, Moon, Search, Sun } from "lucide-react"
+import { LogOut, Monitor, Moon, Search, Sun } from "lucide-react"
 import { useState } from "react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { VipBadge } from "@/components/vip-badge"
+import { OrgSwitcher } from "@/components/app-shell/org-switcher"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { api } from "@/lib/api"
 import { signOut, useSession } from "@/lib/auth-client"
 import { getThemePreference, setThemePreference, type ThemePreference } from "@/lib/theme"
 
@@ -28,13 +26,6 @@ function initials(name: string): string {
 export function Topbar() {
   const navigate = useNavigate()
   const { data: session } = useSession()
-  const me = useQuery({
-    queryKey: ["me"],
-    queryFn: async () => {
-      const { data } = await api.GET("/v1/me")
-      return data
-    },
-  })
   const [theme, setTheme] = useState<ThemePreference>(getThemePreference())
 
   function applyTheme(next: ThemePreference) {
@@ -57,27 +48,7 @@ export function Topbar() {
       </button>
 
       <div className="flex items-center gap-1.5">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-              {me.data?.organization.name ?? "Workspace"}
-              <ChevronsUpDown className="size-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>{me.data?.organization.name ?? "Workspace"}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => {
-                void navigate({ to: "/settings" })
-              }}
-            >
-              Workspace settings
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {me.data?.organization.plan_source === "complimentary" && <VipBadge />}
+        <OrgSwitcher />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

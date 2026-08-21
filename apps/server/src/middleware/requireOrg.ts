@@ -1,10 +1,10 @@
-import { desc, eq } from "drizzle-orm"
-import { member, type Database } from "@postbag/db"
 import { expandScopes } from "@postbag/auth"
 import type { MiddlewareHandler } from "hono"
+import type { Database } from "@postbag/db"
 
 import type { Auth } from "../authSetup.js"
 import { unauthorized } from "../lib/errors.js"
+import { resolveAnyOrganizationId, resolveOwnedOrganizationId } from "../lib/orgs.js"
 import type { RequestScope, Variables } from "../lib/scope.js"
 
 const ALL_SCOPES = ["manage", "read", "submit"] as const
@@ -32,14 +32,15 @@ function scopesFromMetadata(metadata: unknown): readonly ("manage" | "read" | "s
   )
 }
 
-async function resolveFirstOrganization(db: Database, userId: string): Promise<string | null> {
-  const [row] = await db
-    .select({ organizationId: member.organizationId })
-    .from(member)
-    .where(eq(member.userId, userId))
-    .orderBy(desc(member.createdAt))
-    .limit(1)
-  return row?.organizationId ?? null
+/** Job L §1: the `activeOrganizationId`-less fallback is the org the user *owns* (oldest
+ * owner membership) — never the most recently joined membership. Being invited into
+ * someone else's org must not change a user's default dashboard. Every user owns at least
+ * their personal org from signup, so `resolveAnyOrganizationId` is only reached for
+ * legacy/pathological data with no owned org at all. */
+async function resolveFallbackOrganization(db: Database, userId: string): Promise<string | null> {
+  const owned = await resolveOwnedOrganizationId(db, userId)
+  if (owned !== null) return owned
+  return resolveAnyOrganizationId(db, userId)
 }
 
 export function requireOrg(auth: Auth, db: Database): MiddlewareHandler<{ Variables: Variables }> {
@@ -71,7 +72,7 @@ export function requireOrg(auth: Auth, db: Database): MiddlewareHandler<{ Variab
     }
     const activeOrganizationId = session.session.activeOrganizationId
     const organizationId =
-      activeOrganizationId ?? (await resolveFirstOrganization(db, session.user.id))
+      activeOrganizationId ?? (await resolveFallbackOrganization(db, session.user.id))
     if (organizationId === null) {
       throw unauthorized("This account does not belong to an organization yet.")
     }

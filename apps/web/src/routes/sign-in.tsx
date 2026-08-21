@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { signIn } from "@/lib/auth-client"
 import { signInSchema, type SignInValues } from "@/lib/auth-schemas"
 
-const searchSchema = z.object({ error: z.string().optional() })
+const searchSchema = z.object({ error: z.string().optional(), redirect: z.string().optional() })
 
 export const Route = createFileRoute("/sign-in")({
   component: SignInRoute,
@@ -52,7 +52,7 @@ function SignInRoute() {
       setFormError(error.message ?? "Could not sign in. Check your email and password.")
       return
     }
-    await navigate({ to: "/" })
+    await navigate({ to: search.redirect ?? "/" })
   })
 
   return (
@@ -105,7 +105,11 @@ function SignInRoute() {
 
         <p className="text-center text-sm text-muted-foreground">
           New to Postbag?{" "}
-          <Link to="/sign-up" className="font-medium text-foreground underline-offset-4 hover:underline">
+          <Link
+            to="/sign-up"
+            search={search.redirect === undefined ? {} : { redirect: search.redirect }}
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
             Create an account
           </Link>
         </p>

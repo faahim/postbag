@@ -51,14 +51,22 @@ describe("generated OpenAPI document", () => {
     const health = allOperations(doc).find(({ path }) => path === "/health")
     expect(health?.op.security).toEqual([])
 
-    // GET /v1/auth/providers (job G 1c) and the two agent-onboarding endpoints
-    // /v1/auth/request-code + /v1/auth/verify-code (job H 1b) are deliberately public — the
-    // SPA calls the first before sign-in even loads, and an agent holding no credentials at
-    // all must be able to reach the other two, so they carry their own `security: []`
-    // override instead of inheriting the document default. Every other /v1/* operation
-    // still inherits it.
-    const PUBLIC_V1_PATHS = new Set(["/v1/auth/providers", "/v1/auth/request-code", "/v1/auth/verify-code"])
-    const v1Operations = allOperations(doc).filter(({ path }) => path.startsWith("/v1/") && !PUBLIC_V1_PATHS.has(path))
+    // GET /v1/auth/providers (job G 1c), the two agent-onboarding endpoints
+    // /v1/auth/request-code + /v1/auth/verify-code (job H 1b), and GET
+    // /v1/invitations/{id} (job L — the accept-invitation page must render before sign-in)
+    // are deliberately public — they carry their own `security: []` override instead of
+    // inheriting the document default. Every other /v1/* operation still inherits it,
+    // including DELETE /v1/invitations/{id} (revoke), which shares a path with the public
+    // GET, so this is keyed by (path, method), not path alone.
+    const PUBLIC_V1_OPERATIONS = new Set([
+      "get /v1/auth/providers",
+      "post /v1/auth/request-code",
+      "post /v1/auth/verify-code",
+      "get /v1/invitations/{id}",
+    ])
+    const v1Operations = allOperations(doc).filter(
+      ({ path, method }) => path.startsWith("/v1/") && !PUBLIC_V1_OPERATIONS.has(`${method} ${path}`),
+    )
     expect(v1Operations.length).toBeGreaterThan(0)
     for (const { path, method, op } of v1Operations) {
       // No per-operation override — they inherit the document-level `security: [{ bearerAuth: [] }]`.
@@ -82,5 +90,12 @@ describe("generated OpenAPI document", () => {
     const verifyCode = doc.paths["/v1/auth/verify-code"]?.["post"]
     expect(verifyCode?.operationId).toBe("auth_verify_code")
     expect(verifyCode?.security).toEqual([])
+  })
+
+  it("GET /v1/invitations/{id} is public (operationId invitations_get, security: [])", async () => {
+    const doc = (await generateOpenapiDocument()) as unknown as OpenapiDoc
+    const op = doc.paths["/v1/invitations/{id}"]?.["get"]
+    expect(op?.operationId).toBe("invitations_get")
+    expect(op?.security).toEqual([])
   })
 })

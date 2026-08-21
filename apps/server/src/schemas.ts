@@ -341,6 +341,81 @@ export const PlanRedeemResponseSchema = OrganizationPlanSchema.extend({
   next: NextSchema,
 }).openapi("PlanRedeemResult")
 
+// Job L — members, invitations, roles, org switcher.
+export const MemberRoleSchema = z.enum(["owner", "admin", "member"])
+
+export const OrganizationSummarySchema = z
+  .object({
+    id: IdSchema,
+    slug: z.string(),
+    name: z.string(),
+    role: MemberRoleSchema.nullable().describe(
+      "The caller's role in this organization. Null when the caller is an API key — keys are org-scoped, not user-scoped, so they have no membership role of their own.",
+    ),
+    is_active: z.boolean(),
+  })
+  .openapi("OrganizationSummary")
+
+export const MemberSchema = z
+  .object({
+    id: IdSchema,
+    user: z.object({ id: z.string(), name: z.string(), email: z.string() }),
+    role: MemberRoleSchema,
+    joined_at: TimestampSchema,
+  })
+  .openapi("Member")
+
+export const UpdateMemberRoleInputSchema = z.object({ role: MemberRoleSchema })
+
+export const InvitedBySchema = z
+  .object({ id: z.string(), name: z.string(), email: z.string() })
+  .nullable()
+  .describe("Null when the invitation was created by an API key rather than a signed-in session.")
+
+export const InvitationSchema = z
+  .object({
+    id: IdSchema,
+    email: z.string(),
+    role: MemberRoleSchema,
+    expires_at: TimestampSchema,
+    invited_by: InvitedBySchema,
+    created_at: TimestampSchema,
+  })
+  .openapi("Invitation")
+
+export const InvitationCreateInputSchema = z.object({
+  email: z.email(),
+  role: z.enum(["admin", "member"]).describe("Invite as admin or member. Promote to owner from Members after they join."),
+})
+
+export const PublicInvitationSchema = z
+  .object({
+    organization: z.object({ name: z.string() }),
+    invited_by_name: z.string().nullable(),
+    role: MemberRoleSchema,
+    expires_at: TimestampSchema,
+    email_hint: z.string().describe("The invited email, masked, e.g. 'j***@example.com'."),
+  })
+  .openapi("PublicInvitation")
+
+export const AcceptInvitationResponseSchema = z
+  .object({
+    organization: z.object({ id: IdSchema, slug: z.string(), name: z.string() }),
+    role: MemberRoleSchema,
+    next: NextSchema,
+  })
+  .openapi("AcceptInvitationResult")
+
+export const SetActiveOrganizationInputSchema = z.object({ organization_id: z.string() })
+export const SetActiveOrganizationResponseSchema = z
+  .object({ organization: z.object({ id: IdSchema, slug: z.string(), name: z.string() }) })
+  .openapi("ActiveOrganization")
+
+export const CreateOrganizationInputSchema = z.object({
+  name: z.string().min(1),
+  slug: z.string().min(1).optional(),
+})
+
 export const errorResponses = {
   400: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
   401: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },

@@ -26,7 +26,10 @@ import { registerDeliveryRoutes } from "./routes/v1/deliveries.js"
 import { registerDestinationRoutes } from "./routes/v1/destinations.js"
 import { registerEventRoutes } from "./routes/v1/events.js"
 import { registerFormRoutes } from "./routes/v1/forms.js"
+import { registerInvitationRoutes, registerPublicInvitationRoutes } from "./routes/v1/invitations.js"
 import { registerMeRoutes } from "./routes/v1/me.js"
+import { registerMemberRoutes } from "./routes/v1/members.js"
+import { registerOrganizationRoutes } from "./routes/v1/organizations.js"
 import { registerPlanGrantRoutes } from "./routes/v1/planGrants.js"
 import { registerPlanRoutes } from "./routes/v1/plan.js"
 import { registerProjectRoutes } from "./routes/v1/projects.js"
@@ -80,6 +83,10 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   // must be able to reach these.
   registerAuthCodeRoutes(app, auth, db, env, rateLimiter)
 
+  // Job L: GET /v1/invitations/{id} must render for a visitor who is signed out and not
+  // yet an org member — same pre-requireOrg registration as the three routes above.
+  registerPublicInvitationRoutes(app, db)
+
   // Better Auth handles /api/auth/* itself.
   app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw))
 
@@ -89,6 +96,9 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
 
   registerMeRoutes(app, db)
   registerApiKeyRoutes(app, auth, db)
+  registerOrganizationRoutes(app, auth, db)
+  registerMemberRoutes(app, db)
+  registerInvitationRoutes(app, auth, db, env)
   registerPlanRoutes(app, db)
   registerPlanGrantRoutes(app, db, env)
   registerQuickstartRoutes(app, db, env.APP_URL)

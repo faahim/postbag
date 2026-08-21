@@ -99,3 +99,47 @@ export async function createTestApiKey(
 export async function cleanupOrganization(db: Database, organizationId: string): Promise<void> {
   await db.delete(organization).where(eq(organization.id, organizationId))
 }
+
+export type SeededUser = { readonly userId: string; readonly email: string; readonly cookie: string }
+
+/** Signs a brand-new user up through the real HTTP flow (so `provisionPersonalOrganization`
+ * runs exactly as it does in production) and returns a session cookie for it. Used by job L's
+ * role-matrix tests to get a real signed-in actor of a given role in a *shared* test org —
+ * callers then add a `member` row for that org/role directly (see `addMember`) and, if the
+ * test needs `scope.organizationId` to resolve to that org, call `setActiveOrganization`. */
+export async function signUpTestUser(app: OpenAPIHono<AppEnv>, name = "Test User"): Promise<SeededUser> {
+  const email = `${newId("usr")}@example.test`
+  const res = await app.request("/api/auth/sign-up/email", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email, password: "correct horse battery staple", name }),
+  })
+  if (res.status >= 400) throw new Error(`Test sign-up failed with status ${String(res.status)}: ${await res.text()}`)
+  const setCookie = res.headers.get("set-cookie")
+  const cookie = setCookie?.split(";")[0]
+  if (cookie === undefined) throw new Error("Test sign-up did not return a session cookie.")
+  const body = (await res.json()) as { readonly user?: { readonly id?: string } }
+  const userId = body.user?.id
+  if (userId === undefined) throw new Error("Test sign-up response had no user id.")
+  return { userId, email, cookie }
+}
+
+/** Adds a Membership row directly (bypassing the invitation flow — this is test scaffolding,
+ * not something a real user path does) and returns the new member id. */
+export async function addMember(
+  db: Database,
+  organizationId: string,
+  userId: string,
+  role: "owner" | "admin" | "member",
+): Promise<string> {
+  const id = globalThis.crypto.randomUUID()
+  await db.insert(member).values({ id, organizationId, userId, role })
+  return id
+}
+
+/** Makes `organizationId` the active organization for a signed-in test session (the user
+ * must already have a `member` row there — see `addMember`) so `requireOrg` resolves
+ * `scope.organizationId` to it on every subsequent request with this cookie. */
+export async function setActiveOrganizationForTest(auth: Auth, cookie: string, organizationId: string): Promise<void> {
+  await auth.api.setActiveOrganization({ headers: new Headers({ cookie }), body: { organizationId } })
+}
