@@ -9,7 +9,7 @@ import { SocialButtons } from "@/components/social-buttons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { signUp } from "@/lib/auth-client"
+import { signUp, waitForSession } from "@/lib/auth-client"
 import { signUpSchema, type SignUpValues } from "@/lib/auth-schemas"
 
 const searchSchema = z.object({ redirect: z.string().optional() })
@@ -36,6 +36,7 @@ function SignUpRoute() {
       setFormError(error.message ?? "Could not create your account.")
       return
     }
+    await waitForSession()
     // First-run (sole persona test — under three minutes from signup to the embed snippet)
     // unless the signup came from an invitation accept page, which redirects back there so
     // the account also joins the inviting organization instead of starting empty.

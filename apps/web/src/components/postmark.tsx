@@ -83,7 +83,7 @@ export function Postmark({ status, size = 20, className, title, tone = "status" 
             strokeWidth="1.3"
             strokeLinecap="round"
             transform={tickTransform(i, status)}
-            transform-origin="16 16"
+            transformOrigin="16 16"
           />
         ))}
       </g>

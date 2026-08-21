@@ -9,7 +9,7 @@ import { SocialButtons } from "@/components/social-buttons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { signIn } from "@/lib/auth-client"
+import { signIn, waitForSession } from "@/lib/auth-client"
 import { signInSchema, type SignInValues } from "@/lib/auth-schemas"
 
 const searchSchema = z.object({ error: z.string().optional(), redirect: z.string().optional() })
@@ -52,6 +52,9 @@ function SignInRoute() {
       setFormError(error.message ?? "Could not sign in. Check your email and password.")
       return
     }
+    // The cookie is set, but the session store updates a beat later — wait for it, or the
+    // route guard on the next page sends us straight back here (see waitForSession).
+    await waitForSession()
     await navigate({ to: search.redirect ?? "/" })
   })
 
