@@ -15,8 +15,10 @@ const HealthSchema = z.object({
 const healthRoute = createRoute({
   method: "get",
   path: "/health",
+  operationId: "health_get",
   tags: ["discovery"],
   summary: "Liveness and readiness",
+  description: "Public, unauthenticated. Reports database connectivity, worker heartbeat and the oldest pending delivery age.",
   security: [],
   responses: {
     200: { description: "ok", content: { "application/json": { schema: HealthSchema } } },

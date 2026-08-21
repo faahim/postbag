@@ -12,7 +12,8 @@
     "build": "tsc -p tsconfig.build.json && cp src/llms.md dist/llms.md",
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "openapi:export": "tsx scripts/export-openapi.ts"
   },
   "dependencies": {
     "@hono/node-server": "2.1.1",

@@ -6,13 +6,14 @@ import { forms, projects, type Database } from "@postbag/db"
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
 import { serializeProject } from "../../repo/serialize.js"
-import { CursorQuerySchema, errorResponses, ProjectSchema } from "../../schemas.js"
+import { CursorQuerySchema, errorResponses, IdSchema, ProjectSchema } from "../../schemas.js"
 
 const ProjectListSchema = z.object({ data: z.array(ProjectSchema), next_cursor: z.string().nullable() })
 
 const listRoute = createRoute({
   method: "get",
   path: "/v1/projects",
+  operationId: "projects_list",
   tags: ["projects"],
   summary: "List projects",
   request: { query: CursorQuerySchema },
@@ -22,8 +23,10 @@ const listRoute = createRoute({
 const createRouteDef = createRoute({
   method: "post",
   path: "/v1/projects",
+  operationId: "projects_create",
   tags: ["projects"],
   summary: "Create a project",
+  description: "A project groups forms — one per site or app. Pass `if_exists: \"return\"` to make this call safe to re-run.",
   request: { body: { content: { "application/json": { schema: ProjectInputSchema } } } },
   responses: {
     201: { description: "created", content: { "application/json": { schema: ProjectSchema } } },
@@ -34,9 +37,10 @@ const createRouteDef = createRoute({
 const getRoute = createRoute({
   method: "get",
   path: "/v1/projects/{projectId}",
+  operationId: "projects_get",
   tags: ["projects"],
   summary: "Get a project",
-  request: { params: z.object({ projectId: z.string() }) },
+  request: { params: z.object({ projectId: IdSchema }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: ProjectSchema } } },
     ...errorResponses,
@@ -46,10 +50,11 @@ const getRoute = createRoute({
 const patchRoute = createRoute({
   method: "patch",
   path: "/v1/projects/{projectId}",
+  operationId: "projects_update",
   tags: ["projects"],
   summary: "Update a project",
   request: {
-    params: z.object({ projectId: z.string() }),
+    params: z.object({ projectId: IdSchema }),
     body: { content: { "application/json": { schema: ProjectInputSchema.partial() } } },
   },
   responses: {
@@ -61,9 +66,11 @@ const patchRoute = createRoute({
 const deleteRoute = createRoute({
   method: "delete",
   path: "/v1/projects/{projectId}",
+  operationId: "projects_delete",
   tags: ["projects"],
   summary: "Delete an empty project",
-  request: { params: z.object({ projectId: z.string() }) },
+  description: "Fails with 409 while the project still has forms — delete or move them first.",
+  request: { params: z.object({ projectId: IdSchema }) },
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })
 

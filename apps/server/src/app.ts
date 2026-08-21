@@ -11,6 +11,7 @@ import { buildErrorHandler } from "./lib/onError.js"
 import { TokenBucketLimiter } from "./lib/rateLimit.js"
 import type { AppEnv } from "./lib/scope.js"
 import { idempotency } from "./middleware/idempotency.js"
+import { legacyHostRedirect } from "./middleware/legacyHostRedirect.js"
 import { requestId } from "./middleware/requestId.js"
 import { requireOrg } from "./middleware/requireOrg.js"
 import { registerHealthRoute } from "./routes/health.js"
@@ -58,6 +59,7 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   })
 
   app.onError(buildErrorHandler(logger))
+  app.use("*", legacyHostRedirect(env.LEGACY_HOSTS, env.APP_URL))
   app.use("*", requestId())
 
   // Public submit path — no auth, no /v1 middleware.
@@ -89,10 +91,31 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
     return c.body(renderLlmsTxt(env.APP_URL))
   })
 
+  app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
+    type: "http",
+    scheme: "bearer",
+    bearerFormat: "pb_live_… API key",
+    description:
+      "An API key minted via POST /v1/api-keys (or the dashboard), sent as `Authorization: Bearer pb_live_…`. " +
+      "Scopes are manage ⊇ read ⊇ submit — a manage key satisfies every read- or submit-scoped call too.",
+  })
+
   app.doc31("/openapi.json", {
     openapi: "3.1.0",
-    info: { title: "Postbag API", version: VERSION, description: "A form backend that routes." },
+    info: {
+      title: "Postbag API",
+      version: VERSION,
+      description:
+        "A form backend that routes. Websites POST submissions to /s/{formId} (public, unauthenticated); " +
+        "everything under /v1 manages forms, streams, destinations, routes and deliveries and requires a " +
+        "bearer API key. Start at GET /v1/me, then see /llms.txt for the full agent onboarding guide.",
+    },
+    // Self-host parity (Principle 7): the live /openapi.json reports this instance's own
+    // APP_URL, not a hardcoded postbag.dev — a self-hosted operator's contract points at
+    // their own server. `scripts/export-openapi.ts` overrides `servers` for the committed,
+    // generated `api/openapi.yaml` (the hosted product's contract) after fetching this.
     servers: [{ url: env.APP_URL }],
+    security: [{ bearerAuth: [] }],
   })
 
   // Marketing/docs site at `/` when built in; otherwise `/` redirects to the dashboard.

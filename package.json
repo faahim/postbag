@@ -21,6 +21,7 @@
     "db:generate": "pnpm --filter @postbag/core build && pnpm --filter @postbag/db db:generate",
     "db:migrate": "pnpm --filter @postbag/db db:migrate",
     "db:studio": "pnpm --filter @postbag/db db:studio",
+    "openapi:export": "pnpm --filter @postbag/server openapi:export",
     "release:version": "pnpm --filter @postbag/sdk --filter postbag --filter @postbag/mcp exec npm version --no-git-tag-version",
     "release:check": "pnpm --filter @postbag/sdk --filter postbag --filter @postbag/mcp build && pnpm -r publish --access public --no-git-checks --dry-run"
   },

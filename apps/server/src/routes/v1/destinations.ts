@@ -7,13 +7,14 @@ import type { AnyDestinationAdapter } from "../../destinations/types.js"
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
 import { serializeDestination, type DestinationRow } from "../../repo/serialize.js"
-import { CursorQuerySchema, DeliveryResultSchema, DestinationSchema, errorResponses } from "../../schemas.js"
+import { CursorQuerySchema, DeliveryResultSchema, DestinationSchema, errorResponses, IdSchema } from "../../schemas.js"
 
 const DestinationListSchema = z.object({ data: z.array(DestinationSchema), next_cursor: z.string().nullable() })
 
 const listRoute = createRoute({
   method: "get",
   path: "/v1/destinations",
+  operationId: "destinations_list",
   tags: ["destinations"],
   summary: "List destinations (secrets redacted)",
   request: { query: CursorQuerySchema },
@@ -23,8 +24,10 @@ const listRoute = createRoute({
 const createRouteDef = createRoute({
   method: "post",
   path: "/v1/destinations",
+  operationId: "destinations_create",
   tags: ["destinations"],
   summary: "Create a destination",
+  description: "type is one of email, telegram, webhook, slack, discord; config shape depends on type. Call destinations_test after creating to verify it works.",
   request: { body: { content: { "application/json": { schema: DestinationInputSchema } } } },
   responses: {
     201: { description: "created", content: { "application/json": { schema: DestinationSchema } } },
@@ -35,9 +38,10 @@ const createRouteDef = createRoute({
 const getRoute = createRoute({
   method: "get",
   path: "/v1/destinations/{destinationId}",
+  operationId: "destinations_get",
   tags: ["destinations"],
-  summary: "Get",
-  request: { params: z.object({ destinationId: z.string() }) },
+  summary: "Get a destination (secrets redacted)",
+  request: { params: z.object({ destinationId: IdSchema }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: DestinationSchema } } },
     ...errorResponses,
@@ -47,11 +51,24 @@ const getRoute = createRoute({
 const patchRoute = createRoute({
   method: "patch",
   path: "/v1/destinations/{destinationId}",
+  operationId: "destinations_update",
   tags: ["destinations"],
   summary: "Update config",
   request: {
-    params: z.object({ destinationId: z.string() }),
-    body: { content: { "application/json": { schema: z.object({ name: z.string().optional(), config: z.record(z.string(), z.unknown()).optional() }) } } },
+    params: z.object({ destinationId: IdSchema }),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            name: z.string().optional().describe("A display label for this destination."),
+            config: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe("Merged shallowly into the existing config (type-specific: to/cc for email, chat_id/bot_token for telegram, url/secret for webhook)."),
+          }),
+        },
+      },
+    },
   },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: DestinationSchema } } },
@@ -62,20 +79,30 @@ const patchRoute = createRoute({
 const deleteRoute = createRoute({
   method: "delete",
   path: "/v1/destinations/{destinationId}",
+  operationId: "destinations_delete",
   tags: ["destinations"],
   summary: "Delete (fails if routes reference it)",
-  request: { params: z.object({ destinationId: z.string() }) },
+  description: "Fails with 409 while a route still points at this destination — delete or repoint those routes first.",
+  request: { params: z.object({ destinationId: IdSchema }) },
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })
 
 const testRoute = createRoute({
   method: "post",
   path: "/v1/destinations/{destinationId}/test",
+  operationId: "destinations_test",
   tags: ["destinations"],
   summary: "Send a sample payload now and return the provider response",
+  description: "Verifies a destination is actually reachable and configured correctly — do this right after creating one, before wiring routes to it.",
   request: {
-    params: z.object({ destinationId: z.string() }),
-    body: { content: { "application/json": { schema: z.object({ sample: z.record(z.string(), z.unknown()).optional() }) } } },
+    params: z.object({ destinationId: IdSchema }),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({ sample: z.record(z.string(), z.unknown()).optional().describe("Override the default sample payload sent for the test.") }),
+        },
+      },
+    },
   },
   responses: {
     200: { description: "result", content: { "application/json": { schema: DeliveryResultSchema } } },

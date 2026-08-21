@@ -107,6 +107,21 @@ the rules and `docs/` for the design.
 2c. **Human (Phase 3 gate):** create the Polar organisation, complete KYC with Bangladeshi documents and a
    local bank account, confirm a sandbox sale and a real test payout land. If it fails → Paddle via a
    superseding ADR. No billing code merges before this.
+2d. **Social login — Google (non-negotiable) + GitHub** (spec `tasks/job-G-social-login.md`; Better Auth 1.6
+   `socialProviders` + `account.accountLinking.trustedProviders`, no new deps). Status 2026-08-21: GitHub OAuth app
+   created (client id `Ov23li80jqB1DXPzvMsP`, callbacks `https://postbag.dev/api/auth/callback/github` +
+   `http://localhost:3000/...`); secret pending Fahim's 2FA. Google: GCP project **`postbag-dev`** created via gcloud,
+   consent screen (External, support + contact = afiur.fahim@gmail.com) staged pending Fahim's policy tick; then create
+   a Web OAuth client with the same two callback URIs (`/google`) and publish the app to production (non-sensitive
+   scopes only → no verification). Secrets go to Coolify env `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET` — never the repo.
+2e. **Agent onboarding, here.now-style** (proposal, 2026-08-21): (a) agent-assisted signup without a browser —
+   `POST /v1/auth/request-code {email}` → emailed 6-digit code (Better Auth `emailOTP` plugin) →
+   `POST /v1/auth/verify-code {email, code, key_name}` creates user+org if new and returns a `pb_live_` manage key
+   the agent stores in `~/.config/postbag/credentials.json`; (b) an Agent Skill in-repo (`skills/postbag/SKILL.md`,
+   installable with `npx skills add faahim/postbag`, discoverable at `/.well-known/skills/`), with the landing page
+   offering "paste this to your agent"; (c) later: anonymous `POST /v1/quickstart` (no auth) that creates a 24-hour
+   sandbox form that stores but does not deliver, plus a `claim_url` that a Google/GitHub sign-in turns into a real
+   org — deliveries unlock after claim. (a)+(b) are cheap and safe; (c) needs Fahim's yes (abuse surface, retention).
 3. Dogfood: portfolio contact form → Postbag. Then Smedja `forge` provisioning.
 4. ~~Marketing site~~ shipped (see Done). Still open: **domain cut-over to `postbag.dev`** (decided; change
    `SITE_URL` + Coolify `APP_URL` + Resend sending domain together, and add `https://postbag.dev` to

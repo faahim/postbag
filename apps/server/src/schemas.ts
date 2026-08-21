@@ -44,9 +44,12 @@ export const JsonRecord = z.record(z.string(), z.unknown())
 // identical for well-formed JSON Schema documents; only used where a route definition
 // needs a request/response schema safe for app.doc31() to walk.
 export const SafeSchemaInputSchema = z.object({
-  json_schema: JsonRecord,
-  ui: z.record(z.string(), JsonRecord).optional(),
-  changelog: z.string().optional(),
+  json_schema: JsonRecord.describe("JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness."),
+  ui: z
+    .record(z.string(), JsonRecord)
+    .optional()
+    .describe("Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets."),
+  changelog: z.string().optional().describe("A short human note on what changed in this version, shown in the version history."),
 })
 
 // Same shape as core's StreamSourceInputSchema/Mapping, minus the recursive z.json()
@@ -54,16 +57,20 @@ export const SafeSchemaInputSchema = z.object({
 // also breaks OpenAPI doc generation. Runtime shape validation is unaffected; the
 // "exactly one of" invariant is still enforced downstream by core's validateMapping.
 const SafeMappingEntrySchema = z.object({
-  from: z.string().optional(),
-  const: z.unknown().optional(),
-  expr: z.string().optional(),
-  default: z.unknown().optional(),
+  from: z.string().optional().describe("Copy this field's value from the source form's submitted data."),
+  const: z.unknown().optional().describe("Use this fixed value instead of anything from the source."),
+  expr: z.string().optional().describe("A JSONata expression evaluated against the source's data."),
+  default: z.unknown().optional().describe("Fallback value when the resolved value is missing."),
 })
 export const SafeMappingSchema = z.record(z.string(), SafeMappingEntrySchema)
 export const SafeStreamSourceInputSchema = z.object({
-  form_id: z.string().optional(),
-  selector: z.string().optional(),
-  mapping: SafeMappingSchema.optional(),
+  form_id: z.string().optional().describe("The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported)."),
+  selector: z.string().optional().describe("Reserved for non-form sources (not yet implemented)."),
+  mapping: SafeMappingSchema.optional().describe(
+    "Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), " +
+      "`const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the " +
+      "stream's schema must be covered or this call fails 422 mapping_incomplete.",
+  ),
 })
 
 export const ProjectSchema = z

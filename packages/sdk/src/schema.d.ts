@@ -11,64 +11,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Identify the caller and summarise the organization */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            organization: {
-                                id: string;
-                                slug: string;
-                                name: string;
-                                plan: string;
-                                timezone: string;
-                            };
-                            key: {
-                                prefix?: string;
-                                scopes: ("manage" | "read" | "submit")[];
-                            };
-                            counts: {
-                                projects: number;
-                                forms: number;
-                                streams: number;
-                                destinations: number;
-                                routes: number;
-                            };
-                            limits: {
-                                forms: number;
-                                submissions_per_month: number;
-                                destinations: number;
-                                retention_days: number;
-                                used: {
-                                    forms: number;
-                                    submissions_this_month: number;
-                                };
-                            };
-                            next: {
-                                why?: string;
-                                method?: string;
-                                path?: string;
-                                body?: {
-                                    [key: string]: unknown;
-                                };
-                            }[];
-                        };
-                    };
-                };
-            };
-        };
+        /**
+         * Identify the caller and summarise the organization
+         * @description The first call an agent holding only an API key should make: who it is, which org, which scopes the key has, plan limits and usage, and what already exists (counts). Call this before anything else.
+         */
+        get: operations["me_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -84,130 +31,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List API keys for the active organization */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            id: string;
-                            name: string | null;
-                            prefix: string | null;
-                            scopes: ("manage" | "read" | "submit")[];
-                            enabled: boolean;
-                            created_at: string;
-                        }[];
-                    };
-                };
-            };
-        };
+        /**
+         * List API keys for the active organization
+         * @description Prefixes only — full key values are never returned again after creation.
+         */
+        get: operations["api_keys_list"];
         put?: never;
-        /** Create an API key for the active organization (session only) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        name?: string;
-                        /**
-                         * @default [
-                         *       "read",
-                         *       "submit"
-                         *     ]
-                         */
-                        scopes?: ("manage" | "read" | "submit")[];
-                    };
-                };
-            };
-            responses: {
-                /** @description created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            id: string;
-                            name: string | null;
-                            prefix: string | null;
-                            scopes: ("manage" | "read" | "submit")[];
-                            key: string;
-                            created_at: string;
-                        };
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Create an API key for the active organization (session only)
+         * @description Requires a signed-in dashboard session, not another API key — an agent cannot mint its own first key this way. The full key is only ever returned once, in this response; store it immediately.
+         */
+        post: operations["api_keys_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -224,81 +58,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete an API key */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description deleted */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Delete an API key
+         * @description Revokes the key immediately; any client still using it starts getting 401s.
+         */
+        delete: operations["api_keys_revoke"];
         options?: never;
         head?: never;
         patch?: never;
@@ -313,120 +77,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** One call to a working, routed form */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        name: string;
-                        /** @default default */
-                        project?: string;
-                        /** Format: uri */
-                        origin?: string;
-                        /** Format: email */
-                        notify_email?: string;
-                        telegram?: {
-                            bot_token: string;
-                            chat_id: string;
-                        };
-                        webhook?: {
-                            /** Format: uri */
-                            url: string;
-                            secret?: string;
-                        };
-                        /** @default [] */
-                        tags?: string[];
-                        /** Format: uri */
-                        redirect_url?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description created (or returned) */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            form: components["schemas"]["Form"];
-                            destinations: components["schemas"]["Destination"][];
-                            routes: components["schemas"]["Route"][];
-                            embed: components["schemas"]["Embed"];
-                            verify: components["schemas"]["Verify"];
-                            next: {
-                                why?: string;
-                                method?: string;
-                                path?: string;
-                                body?: {
-                                    [key: string]: unknown;
-                                };
-                            }[];
-                        };
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * One call to a working, routed form
+         * @description Creates (idempotently, by name within project) the project if missing, the form, a destination for whichever of notify_email/telegram/webhook was given, and a direct route, then returns the form, an embeddable snippet, a curl command to verify delivery, and next steps. Everything it does is also available as individual calls (POST /v1/forms, /v1/destinations, /v1/routes); this is a convenience, not a special path.
+         */
+        post: operations["quickstart"];
         delete?: never;
         options?: never;
         head?: never;
@@ -441,122 +96,13 @@ export interface paths {
             cookie?: never;
         };
         /** List projects */
-        get: {
-            parameters: {
-                query?: {
-                    cursor?: string;
-                    limit?: number;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["Project"][];
-                            next_cursor: string | null;
-                        };
-                    };
-                };
-            };
-        };
+        get: operations["projects_list"];
         put?: never;
-        /** Create a project */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        name?: string;
-                        slug?: string;
-                        /** @default [] */
-                        tags?: string[];
-                        /**
-                         * @default error
-                         * @enum {string}
-                         */
-                        if_exists?: "error" | "return";
-                    };
-                };
-            };
-            responses: {
-                /** @description created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Project"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Create a project
+         * @description A project groups forms — one per site or app. Pass `if_exists: "return"` to make this call safe to re-run.
+         */
+        post: operations["projects_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -571,252 +117,18 @@ export interface paths {
             cookie?: never;
         };
         /** Get a project */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    projectId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Project"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        get: operations["projects_get"];
         put?: never;
         post?: never;
-        /** Delete an empty project */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    projectId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description deleted */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Delete an empty project
+         * @description Fails with 409 while the project still has forms — delete or move them first.
+         */
+        delete: operations["projects_delete"];
         options?: never;
         head?: never;
         /** Update a project */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    projectId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        name?: string;
-                        slug?: string;
-                        /** @default [] */
-                        tags?: string[];
-                        /**
-                         * @default error
-                         * @enum {string}
-                         */
-                        if_exists?: "error" | "return";
-                    };
-                };
-            };
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Project"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        patch: operations["projects_update"];
         trace?: never;
     };
     "/v1/forms": {
@@ -827,168 +139,13 @@ export interface paths {
             cookie?: never;
         };
         /** List forms */
-        get: {
-            parameters: {
-                query?: {
-                    cursor?: string;
-                    limit?: number;
-                    project?: string;
-                    tag?: string;
-                    stream?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["Form"][];
-                            next_cursor: string | null;
-                        };
-                    };
-                };
-            };
-        };
+        get: operations["forms_list"];
         put?: never;
-        /** Create a form */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        name?: string;
-                        slug?: string;
-                        /** @default default */
-                        project?: string;
-                        /** @default [] */
-                        tags?: string[];
-                        /**
-                         * @default active
-                         * @enum {string}
-                         */
-                        status?: "active" | "paused";
-                        /**
-                         * @default observe
-                         * @enum {string}
-                         */
-                        schema_mode?: "observe" | "enforce" | "managed";
-                        settings?: {
-                            /** @default [] */
-                            allowed_origins?: string[];
-                            /** Format: uri */
-                            redirect_url?: string | null;
-                            /** @default _gotcha */
-                            honeypot_field?: string;
-                            turnstile?: {
-                                secret?: string;
-                                enabled?: boolean;
-                            };
-                            rate_limit?: {
-                                /** @default 10 */
-                                per_minute?: number;
-                                /** @default 20 */
-                                burst?: number;
-                            };
-                            reply_to_field?: string | null;
-                        };
-                        schema?: {
-                            json_schema: {
-                                [key: string]: unknown;
-                            };
-                            ui?: {
-                                [key: string]: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            changelog?: string;
-                        };
-                        from_template?: string;
-                        /**
-                         * @default error
-                         * @enum {string}
-                         */
-                        if_exists?: "error" | "return";
-                    };
-                };
-            };
-            responses: {
-                /** @description created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["FormCreated"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Create a form
+         * @description Pass `from_template` (a stream id) to attach the new form to that stream with a schema copied 1:1 from it, so the mapping is trivially complete. Pass `if_exists: "return"` to make this call safe to re-run.
+         */
+        post: operations["forms_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1003,295 +160,15 @@ export interface paths {
             cookie?: never;
         };
         /** Get a form */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    formId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Form"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        get: operations["forms_get"];
         put?: never;
         post?: never;
         /** Delete a form */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    formId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description deleted */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        delete: operations["forms_delete"];
         options?: never;
         head?: never;
         /** Update a form */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    formId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        name?: string;
-                        slug?: string;
-                        /** @default default */
-                        project?: string;
-                        /** @default [] */
-                        tags?: string[];
-                        /**
-                         * @default active
-                         * @enum {string}
-                         */
-                        status?: "active" | "paused";
-                        /**
-                         * @default observe
-                         * @enum {string}
-                         */
-                        schema_mode?: "observe" | "enforce" | "managed";
-                        settings?: {
-                            /** @default [] */
-                            allowed_origins?: string[];
-                            /** Format: uri */
-                            redirect_url?: string | null;
-                            /** @default _gotcha */
-                            honeypot_field?: string;
-                            turnstile?: {
-                                secret?: string;
-                                enabled?: boolean;
-                            };
-                            rate_limit?: {
-                                /** @default 10 */
-                                per_minute?: number;
-                                /** @default 20 */
-                                burst?: number;
-                            };
-                            reply_to_field?: string | null;
-                        };
-                        schema?: {
-                            json_schema: {
-                                [key: string]: unknown;
-                            };
-                            ui?: {
-                                [key: string]: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            changelog?: string;
-                        };
-                        from_template?: string;
-                        /**
-                         * @default error
-                         * @enum {string}
-                         */
-                        if_exists?: "error" | "return";
-                    };
-                };
-            };
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Form"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        patch: operations["forms_update"];
         trace?: never;
     };
     "/v1/forms/{formId}/embed": {
@@ -1301,83 +178,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Embed snippets */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    formId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Embed"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Embed snippets
+         * @description Ready-to-paste HTML, fetch, React, Astro and Next.js server-action snippets for this form's submit URL.
+         */
+        get: operations["forms_embed"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1393,175 +198,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Current schema version */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    formId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SchemaVersion"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Current schema version
+         * @description For observe-mode forms with no published version yet, falls back to the last inferred draft (marked `inferred: true`) if one exists; publishing is still a separate, explicit act.
+         */
+        get: operations["forms_schema_get"];
         put?: never;
-        /** Publish a new schema version */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    formId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        json_schema: {
-                            [key: string]: unknown;
-                        };
-                        ui?: {
-                            [key: string]: {
-                                [key: string]: unknown;
-                            };
-                        };
-                        changelog?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description published */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SchemaVersion"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Publish a new schema version
+         * @description Schemas are immutable versions — this always creates version N+1, never mutates an existing one.
+         */
+        post: operations["forms_schema_publish"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1576,30 +223,29 @@ export interface paths {
             cookie?: never;
         };
         /** All schema versions */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    formId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SchemaVersion"][];
-                    };
-                };
-            };
-        };
+        get: operations["forms_schema_versions"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forms/{formId}/schema/infer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Infer a draft schema now, from recent submissions (observe mode, no schema yet)
+         * @description Only for observe-mode forms with no published schema. Looks at recent non-spam submissions and produces a draft schema; call forms_schema_publish with the result (or an edited version of it) to make it real.
+         */
+        post: operations["forms_schema_infer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1613,31 +259,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Unresolved drift events */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    formId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        }[];
-                    };
-                };
-            };
-        };
+        /**
+         * Unresolved drift events
+         * @description Fields submitters are sending that the published schema doesn't declare. Resolve by publishing an updated schema.
+         */
+        get: operations["forms_drift"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1654,37 +280,7 @@ export interface paths {
             cookie?: never;
         };
         /** List submissions for a form */
-        get: {
-            parameters: {
-                query?: {
-                    cursor?: string;
-                    limit?: number;
-                    status?: string;
-                    since?: string;
-                    q?: string;
-                };
-                header?: never;
-                path: {
-                    formId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["Submission"][];
-                            next_cursor: string | null;
-                        };
-                    };
-                };
-            };
-        };
+        get: operations["forms_submissions_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1701,36 +297,7 @@ export interface paths {
             cookie?: never;
         };
         /** Search submissions across the organization */
-        get: {
-            parameters: {
-                query?: {
-                    cursor?: string;
-                    limit?: number;
-                    stream?: string;
-                    form?: string;
-                    status?: string;
-                    q?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["Submission"][];
-                            next_cursor: string | null;
-                        };
-                    };
-                };
-            };
-        };
+        get: operations["submissions_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1747,245 +314,21 @@ export interface paths {
             cookie?: never;
         };
         /** Get a submission with its deliveries */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    submissionId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SubmissionDetail"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        get: operations["submissions_get"];
         put?: never;
         post?: never;
-        /** Delete permanently (GDPR) */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    submissionId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description deleted */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Delete permanently (GDPR)
+         * @description Irreversible. Use for data-subject deletion requests; deliveries already sent are unaffected.
+         */
+        delete: operations["submissions_delete"];
         options?: never;
         head?: never;
-        /** Change status (re-routes if moving to received) */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    submissionId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** @enum {string} */
-                        status: "received" | "quarantined" | "spam";
-                    };
-                };
-            };
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Submission"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Change status (re-routes if moving to received)
+         * @description Moving a quarantined submission to `received` re-runs routing and queues deliveries for it.
+         */
+        patch: operations["submissions_update"];
         trace?: never;
     };
     "/v1/streams": {
@@ -1996,144 +339,13 @@ export interface paths {
             cookie?: never;
         };
         /** List streams */
-        get: {
-            parameters: {
-                query?: {
-                    cursor?: string;
-                    limit?: number;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["Stream"][];
-                            next_cursor: string | null;
-                        };
-                    };
-                };
-            };
-        };
+        get: operations["streams_list"];
         put?: never;
-        /** Create a stream (optionally with its first schema version and sources) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        name?: string;
-                        slug?: string;
-                        schema?: {
-                            json_schema: {
-                                [key: string]: unknown;
-                            };
-                            ui?: {
-                                [key: string]: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            changelog?: string;
-                        };
-                        /** @default [] */
-                        sources?: {
-                            form_id?: string;
-                            selector?: string;
-                            mapping?: {
-                                [key: string]: {
-                                    from?: string;
-                                    const?: unknown;
-                                    expr?: string;
-                                    default?: unknown;
-                                };
-                            };
-                        }[];
-                        /**
-                         * @default error
-                         * @enum {string}
-                         */
-                        if_exists?: "error" | "return";
-                    };
-                };
-            };
-            responses: {
-                /** @description created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Stream"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Create a stream (optionally with its first schema version and sources)
+         * @description A stream (shown as 'Bag' in the dashboard) fans one canonical schema in from many forms.
+         */
+        post: operations["streams_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2148,274 +360,15 @@ export interface paths {
             cookie?: never;
         };
         /** Get a stream with schema, sources, mapping status and routes */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    streamId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["StreamDetail"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        get: operations["streams_get"];
         put?: never;
         post?: never;
         /** Delete a stream */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    streamId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description deleted */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        delete: operations["streams_delete"];
         options?: never;
         head?: never;
         /** Update name/slug */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    streamId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        name?: string;
-                        slug?: string;
-                        schema?: {
-                            json_schema: {
-                                [key: string]: unknown;
-                            };
-                            ui?: {
-                                [key: string]: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            changelog?: string;
-                        };
-                        /** @default [] */
-                        sources?: {
-                            form_id?: string;
-                            selector?: string;
-                            mapping?: {
-                                [key: string]: {
-                                    from?: string;
-                                    const?: unknown;
-                                    expr?: string;
-                                    default?: unknown;
-                                };
-                            };
-                        }[];
-                        /**
-                         * @default error
-                         * @enum {string}
-                         */
-                        if_exists?: "error" | "return";
-                    };
-                };
-            };
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Stream"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        patch: operations["streams_update"];
         trace?: never;
     };
     "/v1/streams/{streamId}/schema": {
@@ -2426,177 +379,13 @@ export interface paths {
             cookie?: never;
         };
         /** Current stream schema */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    streamId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SchemaVersion"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        get: operations["streams_schema_get"];
         put?: never;
-        /** Publish a new stream schema version */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    streamId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        json_schema: {
-                            [key: string]: unknown;
-                        };
-                        ui?: {
-                            [key: string]: {
-                                [key: string]: unknown;
-                            };
-                        };
-                        changelog?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description published */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            schema: components["schemas"]["SchemaVersion"];
-                            mappings: components["schemas"]["StreamSource"][];
-                        };
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Publish a new stream schema version
+         * @description Schemas are immutable versions — this always creates version N+1. Re-validates every attached source's mapping against the new schema and returns the updated mapping statuses alongside it.
+         */
+        post: operations["streams_schema_publish"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2611,121 +400,13 @@ export interface paths {
             cookie?: never;
         };
         /** List sources and their mapping status */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    streamId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["StreamSource"][];
-                    };
-                };
-            };
-        };
+        get: operations["streams_sources_list"];
         put?: never;
-        /** Attach a form or selector with a mapping */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    streamId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        form_id?: string;
-                        selector?: string;
-                        mapping?: {
-                            [key: string]: {
-                                from?: string;
-                                const?: unknown;
-                                expr?: string;
-                                default?: unknown;
-                            };
-                        };
-                    };
-                };
-            };
-            responses: {
-                /** @description attached */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["StreamSource"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Attach a form or selector with a mapping
+         * @description Fails 422 mapping_incomplete (with the missing fields listed) if the mapping does not cover every field the stream's current schema requires — a form can't join a stream it can't feed.
+         */
+        post: operations["streams_sources_add"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2743,176 +424,11 @@ export interface paths {
         put?: never;
         post?: never;
         /** Detach */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    streamId: string;
-                    sourceId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description detached */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        delete: operations["streams_sources_remove"];
         options?: never;
         head?: never;
         /** Update the mapping */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    streamId: string;
-                    sourceId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        form_id?: string;
-                        selector?: string;
-                        mapping?: {
-                            [key: string]: {
-                                from?: string;
-                                const?: unknown;
-                                expr?: string;
-                                default?: unknown;
-                            };
-                        };
-                    };
-                };
-            };
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["StreamSource"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        patch: operations["streams_sources_update"];
         trace?: never;
     };
     "/v1/streams/{streamId}/preview": {
@@ -2924,46 +440,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Run a sample submission through a source's mapping */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    streamId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        form_id: string;
-                        data: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            payload: {
-                                [key: string]: unknown;
-                            };
-                            extras: {
-                                [key: string]: unknown;
-                            };
-                            problems: string[];
-                        };
-                    };
-                };
-            };
-        };
+        /**
+         * Run a sample submission through a source's mapping
+         * @description Dry-runs a form's attached mapping against sample data without storing anything — useful before publishing a schema change.
+         */
+        post: operations["streams_preview"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2978,164 +459,13 @@ export interface paths {
             cookie?: never;
         };
         /** List destinations (secrets redacted) */
-        get: {
-            parameters: {
-                query?: {
-                    cursor?: string;
-                    limit?: number;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["Destination"][];
-                            next_cursor: string | null;
-                        };
-                    };
-                };
-            };
-        };
+        get: operations["destinations_list"];
         put?: never;
-        /** Create a destination */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** @enum {string} */
-                        type: "email";
-                        name?: string;
-                        config: {
-                            to: string[];
-                            /** @default [] */
-                            cc?: string[];
-                            /** @default New submission: {{form.name}} */
-                            subject_template?: string;
-                            from_name?: string;
-                        };
-                    } | {
-                        /** @enum {string} */
-                        type: "telegram";
-                        name?: string;
-                        config: {
-                            bot_token: string;
-                            chat_id: string;
-                            template?: string;
-                        };
-                    } | {
-                        /** @enum {string} */
-                        type: "webhook";
-                        name?: string;
-                        config: {
-                            /** Format: uri */
-                            url: string;
-                            secret?: string;
-                            /** @default {} */
-                            headers?: {
-                                [key: string]: string;
-                            };
-                        };
-                    } | {
-                        /** @enum {string} */
-                        type: "slack";
-                        name?: string;
-                        config: {
-                            /** Format: uri */
-                            url: string;
-                            template?: string;
-                        };
-                    } | {
-                        /** @enum {string} */
-                        type: "discord";
-                        name?: string;
-                        config: {
-                            /** Format: uri */
-                            url: string;
-                            template?: string;
-                        };
-                    };
-                };
-            };
-            responses: {
-                /** @description created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Destination"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Create a destination
+         * @description type is one of email, telegram, webhook, slack, discord; config shape depends on type. Call destinations_test after creating to verify it works.
+         */
+        post: operations["destinations_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3149,248 +479,19 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    destinationId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Destination"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /** Get a destination (secrets redacted) */
+        get: operations["destinations_get"];
         put?: never;
         post?: never;
-        /** Delete (fails if routes reference it) */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    destinationId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description deleted */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Delete (fails if routes reference it)
+         * @description Fails with 409 while a route still points at this destination — delete or repoint those routes first.
+         */
+        delete: operations["destinations_delete"];
         options?: never;
         head?: never;
         /** Update config */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    destinationId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        name?: string;
-                        config?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Destination"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        patch: operations["destinations_update"];
         trace?: never;
     };
     "/v1/destinations/{destinationId}/test": {
@@ -3402,91 +503,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Send a sample payload now and return the provider response */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    destinationId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        sample?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            responses: {
-                /** @description result */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["DeliveryResult"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Send a sample payload now and return the provider response
+         * @description Verifies a destination is actually reachable and configured correctly — do this right after creating one, before wiring routes to it.
+         */
+        post: operations["destinations_test"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3501,149 +522,13 @@ export interface paths {
             cookie?: never;
         };
         /** List routes */
-        get: {
-            parameters: {
-                query?: {
-                    cursor?: string;
-                    limit?: number;
-                    form?: string;
-                    stream?: string;
-                    destination?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["Route"][];
-                            next_cursor: string | null;
-                        };
-                    };
-                };
-            };
-        };
+        get: operations["routes_list"];
         put?: never;
-        /** Create a route (source is exactly one of form_id / stream_id) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        form_id?: string;
-                        stream_id?: string;
-                        destination_id: string;
-                        /** @default true */
-                        enabled?: boolean;
-                        /**
-                         * @default {
-                         *       "type": "instant"
-                         *     }
-                         */
-                        mode?: {
-                            /** @enum {string} */
-                            type: "instant";
-                        } | {
-                            /** @enum {string} */
-                            type: "digest";
-                            cron: string;
-                            timezone: string;
-                        };
-                        window?: {
-                            /** Format: date-time */
-                            from?: string | null;
-                            /** Format: date-time */
-                            until?: string | null;
-                        };
-                        quality?: {
-                            /** @default true */
-                            exclude_spam?: boolean;
-                            /** @default true */
-                            exclude_quarantined?: boolean;
-                        };
-                        filter?: string;
-                        transform?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Route"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Create a route (source is exactly one of form_id / stream_id)
+         * @description A route ties one source (a form or a stream) to one destination, with a mode (instant or digest) and optional filter/transform/quality rules.
+         */
+        post: operations["routes_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3657,263 +542,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    routeId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Route"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /** Get a route */
+        get: operations["routes_get"];
         put?: never;
         post?: never;
-        /** Delete */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    routeId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description deleted */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /** Delete a route */
+        delete: operations["routes_delete"];
         options?: never;
         head?: never;
         /** Update rules / enable / disable */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    routeId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        enabled?: boolean;
-                        mode?: {
-                            /** @enum {string} */
-                            type: "instant" | "digest";
-                            cron?: string;
-                            timezone?: string;
-                        };
-                        window?: {
-                            /** Format: date-time */
-                            from?: string | null;
-                            /** Format: date-time */
-                            until?: string | null;
-                        };
-                        quality?: {
-                            exclude_spam?: boolean;
-                            exclude_quarantined?: boolean;
-                        };
-                        filter?: string;
-                        transform?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Route"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        patch: operations["routes_update"];
         trace?: never;
     };
     "/v1/deliveries": {
@@ -3923,37 +561,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List deliveries (the outbox) */
-        get: {
-            parameters: {
-                query?: {
-                    cursor?: string;
-                    limit?: number;
-                    status?: string;
-                    route?: string;
-                    destination?: string;
-                    submission?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["Delivery"][];
-                            next_cursor: string | null;
-                        };
-                    };
-                };
-            };
-        };
+        /**
+         * List deliveries (the outbox)
+         * @description A submission is a row before it is anything else; delivery is this outbox drained by a worker. Poll here to confirm a submission actually arrived at its destination.
+         */
+        get: operations["deliveries_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3970,82 +582,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get a delivery with payload snapshot and last response */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deliveryId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Delivery"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        get: operations["deliveries_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4063,83 +600,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Re-snapshot the payload against current mapping/transform and queue again */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deliveryId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description queued */
-                202: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Delivery"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Re-snapshot the payload against current mapping/transform and queue again
+         * @description Use after fixing a destination's config or a stream's mapping so a `failed` or `dead` delivery gets another chance.
+         */
+        post: operations["deliveries_retry"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4153,35 +618,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Organization event log */
-        get: {
-            parameters: {
-                query?: {
-                    cursor?: string;
-                    limit?: number;
-                    type?: string;
-                    since?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["Event"][];
-                            next_cursor: string | null;
-                        };
-                    };
-                };
-            };
-        };
+        /**
+         * Organization event log
+         * @description Every notable thing that happened in this org — form.created, form.schema.changed, stream.schema.changed, submission.received, and more. System webhooks (below) are just subscriptions to this same log.
+         */
+        get: operations["events_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4197,114 +638,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List system webhooks */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SystemWebhook"][];
-                    };
-                };
-            };
-        };
+        /**
+         * List system webhooks
+         * @description System webhooks notify an external system when org events happen (not to be confused with a webhook destination, which delivers submissions).
+         */
+        get: operations["webhooks_list"];
         put?: never;
-        /** Subscribe a URL to event types */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** Format: uri */
-                        url: string;
-                        events: ("submission.received" | "submission.quarantined" | "submission.spam" | "delivery.sent" | "delivery.failed" | "delivery.dead" | "digest.ready" | "form.created" | "form.schema.changed" | "stream.schema.changed" | "drift.detected" | "drift.resolved" | "destination.failing" | "destination.recovered")[];
-                        secret?: string;
-                        /** @default true */
-                        enabled?: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SystemWebhook"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /**
+         * Subscribe a URL to event types
+         * @description Every delivery is signed with the returned (or supplied) secret so the receiver can verify authenticity.
+         */
+        post: operations["webhooks_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4321,171 +665,29 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    webhookId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description deleted */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
+        /** Delete a system webhook */
+        delete: operations["webhooks_delete"];
         options?: never;
         head?: never;
-        /** Update */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    webhookId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** Format: uri */
-                        url?: string;
-                        events?: ("submission.received" | "submission.quarantined" | "submission.spam" | "delivery.sent" | "delivery.failed" | "delivery.dead" | "digest.ready" | "form.created" | "form.schema.changed" | "stream.schema.changed" | "drift.detected" | "drift.resolved" | "destination.failing" | "destination.recovered")[];
-                        secret?: string;
-                        /** @default true */
-                        enabled?: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SystemWebhook"];
-                    };
-                };
-                /** @description Error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
+        /** Update a system webhook */
+        patch: operations["webhooks_update"];
+        trace?: never;
+    };
+    "/v1/webhooks/{webhookId}/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
+        /** Delivery history for a system webhook */
+        get: operations["webhooks_deliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/health": {
@@ -4495,56 +697,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Liveness and readiness */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description ok */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            ok: boolean;
-                            /** @enum {string} */
-                            db: "up" | "down";
-                            worker: {
-                                heartbeat_at: string | null;
-                                alive: boolean;
-                            };
-                            oldest_pending_delivery_s: number | null;
-                            version: string;
-                        };
-                    };
-                };
-                /** @description db down */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            ok: boolean;
-                            /** @enum {string} */
-                            db: "up" | "down";
-                            worker: {
-                                heartbeat_at: string | null;
-                                alive: boolean;
-                            };
-                            oldest_pending_delivery_s: number | null;
-                            version: string;
-                        };
-                    };
-                };
-            };
-        };
+        /**
+         * Liveness and readiness
+         * @description Public, unauthenticated. Reports database connectivity, worker heartbeat and the oldest pending delivery age.
+         */
+        get: operations["health_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4804,6 +961,29 @@ export interface components {
             /** @enum {string} */
             health?: "unknown" | "ok" | "failing";
         };
+        SystemWebhookDelivery: {
+            /** @example fm_8f3kq2 */
+            id: string;
+            /** @example fm_8f3kq2 */
+            webhook_id: string;
+            /** @example fm_8f3kq2 */
+            event_id: string;
+            event_type: string;
+            /** @enum {string} */
+            status: "pending" | "sending" | "sent" | "failed" | "dead";
+            attempts: number;
+            /** @example 2026-08-21T09:00:00.000Z */
+            next_attempt_at: string | null;
+            payload: {
+                [key: string]: unknown;
+            };
+            last_response?: components["schemas"]["DeliveryResult"];
+            last_error: string | null;
+            /** @example 2026-08-21T09:00:00.000Z */
+            created_at: string;
+            /** @example 2026-08-21T09:00:00.000Z */
+            sent_at: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -4812,4 +992,4267 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        organization: {
+                            id: string;
+                            slug: string;
+                            name: string;
+                            plan: string;
+                            timezone: string;
+                        };
+                        key: {
+                            prefix?: string;
+                            scopes: ("manage" | "read" | "submit")[];
+                        };
+                        counts: {
+                            projects: number;
+                            forms: number;
+                            streams: number;
+                            destinations: number;
+                            routes: number;
+                        };
+                        limits: {
+                            forms: number;
+                            submissions_per_month: number;
+                            destinations: number;
+                            retention_days: number;
+                            used: {
+                                forms: number;
+                                submissions_this_month: number;
+                            };
+                        };
+                        next: {
+                            why?: string;
+                            method?: string;
+                            path?: string;
+                            body?: {
+                                [key: string]: unknown;
+                            };
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    api_keys_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string | null;
+                        prefix: string | null;
+                        scopes: ("manage" | "read" | "submit")[];
+                        enabled: boolean;
+                        created_at: string;
+                    }[];
+                };
+            };
+        };
+    };
+    api_keys_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description A label to tell keys apart, e.g. 'CI deploy key'. */
+                    name?: string;
+                    /**
+                     * @description manage ⊇ read ⊇ submit — a manage key satisfies every read- or submit-scoped call too.
+                     * @default [
+                     *       "manage"
+                     *     ]
+                     */
+                    scopes?: ("manage" | "read" | "submit")[];
+                };
+            };
+        };
+        responses: {
+            /** @description created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string | null;
+                        prefix: string | null;
+                        scopes: ("manage" | "read" | "submit")[];
+                        key: string;
+                        created_at: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    api_keys_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The API key id (not the key value itself). */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    quickstart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @default default */
+                    project?: string;
+                    /** Format: uri */
+                    origin?: string;
+                    /** Format: email */
+                    notify_email?: string;
+                    telegram?: {
+                        bot_token: string;
+                        chat_id: string;
+                    };
+                    webhook?: {
+                        /** Format: uri */
+                        url: string;
+                        secret?: string;
+                    };
+                    /** @default [] */
+                    tags?: string[];
+                    /** Format: uri */
+                    redirect_url?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description created (or returned) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        form: components["schemas"]["Form"];
+                        destinations: components["schemas"]["Destination"][];
+                        routes: components["schemas"]["Route"][];
+                        embed: components["schemas"]["Embed"];
+                        verify: components["schemas"]["Verify"];
+                        next: {
+                            why?: string;
+                            method?: string;
+                            path?: string;
+                            body?: {
+                                [key: string]: unknown;
+                            };
+                        }[];
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    projects_list: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Project"][];
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    projects_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    slug?: string;
+                    /** @default [] */
+                    tags?: string[];
+                    /**
+                     * @default error
+                     * @enum {string}
+                     */
+                    if_exists?: "error" | "return";
+                };
+            };
+        };
+        responses: {
+            /** @description created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    projects_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    projects_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    projects_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    slug?: string;
+                    /** @default [] */
+                    tags?: string[];
+                    /**
+                     * @default error
+                     * @enum {string}
+                     */
+                    if_exists?: "error" | "return";
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    forms_list: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                /** @description Filter to one project id. */
+                project?: string;
+                /** @description Filter to forms carrying this tag. */
+                tag?: string;
+                /** @description Filter to forms attached to this stream id. */
+                stream?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Form"][];
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    forms_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    slug?: string;
+                    /** @default default */
+                    project?: string;
+                    /** @default [] */
+                    tags?: string[];
+                    /**
+                     * @default active
+                     * @enum {string}
+                     */
+                    status?: "active" | "paused";
+                    /**
+                     * @default observe
+                     * @enum {string}
+                     */
+                    schema_mode?: "observe" | "enforce" | "managed";
+                    settings?: {
+                        /** @default [] */
+                        allowed_origins?: string[];
+                        /** Format: uri */
+                        redirect_url?: string | null;
+                        /** @default _gotcha */
+                        honeypot_field?: string;
+                        turnstile?: {
+                            secret?: string;
+                            enabled?: boolean;
+                        };
+                        rate_limit?: {
+                            /** @default 10 */
+                            per_minute?: number;
+                            /** @default 20 */
+                            burst?: number;
+                        };
+                        reply_to_field?: string | null;
+                    };
+                    schema?: {
+                        /** @description JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness. */
+                        json_schema: {
+                            [key: string]: unknown;
+                        };
+                        /** @description Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets. */
+                        ui?: {
+                            [key: string]: {
+                                [key: string]: unknown;
+                            };
+                        };
+                        /** @description A short human note on what changed in this version, shown in the version history. */
+                        changelog?: string;
+                    };
+                    from_template?: string;
+                    /**
+                     * @default error
+                     * @enum {string}
+                     */
+                    if_exists?: "error" | "return";
+                };
+            };
+        };
+        responses: {
+            /** @description created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormCreated"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    forms_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Form"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    forms_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    forms_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    slug?: string;
+                    /** @default default */
+                    project?: string;
+                    /** @default [] */
+                    tags?: string[];
+                    /**
+                     * @default active
+                     * @enum {string}
+                     */
+                    status?: "active" | "paused";
+                    /**
+                     * @default observe
+                     * @enum {string}
+                     */
+                    schema_mode?: "observe" | "enforce" | "managed";
+                    settings?: {
+                        /** @default [] */
+                        allowed_origins?: string[];
+                        /** Format: uri */
+                        redirect_url?: string | null;
+                        /** @default _gotcha */
+                        honeypot_field?: string;
+                        turnstile?: {
+                            secret?: string;
+                            enabled?: boolean;
+                        };
+                        rate_limit?: {
+                            /** @default 10 */
+                            per_minute?: number;
+                            /** @default 20 */
+                            burst?: number;
+                        };
+                        reply_to_field?: string | null;
+                    };
+                    schema?: {
+                        /** @description JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness. */
+                        json_schema: {
+                            [key: string]: unknown;
+                        };
+                        /** @description Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets. */
+                        ui?: {
+                            [key: string]: {
+                                [key: string]: unknown;
+                            };
+                        };
+                        /** @description A short human note on what changed in this version, shown in the version history. */
+                        changelog?: string;
+                    };
+                    from_template?: string;
+                    /**
+                     * @default error
+                     * @enum {string}
+                     */
+                    if_exists?: "error" | "return";
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Form"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    forms_embed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Embed"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    forms_schema_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaVersion"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    forms_schema_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness. */
+                    json_schema: {
+                        [key: string]: unknown;
+                    };
+                    /** @description Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets. */
+                    ui?: {
+                        [key: string]: {
+                            [key: string]: unknown;
+                        };
+                    };
+                    /** @description A short human note on what changed in this version, shown in the version history. */
+                    changelog?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description published */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaVersion"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    forms_schema_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaVersion"][];
+                };
+            };
+        };
+    };
+    forms_schema_infer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaVersion"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    forms_drift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    forms_submissions_list: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                /** @description Filter by status: received, quarantined or spam. */
+                status?: string;
+                /** @description ISO timestamp; only submissions received after this. */
+                since?: string;
+                /** @description Free-text search over submission data. */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Submission"][];
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    submissions_list: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                /** @description Filter to submissions routed through this stream id. */
+                stream?: string;
+                /** @description Filter to one form id. */
+                form?: string;
+                /** @description Filter by status: received, quarantined or spam. */
+                status?: string;
+                /** @description Free-text search over submission data. */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Submission"][];
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    submissions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionDetail"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submissions_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submissions_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status: "received" | "quarantined" | "spam";
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Submission"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    streams_list: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Stream"][];
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    streams_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    slug?: string;
+                    schema?: {
+                        /** @description JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness. */
+                        json_schema: {
+                            [key: string]: unknown;
+                        };
+                        /** @description Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets. */
+                        ui?: {
+                            [key: string]: {
+                                [key: string]: unknown;
+                            };
+                        };
+                        /** @description A short human note on what changed in this version, shown in the version history. */
+                        changelog?: string;
+                    };
+                    /** @default [] */
+                    sources?: {
+                        /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                        form_id?: string;
+                        /** @description Reserved for non-form sources (not yet implemented). */
+                        selector?: string;
+                        /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
+                        mapping?: {
+                            [key: string]: {
+                                /** @description Copy this field's value from the source form's submitted data. */
+                                from?: string;
+                                /** @description Use this fixed value instead of anything from the source. */
+                                const?: unknown;
+                                /** @description A JSONata expression evaluated against the source's data. */
+                                expr?: string;
+                                /** @description Fallback value when the resolved value is missing. */
+                                default?: unknown;
+                            };
+                        };
+                    }[];
+                    /**
+                     * @default error
+                     * @enum {string}
+                     */
+                    if_exists?: "error" | "return";
+                };
+            };
+        };
+        responses: {
+            /** @description created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Stream"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    streams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                streamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamDetail"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    streams_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                streamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    streams_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                streamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    slug?: string;
+                    schema?: {
+                        /** @description JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness. */
+                        json_schema: {
+                            [key: string]: unknown;
+                        };
+                        /** @description Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets. */
+                        ui?: {
+                            [key: string]: {
+                                [key: string]: unknown;
+                            };
+                        };
+                        /** @description A short human note on what changed in this version, shown in the version history. */
+                        changelog?: string;
+                    };
+                    /** @default [] */
+                    sources?: {
+                        /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                        form_id?: string;
+                        /** @description Reserved for non-form sources (not yet implemented). */
+                        selector?: string;
+                        /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
+                        mapping?: {
+                            [key: string]: {
+                                /** @description Copy this field's value from the source form's submitted data. */
+                                from?: string;
+                                /** @description Use this fixed value instead of anything from the source. */
+                                const?: unknown;
+                                /** @description A JSONata expression evaluated against the source's data. */
+                                expr?: string;
+                                /** @description Fallback value when the resolved value is missing. */
+                                default?: unknown;
+                            };
+                        };
+                    }[];
+                    /**
+                     * @default error
+                     * @enum {string}
+                     */
+                    if_exists?: "error" | "return";
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Stream"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    streams_schema_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                streamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaVersion"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    streams_schema_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                streamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness. */
+                    json_schema: {
+                        [key: string]: unknown;
+                    };
+                    /** @description Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets. */
+                    ui?: {
+                        [key: string]: {
+                            [key: string]: unknown;
+                        };
+                    };
+                    /** @description A short human note on what changed in this version, shown in the version history. */
+                    changelog?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description published */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        schema: components["schemas"]["SchemaVersion"];
+                        mappings: components["schemas"]["StreamSource"][];
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    streams_sources_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                streamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamSource"][];
+                };
+            };
+        };
+    };
+    streams_sources_add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                streamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                    form_id?: string;
+                    /** @description Reserved for non-form sources (not yet implemented). */
+                    selector?: string;
+                    /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
+                    mapping?: {
+                        [key: string]: {
+                            /** @description Copy this field's value from the source form's submitted data. */
+                            from?: string;
+                            /** @description Use this fixed value instead of anything from the source. */
+                            const?: unknown;
+                            /** @description A JSONata expression evaluated against the source's data. */
+                            expr?: string;
+                            /** @description Fallback value when the resolved value is missing. */
+                            default?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description attached */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamSource"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    streams_sources_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                streamId: string;
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description detached */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    streams_sources_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                streamId: string;
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                    form_id?: string;
+                    /** @description Reserved for non-form sources (not yet implemented). */
+                    selector?: string;
+                    /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
+                    mapping?: {
+                        [key: string]: {
+                            /** @description Copy this field's value from the source form's submitted data. */
+                            from?: string;
+                            /** @description Use this fixed value instead of anything from the source. */
+                            const?: unknown;
+                            /** @description A JSONata expression evaluated against the source's data. */
+                            expr?: string;
+                            /** @description Fallback value when the resolved value is missing. */
+                            default?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamSource"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    streams_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                streamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description The form whose attached mapping to run.
+                     * @example fm_8f3kq2
+                     */
+                    form_id: string;
+                    /** @description Sample submission data to map through. */
+                    data: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        payload: {
+                            [key: string]: unknown;
+                        };
+                        extras: {
+                            [key: string]: unknown;
+                        };
+                        problems: string[];
+                    };
+                };
+            };
+        };
+    };
+    destinations_list: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Destination"][];
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    destinations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    type: "email";
+                    name?: string;
+                    config: {
+                        to: string[];
+                        /** @default [] */
+                        cc?: string[];
+                        /** @default New submission: {{form.name}} */
+                        subject_template?: string;
+                        from_name?: string;
+                    };
+                } | {
+                    /** @enum {string} */
+                    type: "telegram";
+                    name?: string;
+                    config: {
+                        bot_token: string;
+                        chat_id: string;
+                        template?: string;
+                    };
+                } | {
+                    /** @enum {string} */
+                    type: "webhook";
+                    name?: string;
+                    config: {
+                        /** Format: uri */
+                        url: string;
+                        secret?: string;
+                        /** @default {} */
+                        headers?: {
+                            [key: string]: string;
+                        };
+                    };
+                } | {
+                    /** @enum {string} */
+                    type: "slack";
+                    name?: string;
+                    config: {
+                        /** Format: uri */
+                        url: string;
+                        template?: string;
+                    };
+                } | {
+                    /** @enum {string} */
+                    type: "discord";
+                    name?: string;
+                    config: {
+                        /** Format: uri */
+                        url: string;
+                        template?: string;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Destination"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    destinations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                destinationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Destination"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    destinations_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                destinationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    destinations_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                destinationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description A display label for this destination. */
+                    name?: string;
+                    /** @description Merged shallowly into the existing config (type-specific: to/cc for email, chat_id/bot_token for telegram, url/secret for webhook). */
+                    config?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Destination"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    destinations_test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                destinationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description Override the default sample payload sent for the test. */
+                    sample?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryResult"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    routes_list: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                /** @description Filter to routes whose source is this form id. */
+                form?: string;
+                /** @description Filter to routes whose source is this stream id. */
+                stream?: string;
+                /** @description Filter to routes pointing at this destination id. */
+                destination?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Route"][];
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    routes_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    form_id?: string;
+                    stream_id?: string;
+                    destination_id: string;
+                    /** @default true */
+                    enabled?: boolean;
+                    /**
+                     * @default {
+                     *       "type": "instant"
+                     *     }
+                     */
+                    mode?: {
+                        /** @enum {string} */
+                        type: "instant";
+                    } | {
+                        /** @enum {string} */
+                        type: "digest";
+                        cron: string;
+                        timezone: string;
+                    };
+                    window?: {
+                        /** Format: date-time */
+                        from?: string | null;
+                        /** Format: date-time */
+                        until?: string | null;
+                    };
+                    quality?: {
+                        /** @default true */
+                        exclude_spam?: boolean;
+                        /** @default true */
+                        exclude_quarantined?: boolean;
+                    };
+                    filter?: string;
+                    transform?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Route"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    routes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                routeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Route"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    routes_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                routeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    routes_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                routeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description Disable a route without deleting it. */
+                    enabled?: boolean;
+                    /** @description instant delivers as submissions arrive; digest batches into one payload per period. */
+                    mode?: {
+                        /** @enum {string} */
+                        type: "instant" | "digest";
+                        /** @description Cron expression for digest mode, e.g. '0 9 * * *'. */
+                        cron?: string;
+                        /** @description IANA timezone the cron runs in; defaults to the org's timezone. */
+                        timezone?: string;
+                    };
+                    /** @description Only deliver submissions received in this ISO datetime range. */
+                    window?: {
+                        /** Format: date-time */
+                        from?: string | null;
+                        /** Format: date-time */
+                        until?: string | null;
+                    };
+                    /** @description Defaults to excluding spam and quarantined submissions from delivery. */
+                    quality?: {
+                        exclude_spam?: boolean;
+                        exclude_quarantined?: boolean;
+                    };
+                    /** @description A JSONata boolean expression; only matching submissions are delivered. */
+                    filter?: string;
+                    /** @description A JSONata expression applied to the payload before delivery. */
+                    transform?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Route"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deliveries_list: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                /** @description Filter by status: pending, sending, sent, failed, dead or skipped. */
+                status?: string;
+                /** @description Filter to one route id. */
+                route?: string;
+                /** @description Filter to one destination id. */
+                destination?: string;
+                /** @description Filter to one submission id. */
+                submission?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Delivery"][];
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    deliveries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deliveryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Delivery"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deliveries_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deliveryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Delivery"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    events_list: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                /** @description Filter to one event type, e.g. 'submission.received'. */
+                type?: string;
+                /** @description ISO timestamp; only events after this. */
+                since?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Event"][];
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    webhooks_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemWebhook"][];
+                };
+            };
+        };
+    };
+    webhooks_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uri */
+                    url: string;
+                    events: ("submission.received" | "submission.quarantined" | "submission.spam" | "delivery.sent" | "delivery.failed" | "delivery.dead" | "digest.ready" | "form.created" | "form.schema.changed" | "stream.schema.changed" | "drift.detected" | "drift.resolved" | "destination.failing" | "destination.recovered")[];
+                    secret?: string;
+                    /** @default true */
+                    enabled?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemWebhook"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    webhooks_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    webhooks_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uri */
+                    url?: string;
+                    events?: ("submission.received" | "submission.quarantined" | "submission.spam" | "delivery.sent" | "delivery.failed" | "delivery.dead" | "digest.ready" | "form.created" | "form.schema.changed" | "stream.schema.changed" | "drift.detected" | "drift.resolved" | "destination.failing" | "destination.recovered")[];
+                    secret?: string;
+                    /** @default true */
+                    enabled?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemWebhook"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    webhooks_deliveries: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SystemWebhookDelivery"][];
+                        next_cursor: string | null;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok: boolean;
+                        /** @enum {string} */
+                        db: "up" | "down";
+                        worker: {
+                            heartbeat_at: string | null;
+                            alive: boolean;
+                        };
+                        oldest_pending_delivery_s: number | null;
+                        version: string;
+                    };
+                };
+            };
+            /** @description db down */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok: boolean;
+                        /** @enum {string} */
+                        db: "up" | "down";
+                        worker: {
+                            heartbeat_at: string | null;
+                            alive: boolean;
+                        };
+                        oldest_pending_delivery_s: number | null;
+                        version: string;
+                    };
+                };
+            };
+        };
+    };
+}

@@ -10,6 +10,7 @@ import {
   CursorQuerySchema,
   errorResponses,
   EventSchema,
+  IdSchema,
   SystemWebhookDeliverySchema,
   SystemWebhookSchema,
 } from "../../schemas.js"
@@ -19,17 +20,26 @@ const EventListSchema = z.object({ data: z.array(EventSchema), next_cursor: z.st
 const listEventsRoute = createRoute({
   method: "get",
   path: "/v1/events",
+  operationId: "events_list",
   tags: ["events"],
   summary: "Organization event log",
-  request: { query: CursorQuerySchema.extend({ type: z.string().optional(), since: z.string().optional() }) },
+  description: "Every notable thing that happened in this org — form.created, form.schema.changed, stream.schema.changed, submission.received, and more. System webhooks (below) are just subscriptions to this same log.",
+  request: {
+    query: CursorQuerySchema.extend({
+      type: z.string().optional().describe("Filter to one event type, e.g. 'submission.received'."),
+      since: z.string().optional().describe("ISO timestamp; only events after this."),
+    }),
+  },
   responses: { 200: { description: "ok", content: { "application/json": { schema: EventListSchema } } } },
 })
 
 const listWebhooksRoute = createRoute({
   method: "get",
   path: "/v1/webhooks",
+  operationId: "webhooks_list",
   tags: ["events"],
   summary: "List system webhooks",
+  description: "System webhooks notify an external system when org events happen (not to be confused with a webhook destination, which delivers submissions).",
   responses: {
     200: { description: "ok", content: { "application/json": { schema: z.array(SystemWebhookSchema) } } },
   },
@@ -38,8 +48,10 @@ const listWebhooksRoute = createRoute({
 const createWebhookRoute = createRoute({
   method: "post",
   path: "/v1/webhooks",
+  operationId: "webhooks_create",
   tags: ["events"],
   summary: "Subscribe a URL to event types",
+  description: "Every delivery is signed with the returned (or supplied) secret so the receiver can verify authenticity.",
   request: { body: { content: { "application/json": { schema: SystemWebhookInputSchema } } } },
   responses: {
     201: { description: "created", content: { "application/json": { schema: SystemWebhookSchema } } },
@@ -50,10 +62,11 @@ const createWebhookRoute = createRoute({
 const patchWebhookRoute = createRoute({
   method: "patch",
   path: "/v1/webhooks/{webhookId}",
+  operationId: "webhooks_update",
   tags: ["events"],
-  summary: "Update",
+  summary: "Update a system webhook",
   request: {
-    params: z.object({ webhookId: z.string() }),
+    params: z.object({ webhookId: IdSchema }),
     body: { content: { "application/json": { schema: SystemWebhookInputSchema.partial() } } },
   },
   responses: {
@@ -65,9 +78,10 @@ const patchWebhookRoute = createRoute({
 const deleteWebhookRoute = createRoute({
   method: "delete",
   path: "/v1/webhooks/{webhookId}",
+  operationId: "webhooks_delete",
   tags: ["events"],
-  summary: "Delete",
-  request: { params: z.object({ webhookId: z.string() }) },
+  summary: "Delete a system webhook",
+  request: { params: z.object({ webhookId: IdSchema }) },
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })
 
@@ -79,9 +93,10 @@ const WebhookDeliveryListSchema = z.object({
 const listWebhookDeliveriesRoute = createRoute({
   method: "get",
   path: "/v1/webhooks/{webhookId}/deliveries",
+  operationId: "webhooks_deliveries",
   tags: ["events"],
   summary: "Delivery history for a system webhook",
-  request: { params: z.object({ webhookId: z.string() }), query: CursorQuerySchema },
+  request: { params: z.object({ webhookId: IdSchema }), query: CursorQuerySchema },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: WebhookDeliveryListSchema } } },
     ...errorResponses,

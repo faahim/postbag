@@ -19,6 +19,7 @@ import { asJson, serializeRoute, serializeStream } from "../../repo/serialize.js
 import {
   CursorQuerySchema,
   errorResponses,
+  IdSchema,
   JsonRecord,
   SafeSchemaInputSchema,
   SafeStreamSourceInputSchema,
@@ -76,6 +77,7 @@ async function getStreamCounts(db: Database, organizationId: string, streamId: s
 const listRoute = createRoute({
   method: "get",
   path: "/v1/streams",
+  operationId: "streams_list",
   tags: ["streams"],
   summary: "List streams",
   request: { query: CursorQuerySchema },
@@ -85,8 +87,10 @@ const listRoute = createRoute({
 const createRouteDef = createRoute({
   method: "post",
   path: "/v1/streams",
+  operationId: "streams_create",
   tags: ["streams"],
   summary: "Create a stream (optionally with its first schema version and sources)",
+  description: "A stream (shown as 'Bag' in the dashboard) fans one canonical schema in from many forms.",
   request: { body: { content: { "application/json": { schema: SafeStreamInputSchema } } } },
   responses: {
     201: { description: "created", content: { "application/json": { schema: StreamSchema } } },
@@ -97,9 +101,10 @@ const createRouteDef = createRoute({
 const getRoute = createRoute({
   method: "get",
   path: "/v1/streams/{streamId}",
+  operationId: "streams_get",
   tags: ["streams"],
   summary: "Get a stream with schema, sources, mapping status and routes",
-  request: { params: z.object({ streamId: z.string() }) },
+  request: { params: z.object({ streamId: IdSchema }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: StreamDetailSchema } } },
     ...errorResponses,
@@ -109,10 +114,11 @@ const getRoute = createRoute({
 const patchRoute = createRoute({
   method: "patch",
   path: "/v1/streams/{streamId}",
+  operationId: "streams_update",
   tags: ["streams"],
   summary: "Update name/slug",
   request: {
-    params: z.object({ streamId: z.string() }),
+    params: z.object({ streamId: IdSchema }),
     body: { content: { "application/json": { schema: SafeStreamInputSchema.partial() } } },
   },
   responses: { 200: { description: "ok", content: { "application/json": { schema: StreamSchema } } }, ...errorResponses },
@@ -121,18 +127,20 @@ const patchRoute = createRoute({
 const deleteRoute = createRoute({
   method: "delete",
   path: "/v1/streams/{streamId}",
+  operationId: "streams_delete",
   tags: ["streams"],
   summary: "Delete a stream",
-  request: { params: z.object({ streamId: z.string() }) },
+  request: { params: z.object({ streamId: IdSchema }) },
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })
 
 const getSchemaRoute = createRoute({
   method: "get",
   path: "/v1/streams/{streamId}/schema",
+  operationId: "streams_schema_get",
   tags: ["streams"],
   summary: "Current stream schema",
-  request: { params: z.object({ streamId: z.string() }) },
+  request: { params: z.object({ streamId: IdSchema }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: SchemaVersionSchema } } },
     ...errorResponses,
@@ -142,10 +150,14 @@ const getSchemaRoute = createRoute({
 const publishSchemaRoute = createRoute({
   method: "post",
   path: "/v1/streams/{streamId}/schema",
+  operationId: "streams_schema_publish",
   tags: ["streams"],
   summary: "Publish a new stream schema version",
+  description:
+    "Schemas are immutable versions — this always creates version N+1. Re-validates every attached " +
+    "source's mapping against the new schema and returns the updated mapping statuses alongside it.",
   request: {
-    params: z.object({ streamId: z.string() }),
+    params: z.object({ streamId: IdSchema }),
     body: { content: { "application/json": { schema: SafeSchemaInputSchema } } },
   },
   responses: {
@@ -164,9 +176,10 @@ const publishSchemaRoute = createRoute({
 const listSourcesRoute = createRoute({
   method: "get",
   path: "/v1/streams/{streamId}/sources",
+  operationId: "streams_sources_list",
   tags: ["streams"],
   summary: "List sources and their mapping status",
-  request: { params: z.object({ streamId: z.string() }) },
+  request: { params: z.object({ streamId: IdSchema }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: z.array(StreamSourceSchema) } } },
   },
@@ -175,10 +188,14 @@ const listSourcesRoute = createRoute({
 const attachSourceRoute = createRoute({
   method: "post",
   path: "/v1/streams/{streamId}/sources",
+  operationId: "streams_sources_add",
   tags: ["streams"],
   summary: "Attach a form or selector with a mapping",
+  description:
+    "Fails 422 mapping_incomplete (with the missing fields listed) if the mapping does not cover every " +
+    "field the stream's current schema requires — a form can't join a stream it can't feed.",
   request: {
-    params: z.object({ streamId: z.string() }),
+    params: z.object({ streamId: IdSchema }),
     body: { content: { "application/json": { schema: SafeStreamSourceInputSchema } } },
   },
   responses: {
@@ -190,10 +207,11 @@ const attachSourceRoute = createRoute({
 const updateSourceRoute = createRoute({
   method: "patch",
   path: "/v1/streams/{streamId}/sources/{sourceId}",
+  operationId: "streams_sources_update",
   tags: ["streams"],
   summary: "Update the mapping",
   request: {
-    params: z.object({ streamId: z.string(), sourceId: z.string() }),
+    params: z.object({ streamId: IdSchema, sourceId: IdSchema }),
     body: { content: { "application/json": { schema: SafeStreamSourceInputSchema } } },
   },
   responses: {
@@ -205,9 +223,10 @@ const updateSourceRoute = createRoute({
 const deleteSourceRoute = createRoute({
   method: "delete",
   path: "/v1/streams/{streamId}/sources/{sourceId}",
+  operationId: "streams_sources_remove",
   tags: ["streams"],
   summary: "Detach",
-  request: { params: z.object({ streamId: z.string(), sourceId: z.string() }) },
+  request: { params: z.object({ streamId: IdSchema, sourceId: IdSchema }) },
   responses: { 204: { description: "detached" }, ...errorResponses },
 })
 
@@ -216,14 +235,19 @@ const PreviewResponseSchema = z.object({ payload: JsonRecord, extras: JsonRecord
 const previewRoute = createRoute({
   method: "post",
   path: "/v1/streams/{streamId}/preview",
+  operationId: "streams_preview",
   tags: ["streams"],
   summary: "Run a sample submission through a source's mapping",
+  description: "Dry-runs a form's attached mapping against sample data without storing anything — useful before publishing a schema change.",
   request: {
-    params: z.object({ streamId: z.string() }),
+    params: z.object({ streamId: IdSchema }),
     body: {
       content: {
         "application/json": {
-          schema: z.object({ form_id: z.string(), data: z.record(z.string(), z.unknown()) }),
+          schema: z.object({
+            form_id: IdSchema.describe("The form whose attached mapping to run."),
+            data: z.record(z.string(), z.unknown()).describe("Sample submission data to map through."),
+          }),
         },
       },
     },

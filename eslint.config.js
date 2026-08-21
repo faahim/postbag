@@ -17,6 +17,14 @@ export default tseslint.config(
       "apps/site/.astro/**",
       "apps/site/astro.config.mjs",
       "apps/site/scripts/**",
+      // These two routes import `astro:content`, whose types only exist once `astro
+      // sync`/`astro check` has generated `apps/site/.astro/types.d.ts` (gitignored).
+      // The root `pnpm lint` never builds the site, so on a clean checkout typed linting
+      // sees the import as untyped and trips `no-unsafe-*`. `apps/site`'s own
+      // `pnpm typecheck` (`astro check`) covers these files with real astro:content
+      // types, so excluding them here does not lose coverage — do not rewrite them.
+      "apps/site/src/pages/docs/\\[...slug\\]/index.md.ts",
+      "apps/site/src/pages/llms-full.txt.ts",
     ],
   },
   eslint.configs.recommended,

@@ -6,31 +6,48 @@ import { destinations, forms, routes, streams, type Database } from "@postbag/db
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
 import { serializeRoute } from "../../repo/serialize.js"
-import { CursorQuerySchema, errorResponses, RouteSchema } from "../../schemas.js"
+import { CursorQuerySchema, errorResponses, IdSchema, RouteSchema } from "../../schemas.js"
 
 const RouteListSchema = z.object({ data: z.array(RouteSchema), next_cursor: z.string().nullable() })
 
 // RouteInputSchema carries a superRefine (exactly one of form_id/stream_id), and zod
 // disallows `.partial()` on refined schemas — hand-roll the patch body instead.
 const RoutePatchInputSchema = z.object({
-  enabled: z.boolean().optional(),
-  mode: z.object({ type: z.enum(["instant", "digest"]), cron: z.string().optional(), timezone: z.string().optional() }).optional(),
-  window: z.object({ from: z.iso.datetime().nullable().optional(), until: z.iso.datetime().nullable().optional() }).optional(),
-  quality: z.object({ exclude_spam: z.boolean().optional(), exclude_quarantined: z.boolean().optional() }).optional(),
-  filter: z.string().optional(),
-  transform: z.string().optional(),
+  enabled: z.boolean().optional().describe("Disable a route without deleting it."),
+  mode: z
+    .object({
+      type: z.enum(["instant", "digest"]),
+      cron: z.string().optional().describe("Cron expression for digest mode, e.g. '0 9 * * *'."),
+      timezone: z.string().optional().describe("IANA timezone the cron runs in; defaults to the org's timezone."),
+    })
+    .optional()
+    .describe("instant delivers as submissions arrive; digest batches into one payload per period."),
+  window: z
+    .object({ from: z.iso.datetime().nullable().optional(), until: z.iso.datetime().nullable().optional() })
+    .optional()
+    .describe("Only deliver submissions received in this ISO datetime range."),
+  quality: z
+    .object({
+      exclude_spam: z.boolean().optional(),
+      exclude_quarantined: z.boolean().optional(),
+    })
+    .optional()
+    .describe("Defaults to excluding spam and quarantined submissions from delivery."),
+  filter: z.string().optional().describe("A JSONata boolean expression; only matching submissions are delivered."),
+  transform: z.string().optional().describe("A JSONata expression applied to the payload before delivery."),
 })
 
 const listRoute = createRoute({
   method: "get",
   path: "/v1/routes",
+  operationId: "routes_list",
   tags: ["routes"],
   summary: "List routes",
   request: {
     query: CursorQuerySchema.extend({
-      form: z.string().optional(),
-      stream: z.string().optional(),
-      destination: z.string().optional(),
+      form: z.string().optional().describe("Filter to routes whose source is this form id."),
+      stream: z.string().optional().describe("Filter to routes whose source is this stream id."),
+      destination: z.string().optional().describe("Filter to routes pointing at this destination id."),
     }),
   },
   responses: { 200: { description: "ok", content: { "application/json": { schema: RouteListSchema } } } },
@@ -39,8 +56,10 @@ const listRoute = createRoute({
 const createRouteDef = createRoute({
   method: "post",
   path: "/v1/routes",
+  operationId: "routes_create",
   tags: ["routes"],
   summary: "Create a route (source is exactly one of form_id / stream_id)",
+  description: "A route ties one source (a form or a stream) to one destination, with a mode (instant or digest) and optional filter/transform/quality rules.",
   request: { body: { content: { "application/json": { schema: RouteInputSchema } } } },
   responses: {
     201: { description: "created", content: { "application/json": { schema: RouteSchema } } },
@@ -51,19 +70,21 @@ const createRouteDef = createRoute({
 const getRoute = createRoute({
   method: "get",
   path: "/v1/routes/{routeId}",
+  operationId: "routes_get",
   tags: ["routes"],
-  summary: "Get",
-  request: { params: z.object({ routeId: z.string() }) },
+  summary: "Get a route",
+  request: { params: z.object({ routeId: IdSchema }) },
   responses: { 200: { description: "ok", content: { "application/json": { schema: RouteSchema } } }, ...errorResponses },
 })
 
 const patchRoute = createRoute({
   method: "patch",
   path: "/v1/routes/{routeId}",
+  operationId: "routes_update",
   tags: ["routes"],
   summary: "Update rules / enable / disable",
   request: {
-    params: z.object({ routeId: z.string() }),
+    params: z.object({ routeId: IdSchema }),
     body: { content: { "application/json": { schema: RoutePatchInputSchema } } },
   },
   responses: { 200: { description: "ok", content: { "application/json": { schema: RouteSchema } } }, ...errorResponses },
@@ -72,9 +93,10 @@ const patchRoute = createRoute({
 const deleteRoute = createRoute({
   method: "delete",
   path: "/v1/routes/{routeId}",
+  operationId: "routes_delete",
   tags: ["routes"],
-  summary: "Delete",
-  request: { params: z.object({ routeId: z.string() }) },
+  summary: "Delete a route",
+  request: { params: z.object({ routeId: IdSchema }) },
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })
 

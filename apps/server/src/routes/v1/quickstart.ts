@@ -28,8 +28,14 @@ const QuickstartResponseSchema = z.object({
 const quickstartRoute = createRoute({
   method: "post",
   path: "/v1/quickstart",
+  operationId: "quickstart",
   tags: ["discovery"],
   summary: "One call to a working, routed form",
+  description:
+    "Creates (idempotently, by name within project) the project if missing, the form, a destination for " +
+    "whichever of notify_email/telegram/webhook was given, and a direct route, then returns the form, an " +
+    "embeddable snippet, a curl command to verify delivery, and next steps. Everything it does is also " +
+    "available as individual calls (POST /v1/forms, /v1/destinations, /v1/routes); this is a convenience, not a special path.",
   request: { body: { content: { "application/json": { schema: QuickstartInputSchema } } } },
   responses: {
     201: { description: "created (or returned)", content: { "application/json": { schema: QuickstartResponseSchema } } },

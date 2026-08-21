@@ -9,8 +9,12 @@ import type { AppEnv } from "../../lib/scope.js"
 import { errorResponses, ScopeSchema } from "../../schemas.js"
 
 const ApiKeyCreateInputSchema = z.object({
-  name: z.string().min(1).optional(),
-  scopes: z.array(ScopeSchema).min(1).default(["manage"]),
+  name: z.string().min(1).optional().describe("A label to tell keys apart, e.g. 'CI deploy key'."),
+  scopes: z
+    .array(ScopeSchema)
+    .min(1)
+    .default(["manage"])
+    .describe("manage ⊇ read ⊇ submit — a manage key satisfies every read- or submit-scoped call too."),
 })
 
 const ApiKeyCreatedSchema = z.object({
@@ -34,8 +38,12 @@ const ApiKeySummarySchema = z.object({
 const createApiKeyRoute = createRoute({
   method: "post",
   path: "/v1/api-keys",
+  operationId: "api_keys_create",
   tags: ["discovery"],
   summary: "Create an API key for the active organization (session only)",
+  description:
+    "Requires a signed-in dashboard session, not another API key — an agent cannot mint its own first " +
+    "key this way. The full key is only ever returned once, in this response; store it immediately.",
   request: { body: { content: { "application/json": { schema: ApiKeyCreateInputSchema } } } },
   responses: {
     201: { description: "created", content: { "application/json": { schema: ApiKeyCreatedSchema } } },
@@ -46,8 +54,10 @@ const createApiKeyRoute = createRoute({
 const listApiKeysRoute = createRoute({
   method: "get",
   path: "/v1/api-keys",
+  operationId: "api_keys_list",
   tags: ["discovery"],
   summary: "List API keys for the active organization",
+  description: "Prefixes only — full key values are never returned again after creation.",
   responses: {
     200: { description: "ok", content: { "application/json": { schema: z.array(ApiKeySummarySchema) } } },
   },
@@ -56,9 +66,11 @@ const listApiKeysRoute = createRoute({
 const deleteApiKeyRoute = createRoute({
   method: "delete",
   path: "/v1/api-keys/{id}",
+  operationId: "api_keys_revoke",
   tags: ["discovery"],
   summary: "Delete an API key",
-  request: { params: z.object({ id: z.string() }) },
+  description: "Revokes the key immediately; any client still using it starts getting 401s.",
+  request: { params: z.object({ id: z.string().describe("The API key id (not the key value itself).") }) },
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })
 

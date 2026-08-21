@@ -14,14 +14,15 @@ const SubmissionListSchema = z.object({ data: z.array(SubmissionSchema), next_cu
 const searchRoute = createRoute({
   method: "get",
   path: "/v1/submissions",
+  operationId: "submissions_list",
   tags: ["submissions"],
   summary: "Search submissions across the organization",
   request: {
     query: CursorQuerySchema.extend({
-      stream: z.string().optional(),
-      form: z.string().optional(),
-      status: z.string().optional(),
-      q: z.string().optional(),
+      stream: z.string().optional().describe("Filter to submissions routed through this stream id."),
+      form: z.string().optional().describe("Filter to one form id."),
+      status: z.string().optional().describe("Filter by status: received, quarantined or spam."),
+      q: z.string().optional().describe("Free-text search over submission data."),
     }),
   },
   responses: { 200: { description: "ok", content: { "application/json": { schema: SubmissionListSchema } } } },
@@ -30,6 +31,7 @@ const searchRoute = createRoute({
 const getRoute = createRoute({
   method: "get",
   path: "/v1/submissions/{submissionId}",
+  operationId: "submissions_get",
   tags: ["submissions"],
   summary: "Get a submission with its deliveries",
   request: { params: z.object({ submissionId: z.string() }) },
@@ -42,8 +44,10 @@ const getRoute = createRoute({
 const patchRoute = createRoute({
   method: "patch",
   path: "/v1/submissions/{submissionId}",
+  operationId: "submissions_update",
   tags: ["submissions"],
   summary: "Change status (re-routes if moving to received)",
+  description: "Moving a quarantined submission to `received` re-runs routing and queues deliveries for it.",
   request: {
     params: z.object({ submissionId: z.string() }),
     body: { content: { "application/json": { schema: z.object({ status: z.enum(["received", "quarantined", "spam"]) }) } } },
@@ -57,8 +61,10 @@ const patchRoute = createRoute({
 const deleteRoute = createRoute({
   method: "delete",
   path: "/v1/submissions/{submissionId}",
+  operationId: "submissions_delete",
   tags: ["submissions"],
   summary: "Delete permanently (GDPR)",
+  description: "Irreversible. Use for data-subject deletion requests; deliveries already sent are unaffected.",
   request: { params: z.object({ submissionId: z.string() }) },
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })

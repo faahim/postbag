@@ -46,8 +46,12 @@ const MeSchema = z.object({
 const meRoute = createRoute({
   method: "get",
   path: "/v1/me",
+  operationId: "me_get",
   tags: ["discovery"],
   summary: "Identify the caller and summarise the organization",
+  description:
+    "The first call an agent holding only an API key should make: who it is, which org, which " +
+    "scopes the key has, plan limits and usage, and what already exists (counts). Call this before anything else.",
   responses: { 200: { description: "ok", content: { "application/json": { schema: MeSchema } } } },
 })
 

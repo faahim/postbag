@@ -27,6 +27,20 @@ const EnvSchema = z.object({
   MAIL_FROM: z.string().default("Postbag <notify@postbag.dev>"),
   MIGRATE_ON_BOOT: BooleanFromString,
   RLS_ENFORCED: BooleanFlagDefaultFalse,
+  // Comma-separated hostnames (e.g. an old custom domain) that should 301-redirect
+  // marketing/dashboard paths to APP_URL, while /s/, /v1/ and /health keep working on the
+  // old host forever so embeds already deployed to production sites never break. Empty by
+  // default — self-host operators only set this if they are migrating domains.
+  LEGACY_HOSTS: z
+    .string()
+    .optional()
+    .default("")
+    .transform((value) =>
+      value
+        .split(",")
+        .map((host) => host.trim().toLowerCase())
+        .filter((host) => host.length > 0),
+    ),
 })
 
 export type Env = {
@@ -41,6 +55,7 @@ export type Env = {
   readonly MAIL_FROM: string
   readonly MIGRATE_ON_BOOT: boolean
   readonly RLS_ENFORCED: boolean
+  readonly LEGACY_HOSTS: readonly string[]
 }
 
 export function loadEnv(source: Readonly<Record<string, string | undefined>> = process.env): Env {

@@ -27,6 +27,7 @@ import {
   errorResponses,
   FormCreatedSchema,
   FormSchema,
+  IdSchema,
   SafeSchemaInputSchema,
   SchemaVersionSchema,
   SubmissionSchema,
@@ -48,13 +49,14 @@ function slugify(value: string): string {
 const listRoute = createRoute({
   method: "get",
   path: "/v1/forms",
+  operationId: "forms_list",
   tags: ["forms"],
   summary: "List forms",
   request: {
     query: CursorQuerySchema.extend({
-      project: z.string().optional(),
-      tag: z.string().optional(),
-      stream: z.string().optional(),
+      project: z.string().optional().describe("Filter to one project id."),
+      tag: z.string().optional().describe("Filter to forms carrying this tag."),
+      stream: z.string().optional().describe("Filter to forms attached to this stream id."),
     }),
   },
   responses: { 200: { description: "ok", content: { "application/json": { schema: FormListSchema } } } },
@@ -63,8 +65,12 @@ const listRoute = createRoute({
 const createRouteDef = createRoute({
   method: "post",
   path: "/v1/forms",
+  operationId: "forms_create",
   tags: ["forms"],
   summary: "Create a form",
+  description:
+    "Pass `from_template` (a stream id) to attach the new form to that stream with a schema copied 1:1 " +
+    "from it, so the mapping is trivially complete. Pass `if_exists: \"return\"` to make this call safe to re-run.",
   request: { body: { content: { "application/json": { schema: SafeFormInputSchema } } } },
   responses: {
     201: { description: "created", content: { "application/json": { schema: FormCreatedSchema } } },
@@ -75,19 +81,21 @@ const createRouteDef = createRoute({
 const getRoute = createRoute({
   method: "get",
   path: "/v1/forms/{formId}",
+  operationId: "forms_get",
   tags: ["forms"],
   summary: "Get a form",
-  request: { params: z.object({ formId: z.string() }) },
+  request: { params: z.object({ formId: IdSchema }) },
   responses: { 200: { description: "ok", content: { "application/json": { schema: FormSchema } } }, ...errorResponses },
 })
 
 const patchRoute = createRoute({
   method: "patch",
   path: "/v1/forms/{formId}",
+  operationId: "forms_update",
   tags: ["forms"],
   summary: "Update a form",
   request: {
-    params: z.object({ formId: z.string() }),
+    params: z.object({ formId: IdSchema }),
     body: { content: { "application/json": { schema: SafeFormInputSchema.partial() } } },
   },
   responses: { 200: { description: "ok", content: { "application/json": { schema: FormSchema } } }, ...errorResponses },
@@ -96,27 +104,34 @@ const patchRoute = createRoute({
 const deleteRoute = createRoute({
   method: "delete",
   path: "/v1/forms/{formId}",
+  operationId: "forms_delete",
   tags: ["forms"],
   summary: "Delete a form",
-  request: { params: z.object({ formId: z.string() }) },
+  request: { params: z.object({ formId: IdSchema }) },
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })
 
 const embedRoute = createRoute({
   method: "get",
   path: "/v1/forms/{formId}/embed",
+  operationId: "forms_embed",
   tags: ["forms"],
   summary: "Embed snippets",
-  request: { params: z.object({ formId: z.string() }) },
+  description: "Ready-to-paste HTML, fetch, React, Astro and Next.js server-action snippets for this form's submit URL.",
+  request: { params: z.object({ formId: IdSchema }) },
   responses: { 200: { description: "ok", content: { "application/json": { schema: EmbedSchema } } }, ...errorResponses },
 })
 
 const getSchemaRoute = createRoute({
   method: "get",
   path: "/v1/forms/{formId}/schema",
+  operationId: "forms_schema_get",
   tags: ["forms"],
   summary: "Current schema version",
-  request: { params: z.object({ formId: z.string() }) },
+  description:
+    "For observe-mode forms with no published version yet, falls back to the last inferred draft " +
+    "(marked `inferred: true`) if one exists; publishing is still a separate, explicit act.",
+  request: { params: z.object({ formId: IdSchema }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: SchemaVersionSchema } } },
     ...errorResponses,
@@ -126,10 +141,12 @@ const getSchemaRoute = createRoute({
 const publishSchemaRoute = createRoute({
   method: "post",
   path: "/v1/forms/{formId}/schema",
+  operationId: "forms_schema_publish",
   tags: ["forms"],
   summary: "Publish a new schema version",
+  description: "Schemas are immutable versions — this always creates version N+1, never mutates an existing one.",
   request: {
-    params: z.object({ formId: z.string() }),
+    params: z.object({ formId: IdSchema }),
     body: { content: { "application/json": { schema: SafeSchemaInputSchema } } },
   },
   responses: {
@@ -141,20 +158,25 @@ const publishSchemaRoute = createRoute({
 const schemaVersionsRoute = createRoute({
   method: "get",
   path: "/v1/forms/{formId}/schema/versions",
+  operationId: "forms_schema_versions",
   tags: ["forms"],
   summary: "All schema versions",
-  request: { params: z.object({ formId: z.string() }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: z.array(SchemaVersionSchema) } } },
   },
+  request: { params: z.object({ formId: IdSchema }) },
 })
 
 const inferSchemaRoute = createRoute({
   method: "post",
   path: "/v1/forms/{formId}/schema/infer",
+  operationId: "forms_schema_infer",
   tags: ["forms"],
   summary: "Infer a draft schema now, from recent submissions (observe mode, no schema yet)",
-  request: { params: z.object({ formId: z.string() }) },
+  description:
+    "Only for observe-mode forms with no published schema. Looks at recent non-spam submissions and produces " +
+    "a draft schema; call forms_schema_publish with the result (or an edited version of it) to make it real.",
+  request: { params: z.object({ formId: IdSchema }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: SchemaVersionSchema } } },
     ...errorResponses,
@@ -164,9 +186,11 @@ const inferSchemaRoute = createRoute({
 const driftRoute = createRoute({
   method: "get",
   path: "/v1/forms/{formId}/drift",
+  operationId: "forms_drift",
   tags: ["forms"],
   summary: "Unresolved drift events",
-  request: { params: z.object({ formId: z.string() }) },
+  description: "Fields submitters are sending that the published schema doesn't declare. Resolve by publishing an updated schema.",
+  request: { params: z.object({ formId: IdSchema }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: z.array(z.record(z.string(), z.unknown())) } } },
   },
@@ -175,11 +199,16 @@ const driftRoute = createRoute({
 const formSubmissionsRoute = createRoute({
   method: "get",
   path: "/v1/forms/{formId}/submissions",
+  operationId: "forms_submissions_list",
   tags: ["submissions"],
   summary: "List submissions for a form",
   request: {
-    params: z.object({ formId: z.string() }),
-    query: CursorQuerySchema.extend({ status: z.string().optional(), since: z.string().optional(), q: z.string().optional() }),
+    params: z.object({ formId: IdSchema }),
+    query: CursorQuerySchema.extend({
+      status: z.string().optional().describe("Filter by status: received, quarantined or spam."),
+      since: z.string().optional().describe("ISO timestamp; only submissions received after this."),
+      q: z.string().optional().describe("Free-text search over submission data."),
+    }),
   },
   responses: {
     200: {

@@ -6,21 +6,23 @@ import { deliveries, forms, notifyDeliveries, routes, streamSchemas, streamSourc
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
 import { serializeDelivery } from "../../repo/serialize.js"
-import { CursorQuerySchema, DeliverySchema, errorResponses } from "../../schemas.js"
+import { CursorQuerySchema, DeliverySchema, errorResponses, IdSchema } from "../../schemas.js"
 
 const DeliveryListSchema = z.object({ data: z.array(DeliverySchema), next_cursor: z.string().nullable() })
 
 const listRoute = createRoute({
   method: "get",
   path: "/v1/deliveries",
+  operationId: "deliveries_list",
   tags: ["deliveries"],
   summary: "List deliveries (the outbox)",
+  description: "A submission is a row before it is anything else; delivery is this outbox drained by a worker. Poll here to confirm a submission actually arrived at its destination.",
   request: {
     query: CursorQuerySchema.extend({
-      status: z.string().optional(),
-      route: z.string().optional(),
-      destination: z.string().optional(),
-      submission: z.string().optional(),
+      status: z.string().optional().describe("Filter by status: pending, sending, sent, failed, dead or skipped."),
+      route: z.string().optional().describe("Filter to one route id."),
+      destination: z.string().optional().describe("Filter to one destination id."),
+      submission: z.string().optional().describe("Filter to one submission id."),
     }),
   },
   responses: { 200: { description: "ok", content: { "application/json": { schema: DeliveryListSchema } } } },
@@ -29,9 +31,10 @@ const listRoute = createRoute({
 const getRoute = createRoute({
   method: "get",
   path: "/v1/deliveries/{deliveryId}",
+  operationId: "deliveries_get",
   tags: ["deliveries"],
   summary: "Get a delivery with payload snapshot and last response",
-  request: { params: z.object({ deliveryId: z.string() }) },
+  request: { params: z.object({ deliveryId: IdSchema }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: DeliverySchema } } },
     ...errorResponses,
@@ -41,9 +44,11 @@ const getRoute = createRoute({
 const retryRoute = createRoute({
   method: "post",
   path: "/v1/deliveries/{deliveryId}/retry",
+  operationId: "deliveries_retry",
   tags: ["deliveries"],
   summary: "Re-snapshot the payload against current mapping/transform and queue again",
-  request: { params: z.object({ deliveryId: z.string() }) },
+  description: "Use after fixing a destination's config or a stream's mapping so a `failed` or `dead` delivery gets another chance.",
+  request: { params: z.object({ deliveryId: IdSchema }) },
   responses: {
     202: { description: "queued", content: { "application/json": { schema: DeliverySchema } } },
     ...errorResponses,

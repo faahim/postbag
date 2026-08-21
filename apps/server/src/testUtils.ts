@@ -25,6 +25,7 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     MAIL_FROM: "Postbag <postbag@updates.withfaahim.com>",
     MIGRATE_ON_BOOT: false,
     RLS_ENFORCED: false,
+    LEGACY_HOSTS: [],
     ...overrides,
   }
 }
