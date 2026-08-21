@@ -54,12 +54,13 @@ the rules and `docs/` for the design.
 
 ## In progress
 
-- [ ] Job C (Sonnet, spec `tasks/job-C-dashboard.md`): `apps/web` dashboard + `packages/sdk` — launched 2026-08-21 ~23:35 UTC
+- [x] Job C (Sonnet, spec `tasks/job-C-dashboard.md`): `apps/web` (Vite+React+shadcn, all 10 screens, postmark motif, Instrument Sans/JetBrains Mono, wax-seal accent, ⌘K, live inbox) + `packages/sdk` (openapi-typescript + openapi-fetch). SPA builds into `apps/server/dist/public`, served at `/app`. Verified by Claude: lint 0, typecheck ok, 81 tests (worker tests need a clean DB — see job D), Docker image serves `/app` + `/health`. Design verdict: coherent and clean; a dedicated polish pass (job E) should push it from 'tidy' to 'distinctive'.
 - [x] **Production verified end-to-end 2026-08-21 23:25 UTC:** `d4a8f3a` deployed; `/health` db up + worker alive; signup → `/v1/me` → API key → `/v1/quickstart` → real submission → email delivered via Resend in ~1 s and confirmed in Fahim's Gmail.
   Fahim's production account: `afiur.fahim@gmail.com`, org `org_3yv5z32sed4q`, project `postbag`, form `fm_gwdahpd22tjy` ("Overnight smoke test"). Password + full-scope API key saved at **`~/.postbag/credentials`** (mode 600, not in repo).
 
 ## Next up (in order)
 
+0. Job E (design polish, after D): review screenshots in the session scratchpad `web-shots/`; push identity further per `docs/DESIGN.md` §2 — accent presence, empty-state illustration family, density, first-run hero. Invoke the design skills.
 1. Job D (server follow-ups): **bugs found in prod smoke test:** (a) an API key with only `manage` scope is refused `read` — `manage` must imply `read` (agents create `manage` keys and immediately GET); (b) email subject `{{form.name}}` renders the slug — template context must carry the real name. Then: system-webhook dispatch (EventDispatcher seam), digest sending, `observe`-mode schema inference, `drizzle-kit generate` fix (export map in `@postbag/core`), RLS fence.
 2. CLI + MCP thin clients over `packages/sdk`.
 3. Dogfood: portfolio contact form → Postbag. Then Smedja `forge` provisioning.

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Postbag</title>
+    <script>
+      // Inline + blocking so the correct theme is set before first paint (no flash).
+      // Mirrors src/lib/theme.ts — kept tiny and duplicated deliberately.
+      (function () {
+        var stored = localStorage.getItem("postbag-theme")
+        var pref = stored === "light" || stored === "dark" || stored === "system" ? stored : "system"
+        var dark = pref === "dark" || (pref === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+        document.documentElement.setAttribute("data-theme", dark ? "dark" : "light")
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

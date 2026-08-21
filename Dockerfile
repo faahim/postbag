@@ -13,9 +13,14 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @postbag/core build \
  && pnpm --filter @postbag/db build \
  && pnpm --filter @postbag/auth build \
- && pnpm --filter @postbag/server build
+ && pnpm --filter @postbag/sdk build \
+ && pnpm --filter @postbag/server build \
+ && pnpm --filter @postbag/web build
+# apps/web's Vite build writes straight into apps/server/dist/public — the exact path
+# apps/server/src/routes/staticApp.ts resolves its static root to (`../public` relative
+# to the compiled dist/routes/staticApp.js) — so the SPA rides along in the next step.
 # Prunes to a self-contained, production-only deploy of @postbag/server: its own
-# dist/ plus real (non-symlinked) copies of the workspace packages it depends on.
+# dist/ (SPA included) plus real (non-symlinked) copies of the workspace packages it depends on.
 RUN pnpm --filter @postbag/server deploy --prod --legacy /prod/server
 
 # ---- runtime ----------------------------------------------------------------

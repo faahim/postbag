@@ -1,0 +1,5 @@
+export { createClient } from "./client.js"
+export type { CreateClientOptions, PostbagClient } from "./client.js"
+export { submit } from "./submit.js"
+export type { SubmitOptions, SubmitResult } from "./submit.js"
+export type { components, paths } from "./schema.js"

@@ -1,0 +1,307 @@
+/*
+ * The Postbag identity coat (docs/DESIGN.md §2).
+ *
+ * Accent = wax-seal red. Surfaces are near-neutral with a faint warm tint (a
+ * sealed-envelope paper, not a cold dev-tool gray). Radius is tighter than the
+ * shadcn default. Everything else — shadcn/ui component code — reads these
+ * variables and never hardcodes a color.
+ *
+ * Motion tokens below are the transitions-dev canonical scale, installed once
+ * here per the skill's "Universal install" step, plus two aliases
+ * (--duration-base, --ease-out-quint) matching the vocabulary docs/DESIGN.md
+ * §3 uses. Component code should prefer the transitions-dev names; the
+ * aliases exist so "duration-fast/base/slow" reads naturally in reviews.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ---- surfaces & text -------------------------------------------------- */
+  --background: oklch(0.985 0.004 80);
+  --foreground: oklch(0.2 0.012 55);
+  --card: oklch(0.995 0.0025 80);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.995 0.0025 80);
+  --popover-foreground: var(--foreground);
+
+  /* ---- brand -------------------------------------------------------------
+     Wax-seal red. Kept slightly warmer (hue 25) than --destructive (hue 16)
+     so "primary action" and "irreversible action" never read as the same red. */
+  --primary: oklch(0.55 0.19 25);
+  --primary-foreground: oklch(0.99 0.006 80);
+
+  --secondary: oklch(0.95 0.007 65);
+  --secondary-foreground: oklch(0.28 0.014 55);
+
+  --muted: oklch(0.955 0.006 65);
+  --muted-foreground: oklch(0.482 0.014 55);
+
+  --accent: oklch(0.945 0.024 30);
+  --accent-foreground: oklch(0.4 0.16 25);
+
+  --destructive: oklch(0.55 0.215 16);
+  --destructive-foreground: oklch(0.99 0.006 80);
+
+  --success: oklch(0.6 0.135 152);
+  --success-foreground: oklch(0.99 0.01 152);
+
+  --warning: oklch(0.78 0.15 82);
+  --warning-foreground: oklch(0.28 0.05 82);
+
+  --border: oklch(0.9 0.008 65);
+  --input: oklch(0.895 0.009 65);
+  --ring: oklch(0.55 0.19 25 / 0.5);
+
+  /* ---- radius scale — tighter than shadcn default ------------------------ */
+  --radius: 0.5rem;
+
+  /* ---- layered, soft shadows --------------------------------------------- */
+  --shadow-xs: 0 1px 2px oklch(0.2 0.02 55 / 0.04);
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 55 / 0.05), 0 1px 1px oklch(0.2 0.02 55 / 0.04);
+  --shadow-md: 0 4px 10px oklch(0.2 0.02 55 / 0.06), 0 1px 3px oklch(0.2 0.02 55 / 0.06),
+    0 0 0 1px oklch(0.2 0.02 55 / 0.03);
+  --shadow-lg: 0 12px 24px oklch(0.2 0.02 55 / 0.08), 0 4px 8px oklch(0.2 0.02 55 / 0.05),
+    0 0 0 1px oklch(0.2 0.02 55 / 0.03);
+  --shadow-xl: 0 24px 48px oklch(0.2 0.02 55 / 0.12), 0 8px 16px oklch(0.2 0.02 55 / 0.06),
+    0 0 0 1px oklch(0.2 0.02 55 / 0.03);
+
+  /* ---- typography ---------------------------------------------------------
+     Not Inter. Instrument Sans (humanist, a little personality) for UI;
+     JetBrains Mono for ids, payloads, code — so `fm_8f3kq2` looks designed. */
+  --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* =========================================================================
+     Motion — transitions-dev canonical scale (universal install block).
+     ========================================================================= */
+  --duration-stagger: 40ms;
+  --duration-micro: 80ms;
+  --duration-quick: 150ms;
+  --duration-fast: 250ms;
+  --duration-medium: 350ms;
+  --duration-slow: 400ms;
+  --duration-very-slow: 500ms;
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: ease-in-out;
+  --ease-out: ease-out;
+  --ease-linear: linear;
+  --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
+  --distance-micro: 4px;
+  --distance-small: 6px;
+  --distance-base: 8px;
+  --distance-medium: 12px;
+  --distance-large: 30px;
+  --scale-large: 0.96;
+  --scale-medium: 0.97;
+  --scale-small: 0.98;
+  --scale-tiny: 0.99;
+  --blur-small: 2px;
+  --blur-medium: 3px;
+  --blur-large: 8px;
+
+  /* docs/DESIGN.md §3 vocabulary aliases */
+  --duration-base: var(--duration-medium);
+  --ease-out-quint: var(--ease-smooth-out);
+
+  /* per-transition tunables (colors re-pointed at our tokens, not literals) */
+  --resize-dur: 300ms;
+  --resize-ease: var(--ease-smooth-out);
+  --digit-dur: 500ms;
+  --digit-distance: 8px;
+  --digit-stagger: 70ms;
+  --digit-blur: 2px;
+  --digit-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --digit-dir-x: 0;
+  --digit-dir-y: 1;
+  --badge-slide-dur: 260ms;
+  --badge-pop-dur: 500ms;
+  --badge-pop-close-dur: 180ms;
+  --badge-fade-dur: 400ms;
+  --badge-fade-close-dur: 180ms;
+  --badge-blur: 2px;
+  --badge-offset-x: -8.2px;
+  --badge-offset-y: 12.4px;
+  --badge-slide-ease: var(--ease-smooth-out);
+  --badge-pop-ease: var(--ease-bounce);
+  --badge-close-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --text-swap-dur: 150ms;
+  --text-swap-translate-y: 4px;
+  --text-swap-blur: 2px;
+  --text-swap-ease: ease-in-out;
+  --dropdown-open-dur: 250ms;
+  --dropdown-close-dur: 150ms;
+  --dropdown-pre-scale: 0.97;
+  --dropdown-closing-scale: 0.99;
+  --dropdown-ease: var(--ease-smooth-out);
+  --modal-open-dur: 250ms;
+  --modal-close-dur: 150ms;
+  --modal-scale: 0.96;
+  --modal-scale-close: 0.96;
+  --modal-ease: var(--ease-smooth-out);
+  --panel-open-dur: 400ms;
+  --panel-close-dur: 350ms;
+  --panel-translate-y: 100px;
+  --panel-blur: 2px;
+  --panel-ease: var(--ease-smooth-out);
+  --page-slide-dur: 250ms;
+  --page-fade-dur: 250ms;
+  --page-slide-distance: 8px;
+  --page-blur: 3px;
+  --page-stagger: 0ms;
+  --page-exit-enabled: 1;
+  --page-slide-ease: var(--ease-smooth-out);
+  --page-fade-ease: var(--ease-smooth-out);
+  --icon-swap-dur: 250ms;
+  --icon-swap-blur: 2px;
+  --icon-swap-start-scale: 0.25;
+  --icon-swap-ease: ease-in-out;
+  --check-opacity-dur: 500ms;
+  --check-rotate-dur: 500ms;
+  --check-rotate-from: 80deg;
+  --check-bob-dur: 500ms;
+  --check-y-amount: 40px;
+  --check-blur-dur: 500ms;
+  --check-blur-from: 10px;
+  --check-path-dur: 500ms;
+  --check-path-delay: 80ms;
+  --check-ease-out: var(--ease-smooth-out);
+  --check-ease-opacity: var(--ease-smooth-out);
+  --check-ease-rotate: var(--ease-smooth-out);
+  --check-ease-bob: cubic-bezier(0.34, 1.35, 0.64, 1);
+  --check-ease-path: var(--ease-smooth-out);
+  --avatar-lift: -4px;
+  --avatar-dur: 320ms;
+  --avatar-scale: 1.05;
+  --avatar-falloff: 0.45;
+  --avatar-ease-in: var(--ease-smooth-out);
+  --avatar-ease-out: var(--ease-bounce-strong);
+  --shake-distance: 6px;
+  --shake-overshoot: 4px;
+  --shake-dur-a: 80ms;
+  --shake-dur-b: 60ms;
+  --shake-ease: var(--ease-smooth-out);
+  --revert-hold: 3000ms;
+  --revert-dur: 280ms;
+  --clear-dur: 1000ms;
+  --clear-out-dur: 400ms;
+  --clear-in-dur: 400ms;
+  --clear-out-fly: 12px;
+  --clear-in-fly: 12px;
+  --clear-out-ease: var(--ease-smooth-out);
+  --clear-in-ease: var(--ease-smooth-out);
+  --clear-blur: 2px;
+  --glow-delay: 50ms;
+  --glow-peak-at: 0.15;
+  --glow-opacity: 0.42;
+  --glow-spread: 1.5;
+  --pulse-dur: 1000ms;
+  --pulse-count: 1;
+  --pulse-min: 0.5;
+  --reveal-dur: 400ms;
+  --reveal-blur: 2px;
+  --reveal-ease: ease-in-out;
+  --shimmer-dur: 2000ms;
+  --shimmer-base: var(--muted-foreground);
+  --shimmer-highlight: var(--foreground);
+  --shimmer-band: 400%;
+  --shimmer-ease: linear;
+  --tabs-dur: 250ms;
+  --tabs-ease: var(--ease-smooth-out);
+  --tabs-text-muted: var(--muted-foreground);
+  --tabs-text-active: var(--foreground);
+  --tabs-bar-bg: var(--muted);
+  --tabs-pill-bg: var(--card);
+  --tt-in-dur: 150ms;
+  --tt-out-dur: 50ms;
+  --tt-scale: 0.98;
+  --tt-delay: 80ms;
+  --tt-in-ease: ease-out;
+  --tt-out-ease: ease-out;
+  --tt-bg: var(--foreground);
+  --tt-fg: var(--background);
+  --stagger-dur: 500ms;
+  --stagger-distance: 12px;
+  --stagger-stagger: 40ms;
+  --stagger-blur: 3px;
+  --stagger-ease: var(--ease-smooth-out);
+  --tilt-perspective: 1000px;
+  --tilt-return: 1000ms;
+  --tilt-return-ease: var(--ease-smooth-out);
+  --tilt-follow: 400ms;
+  --tilt-follow-ease: var(--ease-smooth-out);
+  --tilt-glare-opacity: 0.32;
+  --tilt-glare-fade: 300ms;
+  --tilt-glare-ease: var(--ease-smooth-out);
+  --morph-open-dur: 350ms;
+  --morph-close-dur: 250ms;
+  --morph-ease: cubic-bezier(0.34, 1.25, 0.64, 1);
+  --morph-close-ease: var(--ease-smooth-out);
+  --morph-r-closed: 40px;
+  --morph-r-open: 20px;
+  --morph-fade-dur: 200ms;
+  --morph-slide: 40px;
+  --morph-rotate: 45deg;
+  --morph-scale: 0.97;
+  --morph-blur: 2px;
+  --acc-expand: 250ms;
+  --acc-collapse: 250ms;
+  --acc-chevron: 250ms;
+  --acc-ease: var(--ease-smooth-out);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: oklch(0.165 0.011 55);
+  --foreground: oklch(0.95 0.006 70);
+  --card: oklch(0.198 0.012 55);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.208 0.012 55);
+  --popover-foreground: var(--foreground);
+
+  --primary: oklch(0.685 0.17 25);
+  --primary-foreground: oklch(0.15 0.014 45);
+
+  --secondary: oklch(0.255 0.012 55);
+  --secondary-foreground: var(--foreground);
+
+  --muted: oklch(0.255 0.012 55);
+  --muted-foreground: oklch(0.64 0.013 60);
+
+  --accent: oklch(0.275 0.032 25);
+  --accent-foreground: oklch(0.85 0.06 32);
+
+  --destructive: oklch(0.62 0.205 18);
+  --destructive-foreground: oklch(0.98 0.008 20);
+
+  --success: oklch(0.68 0.125 152);
+  --success-foreground: oklch(0.15 0.02 152);
+
+  --warning: oklch(0.75 0.14 82);
+  --warning-foreground: oklch(0.2 0.03 82);
+
+  --border: oklch(0.31 0.013 55 / 0.7);
+  --input: oklch(0.31 0.013 55);
+  --ring: oklch(0.685 0.17 25 / 0.55);
+
+  --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.24);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.28), 0 1px 1px oklch(0 0 0 / 0.22);
+  --shadow-md: 0 4px 10px oklch(0 0 0 / 0.32), 0 1px 3px oklch(0 0 0 / 0.26),
+    0 0 0 1px oklch(1 0 0 / 0.04);
+  --shadow-lg: 0 12px 24px oklch(0 0 0 / 0.4), 0 4px 8px oklch(0 0 0 / 0.28),
+    0 0 0 1px oklch(1 0 0 / 0.05);
+  --shadow-xl: 0 24px 48px oklch(0 0 0 / 0.5), 0 8px 16px oklch(0 0 0 / 0.3),
+    0 0 0 1px oklch(1 0 0 / 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,256 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/jetbrains-mono";
+@import "./tokens.css";
+
+/* Tailwind's `dark:` variant follows our explicit data-theme attribute
+   (resolved from system/light/dark in main.tsx), not prefers-color-scheme —
+   we want a real toggle, not just a media query. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+
+  --animate-in: enter var(--duration-fast) var(--ease-smooth-out);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings:
+      "cv11",
+      "ss01";
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Every numeric readout in the product — counts, ids, timestamps — sits still. */
+  .tabular-nums,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+}
+
+@layer components {
+  /* transitions-dev: icon swap — two icons cross-fade in the same grid cell. */
+  .t-icon-swap {
+    position: relative;
+    display: inline-grid;
+  }
+  .t-icon-swap .t-icon {
+    grid-area: 1 / 1;
+    transition:
+      opacity var(--icon-swap-dur) var(--icon-swap-ease),
+      filter var(--icon-swap-dur) var(--icon-swap-ease),
+      transform var(--icon-swap-dur) var(--icon-swap-ease);
+    will-change: opacity, filter, transform;
+  }
+  .t-icon-swap[data-state="a"] .t-icon[data-icon="a"],
+  .t-icon-swap[data-state="b"] .t-icon[data-icon="b"] {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+  .t-icon-swap[data-state="a"] .t-icon[data-icon="b"],
+  .t-icon-swap[data-state="b"] .t-icon[data-icon="a"] {
+    opacity: 0;
+    filter: blur(var(--icon-swap-blur));
+    transform: scale(var(--icon-swap-start-scale));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .t-icon-swap .t-icon {
+      transition: none !important;
+    }
+  }
+
+  /* transitions-dev: skeleton loader and reveal — the first-run "waiting for your
+     first submission…" panel cross-fades into the arrived submission. */
+  .t-skel {
+    position: relative;
+  }
+  .t-skel-skeleton,
+  .t-skel-content {
+    position: absolute;
+    inset: 0;
+  }
+  .t-skel-skeleton {
+    z-index: 1;
+    opacity: 1;
+    filter: blur(0);
+    transition:
+      opacity var(--reveal-dur) var(--reveal-ease),
+      filter var(--reveal-dur) var(--reveal-ease);
+  }
+  .t-skel-content {
+    z-index: 2;
+    opacity: 0;
+    filter: blur(var(--reveal-blur));
+    transition:
+      opacity var(--reveal-dur) var(--reveal-ease),
+      filter var(--reveal-dur) var(--reveal-ease);
+  }
+  .t-skel.is-revealed .t-skel-skeleton {
+    opacity: 0;
+    filter: blur(var(--reveal-blur));
+    pointer-events: none;
+  }
+  .t-skel.is-revealed .t-skel-content {
+    opacity: 1;
+    filter: blur(0);
+  }
+  .t-skel-skeleton.is-pulsing > * {
+    animation: t-skel-pulse var(--pulse-dur) ease-in-out infinite;
+  }
+  @keyframes t-skel-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: var(--pulse-min);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .t-skel-skeleton,
+    .t-skel-content {
+      transition: none !important;
+    }
+    .t-skel-skeleton.is-pulsing > * {
+      animation: none !important;
+    }
+  }
+
+  /* transitions-dev: success check — destination "Test" button confirmation. */
+  .t-success-check {
+    display: inline-block;
+    transform-origin: center;
+    opacity: 0;
+    will-change: transform, opacity, filter;
+  }
+  .t-success-check svg {
+    display: block;
+    overflow: visible;
+  }
+  .t-success-check[data-state="in"] {
+    animation:
+      t-check-fade var(--check-opacity-dur) var(--check-ease-opacity) forwards,
+      t-check-rotate var(--check-rotate-dur) var(--check-ease-rotate) forwards,
+      t-check-blur var(--check-blur-dur) var(--check-ease-out) forwards,
+      t-check-bob var(--check-bob-dur) var(--check-ease-bob) forwards;
+  }
+  .t-success-check[data-state="in"] svg path {
+    animation: t-check-draw var(--check-path-dur) var(--check-ease-path) var(--check-path-delay, 0ms) forwards;
+  }
+  @keyframes t-check-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes t-check-rotate {
+    from {
+      transform: rotate(var(--check-rotate-from));
+    }
+    to {
+      transform: rotate(0deg);
+    }
+  }
+  @keyframes t-check-blur {
+    from {
+      filter: blur(var(--check-blur-from));
+    }
+    to {
+      filter: blur(0);
+    }
+  }
+  @keyframes t-check-bob {
+    from {
+      translate: 0 var(--check-y-amount);
+    }
+    to {
+      translate: 0 0;
+    }
+  }
+  @keyframes t-check-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .t-success-check {
+      animation: none !important;
+      opacity: 1;
+    }
+    .t-success-check svg path {
+      animation: none !important;
+      stroke-dashoffset: 0 !important;
+    }
+  }
+}

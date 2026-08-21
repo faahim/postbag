@@ -22,6 +22,14 @@ b. **Email subject renders the slug.** `{{form.name}}` produced `overnight-smoke
    `project: { id, name, slug }`, `stream: {...}|null`, `submission: { id, received_at }`,
    `data`, `extras`, `meta`. Default subject `New submission: {{form.name}}`. Test it.
 
+c. **Client IP behind Cloudflare.** Submissions record `ip: unknown` in production. Resolve the
+   client IP as `CF-Connecting-IP` → first `X-Forwarded-For` hop → socket address, and the
+   country from `CF-IPCountry`; apply the same IP to rate limiting. Test with headers.
+d. **Worker tests are not isolated.** `src/worker/index.test.ts` fails when the shared DB holds
+   stale pending/failed deliveries (they occupy claim slots with 10 s timeouts). Make server
+   tests isolate: truncate tenant tables in `beforeAll`, or run each test file in its own
+   Postgres schema/database. They must pass repeatedly on a dirty DB.
+
 ## 2. System webhook dispatch (the `EventDispatcher` seam)
 Org-level `system_webhooks` subscribe to event types. On every `events` insert, enqueue a
 dispatch for each enabled matching webhook, delivered by the worker with the same HMAC

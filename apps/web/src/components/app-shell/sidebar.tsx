@@ -1,0 +1,41 @@
+import { Link, useRouterState } from "@tanstack/react-router"
+
+import { Postmark } from "@/components/postmark"
+import { NAV_ITEMS } from "@/lib/nav"
+import { cn } from "@/lib/utils"
+
+export function Sidebar() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+
+  return (
+    <aside className="hidden w-56 shrink-0 flex-col border-r border-border/70 bg-card/60 px-3 py-4 md:flex">
+      <Link to="/" className="mb-6 flex items-center gap-2 px-2 text-sm font-semibold tracking-tight">
+        <Postmark status="sent" size={22} />
+        Postbag
+      </Link>
+
+      <nav className="flex flex-1 flex-col gap-0.5">
+        {NAV_ITEMS.map((item) => {
+          const active = pathname === item.to || pathname.startsWith(`${item.to}/`)
+          const Icon = item.icon
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={cn(
+                "group flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm font-medium",
+                "transition-colors duration-(--duration-quick)",
+                active
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              <Icon className="size-4 shrink-0" strokeWidth={2} />
+              {item.label}
+            </Link>
+          )
+        })}
+      </nav>
+    </aside>
+  )
+}
