@@ -30,20 +30,28 @@ const FORM_LINES: readonly (readonly [number, number])[] = [
   [46, 34],
 ]
 
-/** The vessel: a wide, shallow bowl — a big elliptical mouth drawn in light perspective so
- * there is visibly an *inside* for things to fall into, and a round belly underneath. */
-const VESSEL = { cx: 320, rimY: 74, rx: 46, ry: 10, bottomY: 134 }
-const OUT_PATH = `M ${VESSEL.cx + VESSEL.rx - 4} 100 L 504 100`
-const DEST = { x: 512, cy: 100 }
+/** The vessel: a pocket. A back panel and a slightly lower front panel, so the opening is a
+ * visible slot things drop into — and the front panel is drawn after the dots, so they go
+ * *behind* it. Rounded bottom, flat top, nothing tapered. */
+const POCKET = { cx: 320, halfW: 36, backTop: 58, frontTop: 70, bottom: 138, radius: 18 }
+const OUT_PATH = `M ${POCKET.cx + POCKET.halfW} 104 L 504 104`
+const DEST = { x: 512, cy: 104 }
 
-/** Arcs over from the form and comes straight down into the mouth (vertical tangent at the
- * end — the last control point sits directly above the mouth). */
-function inGuide(cy: number): string {
-  return `M ${FORM_X + FORM_W + 4} ${cy} C 236 ${cy}, ${VESSEL.cx} 36, ${VESSEL.cx} ${VESSEL.rimY - 8}`
+function panel(top: number): string {
+  const { cx, halfW, bottom, radius } = POCKET
+  const l = cx - halfW
+  const r = cx + halfW
+  return `M${l} ${top} H${r} V${bottom - radius} Q${r} ${bottom} ${r - radius} ${bottom} H${l + radius} Q${l} ${bottom} ${l} ${bottom - radius} Z`
 }
-/** The animated dot keeps going a little further — down through the opening. */
+
+/** Arcs over from the form and comes straight down into the slot (vertical tangent at the
+ * end — the last control point sits directly above the opening). */
+function inGuide(cy: number): string {
+  return `M ${FORM_X + FORM_W + 4} ${cy} C 236 ${cy}, ${POCKET.cx} 34, ${POCKET.cx} ${POCKET.backTop - 6}`
+}
+/** The animated dot keeps going — down into the pocket, behind the front panel. */
 function inFlight(cy: number): string {
-  return `${inGuide(cy)} L ${VESSEL.cx} ${VESSEL.rimY + VESSEL.ry}`
+  return `${inGuide(cy)} L ${POCKET.cx} ${POCKET.frontTop + 12}`
 }
 
 const STAMP_TICKS = Array.from({ length: 12 }, (_, i) => i)
@@ -51,15 +59,12 @@ const STAMP_TICKS = Array.from({ length: 12 }, (_, i) => i)
 export function BagFlowIllustration({ className }: { readonly className?: string }) {
   const reducedMotion = usePrefersReducedMotion()
   const dur = `${LOOP_SECONDS}s`
-  const { cx, rimY, rx, ry, bottomY } = VESSEL
-  const left = cx - rx
-  const right = cx + rx
 
   return (
     <svg
       viewBox="0 20 640 156"
       role="img"
-      aria-label="Three different forms feed one container; one identical, stamped result leaves it for a destination."
+      aria-label="Three different forms drop into one pocket; one identical, stamped result leaves it for a destination."
       className={cn("h-auto w-full select-none", className)}
       fill="none"
     >
@@ -86,36 +91,10 @@ export function BagFlowIllustration({ className }: { readonly className?: string
         )
       })}
 
-      {/* vessel body + the back half of the rim (dots pass in front of these…) */}
-      <g stroke="var(--foreground)" strokeOpacity="0.55">
-        <path
-          d={`M${left} ${rimY} C${left} ${bottomY}, ${right} ${bottomY}, ${right} ${rimY}`}
-          fill="var(--muted)"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path d={`M${left} ${rimY} A${rx} ${ry} 0 0 1 ${right} ${rimY}`} strokeWidth="1.25" strokeOpacity="0.35" />
-        {/* postmark — the stamp each arrival gets */}
-        <g className="bag-explainer-stamp" stroke="var(--primary)" strokeOpacity="1">
-          <circle cx={cx} cy="104" r="11" strokeWidth="1.3" />
-          <circle cx={cx} cy="104" r="7.5" strokeWidth="0.9" opacity="0.7" />
-          {STAMP_TICKS.map((i) => (
-            <line
-              key={i}
-              x1={cx}
-              y1="94.2"
-              x2={cx}
-              y2="96.4"
-              strokeWidth="1.1"
-              strokeLinecap="round"
-              transform={`rotate(${(360 / STAMP_TICKS.length) * i} ${cx} 104)`}
-            />
-          ))}
-          <circle cx={cx} cy="104" r="1.6" fill="var(--primary)" stroke="none" />
-        </g>
-      </g>
+      {/* pocket — back panel (dots pass in front of this…) */}
+      <path d={panel(POCKET.backTop)} fill="var(--muted)" stroke="var(--foreground)" strokeOpacity="0.4" strokeWidth="1.25" strokeLinejoin="round" />
 
-      {/* in — dots arc over and drop through the opening */}
+      {/* in — dots arc over and drop into the slot */}
       {!reducedMotion &&
         FORM_CY.map((cy, i) => (
           <g key={cy} opacity="0">
@@ -130,12 +109,32 @@ export function BagFlowIllustration({ className }: { readonly className?: string
               calcMode="spline"
               keySplines="0.3 0.9 0.4 1;0 0 1 1"
             />
-            <animate attributeName="opacity" dur={dur} begin={`${IN_DELAYS[i] ?? 0}s`} repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;0.03;0.235;0.26;1" />
+            <animate attributeName="opacity" dur={dur} begin={`${IN_DELAYS[i] ?? 0}s`} repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;0.03;0.25;0.29;1" />
           </g>
         ))}
 
-      {/* …and the front half of the rim sits over them, so they visibly go inside */}
-      <path d={`M${left} ${rimY} A${rx} ${ry} 0 0 0 ${right} ${rimY}`} stroke="var(--foreground)" strokeOpacity="0.55" strokeWidth="1.5" fill="var(--muted)" />
+      {/* …and the front panel sits over them, so they visibly go inside */}
+      <g>
+        <path d={panel(POCKET.frontTop)} fill="var(--card)" stroke="var(--foreground)" strokeOpacity="0.55" strokeWidth="1.5" strokeLinejoin="round" />
+        {/* postmark — the stamp each arrival gets */}
+        <g className="bag-explainer-stamp" stroke="var(--primary)">
+          <circle cx={POCKET.cx} cy="106" r="11" strokeWidth="1.3" />
+          <circle cx={POCKET.cx} cy="106" r="7.5" strokeWidth="0.9" opacity="0.7" />
+          {STAMP_TICKS.map((i) => (
+            <line
+              key={i}
+              x1={POCKET.cx}
+              y1="96.2"
+              x2={POCKET.cx}
+              y2="98.4"
+              strokeWidth="1.1"
+              strokeLinecap="round"
+              transform={`rotate(${(360 / STAMP_TICKS.length) * i} ${POCKET.cx} 106)`}
+            />
+          ))}
+          <circle cx={POCKET.cx} cy="106" r="1.6" fill="var(--primary)" stroke="none" />
+        </g>
+      </g>
 
       {/* out — one stamped result per arrival */}
       {!reducedMotion &&
