@@ -92,15 +92,23 @@ the rules and `docs/` for the design.
 - [x] **Production verified end-to-end 2026-08-21 23:25 UTC:** `d4a8f3a` deployed; `/health` db up + worker alive; signup → `/v1/me` → API key → `/v1/quickstart` → real submission → email delivered via Resend in ~1 s and confirmed in Fahim's Gmail.
   Fahim's production account: `afiur.fahim@gmail.com`, org `org_3yv5z32sed4q`, project `postbag`, form `fm_gwdahpd22tjy` ("Overnight smoke test"). Password + full-scope API key saved at **`~/.postbag/credentials`** (mode 600, not in repo).
 
+- [x] **Job F (2026-08-21, Sonnet agents × 3, spec `tasks/job-F-cli-mcp.md`):** 59→60 `operationId`s + `bearerAuth`;
+  `api/openapi.yaml` generated (`pnpm openapi:export`, sync test); `@postbag/sdk` publishable; `LEGACY_HOSTS` redirect
+  (live: withfaahim → postbag.dev, `/s` `/v1` untouched); **`packages/cli`** (npm `postbag`, 29 tests, smoke-tested
+  against prod); **`packages/mcp`** (`@postbag/mcp`, 62 tools, `server.json`, smoke-tested against prod). CI green
+  from `eb92643`. Not yet published (needs `npm login` + `NPM_TOKEN`).
+- [x] **Job G (2026-08-21, spec `tasks/job-G-social-login.md`):** Google + GitHub via Better Auth, `GET /v1/auth/providers`,
+  SocialButtons + Connected accounts card. Linking kept at secure defaults (reviewer reverted the agent's
+  `trustedProviders` + `requireLocalEmailVerified:false` — pre-registration takeover). Providers activate the moment
+  `GOOGLE_*`/`GITHUB_*` env land on Coolify (`VITE_HOSTED=1` build arg already set).
+
 ## Next up (in order)
 
 0. Design session with Fahim on the dashboard (see Job E verdict). Screenshots: session scratchpad `web-shots/` (before) and `web-shots-v2/` (after).
 1. Wire RLS into the request path (`RLS_ENFORCED=true`: per-request transaction with `SET LOCAL ROLE postbag_app` + `set_config('app.org_id')`); then flip the default on. Sync `api/openapi.yaml` with the generated doc (new: `/v1/forms/{id}/schema/infer`, `/v1/webhooks/{id}/deliveries`, `SchemaVersion.inferred`).
-2. CLI + MCP thin clients over `packages/sdk` (spec to write: `tasks/job-F-cli-mcp.md`). Prereqs inside
-   the job: add `operationId` + `bearerAuth` securityScheme to every `/v1` route (the generated doc has
-   none — tool/command names derive from them), sync `api/openapi.yaml`, flip `@postbag/sdk` to public,
-   Changesets + `NPM_TOKEN` publish workflow. **Human:** `npm login` on the Mac, create the `@postbag`
-   org on npmjs.com, add `NPM_TOKEN` as a GitHub secret, decide the moment the repo flips public.
+2. ~~CLI + MCP~~ built (job F). **Publish:** `npm login` on the Mac, create the `@postbag` org on npmjs.com, add
+   `NPM_TOKEN` as a GitHub secret, `pnpm release:version 0.1.0` + tag `v0.1.0` → `release.yml`; then MCP registry
+   (`server.json` ready), flip site copy from "in progress", and make the repo public (gitleaks clean).
 2b. **Legal pages before selling (agent drafts, Fahim supplies entity name/address):** Terms, Privacy
    Policy, DPA for operators, sub-processor list (Resend, Cloudflare, the hosting provider, Polar),
    GDPR Art. 27 EU-representative answer for a non-EU entity. Pages at `/legal/terms/`, `/legal/privacy/`, `/legal/dpa/`.
@@ -119,7 +127,7 @@ the rules and `docs/` for the design.
    Until a password account is verified, Better Auth will not auto-link a same-email Google/GitHub sign-in
    (by design — pre-registration takeover); the sign-in page explains to use the password and connect from
    Settings. Also: resend-verification button in Settings → Profile.
-2e. **Agent onboarding, here.now-style** (proposal, 2026-08-21): (a) agent-assisted signup without a browser —
+2e. **Agent onboarding, here.now-style** — (a)+(b) in progress as `tasks/job-H-agent-onboarding.md`; (c) awaits Fahim: (a) agent-assisted signup without a browser —
    `POST /v1/auth/request-code {email}` → emailed 6-digit code (Better Auth `emailOTP` plugin) →
    `POST /v1/auth/verify-code {email, code, key_name}` creates user+org if new and returns a `pb_live_` manage key
    the agent stores in `~/.config/postbag/credentials.json`; (b) an Agent Skill in-repo (`skills/postbag/SKILL.md`,
