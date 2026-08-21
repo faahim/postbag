@@ -18,6 +18,20 @@ export const TAGLINE = "A form backend that routes."
 export const DESCRIPTION =
   "Postbag is a form backend that routes. Point any HTML form at a Postbag endpoint; every submission is stored durably, then delivered to email, Telegram and signed webhooks by rules. Multi-tenant, self-hostable, and built for AI agents: one API key is enough to create, verify and route a form without a browser."
 
+/**
+ * The legal facts, single source of truth for /legal/*. Every legal page is generated from
+ * these constants — never hardcode the operator name, address or dates in copy.
+ */
+export const LEGAL = {
+  operator: "Md Afiur Rahman",
+  tradingAs: "Postbag",
+  address: "Dhaka 1209, Bangladesh",
+  email: "hello@postbag.dev",
+  governingLaw: "Bangladesh",
+  effectiveDate: "2026-08-21",
+  dataLocation: "Singapore (Oracle Cloud Infrastructure); migration to an EU region is planned",
+} as const
+
 /** Example ids used in copy. Formats match packages/core/src/ids.ts prefixes. */
 export const EXAMPLE = {
   form: "fm_8f3kq2",
@@ -40,6 +54,43 @@ export const PLANS = [
 
 /** The site's own Postbag form (project "site", observe mode) — contact form and pricing notify list. */
 export const SITE_CONTACT_FORM_ID = "fm_h6eetntqdbp6"
+
+/**
+ * Sub-processors: every third party that touches account or submission data, referenced from
+ * both /legal/subprocessors/ and /legal/dpa/ so the list only exists in one place.
+ */
+export const SUBPROCESSORS = [
+  {
+    name: "Cloudflare",
+    purpose: "DNS, reverse proxy and TLS in front of the app; forwards mail sent to hello@postbag.dev",
+    data: "Request metadata (IP, headers); forwarded contact email",
+    location: "Global network (Cloudflare, Inc., US-based)",
+  },
+  {
+    name: "Oracle Cloud Infrastructure",
+    purpose: "Hosts the production application server and Postgres database",
+    data: "All account and submission data",
+    location: LEGAL.dataLocation,
+  },
+  {
+    name: "Resend",
+    purpose: "Sends transactional and destination-configured notification email",
+    data: "Recipient address, email content (which may include submission data)",
+    location: "EU (eu-west-1)",
+  },
+  {
+    name: "Polar",
+    purpose: "Payment processing and Merchant of Record for paid plans, once billing is enabled",
+    data: "Billing contact details, subscription and payment metadata",
+    location: "Global Merchant of Record; payouts via Stripe Connect",
+  },
+  {
+    name: "Google / GitHub",
+    purpose: "Sign-in, only when an account holder chooses that provider",
+    data: "Name, email address and account identifier from the provider",
+    location: "Google LLC / GitHub, Inc. (US-based)",
+  },
+] as const
 
 /** Destination types with an adapter in apps/server/src/destinations/registry.ts. */
 export const DESTINATIONS = [

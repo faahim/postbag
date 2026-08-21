@@ -1,0 +1,10 @@
+---
+import LegalLayout from "@/layouts/LegalLayout.astro"
+import { LEGAL_DOCS } from "@/lib/legal"
+
+export function getStaticPaths() {
+  return LEGAL_DOCS.map((doc) => ({ params: { slug: doc.slug }, props: { doc } }))
+}
+const { doc } = Astro.props
+---
+<LegalLayout doc={doc} />

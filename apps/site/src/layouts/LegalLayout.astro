@@ -1,0 +1,73 @@
+---
+import Base from "@/layouts/Base.astro"
+import Breadcrumbs from "@/components/Breadcrumbs.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import { LEGAL, SITE_URL } from "@/config"
+import { LEGAL_DOCS, type LegalDoc } from "@/lib/legal"
+import { renderMarkdown } from "@/lib/markdown"
+import { articleLd, breadcrumbLd } from "@/lib/seo"
+
+interface Props { doc: LegalDoc }
+const { doc } = Astro.props
+const path = `/legal/${doc.slug}/`
+const { html, headings } = renderMarkdown(doc.markdown)
+const crumbs = [
+  { name: "Home", href: "/" },
+  { name: "Legal", href: "/legal/terms/" },
+  { name: doc.title, href: path },
+]
+const ld = [
+  articleLd({ title: doc.title, description: doc.description, url: `${SITE_URL}${path}`, published: LEGAL.effectiveDate, modified: LEGAL.effectiveDate, type: "Article" }),
+  breadcrumbLd(crumbs),
+]
+const updated = new Date(LEGAL.effectiveDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+---
+<Base title={doc.title} description={doc.description} canonical={path} ld={ld} ogType="article" ogImage="/og/docs.png" markdownAlternate={`${path}index.md`} published={LEGAL.effectiveDate} modified={LEGAL.effectiveDate}>
+  <div class="container-x grid gap-10 pt-10 lg:grid-cols-[200px_minmax(0,1fr)_200px] lg:gap-12">
+    <nav aria-label="Legal" class="lg:sticky lg:top-24 lg:self-start">
+      <p class="text-[12px] font-semibold text-muted-foreground">Legal</p>
+      <ul class="mt-1.5 space-y-0.5">
+        {LEGAL_DOCS.map((d) => (
+          <li>
+            <a
+              href={`/legal/${d.slug}/`}
+              class="-mx-2 block rounded px-2 py-1 text-[13.5px] text-muted-foreground transition-colors duration-150 hover:bg-surface-2 hover:text-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"
+              aria-current={d.slug === doc.slug ? "page" : undefined}
+            >
+              {d.title}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <article class="min-w-0">
+      <Breadcrumbs crumbs={crumbs} class="mb-5" />
+      <h1 class="text-4xl leading-[1.08] font-semibold sm:text-[2.75rem]">{doc.title}</h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted-foreground">{doc.description}</p>
+      <p class="mt-3 text-xs text-muted-foreground">
+        Last updated: <time datetime={LEGAL.effectiveDate}>{updated}</time> · <a href={`${path}index.md`} class="underline-offset-2 hover:underline">Markdown</a>
+      </p>
+      <div class="prose-pb mt-8" set:html={html} />
+    </article>
+    <aside class="hidden lg:block lg:sticky lg:top-24 lg:self-start">
+      {headings.length > 0 && (
+        <nav aria-label="On this page">
+          <p class="text-[12px] font-semibold text-muted-foreground">On this page</p>
+          <ul class="mt-2 space-y-1 border-l border-border">
+            {headings.map((h) => (
+              <li>
+                <a
+                  href={`#${h.slug}`}
+                  class={`-ml-px block border-l border-transparent py-0.5 ${h.depth === 2 ? "pl-3" : "pl-6"} text-[13px] text-muted-foreground transition-colors duration-150 hover:border-foreground hover:text-foreground`}
+                >
+                  {h.text}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+    </aside>
+  </div>
+  <CtaBand />
+</Base>

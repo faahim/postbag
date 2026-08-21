@@ -62,12 +62,21 @@ const cols = [
       { href: "/about/", label: "About" },
     ],
   },
+  {
+    title: "Legal",
+    links: [
+      { href: "/legal/terms/", label: "Terms of Service" },
+      { href: "/legal/privacy/", label: "Privacy Policy" },
+      { href: "/legal/dpa/", label: "Data Processing Addendum" },
+      { href: "/legal/subprocessors/", label: "Sub-processors" },
+    ],
+  },
 ]
 const year = new Date().getFullYear()
 ---
 <footer class="mt-24 border-t border-border bg-surface/60">
-  <div class="container-x grid gap-10 py-14 md:grid-cols-[1.2fr_repeat(5,1fr)] md:gap-8">
-    <div class="max-w-xs">
+  <div class="container-x grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.2fr_repeat(6,1fr)] lg:gap-8">
+    <div class="max-w-xs sm:col-span-2 lg:col-span-1">
       <a href="/" class="flex items-center gap-2.5 font-display text-lg font-semibold tracking-tight"><Postmark size={22} title="Postbag" /> Postbag</a>
       <p class="mt-4 text-sm leading-relaxed text-muted-foreground">A form backend that routes. Every submission is a row before it is anything else.</p>
       <a href={SIGNUP_URL} class="btn btn-primary btn-sm mt-5">Create a form</a>
@@ -90,7 +99,8 @@ const year = new Date().getFullYear()
         <li><a href={GITHUB_URL} class="hover:text-foreground">GitHub</a></li>
         <li><a href={`${API_URL}/health`} class="hover:text-foreground">API status</a></li>
         <li><a href="/sitemap-index.xml" class="hover:text-foreground">Sitemap</a></li>
-        <li><a href="/about/#privacy" class="hover:text-foreground">Privacy</a></li>
+        <li><a href="/legal/privacy/" class="hover:text-foreground">Privacy</a></li>
+        <li><a href="/legal/terms/" class="hover:text-foreground">Terms</a></li>
       </ul>
     </div>
   </div>

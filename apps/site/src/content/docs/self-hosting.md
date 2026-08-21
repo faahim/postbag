@@ -60,4 +60,4 @@ Disable signups after creating the first organization if the instance is private
 
 ## Access to the image
 
-Postbag is open source: the server is licensed under AGPL-3.0 and the client packages (SDK, CLI, MCP server) under MIT. The repository opens publicly with the first npm release of the client packages; until then, [get in touch](/about/) and we will arrange access. The image is multi-arch (arm64, amd64) and built from the same Dockerfile as production.
+Postbag is open source: the server is licensed under AGPL-3.0 and the client packages (SDK, CLI, MCP server) under MIT. The source is public at [github.com/faahim/postbag](https://github.com/faahim/postbag). The image is multi-arch (arm64, amd64) and built from the same Dockerfile as production.
