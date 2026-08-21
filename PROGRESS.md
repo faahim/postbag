@@ -113,6 +113,42 @@ the rules and `docs/` for the design.
   `/.well-known/skills/` (bundled into dist by the server build); landing "set up your agent" block; llms.txt section.
   184 tests.
 
+## Handoff (2026-08-21 ~22:50 UTC — session ended near a usage limit; resume from here)
+
+**Committed and live:** everything above plus job J (agent-first hero, switcher, pricing cards, first-paint reveal fix —
+`e6a6088`, deploying on push). Edge caching on. Production on dekhval-1 (EU). Repo public. npm + MCP registry published.
+
+**In flight when the session ended:**
+1. **Job K — `tasks/job-K-plan-grants.md`** (plan_source, grant codes, admin mint gated by `PLATFORM_ADMIN_EMAILS`,
+   org-scoped redeem, Settings → Plan card, CLI `plan`/`admin plan-grants`, expiry housekeeping, `canStartCheckout`).
+   A Sonnet agent had **uncommitted partial work** in `packages/db` (new migration), `packages/core`, `apps/server`
+   (`routes/v1/plan.ts`, `planGrants.ts`, …), `apps/web`, `packages/cli`. **Addendum requested by Fahim:** a playful VIP
+   badge for `plan_source = complimentary` orgs (topbar beside the org/user name + Plan card; accent pill, copy like
+   "VIP · friend of the house", tooltip "Complimentary plan, courtesy of Postbag", small entrance moment, reduced-motion
+   safe, driven only by `/v1/me.plan_source`). **Resume:** `git status`, read the partial files, finish the spec, run
+   `pnpm lint && pnpm typecheck && DATABASE_URL=postgres://postbag:postbag@localhost:5433/postbag pnpm test`,
+   regenerate contract/SDK/MCP, commit, push. Then mint a code for Eric and one for Fahim (`PLATFORM_ADMIN_EMAILS`
+   must be set on Coolify app `jfw5odopfompxmpq7ffgrtn9` → `afiur.fahim@gmail.com`).
+2. **Job L — `tasks/job-L-members-and-org-switcher.md`** — spec ready; start after K is committed (overlapping files).
+   Fahim said go.
+3. **Hero polish (small, not done):** centre the Prompt/Skill/MCP/CLI segmented control under the prompt block
+   (it is left-aligned in a centred layout), and make sure the prompt's wrapped layout is CSS-only at first paint
+   (the 300 ms screenshot showed a single clipped line that wraps later — check `CodeBlock` `wrap` prop / Shiki output).
+
+**Decisions today (all recorded above in detail):** AGPL+MIT; Polar (token is for org "pushkunni" — create a "Postbag"
+org when billing starts); prices; anonymous quickstart declined; repo public; EU hosting; legal identity = Md Afiur
+Rahman, Dhaka 1209, hello@postbag.dev.
+
+**Still open, in priority order:** off-server backups (Cloudflare R2 in Coolify) → email verification on password
+sign-up (2f) → Google branding verification + Search Console (DNS TXT) → uptime monitor on `/health` → RLS in the
+request path → Polar "Postbag" org + KYC (Phase 3).
+
+**Credentials/locations (values never in repo):** `~/.postbag/credentials` (API key, prod URL still says withfaahim —
+both hosts work), `~/.config/postbag/{mcp-registry-ed25519.pem,polar-access-token,backups/}`, Cloudflare + Coolify
+tokens in `~/Developer/smedja/.env` (Cloudflare token: DNS only; no Email Routing/Cache/Settings scope), Resend key in
+`~/Developer/vendingmachine-stuff/.env`. Root SSH works to `root@159.69.144.166` (throttles after bursts) and
+`root@140.245.57.24`.
+
 ## Next up (in order)
 
 0. Design session with Fahim on the dashboard (see Job E verdict). Screenshots: session scratchpad `web-shots/` (before) and `web-shots-v2/` (after).
