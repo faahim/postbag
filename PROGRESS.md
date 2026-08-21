@@ -112,18 +112,15 @@ the rules and `docs/` for the design.
 
 0. Design session with Fahim on the dashboard (see Job E verdict). Screenshots: session scratchpad `web-shots/` (before) and `web-shots-v2/` (after).
 1. Wire RLS into the request path (`RLS_ENFORCED=true`: per-request transaction with `SET LOCAL ROLE postbag_app` + `set_config('app.org_id')`); then flip the default on. Sync `api/openapi.yaml` with the generated doc (new: `/v1/forms/{id}/schema/infer`, `/v1/webhooks/{id}/deliveries`, `SchemaVersion.inferred`).
-2. ~~CLI + MCP~~ built (job F). **Publish — trusted publishing (OIDC), not tokens.** npm is deprecating
-   bypass-2FA granular tokens (no publish after ~Jan 2027; github.blog changelog 2026-07-08), and a GAT returned E404
-   on first publish anyway. npm rule: a package must exist before `npm trust` can be configured, so the first version is
-   a human publish with OTP: `pnpm -r publish --access public --no-git-checks`; then per package
-   `npm trust github <pkg> --file release.yml --repo faahim/postbag --allow-publish --yes` (npm ≥ 11.15). `release.yml`
-   already publishes via OIDC on `v*` tags with no secret; delete the `NPM_TOKEN` secret + revoke the GAT afterwards.
-   ~~flip site copy~~ done. **MCP registry:** namespace `dev.postbag/mcp` via DNS auth — apex TXT
-   `v=MCPv1; k=ed25519; p=…` on postbag.dev (Cloudflare), private key at `~/.config/postbag/mcp-registry-ed25519.pem`
-   (mode 600, never in the repo; login = `mcp-publisher login dns --domain postbag.dev --private-key "$(openssl pkey -in
-   ~/.config/postbag/mcp-registry-ed25519.pem -noout -text | grep -A3 priv: | tail -n +2 | tr -d ' :\n')"`; then
-   `mcp-publisher publish` in `packages/mcp`). Requires `@postbag/mcp@0.1.1` (mcpName = dev.postbag/mcp) on npm first —
-   published by the OIDC workflow on tag `v0.1.1`. Make the repo public afterwards (gitleaks clean; unlocks provenance).
+2. ~~CLI + MCP~~ **published 2026-08-21.** npm: `postbag@0.1.0`, `@postbag/sdk@0.1.0`, `@postbag/mcp@0.1.1` — first
+   versions by Fahim with 2FA, then **trusted publishing (OIDC)** configured per package (`npm trust github … --file
+   release.yml`); `release.yml` publishes on `v*` tags with no secret (verified: v0.1.1 run published via OIDC). The
+   `NPM_TOKEN` GitHub secret is deleted; **Fahim: revoke the bypass-2FA GAT on npmjs.com**. Bypass-2FA tokens lose
+   publishing ~Jan 2027 (github.blog 2026-07-08) — we're already off them. **MCP registry:** `dev.postbag/mcp` 0.1.1
+   listed (DNS-verified; apex TXT on postbag.dev; key `~/.config/postbag/mcp-registry-ed25519.pem`, login command in
+   `release.yml`'s sibling notes above). Each new MCP version: bump `packages/mcp/package.json` + `server.json`, tag,
+   then `mcp-publisher login dns … && mcp-publisher publish`. Site copy flipped. **Still open: make the repo public**
+   (gitleaks clean; unlocks npm provenance and `npx skills add faahim/postbag`).
 2b. **Legal pages before selling (agent drafts, Fahim supplies entity name/address):** Terms, Privacy
    Policy, DPA for operators, sub-processor list (Resend, Cloudflare, the hosting provider, Polar),
    GDPR Art. 27 EU-representative answer for a non-EU entity. Pages at `/legal/terms/`, `/legal/privacy/`, `/legal/dpa/`.
