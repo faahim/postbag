@@ -10,7 +10,7 @@ export type ErrorEnvelopeBody = {
   }
 }
 
-const DOCS_BASE = "https://postbag.withfaahim.com/docs/errors"
+const DOCS_BASE = "https://postbag.dev/docs/errors"
 
 export function envelope(
   code: string,

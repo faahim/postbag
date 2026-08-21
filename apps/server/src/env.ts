@@ -24,7 +24,7 @@ const EnvSchema = z.object({
   POSTBAG_ROLE: z.enum(["api", "worker", "all"]).default("all"),
   TZ: z.string().default("UTC"),
   RESEND_API_KEY: z.string().optional(),
-  MAIL_FROM: z.string().default("Postbag <postbag@updates.withfaahim.com>"),
+  MAIL_FROM: z.string().default("Postbag <notify@postbag.dev>"),
   MIGRATE_ON_BOOT: BooleanFromString,
   RLS_ENFORCED: BooleanFlagDefaultFalse,
 })

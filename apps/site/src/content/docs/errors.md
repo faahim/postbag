@@ -9,7 +9,7 @@ Every error response has the shape:
 
 ```json
 { "error": { "code": "mapping_incomplete", "message": "…", "hint": "Map every required stream field before attaching.",
-             "docs": "https://postbag.withfaahim.com/docs/errors/mapping_incomplete", "details": { … } } }
+             "docs": "https://postbag.dev/docs/errors/mapping_incomplete", "details": { … } } }
 ```
 
 `hint` says what to do next. `docs` deep-links to the section below. `details` carries structured specifics (validation issues, missing fields, retry delay).

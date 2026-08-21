@@ -40,7 +40,7 @@ never lost. (Inherited from the lead pipeline this generalises; see
 
 ## Status
 
-**Phase 1 — MVP live** at [postbag.withfaahim.com](https://postbag.withfaahim.com) (site, docs, dashboard at
+**Phase 1 — MVP live** at [postbag.dev](https://postbag.dev) (site, docs, dashboard at
 `/app`, API at `/v1`). See [`PROGRESS.md`](./PROGRESS.md) for the live blueprint and
 [`docs/ROADMAP.md`](./docs/ROADMAP.md) for phases.
 

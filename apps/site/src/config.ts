@@ -4,7 +4,7 @@
  */
 export const SITE_NAME = "Postbag"
 const env = import.meta.env as Record<string, string | undefined>
-export const SITE_URL = (env["SITE"] ?? "https://postbag.withfaahim.com").replace(/\/$/u, "")
+export const SITE_URL = (env["SITE"] ?? "https://postbag.dev").replace(/\/$/u, "")
 /** Where the API and dashboard live. Same origin as the site by default. */
 export const API_URL = (env["PUBLIC_API_URL"] ?? SITE_URL).replace(/\/$/u, "")
 export const APP_URL = `${API_URL}/app`

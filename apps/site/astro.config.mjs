@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite"
 
 // The public site URL. The marketing site is served by the Postbag server container at `/`
 // (apps/server/src/routes/staticSite.ts), so by default it shares the API's origin.
-const site = process.env.SITE_URL ?? "https://postbag.withfaahim.com"
+const site = process.env.SITE_URL ?? "https://postbag.dev"
 
 export default defineConfig({
   site,

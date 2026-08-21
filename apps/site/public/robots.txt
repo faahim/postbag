@@ -1,4 +1,4 @@
-# Postbag — https://postbag.withfaahim.com
+# Postbag — https://postbag.dev
 # We want to be found and cited: search engines and AI answer engines are all welcome.
 # (Training-data crawlers are welcome too; the docs are public by design.)
 
@@ -40,4 +40,4 @@ Allow: /
 User-agent: meta-externalagent
 Allow: /
 
-Sitemap: https://postbag.withfaahim.com/sitemap-index.xml
+Sitemap: https://postbag.dev/sitemap-index.xml

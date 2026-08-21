@@ -48,7 +48,7 @@ export class PostbagError extends Error {
     const definition = ERROR_DEFINITIONS[code]
     this.code = code
     this.hint = definition.hint
-    this.docs = `https://postbag.withfaahim.com/docs/errors/${code}`
+    this.docs = `https://postbag.dev/docs/errors/${code}`
     this.status = definition.status
     if (details !== undefined) this.details = details
   }

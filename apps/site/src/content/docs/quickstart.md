@@ -9,12 +9,12 @@ The solo-dev test Postbag is held to: time from signup to the first email in you
 
 ## 1. Create an account and a form
 
-Sign up at [/app](/app/sign-up). The first-run screen creates a form and asks for the email that should be notified. You get a submit URL like `https://postbag.withfaahim.com/s/fm_8f3kq2` and embed snippets.
+Sign up at [/app](/app/sign-up). The first-run screen creates a form and asks for the email that should be notified. You get a submit URL like `https://postbag.dev/s/fm_8f3kq2` and embed snippets.
 
 Prefer the API? Mint an API key under API keys and run:
 
 ```bash
-curl -X POST https://postbag.withfaahim.com/v1/quickstart \
+curl -X POST https://postbag.dev/v1/quickstart \
   -H "Authorization: Bearer pb_live_…" -H "content-type: application/json" \
   -d '{ "name": "Contact", "notify_email": "you@example.com", "origin": "https://example.com" }'
 ```
@@ -24,7 +24,7 @@ The response contains `form.submit_url`, `embed.{html,fetch,react,astro,nextjs_a
 ## 2. Point a form at it
 
 ```html
-<form action="https://postbag.withfaahim.com/s/fm_8f3kq2" method="POST">
+<form action="https://postbag.dev/s/fm_8f3kq2" method="POST">
   <label>Email<input type="email" name="email" required /></label>
   <label>Message<textarea name="message" required></textarea></label>
   <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="position:absolute;left:-10000px" aria-hidden="true" />
@@ -38,7 +38,7 @@ Plain HTML posts get a `303` redirect to `_redirect` (or the form's `redirect_ur
 ## 3. Send a test and watch it arrive
 
 ```bash
-curl -X POST https://postbag.withfaahim.com/s/fm_8f3kq2 -H "content-type: application/json" \
+curl -X POST https://postbag.dev/s/fm_8f3kq2 -H "content-type: application/json" \
   -d '{ "email": "you@example.com", "message": "hello", "_test": true }'
 # → { "ok": true, "submission_id": "sb_…", "status": "received", "deliveries": ["dl_…"] }
 ```
@@ -50,9 +50,9 @@ The submission shows up in the inbox immediately and the email arrives within se
 A Telegram chat, a webhook into your CRM, or both:
 
 ```bash
-curl -X POST https://postbag.withfaahim.com/v1/destinations -H "Authorization: Bearer pb_live_…" \
+curl -X POST https://postbag.dev/v1/destinations -H "Authorization: Bearer pb_live_…" \
   -d '{ "type": "telegram", "name": "Sales chat", "config": { "bot_token": "123:abc", "chat_id": "-100…" } }'
-curl -X POST https://postbag.withfaahim.com/v1/routes -H "Authorization: Bearer pb_live_…" \
+curl -X POST https://postbag.dev/v1/routes -H "Authorization: Bearer pb_live_…" \
   -d '{ "form_id": "fm_8f3kq2", "destination_id": "ds_…" }'
 ```
 

@@ -16,7 +16,10 @@ info:
     pagination (`?cursor=&limit=`); `Idempotency-Key` honoured on every POST; every error is
     `{ error: { code, message, hint, docs } }`; every create returns `next[]`.
 servers:
+  - url: https://postbag.dev
+    description: Production (site, dashboard and API share one origin)
   - url: https://api.postbag.dev
+    description: Production alias for API-only clients
 tags:
   - { name: submit,       description: Public submission endpoints }
   - { name: discovery,    description: "Who am I, what can I do" }

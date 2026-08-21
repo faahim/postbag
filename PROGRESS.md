@@ -10,14 +10,16 @@ the rules and `docs/` for the design.
 - **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in *Next up*.
 - **Marketing/docs site:** `apps/site` (Astro 5 static, Tailwind v4, Motion), built into `apps/server/dist/site`
   and served at `/` by `apps/server/src/routes/staticSite.ts` (same image; `/app`, `/v1`, `/s`, `/health`,
-  `/llms.txt`, `/openapi.json` reserved). `SITE_URL` env (default `https://postbag.withfaahim.com`) sets canonical URLs;
+  `/llms.txt`, `/openapi.json` reserved). `SITE_URL` env (default `https://postbag.dev`) sets canonical URLs;
   `PUBLIC_API_URL` if the API ever moves. Demo forms in prod org, project `site`: hero demo `fm_73c74vjq6z24`
   (no routes, `_test` only), about-page contact `fm_h6eetntqdbp6` (email route to the owner).
 - **Repo:** `github.com/faahim/postbag` (private), default branch `main`
 - **Deploy target:** Coolify (control plane `kolkobja.tarpore.com`) → server **megh-oracle**
   (`140.245.57.24`, arm64, uuid `a8w4s8cg0go4kwo0g0gk8co0`). Coolify project "Postbag".
-- **Domain:** `postbag.withfaahim.com` → A record (proxied) → megh-oracle. Zone id
-  `4f548539cadf02e52a52ef6957a82e3f`.
+- **Domain:** **`postbag.dev`** (canonical, `APP_URL`) + alias `api.postbag.dev`; zone id `84f7a4a0b32316b3d420ef347d6d494a`
+  (Afiur.fahim@gmail.com Cloudflare account). A records (proxied) → megh-oracle. Legacy `postbag.withfaahim.com`
+  (zone `4f548539cadf02e52a52ef6957a82e3f`) stays served as an extra Coolify domain so old submit URLs keep working;
+  redirect non-`/s` `/v1` paths to postbag.dev (see Next up).
 - **Coolify resources:** project `8ngphk5sjmqmwtzvdlr17wcs` · app `ertar2xhyn50wzetdjzzin2g`
   (GitHub App uuid `y0sw00scw8w8k8co0occwgsc`, repo `faahim/postbag`, branch `main`, Dockerfile
   build pack, port 3000, health `/health`, connected to predefined network) · Postgres 16
@@ -106,10 +108,10 @@ the rules and `docs/` for the design.
    the zone, publish SDK/CLI/MCP to npm + MCP registry (the site's agent pages say these are in progress).
 
 - **Email:** Resend account = the key in `~/Developer/vendingmachine-stuff/.env` (only account on disk;
-  `updates.withfaahim.com` belongs to some other account). Sending domain
-  **`postbag.withfaahim.com`** created in Resend (id `fda6ffab-c792-42f3-bc76-0e03fbd7e80b`,
-  eu-west-1), DKIM/SPF/MX records added in Cloudflare 2026-08-21; `MAIL_FROM=Postbag <notify@postbag.withfaahim.com>`
-  and `RESEND_API_KEY` set on the Coolify app.
+  `updates.withfaahim.com` belongs to some other account). Sending domains in Resend (eu-west-1):
+  **`postbag.dev`** (id `efc09584-3583-409f-841d-907bfd47750c`, DKIM/SPF/MX added to Cloudflare 2026-08-21) and legacy
+  `postbag.withfaahim.com` (id `fda6ffab-c792-42f3-bc76-0e03fbd7e80b`). `MAIL_FROM=Postbag <notify@postbag.dev>` once
+  verified; `RESEND_API_KEY` set on the Coolify app.
 
 ## Gotchas learned
 
