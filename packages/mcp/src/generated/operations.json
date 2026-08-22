@@ -12,6 +12,20 @@
     "body": null
   },
   {
+    "operationId": "billing_webhook",
+    "method": "post",
+    "path": "/v1/billing/webhook",
+    "summary": "Receive a signed Polar webhook",
+    "tags": [
+      "billing"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "additionalProperties": {}
+    }
+  },
+  {
     "operationId": "auth_request_code",
     "method": "post",
     "path": "/v1/auth/request-code",

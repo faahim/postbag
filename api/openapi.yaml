@@ -1008,6 +1008,74 @@ paths:
                   - email_password
                   - social
                   - sign_in_url
+  /v1/billing/webhook:
+    post:
+      operationId: billing_webhook
+      tags:
+        - billing
+      summary: Receive a signed Polar webhook
+      security: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: webhook-id
+          in: header
+        - schema:
+            type: string
+          required: true
+          name: webhook-timestamp
+          in: header
+        - schema:
+            type: string
+          required: true
+          name: webhook-signature
+          in: header
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+      responses:
+        "202":
+          description: accepted
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /v1/auth/request-code:
     post:
       operationId: auth_request_code

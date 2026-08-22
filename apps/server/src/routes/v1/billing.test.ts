@@ -93,7 +93,12 @@ integration("billing API", () => {
   it("persists a verified webhook and changes plan only through its processor", async () => {
     const response = await harness.app.request("/v1/billing/webhook", {
       method: "POST",
-      headers: { "content-type": "application/json", "webhook-id": "evt_subscription_active" },
+      headers: {
+        "content-type": "application/json",
+        "webhook-id": "evt_subscription_active",
+        "webhook-timestamp": "1776902400",
+        "webhook-signature": "v1,test",
+      },
       body: JSON.stringify(activeEvent),
     })
     expect(response.status).toBe(202)
@@ -107,7 +112,12 @@ integration("billing API", () => {
 
     const duplicate = await harness.app.request("/v1/billing/webhook", {
       method: "POST",
-      headers: { "content-type": "application/json", "webhook-id": "evt_subscription_active" },
+      headers: {
+        "content-type": "application/json",
+        "webhook-id": "evt_subscription_active",
+        "webhook-timestamp": "1776902400",
+        "webhook-signature": "v1,test",
+      },
       body: JSON.stringify(activeEvent),
     })
     expect(duplicate.status).toBe(202)

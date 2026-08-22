@@ -7,7 +7,18 @@ import { generateOpenapiDocument, generateOpenapiYaml } from "./lib/generateOpen
 
 const OPENAPI_YAML_PATH = fileURLToPath(new URL("../../../api/openapi.yaml", import.meta.url))
 
-type OperationObject = { readonly operationId?: string; readonly security?: readonly unknown[] }
+type ParameterObject = {
+  readonly in?: string
+  readonly name?: string
+  readonly required?: boolean
+}
+type OperationObject = {
+  readonly operationId?: string
+  readonly security?: readonly unknown[]
+  readonly tags?: readonly string[]
+  readonly parameters?: readonly ParameterObject[]
+  readonly responses?: Readonly<Record<string, unknown>>
+}
 type OpenapiDoc = {
   readonly paths: Readonly<Record<string, Readonly<Record<string, OperationObject>>>>
   readonly components?: { readonly securitySchemes?: Readonly<Record<string, unknown>> }
@@ -63,6 +74,7 @@ describe("generated OpenAPI document", () => {
       "post /v1/auth/request-code",
       "post /v1/auth/verify-code",
       "get /v1/invitations/{id}",
+      "post /v1/billing/webhook",
     ])
     const v1Operations = allOperations(doc).filter(
       ({ path, method }) => path.startsWith("/v1/") && !PUBLIC_V1_OPERATIONS.has(`${method} ${path}`),
@@ -97,5 +109,21 @@ describe("generated OpenAPI document", () => {
     const op = doc.paths["/v1/invitations/{id}"]?.["get"]
     expect(op?.operationId).toBe("invitations_get")
     expect(op?.security).toEqual([])
+  })
+
+  it("POST /v1/billing/webhook is a public signed provider callback", async () => {
+    const doc = (await generateOpenapiDocument()) as unknown as OpenapiDoc
+    const op = doc.paths["/v1/billing/webhook"]?.["post"]
+    expect(op?.operationId).toBe("billing_webhook")
+    expect(op?.tags).toContain("billing")
+    expect(op?.security).toEqual([])
+    expect(op?.responses?.["202"]).toBeDefined()
+
+    const requiredHeaders = (op?.parameters ?? [])
+      .filter((parameter) => parameter.in === "header" && parameter.required === true)
+      .map((parameter) => parameter.name)
+    expect(requiredHeaders).toEqual(
+      expect.arrayContaining(["webhook-id", "webhook-timestamp", "webhook-signature"]),
+    )
   })
 })

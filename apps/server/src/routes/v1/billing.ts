@@ -8,7 +8,7 @@ import type { BillingProvider } from "../../lib/billingProvider.js"
 import { canStartCheckout } from "../../lib/plan.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
 import type { Logger } from "../../logger.js"
-import { errorResponses } from "../../schemas.js"
+import { errorResponses, JsonRecord } from "../../schemas.js"
 import { runBillingEventSweep } from "../../worker/billing.js"
 
 const BillingStatusSchema = z.object({
@@ -71,6 +71,27 @@ const portalRoute = createRoute({
   },
 })
 
+const webhookRoute = createRoute({
+  method: "post",
+  path: "/v1/billing/webhook",
+  operationId: "billing_webhook",
+  tags: ["billing"],
+  summary: "Receive a signed Polar webhook",
+  security: [],
+  request: {
+    headers: z.object({
+      "webhook-id": z.string(),
+      "webhook-timestamp": z.string(),
+      "webhook-signature": z.string(),
+    }),
+    body: { content: { "application/json": { schema: JsonRecord } } },
+  },
+  responses: {
+    202: { description: "accepted" },
+    ...errorResponses,
+  },
+})
+
 function requireBilling(provider: BillingProvider | null): BillingProvider {
   if (provider === null) throw new PostbagError("billing_disabled", "Billing is disabled on this Postbag instance.")
   return provider
@@ -83,7 +104,7 @@ export function registerPublicBillingRoutes(
   env: Env,
   logger: Logger,
 ): void {
-  app.post("/v1/billing/webhook", async (c) => {
+  app.openapi(webhookRoute, async (c) => {
     const billing = requireBilling(provider)
     const providerEventId = c.req.header("webhook-id")
     if (providerEventId === undefined) {
