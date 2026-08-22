@@ -43,6 +43,13 @@
       "when": 1787692800000,
       "tag": "0005_invitation_inviter_nullable",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787788800000,
+      "tag": "0006_jittery_ogun",
+      "breakpoints": true
     }
   ]
 }

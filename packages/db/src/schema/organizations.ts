@@ -1,4 +1,4 @@
-import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core"
 
 import { organization } from "./auth.js"
 
@@ -20,6 +20,12 @@ export const organizationSettings = pgTable(
     planExpiresAt: timestamp("plan_expires_at", { withTimezone: true, mode: "date" }),
     // Short text shown to the org, e.g. "Courtesy of Postbag" — set by redeeming a grant.
     planNote: text("plan_note"),
+    billingCustomerId: text("billing_customer_id"),
+    billingSubscriptionId: text("billing_subscription_id"),
+    billingSubscriptionStatus: text("billing_subscription_status"),
+    billingCurrentPeriodEnd: timestamp("billing_current_period_end", { withTimezone: true, mode: "date" }),
+    billingCancelAtPeriodEnd: boolean("billing_cancel_at_period_end").default(false).notNull(),
+    billingProviderEventAt: timestamp("billing_provider_event_at", { withTimezone: true, mode: "date" }),
     timezone: text("timezone").default("Europe/Stockholm").notNull(),
     limits: jsonb("limits").$type<Readonly<Record<string, number>>>().default({}).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),

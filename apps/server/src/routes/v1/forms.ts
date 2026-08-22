@@ -15,6 +15,7 @@ import {
 } from "@postbag/db"
 
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
+import { assertLockedPlanCapacity, lockPlanCapacity } from "../../lib/planUsage.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
 import { renderEmbed } from "../../lib/snippets.js"
 import { getFormById, getFormCounts, getFormStreams } from "../../repo/forms.js"
@@ -294,7 +295,18 @@ export function registerFormRoutes(app: OpenAPIHono<AppEnv>, db: Database, appUr
       throw new PostbagError("conflict", `A form with slug '${slug}' already exists in this project.`)
     }
 
-    const { created, publishedSchema } = await db.transaction(async (tx) => {
+    const createdResult = await db.transaction(async (tx) => {
+      await lockPlanCapacity(tx, scope.organizationId, "forms")
+      const [racedExisting] = await tx
+        .select()
+        .from(forms)
+        .where(and(eq(forms.organizationId, scope.organizationId), eq(forms.projectId, project.id), eq(forms.slug, slug)))
+        .limit(1)
+      if (racedExisting !== undefined) {
+        if (input.if_exists === "return") return { existing: racedExisting }
+        throw new PostbagError("conflict", `A form with slug '${slug}' already exists in this project.`)
+      }
+      await assertLockedPlanCapacity(tx, scope.organizationId, "forms")
       // If attaching to a stream template and no explicit schema was given, adopt the
       // stream's schema 1:1 so the mapping is trivially complete (AGENT-NATIVE.md §4).
       let schemaInput = input.schema
@@ -397,6 +409,17 @@ export function registerFormRoutes(app: OpenAPIHono<AppEnv>, db: Database, appUr
 
       return { created: createdForm, publishedSchema: published }
     })
+
+    if ("existing" in createdResult) {
+      const [counts, streamsInfo] = await Promise.all([
+        getFormCounts(db, scope.organizationId, createdResult.existing.id),
+        getFormStreams(db, scope.organizationId, createdResult.existing.id),
+      ])
+      const existingBody: z.infer<typeof FormCreatedSchema> = serializeForm(createdResult.existing, appUrl, streamsInfo, counts)
+      return c.json(existingBody, 201)
+    }
+
+    const { created, publishedSchema } = createdResult
 
     const submitUrl = `${appUrl}/s/${created.id}`
     const body: z.infer<typeof FormCreatedSchema> = {

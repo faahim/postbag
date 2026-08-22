@@ -21,6 +21,7 @@ export const ID_PREFIXES = [
   "fl",
   "pg",
   "pgr",
+  "be",
   "iv",
 ] as const
 

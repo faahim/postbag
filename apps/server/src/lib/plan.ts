@@ -1,4 +1,4 @@
-import { PostbagError, type Plan, type PlanLimits, type PlanSource } from "@postbag/core"
+import { PostbagError, type Plan, type PlanLimits } from "@postbag/core"
 
 // Job K: tier ordering for the plan_grants redeem rule ("redeeming a lower tier than
 // current is refused"). `selfhost` is not a purchasable/redeemable tier in practice but
@@ -38,11 +38,17 @@ export function limitsFor(plan: string, stored: Readonly<Record<string, number>>
  * handler; it throws `409 plan_is_complimentary` (with a hint) when checkout must not
  * proceed, and is a no-op otherwise.
  */
-export function canStartCheckout(planSource: PlanSource): void {
+export function canStartCheckout(planSource: string): void {
   if (planSource === "complimentary") {
     throw new PostbagError(
       "plan_is_complimentary",
       "This organization has complimentary access; billing does not apply while it is active.",
+    )
+  }
+  if (planSource === "selfhost") {
+    throw new PostbagError(
+      "billing_disabled",
+      "Hosted billing does not apply to a self-hosted organization.",
     )
   }
 }

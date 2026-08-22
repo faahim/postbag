@@ -25,6 +25,14 @@ export const ERROR_DEFINITIONS = {
   idempotency_conflict: { status: 409, hint: "Reuse the key only for the identical operation." },
   conflict: { status: 409, hint: "The resource already exists, or is still referenced elsewhere." },
   plan_limit_reached: { status: 402, hint: "Change plan limits or remove an unused resource." },
+  billing_disabled: {
+    status: 501,
+    hint: "Set the Polar billing environment variables, or use this instance as self-hosted.",
+  },
+  billing_product_unavailable: {
+    status: 422,
+    hint: "Choose a plan and billing interval configured by this Postbag instance.",
+  },
   // Job K — plan grants (complimentary access) and the checkout guard that will sit in
   // front of Polar billing (ADR-007) once it exists.
   grant_not_found: { status: 404, hint: "Check the code and try again." },

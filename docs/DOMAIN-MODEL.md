@@ -11,6 +11,7 @@ Organization ─┬─ Membership ── User
               ├─ Route (form → destination, the simple case)
               ├─ Destination
               ├─ Event (audit + org webhooks)
+              ├─ BillingEvent (verified Polar subscription event queue)
               └─ DriftEvent
 ```
 
@@ -23,12 +24,19 @@ id is self-describing in logs, URLs, and agent conversations.
 ## Organization
 
 The tenant. Owns everything below. Has a `slug`, a `plan`, and limits derived from
-the plan (forms, submissions/month, retention days, destinations).
+the plan (forms, submissions/month, retention days, destinations). `plan_source`
+records whether access is free, billed, complimentary, or self-hosted. Polar customer,
+subscription, status, renewal date, and cancellation state are stored on the settings
+row; only a processed, signed Polar subscription webhook may change a billed plan.
 
 **Membership** links a User with a role: `owner | admin | member`. **ApiKey** is
 org-scoped, shown once, stored hashed, with a visible prefix (`pb_live_…`,
 `pb_test_…`) and scopes (`manage` | `read` | `submit`). Keys are how agents, the
 CLI and the MCP server authenticate.
+
+**BillingEvent** is the durable, idempotent inbox for Polar `subscription.*` webhooks.
+The Standard Webhooks id is unique, the raw verified payload is retained, and a worker
+applies plan changes with retry state. Checkout redirects never grant entitlements.
 
 ## Project
 

@@ -24,7 +24,8 @@ export type Competitor = {
 }
 
 const PB = {
-  free: "5 forms, 1,000 submissions/month, 5 destinations, 90-day retention (paid plans not yet on sale)",
+  free: "5 forms, 1,000 submissions/month, 5 destinations, 90-day retention",
+  paid: "Pro $15/month ($12/month billed yearly); Team $49/month ($39/month billed yearly)",
   api: "Full /v1 API for every object (forms, schemas, streams, mappings, destinations, routes, deliveries, events), OpenAPI generated from the live routes",
   webhooks: "Yes, HMAC-SHA256 signed (Postbag-Signature t=…,v1=…), retried with backoff, dead-lettered and retryable",
   email: "Yes (Resend), Reply-To from the submission",
@@ -51,7 +52,7 @@ export const COMPETITORS: Competitor[] = [
     summary: "Both accept HTML form posts and send email. Formspree's API and webhooks are paid-tier features and its source is closed; Postbag exposes every object through one API from the free tier, signs every webhook, keeps every submission as a row with an attempt-tracked outbox, adds streams for many-sites-to-one-partner routing, and self-hosts as one container.",
     rows: [
       { label: "Free tier", postbag: PB.free, them: "50 submissions/month, unlimited forms, 30-day history; API and uploads not on free (Formspree plans page)" },
-      { label: "Entry paid", postbag: "Not yet on sale", them: "Personal from $15/month; API and webhooks from Pro ($30/month) per third-party pricing roundups (vendor page blocks direct fetch)" },
+      { label: "Entry paid", postbag: PB.paid, them: "Personal from $15/month; API and webhooks from Pro ($30/month) per third-party pricing roundups (vendor page blocks direct fetch)" },
       { label: "Management API", postbag: PB.api, them: "Per-form API keys (read-only and master) on Pro+; `formspree.json` + CLI for form definitions" },
       { label: "Webhooks", postbag: PB.webhooks, them: "Yes on Pro/Business; signed (Formspree-Signature, HMAC-SHA256 over timestamp.body)" },
       { label: "Email", postbag: PB.email, them: "Yes" },
@@ -83,7 +84,7 @@ export const COMPETITORS: Competitor[] = [
     summary: "Formspark has a real form-CRUD API and excellent spam options, and its webhooks are explicitly unsigned. Postbag signs every webhook, records every delivery attempt, routes many forms into one schema, and runs as one container you can host yourself.",
     rows: [
       { label: "Free tier", postbag: PB.free, them: "250 submissions, 10 forms (Formspark pricing)" },
-      { label: "Entry paid", postbag: "Not yet on sale", them: "One-time bundle: 50,000 submissions / 100 forms (currently $25)" },
+      { label: "Entry paid", postbag: PB.paid, them: "One-time bundle: 50,000 submissions / 100 forms (currently $25)" },
       { label: "Management API", postbag: PB.api, them: "Yes: forms CRUD with scoped keys" },
       { label: "Webhooks", postbag: PB.webhooks, them: "Yes, unsigned (\"Formspark does not currently sign webhook requests\")" },
       { label: "Email", postbag: PB.email, them: "Yes" },
@@ -99,7 +100,7 @@ export const COMPETITORS: Competitor[] = [
     whenUs: ["Your downstream system must verify that a webhook really came from the form backend.", "You need retries you can see and replay, and a record of every attempt.", "Many forms should map onto one shape for one partner.", "Self-hosting or agent-driven setup matters."],
     faqs: [
       { q: "Does Formspark sign webhooks?", a: "Its documentation says it does not currently sign webhook requests. Postbag signs every webhook and system webhook with HMAC-SHA256 when a secret is configured." },
-      { q: "Which is cheaper?", a: "For a small number of forms Formspark's one-time bundle is hard to beat. Postbag's free plan covers 5 forms and 1,000 submissions a month; paid plans are not yet on sale." },
+      { q: "Which is cheaper?", a: "For a small number of forms Formspark's one-time bundle is hard to beat. Postbag's free plan covers 5 forms and 1,000 submissions a month; Pro is $15/month ($12/month billed yearly) and Team is $49/month ($39/month billed yearly)." },
     ],
     checked: "2026-08-21",
   },
@@ -115,7 +116,7 @@ export const COMPETITORS: Competitor[] = [
     summary: "Forminit is a polished headless endpoint with typed server-side field validation and an llms.txt. Postbag adds versioned schemas with drift detection, streams that map many forms onto one contract, signed webhooks with a retryable outbox, and self-hosting.",
     rows: [
       { label: "Free tier", postbag: PB.free, them: "100 submissions/month, 1 form (Forminit pricing)" },
-      { label: "Entry paid", postbag: "Not yet on sale", them: "Pro $19/month billed yearly" },
+      { label: "Entry paid", postbag: PB.paid, them: "Pro $19/month billed yearly" },
       { label: "Management API", postbag: PB.api, them: "REST API on Pro; submit and list-submissions documented, form CRUD not verified" },
       { label: "Webhooks", postbag: PB.webhooks, them: "Yes on Pro; signing not verified" },
       { label: "Email", postbag: PB.email, them: "Yes" },
@@ -147,7 +148,7 @@ export const COMPETITORS: Competitor[] = [
     summary: "Basin signs its webhooks and has real projects and an API, which makes it one of the closest comparisons. Postbag's differences are structural: every submission is a row with an outbox, streams map many forms onto one versioned schema, and the whole thing is one self-hostable container that an agent can drive from the free plan.",
     rows: [
       { label: "Free tier", postbag: PB.free, them: "1 form, 50 submissions/month, 30-day retention (Basin pricing)" },
-      { label: "Entry paid", postbag: "Not yet on sale", them: "Starter $12.50/month billed yearly" },
+      { label: "Entry paid", postbag: PB.paid, them: "Starter $12.50/month billed yearly" },
       { label: "Management API", postbag: PB.api, them: "Forms, submissions, projects, form webhooks (Growth+)" },
       { label: "Webhooks", postbag: PB.webhooks, them: "Yes, signed (X-Basin-Signature, HMAC-SHA256), Growth+" },
       { label: "Email", postbag: PB.email, them: "Yes, plus SMS" },
@@ -178,7 +179,7 @@ export const COMPETITORS: Competitor[] = [
     summary: "Web3Forms focuses on getting an email without a backend, with a free tier that many sites never outgrow. Postbag keeps the data, routes it, signs webhooks, versions schemas and self-hosts. Different jobs; the comparison is about whether you need the record.",
     rows: [
       { label: "Free tier", postbag: PB.free, them: "250 submissions/month, unlimited forms/access keys (Web3Forms pricing)" },
-      { label: "Entry paid", postbag: "Not yet on sale", them: "Pro $12/month or $149/year" },
+      { label: "Entry paid", postbag: PB.paid, them: "Pro $12/month or $149/year" },
       { label: "Management API", postbag: PB.api, them: "Submissions API documented; form management API not verified" },
       { label: "Webhooks", postbag: PB.webhooks, them: "Yes on Pro; signing not verified" },
       { label: "Email", postbag: PB.email, them: "Yes (the core product)" },
@@ -209,7 +210,7 @@ export const COMPETITORS: Competitor[] = [
     summary: "Netlify Forms is detected at deploy time and only works on Netlify-hosted sites; its free allowance has historically been the classic pain point (100 submissions/month on legacy plans). Postbag is host-independent, exposes everything through an API, signs webhooks, keeps every submission as a routed row and can be self-hosted.",
     rows: [
       { label: "Free tier", postbag: PB.free, them: "Legacy plans: 100 submissions/month + 10 MB uploads; credit-based plans: \"Forms are free and unlimited\" (Netlify docs)" },
-      { label: "Entry paid", postbag: "Not yet on sale", them: "Level 1 (1,000 submissions) on legacy plans; price not published in docs" },
+      { label: "Entry paid", postbag: PB.paid, them: "Level 1 (1,000 submissions) on legacy plans; price not published in docs" },
       { label: "Management API", postbag: PB.api, them: "Netlify API can read submissions; forms are detected at deploy, no form-management API" },
       { label: "Webhooks", postbag: PB.webhooks, them: "Outgoing POST notifications; JWS-signed when a secret is set" },
       { label: "Email", postbag: PB.email, them: "Yes" },

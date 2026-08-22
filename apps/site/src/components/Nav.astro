@@ -15,13 +15,13 @@ const current = Astro.url.pathname
       <img src="/logo-mark.svg" alt="" width="28" height="28" class="size-7 shrink-0" />
       Postbag
     </a>
-    <ul class="hidden items-center gap-1 md:flex">
+    <ul class="hidden items-center gap-1 lg:flex">
       {links.map((l) => (
         <li>
           <a
             href={l.href}
             aria-current={current.startsWith(l.href) ? "page" : undefined}
-            class="rounded-md px-3 py-2 text-[15px] text-muted-foreground transition-colors duration-150 hover:bg-surface-2 hover:text-foreground aria-[current=page]:text-foreground"
+            class="rounded-md px-3 py-2 text-[15px] text-muted-foreground transition-colors duration-(--duration-quick) hover:bg-surface-2 hover:text-foreground aria-[current=page]:text-foreground"
           >{l.label}</a>
         </li>
       ))}
@@ -33,12 +33,12 @@ const current = Astro.url.pathname
       </button>
       <a href={LOGIN_URL} class="btn btn-ghost btn-sm hidden sm:inline-flex">Sign in</a>
       <a href={SIGNUP_URL} class="btn btn-primary btn-sm">Create a form</a>
-      <button type="button" id="nav-toggle" class="btn btn-ghost h-10 w-10 px-0 md:hidden" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
+      <button type="button" id="nav-toggle" class="btn btn-ghost h-10 w-10 px-0 lg:hidden" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
     </div>
   </nav>
-  <div id="mobile-nav" hidden class="border-t border-border bg-background md:hidden">
+  <div id="mobile-nav" hidden class="border-t border-border bg-background lg:hidden">
     <ul class="container-x flex flex-col py-3">
       {links.map((l) => (
         <li><a href={l.href} class="block rounded-md px-3 py-2.5 text-[15px] hover:bg-surface-2">{l.label}</a></li>

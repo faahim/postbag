@@ -5,6 +5,7 @@ import { organization, organizationSettings, projects, type Database } from "@po
 import { newId, PostbagError } from "@postbag/core"
 
 import type { Auth } from "../../authSetup.js"
+import type { Env } from "../../env.js"
 import { forwardAuthCookies } from "../../lib/authCookies.js"
 import { assertSessionActor, type AppEnv } from "../../lib/scope.js"
 import {
@@ -83,7 +84,7 @@ export async function setActiveOrganizationWithCookies(
   forwardAuthCookies(c, result.headers)
 }
 
-export function registerOrganizationRoutes(app: OpenAPIHono<AppEnv>, auth: Auth, db: Database): void {
+export function registerOrganizationRoutes(app: OpenAPIHono<AppEnv>, auth: Auth, db: Database, env: Env): void {
   app.openapi(setActiveOrganizationRoute, async (c) => {
     const scope = c.var.scope
     assertSessionActor(scope, "Switch the active organization from a signed-in session, not an API key.")
@@ -121,7 +122,14 @@ export function registerOrganizationRoutes(app: OpenAPIHono<AppEnv>, auth: Auth,
     // Same shape provisionPersonalOrganization gives every signup: default settings + a
     // "Default" project (Principle 2 — the concept must not exist for the user yet).
     await db.transaction(async (tx) => {
-      await tx.insert(organizationSettings).values({ organizationId: org.id, plan: "free", timezone: "UTC", limits: {} })
+      const selfHosted = env.POLAR_ACCESS_TOKEN === undefined
+      await tx.insert(organizationSettings).values({
+        organizationId: org.id,
+        plan: selfHosted ? "selfhost" : "free",
+        planSource: selfHosted ? "selfhost" : "free",
+        timezone: "UTC",
+        limits: {},
+      })
       await tx.insert(projects).values({ id: newId("prj"), organizationId: org.id, slug: "default", name: "Default", tags: [] })
     })
 

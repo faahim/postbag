@@ -26,7 +26,7 @@ function initials(name: string): string {
 export function Topbar() {
   const navigate = useNavigate()
   const { data: session } = useSession()
-  const [theme, setTheme] = useState<ThemePreference>(getThemePreference())
+  const [theme, setTheme] = useState<ThemePreference>(() => getThemePreference())
 
   function applyTheme(next: ThemePreference) {
     setThemePreference(next)
@@ -34,36 +34,57 @@ export function Topbar() {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border/70 px-4 md:px-6">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/70 px-4 sm:gap-3 md:px-6">
       <button
         type="button"
+        aria-label="Search"
         onClick={() => {
           document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))
         }}
-        className="flex h-8 w-64 max-w-[40vw] items-center gap-2 rounded-md border border-input bg-card px-2.5 text-sm text-muted-foreground shadow-xs transition-colors duration-(--duration-quick) hover:bg-muted"
+        className="flex size-10 shrink-0 items-center justify-center rounded-md border border-input bg-card text-sm text-muted-foreground shadow-xs transition-[background-color] duration-(--duration-quick) ease-(--ease-smooth-out) hover:bg-muted sm:h-8 sm:w-64 sm:max-w-[40vw] sm:justify-start sm:gap-2 sm:px-2.5"
       >
         <Search className="size-3.5" />
-        <span className="flex-1 text-left">Search…</span>
-        <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
+        <span className="hidden flex-1 text-left sm:inline">Search…</span>
+        <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline">
+          ⌘K
+        </kbd>
       </button>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex min-w-0 items-center gap-1.5">
         <OrgSwitcher />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="Toggle theme">
-              {theme === "dark" ? <Moon className="size-4" /> : theme === "light" ? <Sun className="size-4" /> : <Monitor className="size-4" />}
+              {theme === "dark" ? (
+                <Moon className="size-4" />
+              ) : theme === "light" ? (
+                <Sun className="size-4" />
+              ) : (
+                <Monitor className="size-4" />
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => { applyTheme("light") }}>
+            <DropdownMenuItem
+              onSelect={() => {
+                applyTheme("light")
+              }}
+            >
               <Sun /> Light
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => { applyTheme("dark") }}>
+            <DropdownMenuItem
+              onSelect={() => {
+                applyTheme("dark")
+              }}
+            >
               <Moon /> Dark
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => { applyTheme("system") }}>
+            <DropdownMenuItem
+              onSelect={() => {
+                applyTheme("system")
+              }}
+            >
               <Monitor /> System
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -71,9 +92,14 @@ export function Topbar() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring">
+            <button
+              type="button"
+              className="rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+            >
               <Avatar className="size-8">
-                <AvatarFallback>{initials(session?.user.name ?? session?.user.email ?? "?")}</AvatarFallback>
+                <AvatarFallback>
+                  {initials(session?.user.name ?? session?.user.email ?? "?")}
+                </AvatarFallback>
               </Avatar>
             </button>
           </DropdownMenuTrigger>
@@ -81,7 +107,9 @@ export function Topbar() {
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-medium text-foreground">{session?.user.name}</span>
-                <span className="truncate text-xs text-muted-foreground">{session?.user.email}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {session?.user.email}
+                </span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

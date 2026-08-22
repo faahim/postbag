@@ -46,7 +46,7 @@ export const EXAMPLE = {
 
 /**
  * Plan limits, mirrored from apps/server/src/lib/plan.ts. Prices per ADR-006 (USD per month;
- * `yearly` is the per-month price when billed yearly). Billing is not live yet (ADR-007).
+ * `yearly` is the per-month price when billed yearly). Billing is handled by Polar (ADR-007).
  */
 export const PLANS = [
   { id: "free", name: "Free", monthly: 0, yearly: 0, forms: 5, submissions: 1_000, destinations: 5, retention: 90 },

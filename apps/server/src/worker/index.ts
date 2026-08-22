@@ -18,8 +18,9 @@ import {
 import type { AnyDestinationAdapter, DeliveryContext } from "../destinations/types.js"
 import type { Env } from "../env.js"
 import type { Logger } from "../logger.js"
+import { runBillingEventSweep } from "./billing.js"
 import { runDigestSweep } from "./digests.js"
-import { runPlanExpirySweep, runSchemaInferenceSweep } from "./housekeeping.js"
+import { runPlanExpirySweep, runRetentionSweep, runSchemaInferenceSweep } from "./housekeeping.js"
 import { recordEvent } from "./shared.js"
 import { processSystemWebhookDeliveries } from "./systemWebhooks.js"
 
@@ -332,6 +333,12 @@ export function startWorker(
     })
     runPlanExpirySweep(db, log).catch((error: unknown) => {
       log.error({ err: error }, "plan expiry sweep failed")
+    })
+    runRetentionSweep(db, log).catch((error: unknown) => {
+      log.error({ err: error }, "retention sweep failed")
+    })
+    runBillingEventSweep(db, env, log).catch((error: unknown) => {
+      log.error({ err: error }, "billing event sweep failed")
     })
   }, HOUSEKEEPING_INTERVAL_MS)
 

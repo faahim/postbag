@@ -38,11 +38,23 @@ describe("canStartCheckout — job K checkout guard", () => {
     }
   })
 
-  it("allows checkout for free, billing and selfhost orgs", () => {
-    for (const planSource of ["free", "billing", "selfhost"] as const) {
+  it("allows checkout for free and billing orgs", () => {
+    for (const planSource of ["free", "billing"] as const) {
       expect(() => {
         canStartCheckout(planSource)
       }).not.toThrow()
+    }
+  })
+
+  it("refuses hosted checkout for a self-hosted org", () => {
+    try {
+      canStartCheckout("selfhost")
+      expect.unreachable()
+    } catch (error) {
+      expect(error).toBeInstanceOf(PostbagError)
+      const postbagError = error as PostbagError
+      expect(postbagError.code).toBe("billing_disabled")
+      expect(postbagError.status).toBe(501)
     }
   })
 })

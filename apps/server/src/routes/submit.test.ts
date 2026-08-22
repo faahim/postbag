@@ -1,6 +1,6 @@
 import { newId } from "@postbag/core"
-import { destinations, forms, organization, routes, submissions, type Database } from "@postbag/db"
-import { eq } from "drizzle-orm"
+import { deliveries, destinations, forms, organization, organizationSettings, routes, submissions, type Database } from "@postbag/db"
+import { eq, inArray } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 import { buildHarness, seedOrganization, TEST_DATABASE_URL, type TestHarness } from "../testUtils.js"
@@ -40,6 +40,28 @@ integration("submit path", () => {
       .returning()
     if (form === undefined) throw new Error("failed to create form")
     return form
+  }
+
+  function concurrentRequest(path: string, init: RequestInit): Promise<Response> {
+    return Promise.resolve().then(() => harness.app.request(path, init))
+  }
+
+  async function submissionResponseBody(response: Response): Promise<{
+    readonly submission_id: string
+    readonly status: "received" | "quarantined"
+  }> {
+    const body: unknown = await response.json()
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      !("submission_id" in body) ||
+      !("status" in body) ||
+      typeof body.submission_id !== "string" ||
+      (body.status !== "received" && body.status !== "quarantined")
+    ) {
+      throw new Error("Unexpected submission response body.")
+    }
+    return { submission_id: body.submission_id, status: body.status }
   }
 
   it("stores a JSON submission and responds with ok + submission_id", async () => {
@@ -237,5 +259,97 @@ integration("submit path", () => {
       body: JSON.stringify({}),
     })
     expect(response.status).toBe(404)
+  })
+
+  it("uses the paid plan's default monthly submission limit", async () => {
+    const form = await createForm()
+    await db
+      .update(organizationSettings)
+      .set({ plan: "pro", planSource: "billing", limits: {} })
+      .where(eq(organizationSettings.organizationId, organizationId))
+    await db.insert(submissions).values(
+      Array.from({ length: 1_000 }, (_, index) => ({
+        id: newId("sb"),
+        organizationId,
+        formId: form.id,
+        data: { index },
+      })),
+    )
+
+    const response = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "paid@example.com" }),
+    })
+    expect(response.status).toBe(200)
+    const body = (await response.json()) as { status: string; submission_id: string }
+    expect(body.status).toBe("received")
+    const [row] = await db.select().from(submissions).where(eq(submissions.id, body.submission_id))
+    expect(row?.quarantineReason).toBeNull()
+  })
+
+  it("stores concurrent submissions at the monthly limit and quarantines only the over-quota one", async () => {
+    const limited = await seedOrganization(db, "Submission capacity concurrency")
+    try {
+      await db
+        .update(organizationSettings)
+        .set({ plan: "free", planSource: "free", limits: { submissions_per_month: 1 } })
+        .where(eq(organizationSettings.organizationId, limited.organizationId))
+      const [form] = await db
+        .insert(forms)
+        .values({
+          id: newId("fm"),
+          organizationId: limited.organizationId,
+          projectId: limited.projectId,
+          slug: "submission-capacity",
+          name: "Submission capacity",
+        })
+        .returning()
+      if (form === undefined) throw new Error("Failed to create submission-capacity form.")
+      const [destination] = await db
+        .insert(destinations)
+        .values({
+          id: newId("ds"),
+          organizationId: limited.organizationId,
+          type: "webhook",
+          name: "Submission capacity destination",
+          config: { url: "https://example.com/submission-capacity" },
+          verified: true,
+        })
+        .returning()
+      if (destination === undefined) throw new Error("Failed to create submission-capacity destination.")
+      await db.insert(routes).values({
+        id: newId("rt"),
+        organizationId: limited.organizationId,
+        formId: form.id,
+        destinationId: destination.id,
+      })
+
+      const responses = await Promise.all(
+        ["first@example.com", "second@example.com"].map((email) =>
+          concurrentRequest(`/s/${form.id}`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ email }),
+          }),
+        ),
+      )
+      const responseBodies = await Promise.all(responses.map(submissionResponseBody))
+      expect(responseBodies.map((body) => body.status).sort()).toEqual(["quarantined", "received"])
+
+      const submissionRows = await db.select().from(submissions).where(eq(submissions.formId, form.id))
+      expect(submissionRows).toHaveLength(2)
+      expect(submissionRows.filter((row) => row.status === "received")).toHaveLength(1)
+      const quarantined = submissionRows.filter((row) => row.status === "quarantined")
+      expect(quarantined).toHaveLength(1)
+      expect(quarantined[0]?.quarantineReason).toBe("over_quota")
+
+      const submissionIds = responseBodies.map((body) => body.submission_id)
+      const deliveryRows = await db.select().from(deliveries).where(inArray(deliveries.submissionId, submissionIds))
+      expect(deliveryRows).toHaveLength(2)
+      expect(new Set(deliveryRows.map((row) => row.submissionId))).toEqual(new Set(submissionIds))
+    } finally {
+      await db.delete(organization).where(eq(organization.id, limited.organizationId))
+    }
   })
 })

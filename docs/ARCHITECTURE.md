@@ -105,6 +105,13 @@ and counted per month (submissions) with soft-fail: over-limit submissions are
 stored and flagged `over_quota`, not dropped (Principle 4), and delivery is paused
 until the plan allows.
 
+Polar billing follows the same durability rule. `POST /v1/billing/webhook` verifies the
+Standard Webhooks signature, stores one `billing_events` row per provider event id, and
+then wakes the retryable processor. The processor alone updates billing metadata and a
+billed plan; checkout success redirects are presentation only. Self-hosted instances
+without `POLAR_ACCESS_TOKEN` provision organizations on the `selfhost` plan and return
+`billing_disabled` from checkout and portal routes.
+
 ## Spam
 
 Defence in depth, none of it destructive: honeypot, per-form rate limit, origin

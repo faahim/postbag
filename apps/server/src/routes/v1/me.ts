@@ -10,11 +10,11 @@ import {
   projects,
   routes,
   streams,
-  submissions,
   type Database,
 } from "@postbag/db"
 
 import { limitsFor } from "../../lib/plan.js"
+import { countMonthlySubmissions } from "../../lib/planUsage.js"
 import { isMemberRole } from "../../lib/orgs.js"
 import type { AppEnv } from "../../lib/scope.js"
 import { NextSchema, OrganizationSummarySchema, ScopeSchema } from "../../schemas.js"
@@ -78,14 +78,14 @@ export function registerMeRoutes(app: OpenAPIHono<AppEnv>, db: Database): void {
       .where(eq(organizationSettings.organizationId, scope.organizationId))
       .limit(1)
 
-    const [[projectCount], [formCount], [streamCount], [destinationCount], [routeCount], [submissionCount]] =
+    const [[projectCount], [formCount], [streamCount], [destinationCount], [routeCount], submissionCount] =
       await Promise.all([
         db.select({ value: count() }).from(projects).where(eq(projects.organizationId, scope.organizationId)),
         db.select({ value: count() }).from(forms).where(eq(forms.organizationId, scope.organizationId)),
         db.select({ value: count() }).from(streams).where(eq(streams.organizationId, scope.organizationId)),
         db.select({ value: count() }).from(destinations).where(eq(destinations.organizationId, scope.organizationId)),
         db.select({ value: count() }).from(routes).where(eq(routes.organizationId, scope.organizationId)),
-        db.select({ value: count() }).from(submissions).where(eq(submissions.organizationId, scope.organizationId)),
+        countMonthlySubmissions(db, scope.organizationId),
       ])
 
     let keyPrefix: string | undefined
@@ -141,7 +141,7 @@ export function registerMeRoutes(app: OpenAPIHono<AppEnv>, db: Database): void {
         destinations: destinationCount?.value ?? 0,
         routes: routeCount?.value ?? 0,
       },
-      limits: { ...limits, used: { forms: formCount?.value ?? 0, submissions_this_month: submissionCount?.value ?? 0 } },
+      limits: { ...limits, used: { forms: formCount?.value ?? 0, submissions_this_month: submissionCount } },
       next:
         formCount?.value === 0
           ? [{ why: "Create your first form", method: "POST", path: "/v1/quickstart", body: { name: "My first form" } }]

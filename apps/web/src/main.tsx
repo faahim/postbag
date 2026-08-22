@@ -10,6 +10,13 @@ import { initTheme } from "@/lib/theme"
 import { routeTree } from "./routeTree.gen"
 import "./styles/index.css"
 
+const enableDevTools = import.meta.env.DEV && import.meta.env["VITE_DISABLE_REACT_DEVTOOLS"] !== "1"
+
+if (enableDevTools) {
+  void import("react-grab")
+  void import("react-scan")
+}
+
 initTheme()
 
 const queryClient = new QueryClient({

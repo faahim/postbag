@@ -3,7 +3,6 @@ import Base from "@/layouts/Base.astro"
 import PageHeader from "@/components/PageHeader.astro"
 import Faq from "@/components/Faq.astro"
 import CtaBand from "@/components/CtaBand.astro"
-import PricingNotify from "@/components/PricingNotify.astro"
 import Postmark from "@/components/Postmark.astro"
 import { GITHUB_URL, PLANS, SIGNUP_URL, SITE_URL } from "@/config"
 import { breadcrumbLd, faqLd, softwareLd, webPageLd } from "@/lib/seo"
@@ -11,18 +10,18 @@ const crumbs = [ { name: "Home", href: "/" }, { name: "Pricing", href: "/pricing
 const pro = PLANS.find((p) => p.id === "pro")!
 const team = PLANS.find((p) => p.id === "team")!
 const faqs = [
-  { q: "Is Postbag free?", a: "Yes. The free plan includes 5 forms, 1,000 submissions a month, 5 destinations and 90-day retention, with every feature: streams, schemas, signed webhooks, the full API. Paid plans go on sale when billing ships; leave your email on a plan and you will get one message when it does." },
+  { q: "Is Postbag free?", a: "Yes. The free plan includes 5 forms, 1,000 submissions a month, 5 destinations and 90-day retention, with every feature: streams, schemas, signed webhooks, the full API. Pro and Team are available for higher limits." },
   { q: "What happens if I go over the submission limit?", a: "Submissions are still stored and flagged over quota; delivery pauses until the plan allows. Nothing is dropped. Test submissions (_test: true) do not count." },
   { q: "Do the paid plans have different features?", a: "No. Plans differ only in limits: forms, submissions per month, destinations and retention. Every plan has the whole product, including the API and agent features. Team adds seats and compliance paperwork, which only make sense on a hosted account." },
   { q: `Why is Pro $${pro.monthly} a month?`, a: "Because it is priced as a routing and delivery service, not as a form-to-email relay. The outbox, signed webhooks, streams and the agent surface are on every plan; the price buys the hosted operation of them: deliverability, retries, retention and support." },
-  { q: "Who is the seller, and will I get a proper invoice?", a: "Billing will run through a Merchant of Record, which acts as the seller, charges the correct VAT or sales tax for your country and issues a compliant invoice for every payment." },
+  { q: "Who is the seller, and will I get a proper invoice?", a: "Paid checkout is handled by Polar as our Merchant of Record. Polar acts as the seller, charges the correct VAT or sales tax for your country and issues a compliant invoice for every payment." },
   { q: "What does self-hosting cost?", a: "Nothing from us. Postbag is open source: the server is AGPL-3.0 and the client packages (SDK, CLI, MCP server) are MIT. You run the image against your own Postgres with effectively unlimited limits. The repository opens publicly with the first npm release of the client packages." },
 ]
 const fmt = (n: number) => n.toLocaleString("en-US")
 const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postbag pricing", description: `Postbag plans: Free (5 forms, 1,000 submissions/month), Pro $${pro.monthly}/month, Team $${team.monthly}/month, and free open-source self-hosting. Every feature on every plan.` }), breadcrumbLd(crumbs), faqLd(faqs) ]
 ---
 <Base title="Pricing" description={`Postbag pricing: Free with 5 forms and 1,000 submissions a month, Pro at $${pro.monthly}/month, Team at $${team.monthly}/month, every feature on every plan. Self-hosting is free and open source.`} canonical="/pricing/" ld={ld}>
-  <PageHeader title="Every feature on every plan. Plans differ only in limits." lede="There is no feature gate in Postbag: streams, schemas, signed webhooks and the agent surface are on the free plan. Paid plans raise the numbers. Billing is being built; paid plans are priced but not yet on sale." crumbs={crumbs} />
+  <PageHeader title="Every feature on every plan. Plans differ only in limits." lede="There is no feature gate in Postbag: streams, schemas, signed webhooks and the agent surface are on the free plan. Paid plans raise the numbers. Choose Pro or Team to continue to checkout." crumbs={crumbs} />
   <section class="container-x">
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-reveal-group="70">
       {PLANS.map((p) => (
@@ -40,7 +39,7 @@ const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postb
             <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Retention</dt><dd class="tabular">{p.retention} days</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Seats, audit log, DPA</dt><dd class={p.id === "team" ? "" : "text-muted-foreground/50"}>{p.id === "team" ? "Included" : "—"}</dd></div>
           </dl>
-          {p.id === "free" ? <a href={SIGNUP_URL} class="btn btn-primary mt-6">Create a form</a> : <PricingNotify planId={p.id} planName={p.name} />}
+          {p.id === "free" ? <a href={SIGNUP_URL} class="btn btn-primary mt-6">Create a form</a> : <a href="/app/settings" class="btn btn-primary mt-6">Choose {p.name}</a>}
         </div>
       ))}
       <div class="card flex flex-col bg-surface-2 p-6 ring-1 ring-border-strong" data-reveal>

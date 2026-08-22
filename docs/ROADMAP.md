@@ -47,8 +47,9 @@ portfolio site and every *new* site use Postbag; (c) solo-dev test < 3 min.
 
 ## Phase 3 — Commercial
 
-- Billing via Polar as Merchant of Record (ADR-007): plans, limits, usage metering,
-  over-quota behaviour. Self-host runs with billing disabled.
+- Billing via Polar as Merchant of Record (ADR-007): checkout, customer portal,
+  durable signed subscription webhooks, plans, limits, monthly usage, retention, and
+  over-quota behaviour. Self-host runs with billing disabled and self-host limits.
 - Team invitations, roles, audit log UI, data export, GDPR deletion.
 - Per-org verified sending domains; optional custom submit domain.
 - Native destinations where the webhook path has shown a pattern: Dekhval (CRM

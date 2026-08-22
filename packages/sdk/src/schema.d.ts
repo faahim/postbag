@@ -335,6 +335,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/billing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get billing status and purchasable plans */
+        get: operations["billing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a Polar checkout */
+        post: operations["billing_checkout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/portal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open the Polar customer portal */
+        post: operations["billing_portal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/quickstart": {
         parameters: {
             query?: never;
@@ -610,7 +661,7 @@ export interface paths {
         put?: never;
         /**
          * Create a stream (optionally with its first schema version and sources)
-         * @description A stream (shown as 'Bag' in the dashboard) fans one canonical schema in from many forms.
+         * @description A stream (shown as 'Bag' in the dashboard) collects submissions from many forms into one shared shape. Pass `schema` to define that shape up front, or omit it and pass `sources` — the first source's form then provides version 1 (copied from its published schema, its inferred draft, or the fields seen in recent submissions) with an identity mapping, so `{ name, sources: [{ form_id }] }` is a complete request.
          */
         post: operations["streams_create"];
         delete?: never;
@@ -671,7 +722,7 @@ export interface paths {
         put?: never;
         /**
          * Attach a form or selector with a mapping
-         * @description Fails 422 mapping_incomplete (with the missing fields listed) if the mapping does not cover every field the stream's current schema requires — a form can't join a stream it can't feed.
+         * @description If the stream has no schema yet, the attached form provides version 1 (copied from its published schema, its inferred draft, or the fields seen in recent submissions) and an identity mapping is used when `mapping` is omitted — so attaching the first form never needs a hand-written schema. Fails 422 stream_schema_missing if neither the stream nor the form has any fields to work from. Fails 422 mapping_incomplete (with the missing fields listed) if the mapping does not cover every field the stream's schema requires — a form can't join a stream it can't feed.
          */
         post: operations["streams_sources_add"];
         delete?: never;
@@ -2746,6 +2797,209 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanGrant"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    billing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        enabled: boolean;
+                        plan: string;
+                        plan_source: string;
+                        subscription: {
+                            id: string;
+                            status: string;
+                            current_period_end: string | null;
+                            cancel_at_period_end: boolean;
+                        } | null;
+                        products: {
+                            pro: {
+                                month: boolean;
+                                year: boolean;
+                            };
+                            team: {
+                                month: boolean;
+                                year: boolean;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+    billing_checkout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    plan: "pro" | "team";
+                    /** @enum {string} */
+                    interval: "month" | "year";
+                };
+            };
+        };
+        responses: {
+            /** @description checkout created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uri */
+                        url: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    billing_portal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description portal session created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uri */
+                        url: string;
+                    };
                 };
             };
             /** @description Error */

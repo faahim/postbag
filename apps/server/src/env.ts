@@ -31,6 +31,13 @@ const EnvSchema = z
     MAIL_FROM: z.string().default("Postbag <notify@postbag.dev>"),
     MIGRATE_ON_BOOT: BooleanFromString,
     RLS_ENFORCED: BooleanFlagDefaultFalse,
+    POLAR_ACCESS_TOKEN: z.string().optional(),
+    POLAR_WEBHOOK_SECRET: z.string().optional(),
+    POLAR_SERVER: z.enum(["production", "sandbox"]).default("production"),
+    POLAR_PRO_MONTHLY_PRODUCT_ID: z.string().optional(),
+    POLAR_PRO_YEARLY_PRODUCT_ID: z.string().optional(),
+    POLAR_TEAM_MONTHLY_PRODUCT_ID: z.string().optional(),
+    POLAR_TEAM_YEARLY_PRODUCT_ID: z.string().optional(),
     // Social login (job G): optional, self-host parity. See the pair check below.
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
@@ -101,6 +108,13 @@ export type Env = {
   readonly MAIL_FROM: string
   readonly MIGRATE_ON_BOOT: boolean
   readonly RLS_ENFORCED: boolean
+  readonly POLAR_ACCESS_TOKEN?: string | undefined
+  readonly POLAR_WEBHOOK_SECRET?: string | undefined
+  readonly POLAR_SERVER: "production" | "sandbox"
+  readonly POLAR_PRO_MONTHLY_PRODUCT_ID?: string | undefined
+  readonly POLAR_PRO_YEARLY_PRODUCT_ID?: string | undefined
+  readonly POLAR_TEAM_MONTHLY_PRODUCT_ID?: string | undefined
+  readonly POLAR_TEAM_YEARLY_PRODUCT_ID?: string | undefined
   readonly GOOGLE_CLIENT_ID?: string | undefined
   readonly GOOGLE_CLIENT_SECRET?: string | undefined
   readonly GITHUB_CLIENT_ID?: string | undefined

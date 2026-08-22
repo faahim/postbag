@@ -1,5 +1,15 @@
 import { newId } from "@postbag/core"
-import { events, organization, streams, submissions, systemWebhookDeliveries, type Database } from "@postbag/db"
+import {
+  destinations,
+  events,
+  forms,
+  organization,
+  organizationSettings,
+  streams,
+  submissions,
+  systemWebhookDeliveries,
+  type Database,
+} from "@postbag/db"
 import { eq } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
@@ -24,6 +34,10 @@ integration("/v1 API", () => {
     const orgB = await seedOrganization(db, "Org B")
     orgAId = orgA.organizationId
     orgBId = orgB.organizationId
+    await db
+      .update(organizationSettings)
+      .set({ plan: "selfhost", planSource: "selfhost" })
+      .where(eq(organizationSettings.organizationId, orgAId))
     keyA = await createTestApiKey(harness.auth, orgAId, orgA.userId, ["manage", "read", "submit"])
     keyB = await createTestApiKey(harness.auth, orgBId, orgB.userId, ["manage", "read", "submit"])
     readOnlyKey = await createTestApiKey(harness.auth, orgAId, orgA.userId, ["read"])
@@ -60,6 +74,110 @@ integration("/v1 API", () => {
     const body = (await response.json()) as { organization: { id: string }; key: { scopes: string[] } }
     expect(body.organization.id).toBe(orgAId)
     expect(body.key.scopes.sort()).toEqual(["manage", "read", "submit"])
+  })
+
+  it("reports only non-test submissions from the current month as monthly usage", async () => {
+    const usageOrg = await seedOrganization(db, "Monthly Usage Org")
+    const usageKey = await createTestApiKey(harness.auth, usageOrg.organizationId, usageOrg.userId)
+    try {
+      const [form] = await db
+        .insert(forms)
+        .values({
+          id: newId("fm"),
+          organizationId: usageOrg.organizationId,
+          projectId: usageOrg.projectId,
+          slug: "usage-form",
+          name: "Usage form",
+        })
+        .returning()
+      if (form === undefined) throw new Error("failed to create usage form")
+      await db.insert(submissions).values([
+        {
+          id: newId("sb"),
+          organizationId: usageOrg.organizationId,
+          formId: form.id,
+          data: { kind: "current" },
+        },
+        {
+          id: newId("sb"),
+          organizationId: usageOrg.organizationId,
+          formId: form.id,
+          data: { kind: "test" },
+          test: true,
+        },
+        {
+          id: newId("sb"),
+          organizationId: usageOrg.organizationId,
+          formId: form.id,
+          data: { kind: "old" },
+          receivedAt: new Date("2020-01-01T00:00:00.000Z"),
+        },
+      ])
+
+      const response = await harness.app.request("/v1/me", authed(usageKey))
+      expect(response.status).toBe(200)
+      const body = (await response.json()) as { limits: { used: { submissions_this_month: number } } }
+      expect(body.limits.used.submissions_this_month).toBe(1)
+    } finally {
+      await db.delete(organization).where(eq(organization.id, usageOrg.organizationId))
+    }
+  })
+
+  it("enforces configured form and destination limits", async () => {
+    const limitedOrg = await seedOrganization(db, "Limited Org")
+    const limitedKey = await createTestApiKey(harness.auth, limitedOrg.organizationId, limitedOrg.userId)
+    try {
+      await db
+        .update(organizationSettings)
+        .set({ limits: { forms: 1, destinations: 1 } })
+        .where(eq(organizationSettings.organizationId, limitedOrg.organizationId))
+
+      const firstForm = await harness.app.request(
+        "/v1/forms",
+        authed(limitedKey, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: "Allowed form" }),
+        }),
+      )
+      expect(firstForm.status).toBe(201)
+      const secondForm = await harness.app.request(
+        "/v1/forms",
+        authed(limitedKey, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: "Blocked form" }),
+        }),
+      )
+      expect(secondForm.status).toBe(402)
+      expect(((await secondForm.json()) as { error: { code: string } }).error.code).toBe("plan_limit_reached")
+
+      const destinationInput = { type: "email", config: { to: ["limits@example.com"] } }
+      const firstDestination = await harness.app.request(
+        "/v1/destinations",
+        authed(limitedKey, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(destinationInput),
+        }),
+      )
+      expect(firstDestination.status).toBe(201)
+      const secondDestination = await harness.app.request(
+        "/v1/destinations",
+        authed(limitedKey, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(destinationInput),
+        }),
+      )
+      expect(secondDestination.status).toBe(402)
+      expect(((await secondDestination.json()) as { error: { code: string } }).error.code).toBe("plan_limit_reached")
+
+      const rows = await db.select().from(destinations).where(eq(destinations.organizationId, limitedOrg.organizationId))
+      expect(rows).toHaveLength(1)
+    } finally {
+      await db.delete(organization).where(eq(organization.id, limitedOrg.organizationId))
+    }
   })
 
   // Job D 1a: a `manage`-only key is refused `read` in the production smoke test.

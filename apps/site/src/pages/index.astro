@@ -22,7 +22,7 @@ const faqs = [
   { q: "Which destinations are supported?", a: "Email (via Resend, with Reply-To set from the submission), Telegram bot messages, and webhooks signed with HMAC-SHA256. Webhooks are the universal extension point; Slack and Discord are planned next." },
   { q: "Can AI agents like Claude Code or Cursor use Postbag?", a: "Yes. An agent with only an API key can read GET /llms.txt and /openapi.json, call GET /v1/me, create a working routed form with POST /v1/quickstart, post a test submission with _test: true, and poll the resulting delivery ids to confirm it was sent. Every error carries a hint and a docs link; every create returns next steps." },
   { q: "Can I self-host Postbag?", a: "Yes. Postbag runs as one Docker image (api, worker or both) against one Postgres database, with a docker-compose file. The hosted product is the same image with billing turned on; no feature depends on a cloud-only service without a self-host path." },
-  { q: "How much does it cost?", a: "The free plan includes 5 forms, 1,000 submissions a month, 5 destinations and 90-day retention. Pro is $15 a month ($12 billed yearly) and Team is $49 a month ($39 billed yearly); both are priced but not yet on sale while billing is finished. See <a href='/pricing/'>pricing</a> for the limits. Self-hosting is free and open source." },
+  { q: "How much does it cost?", a: "The free plan includes 5 forms, 1,000 submissions a month, 5 destinations and 90-day retention. Pro is $15 a month ($12 billed yearly) and Team is $49 a month ($39 billed yearly); paid checkout is handled by Polar as our Merchant of Record. See <a href='/pricing/'>pricing</a> for the limits. Self-hosting is free and open source." },
 ]
 const ld = [
   softwareLd(),

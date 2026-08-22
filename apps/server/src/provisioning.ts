@@ -16,7 +16,7 @@ function slugify(value: string): string {
  * organization, ownership, default settings and a "Default" project — Principle 2's
  * "the user never picks a mode" applies to signup too.
  */
-export async function provisionPersonalOrganization(db: Database, user: SignupUser): Promise<void> {
+export async function provisionPersonalOrganization(db: Database, user: SignupUser, selfHosted = false): Promise<void> {
   const organizationId = newId("org")
   const base = slugify(user.email.split("@")[0] ?? user.name)
   const slug = `${base}-${organizationId.slice(-6)}`
@@ -33,7 +33,8 @@ export async function provisionPersonalOrganization(db: Database, user: SignupUs
     })
     await tx.insert(organizationSettings).values({
       organizationId,
-      plan: "free",
+      plan: selfHosted ? "selfhost" : "free",
+      planSource: selfHosted ? "selfhost" : "free",
       timezone: "UTC",
       limits: {},
     })

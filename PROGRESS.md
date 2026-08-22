@@ -57,12 +57,17 @@ the rules and `docs/` for the design.
 - ADR-005 accepted: JSONata for mapping expressions, filters, transforms (Phase 2).
 - Hosting: megh-oracle chosen over dekhval-1 (Hermes load) and kolkobja (control plane, low RAM).
 - **Business model + licence (ADR-006, 2026-08-21):** open source + hosted, plans differ only in
-  limits. `AGPL-3.0-only` for root/apps/core/db/auth; `MIT` for sdk/cli/mcp. No CLA (DCO). Prices
-  published on `/pricing` ahead of billing: Free $0 · Pro $15/mo ($12 yearly) · Team $49/mo ($39 yearly).
+  limits. `AGPL-3.0-only` for root/apps/core/db/auth; `MIT` for sdk/cli/mcp. No CLA (DCO). Prices:
+  Free $0 · Pro $15/mo ($12 yearly) · Team $49/mo ($39 yearly). Production Polar has monthly and
+  annual catalog prices for both Pro and Team.
 - **Billing provider (ADR-007):** **Polar** as Merchant of Record, Paddle fallback. Dodo Payments was
   evaluated and rejected: Bangladesh (the legal entity's country) is not an eligible merchant country.
   Stripe direct was never available for the same reason. Polar pays Bangladesh via Stripe Connect
-  Express cross-border payouts ("Preview" tier — KYC + a real test payout must succeed before billing code merges).
+  Express cross-border payouts ("Preview" tier). The billing implementation is present locally:
+  migration 0006, plan enforcement, monthly usage, retention, checkout, portal and durable webhook
+  processing. The production catalog, webhook endpoint and masked Coolify billing env vars exist;
+  deployment and hosted runtime verification are still pending. No real paid purchase, KYC/account
+  review completion or payout has been proven.
 - **Domain:** `postbag.dev` (Fahim buying 2026-08-21). `.app` as a cheap defensive redirect; skip `.io`.
 - **Repo goes public** with the first npm release. gitleaks full-history scan 2026-08-21: 18 commits, no leaks.
 - npm names `postbag`, `@postbag/sdk`, `@postbag/mcp`, `@postbag/cli` and the `@postbag` scope were all
@@ -140,6 +145,11 @@ the rules and `docs/` for the design.
   on the form's Fields tab. Left agent/admin-only on purpose: auth codes, plan grants, single-resource GETs, schema
   infer (the Fields tab's "Publish what we're seeing" covers it). **Projects** stay hidden in the UI (Principle 1).
 
+- [x] **Polar billing wiring (2026-08-23):** local migration 0006, checkout and customer portal routes,
+  durable signed webhook ingestion/processing, plan enforcement, monthly usage and retention. Production
+  Polar has Pro and Team monthly/annual catalog prices, a webhook endpoint exists, and Coolify has masked
+  billing env vars. This has not been claimed deployed or verified in the hosted runtime.
+
 ## Handoff (2026-08-21 ~22:50 UTC — session ended near a usage limit; resume from here)
 
 **Committed and live:** everything above plus job J (agent-first hero, switcher, pricing cards, first-paint reveal fix —
@@ -153,8 +163,9 @@ run on deploy (`MIGRATE_ON_BOOT=true`).
 
 **Next (priority):** 1) off-server backups — Cloudflare R2 as a Coolify S3 storage + `save_s3` on schedule
 `lsvi1rsnoo8erhsfugiznstn`; 2) email verification on password sign-up (2f); 3) Google branding verification + Search
-Console via DNS TXT; 4) uptime monitor on `/health`; 5) RLS in the request path; 6) Polar "Postbag" org + KYC; 7) CLI unit
-tests for `orgs/members/invitations`; 8) an "invite as owner" path if ever needed (today: invite as admin, then promote).
+Console via DNS TXT; 4) uptime monitor on `/health`; 5) RLS in the request path; 6) deploy and hosted-runtime verify
+Polar billing, then complete KYC/account review and prove a real paid purchase/payout; 7) CLI unit tests for
+`orgs/members/invitations`; 8) an "invite as owner" path if ever needed (today: invite as admin, then promote).
 
 **Done 2026-08-21 17:08 UTC:** Fahim's org redeemed a Team grant (`plan_source=complimentary`, note "The house");
 a single-use Pro grant (365 d, note "Eric — friend of the house") was minted and the code handed to Fahim in chat —
@@ -163,13 +174,13 @@ codes are never written to the repo. Eric redeems it in Settings → Plan → "H
 **Hero polish (small, not done):** centre the Prompt/Skill/MCP/CLI segmented control under the prompt block; make
 sure the prompt's wrapped layout is CSS-only at first paint (300 ms screenshot showed a single clipped line).
 
-**Decisions today (all recorded above in detail):** AGPL+MIT; Polar (token is for org "pushkunni" — create a "Postbag"
-org when billing starts); prices; anonymous quickstart declined; repo public; EU hosting; legal identity = Md Afiur
+**Decisions today (all recorded above in detail):** AGPL+MIT; Polar (production org "Postbag", slug `pushkunni`);
+prices; anonymous quickstart declined; repo public; EU hosting; legal identity = Md Afiur
 Rahman, Dhaka 1209, hello@postbag.dev.
 
 **Still open, in priority order:** off-server backups (Cloudflare R2 in Coolify) → email verification on password
 sign-up (2f) → Google branding verification + Search Console (DNS TXT) → uptime monitor on `/health` → RLS in the
-request path → Polar "Postbag" org + KYC (Phase 3).
+request path → Polar deployment/hosted verification, then KYC/account review and payout proof (Phase 3).
 
 **Credentials/locations (values never in repo):** `~/.postbag/credentials` (API key, prod URL still says withfaahim —
 both hosts work), `~/.config/postbag/{mcp-registry-ed25519.pem,polar-access-token,backups/}`, Cloudflare + Coolify
@@ -192,10 +203,13 @@ tokens in `~/Developer/smedja/.env` (Cloudflare token: DNS only; no Email Routin
 2b. **Legal pages before selling (agent drafts, Fahim supplies entity name/address):** Terms, Privacy
    Policy, DPA for operators, sub-processor list (Resend, Cloudflare, the hosting provider, Polar),
    GDPR Art. 27 EU-representative answer for a non-EU entity. Pages at `/legal/terms/`, `/legal/privacy/`, `/legal/dpa/`.
-2c. **Polar:** organisation access token created by Fahim 2026-08-21 — stored as Coolify env `POLAR_ACCESS_TOKEN` on both apps
-   (unused by code until Phase 3 billing) and at `~/.config/postbag/polar-access-token` (600). Still human: complete KYC with Bangladeshi documents and a
-   local bank account, confirm a sandbox sale and a real test payout land. If it fails → Paddle via a
-   superseding ADR. No billing code merges before this.
+2c. **Polar:** production organisation "Postbag" (slug `pushkunni`) has Pro and Team monthly/annual catalog
+  prices. A production webhook endpoint exists, and Coolify has the masked billing env vars. The local billing code
+  includes migration 0006, checkout/portal, durable webhook processing, plan enforcement, monthly usage and
+  retention. Do not claim this is deployed: hosted runtime verification is still pending. Separately track
+  KYC/account review, a compatible local payout account, the first real paid purchase and the first payout as
+  operational evidence; none blocks building or enabling checkout. If the payout rail fails in practice → Paddle
+  via a superseding ADR.
 2d. ~~Social login~~ **live 2026-08-21 14:40 UTC.** Google + GitHub buttons on `postbag.dev/app/sign-in`;
    `/v1/auth/providers` → `["google","github"]`. GitHub OAuth app `Postbag` (client id `Ov23li80jqB1DXPzvMsP`,
    callbacks postbag.dev + localhost:3000). Google: GCP project **`postbag-dev`**, consent screen published

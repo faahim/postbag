@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm"
 import { destinations, forms, projects, routes, type Database } from "@postbag/db"
 
 import { renderEmbed } from "../../lib/snippets.js"
+import { assertLockedPlanCapacity, lockPlanCapacity } from "../../lib/planUsage.js"
 import type { AppEnv } from "../../lib/scope.js"
 import { serializeDestination, serializeForm, serializeRoute } from "../../repo/serialize.js"
 import { DestinationSchema, EmbedSchema, errorResponses, FormSchema, NextSchema, RouteSchema, VerifySchema } from "../../schemas.js"
@@ -80,86 +81,126 @@ export function registerQuickstartRoutes(app: OpenAPIHono<AppEnv>, db: Database,
     const createdRoutes: (typeof routes.$inferSelect)[] = []
 
     if (form === undefined) {
-      const settings: Record<string, unknown> = {}
-      if (input.origin !== undefined) settings["allowed_origins"] = [input.origin]
-      if (input.redirect_url !== undefined) settings["redirect_url"] = input.redirect_url
-      ;[form] = await db
-        .insert(forms)
-        .values({
-          id: newId("fm"),
-          organizationId,
-          projectId: project.id,
-          slug: formSlug,
-          name: input.name,
-          tags: [...input.tags],
-          settings,
-        })
-        .returning()
-      if (form === undefined) throw new Error("Failed to create form.")
+      const requestedDestinations = [input.notify_email, input.telegram, input.webhook].filter(
+        (value) => value !== undefined,
+      ).length
+      const created = await db.transaction(async (tx) => {
+        await lockPlanCapacity(tx, organizationId, "forms")
+        const [racedForm] = await tx
+          .select()
+          .from(forms)
+          .where(and(eq(forms.organizationId, organizationId), eq(forms.projectId, project.id), eq(forms.slug, formSlug)))
+          .limit(1)
+        if (racedForm !== undefined) {
+          const racedRoutes = await tx
+            .select()
+            .from(routes)
+            .where(and(eq(routes.organizationId, organizationId), eq(routes.formId, racedForm.id)))
+          const racedDestinations: (typeof destinations.$inferSelect)[] = []
+          for (const route of racedRoutes) {
+            const [destination] = await tx
+              .select()
+              .from(destinations)
+              .where(and(eq(destinations.organizationId, organizationId), eq(destinations.id, route.destinationId)))
+              .limit(1)
+            if (destination !== undefined) racedDestinations.push(destination)
+          }
+          return { form: racedForm, destinations: racedDestinations, routes: racedRoutes }
+        }
 
-      if (input.notify_email !== undefined) {
-        const [destination] = await db
-          .insert(destinations)
+        await assertLockedPlanCapacity(tx, organizationId, "forms")
+        if (requestedDestinations > 0) {
+          await lockPlanCapacity(tx, organizationId, "destinations")
+          await assertLockedPlanCapacity(tx, organizationId, "destinations", requestedDestinations)
+        }
+
+        const settings: Record<string, unknown> = {}
+        if (input.origin !== undefined) settings["allowed_origins"] = [input.origin]
+        if (input.redirect_url !== undefined) settings["redirect_url"] = input.redirect_url
+        const [createdForm] = await tx
+          .insert(forms)
           .values({
-            id: newId("ds"),
+            id: newId("fm"),
             organizationId,
-            type: "email",
-            name: "Email",
-            config: { to: [input.notify_email], cc: [], subject_template: "New submission: {{form.name}}" },
-            verified: true,
+            projectId: project.id,
+            slug: formSlug,
+            name: input.name,
+            tags: [...input.tags],
+            settings,
           })
           .returning()
-        if (destination !== undefined) {
-          createdDestinations.push(destination)
-          const [route] = await db
-            .insert(routes)
-            .values({ id: newId("rt"), organizationId, formId: form.id, destinationId: destination.id })
+        if (createdForm === undefined) throw new Error("Failed to create form.")
+
+        const createdDestinations: (typeof destinations.$inferSelect)[] = []
+        const createdRoutes: (typeof routes.$inferSelect)[] = []
+        if (input.notify_email !== undefined) {
+          const [destination] = await tx
+            .insert(destinations)
+            .values({
+              id: newId("ds"),
+              organizationId,
+              type: "email",
+              name: "Email",
+              config: { to: [input.notify_email], cc: [], subject_template: "New submission: {{form.name}}" },
+              verified: true,
+            })
             .returning()
-          if (route !== undefined) createdRoutes.push(route)
-        }
-      }
-      if (input.telegram !== undefined) {
-        const [destination] = await db
-          .insert(destinations)
-          .values({
-            id: newId("ds"),
-            organizationId,
-            type: "telegram",
-            name: "Telegram",
-            config: { bot_token: input.telegram.bot_token, chat_id: input.telegram.chat_id },
-            verified: true,
-          })
-          .returning()
-        if (destination !== undefined) {
+          if (destination === undefined) throw new Error("Failed to create destination.")
           createdDestinations.push(destination)
-          const [route] = await db
+          const [route] = await tx
             .insert(routes)
-            .values({ id: newId("rt"), organizationId, formId: form.id, destinationId: destination.id })
+            .values({ id: newId("rt"), organizationId, formId: createdForm.id, destinationId: destination.id })
             .returning()
-          if (route !== undefined) createdRoutes.push(route)
+          if (route === undefined) throw new Error("Failed to create route.")
+          createdRoutes.push(route)
         }
-      }
-      if (input.webhook !== undefined) {
-        const [destination] = await db
-          .insert(destinations)
-          .values({
-            id: newId("ds"),
-            organizationId,
-            type: "webhook",
-            name: "Webhook",
-            config: { url: input.webhook.url, secret: input.webhook.secret, headers: {} },
-            verified: true,
-          })
-          .returning()
-        if (destination !== undefined) {
+        if (input.telegram !== undefined) {
+          const [destination] = await tx
+            .insert(destinations)
+            .values({
+              id: newId("ds"),
+              organizationId,
+              type: "telegram",
+              name: "Telegram",
+              config: { bot_token: input.telegram.bot_token, chat_id: input.telegram.chat_id },
+              verified: true,
+            })
+            .returning()
+          if (destination === undefined) throw new Error("Failed to create destination.")
           createdDestinations.push(destination)
-          const [route] = await db
+          const [route] = await tx
             .insert(routes)
-            .values({ id: newId("rt"), organizationId, formId: form.id, destinationId: destination.id })
+            .values({ id: newId("rt"), organizationId, formId: createdForm.id, destinationId: destination.id })
             .returning()
-          if (route !== undefined) createdRoutes.push(route)
+          if (route === undefined) throw new Error("Failed to create route.")
+          createdRoutes.push(route)
         }
-      }
+        if (input.webhook !== undefined) {
+          const [destination] = await tx
+            .insert(destinations)
+            .values({
+              id: newId("ds"),
+              organizationId,
+              type: "webhook",
+              name: "Webhook",
+              config: { url: input.webhook.url, secret: input.webhook.secret, headers: {} },
+              verified: true,
+            })
+            .returning()
+          if (destination === undefined) throw new Error("Failed to create destination.")
+          createdDestinations.push(destination)
+          const [route] = await tx
+            .insert(routes)
+            .values({ id: newId("rt"), organizationId, formId: createdForm.id, destinationId: destination.id })
+            .returning()
+          if (route === undefined) throw new Error("Failed to create route.")
+          createdRoutes.push(route)
+        }
+        return { form: createdForm, destinations: createdDestinations, routes: createdRoutes }
+      })
+      form = created.form
+      createdDestinations.push(...created.destinations)
+      createdRoutes.push(...created.routes)
     } else {
       const existingRoutes = await db
         .select()

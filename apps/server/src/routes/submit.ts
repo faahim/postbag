@@ -9,14 +9,13 @@ import {
   PostbagError,
   type Mapping,
 } from "@postbag/core"
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import {
   deliveries,
   driftEvents,
   forms,
   formSchemas,
   notifyDeliveries,
-  organizationSettings,
   submissions,
   type Database,
 } from "@postbag/db"
@@ -26,6 +25,7 @@ import type { Env } from "../env.js"
 import { clientIp } from "../lib/clientIp.js"
 import { decideCors } from "../lib/cors.js"
 import { envelope } from "../lib/errors.js"
+import { countMonthlySubmissions, lockPlanCapacity, organizationLimits } from "../lib/planUsage.js"
 import type { Logger } from "../logger.js"
 import type { TokenBucketLimiter } from "../lib/rateLimit.js"
 import type { AppEnv } from "../lib/scope.js"
@@ -132,16 +132,6 @@ type FormRow = typeof forms.$inferSelect
 async function getForm(db: Database, formId: string): Promise<FormRow | null> {
   const [row] = await db.select().from(forms).where(eq(forms.id, formId)).limit(1)
   return row ?? null
-}
-
-async function countSubmissionsThisMonth(db: Database, organizationId: string): Promise<number> {
-  const now = new Date()
-  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-  const rows = await db.execute<{ count: string }>(sql`
-    select count(*)::text as count from submissions
-    where organization_id = ${organizationId} and test = false and received_at >= ${startOfMonth.toISOString()}
-  `)
-  return Number.parseInt(rows[0]?.count ?? "0", 10)
 }
 
 async function verifyTurnstile(secret: string, token: string | undefined): Promise<boolean> {
@@ -324,24 +314,6 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
       }
     }
 
-    if (status === "received" && !isTest) {
-      const [settingsRow] = await db
-        .select()
-        .from(organizationSettings)
-        .where(eq(organizationSettings.organizationId, form.organizationId))
-        .limit(1)
-      const plan = settingsRow?.plan ?? "free"
-      const configuredLimit = settingsRow?.limits["submissions_per_month"]
-      const limit = configuredLimit ?? (plan === "selfhost" ? Number.POSITIVE_INFINITY : 1_000)
-      if (Number.isFinite(limit)) {
-        const used = await countSubmissionsThisMonth(db, form.organizationId)
-        if (used >= limit) {
-          status = "quarantined"
-          quarantineReason = "over_quota"
-        }
-      }
-    }
-
     const directRoutes =
       form.status === "paused" ? [] : await getDirectRoutesForForm(db, form.organizationId, formId)
     const streamMemberships =
@@ -355,13 +327,6 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
           })
 
     const receivedAt = new Date()
-    const plans = planDeliveries({
-      submission: { id: "pending", status, receivedAt },
-      form: { status: form.status as "active" | "paused", schemaVersion: form.currentSchemaVersion },
-      directRoutes,
-      streamMemberships,
-    })
-
     const mappingByStream = new Map(streamMemberships.map((membership) => [membership.streamId, membership]))
     const schemaJsonByStream = new Map<string, Readonly<Record<string, unknown>>>()
     for (const membership of streamMemberships) {
@@ -370,7 +335,25 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
       if (schemaJson !== null) schemaJsonByStream.set(membership.streamId, schemaJson)
     }
 
-    const submissionId = await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
+      if (status === "received" && !isTest) {
+        await lockPlanCapacity(tx, form.organizationId, "submissions")
+        const limit = (await organizationLimits(tx, form.organizationId)).submissions_per_month
+        if (Number.isFinite(limit)) {
+          const used = await countMonthlySubmissions(tx, form.organizationId)
+          if (used >= limit) {
+            status = "quarantined"
+            quarantineReason = "over_quota"
+          }
+        }
+      }
+
+      const plans = planDeliveries({
+        submission: { id: "pending", status, receivedAt },
+        form: { status: form.status as "active" | "paused", schemaVersion: form.currentSchemaVersion },
+        directRoutes,
+        streamMemberships,
+      })
       const [inserted] = await tx
         .insert(submissions)
         .values({
@@ -448,21 +431,25 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
         })
       }
 
-      return newSubmissionId
+      return {
+        submissionId: newSubmissionId,
+        hasPendingDelivery: plans.some((plan) => plan.status === "pending" && plan.digestPeriodKey === undefined),
+        status,
+      }
     })
 
-    if (plans.some((plan) => plan.status === "pending" && plan.digestPeriodKey === undefined)) {
+    if (result.hasPendingDelivery) {
       await notifyDeliveries(db)
     }
 
     logger.info(
-      { org_id: form.organizationId, form_id: formId, submission_id: submissionId, request_id: requestId },
+      { org_id: form.organizationId, form_id: formId, submission_id: result.submissionId, request_id: requestId },
       "submission.received",
     )
 
-    const responseBody: Record<string, unknown> = { ok: true, submission_id: submissionId, status }
+    const responseBody: Record<string, unknown> = { ok: true, submission_id: result.submissionId, status: result.status }
     if (isTest) {
-      const rows = await db.select({ id: deliveries.id }).from(deliveries).where(eq(deliveries.submissionId, submissionId))
+      const rows = await db.select({ id: deliveries.id }).from(deliveries).where(eq(deliveries.submissionId, result.submissionId))
       responseBody["deliveries"] = rows.map((row) => row.id)
     }
     return respond(c, form, settings, redirectOverride, responseBody, isForm)

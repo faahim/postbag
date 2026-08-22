@@ -10,6 +10,7 @@ import type { Env } from "./env.js"
 import { createLogger, type Logger } from "./logger.js"
 import type { AppEnv } from "./lib/scope.js"
 import type { AnyDestinationAdapter } from "./destinations/types.js"
+import type { BillingProvider } from "./lib/billingProvider.js"
 
 export const TEST_DATABASE_URL = process.env["DATABASE_URL"]
 
@@ -25,6 +26,8 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     MAIL_FROM: "Postbag <postbag@updates.withfaahim.com>",
     MIGRATE_ON_BOOT: false,
     RLS_ENFORCED: false,
+    POLAR_SERVER: "sandbox",
+    POLAR_ACCESS_TOKEN: "polar_test",
     LEGACY_HOSTS: [],
     PLATFORM_ADMIN_EMAILS: [],
     ...overrides,
@@ -42,13 +45,17 @@ export type TestHarness = {
   close(): Promise<void>
 }
 
-export function buildHarness(envOverrides: Partial<Env> = {}, authOverrides: BuildAuthOverrides = {}): TestHarness {
+export function buildHarness(
+  envOverrides: Partial<Env> = {},
+  authOverrides: BuildAuthOverrides = {},
+  billing?: BillingProvider | null,
+): TestHarness {
   const env = testEnv(envOverrides)
   const client = createDb(env.DATABASE_URL)
   const logger = createLogger(env)
   const auth = buildAuth(client.db, env, authOverrides)
   const destinations = createDestinationRegistry(env)
-  const deps: AppDeps = { db: client.db, env, logger, auth, destinations }
+  const deps: AppDeps = { db: client.db, env, logger, auth, destinations, ...(billing === undefined ? {} : { billing }) }
   const app = createApp(deps)
   return {
     app,

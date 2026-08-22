@@ -5,6 +5,7 @@ import type { Auth } from "./authSetup.js"
 import type { AnyDestinationAdapter } from "./destinations/types.js"
 import type { Env } from "./env.js"
 import { envelope } from "./lib/errors.js"
+import { buildBillingProvider, type BillingProvider } from "./lib/billingProvider.js"
 import { renderLlmsTxt } from "./lib/llms.js"
 import { renderPostbagSkill, skillsIndex } from "./lib/skills.js"
 import type { Logger } from "./logger.js"
@@ -22,6 +23,7 @@ import { registerSubmitRoutes } from "./routes/submit.js"
 import { registerApiKeyRoutes } from "./routes/v1/apiKeys.js"
 import { registerAuthCodeRoutes } from "./routes/v1/authCodes.js"
 import { registerAuthProviderRoutes } from "./routes/v1/authProviders.js"
+import { registerBillingRoutes, registerPublicBillingRoutes } from "./routes/v1/billing.js"
 import { registerDeliveryRoutes } from "./routes/v1/deliveries.js"
 import { registerDestinationRoutes } from "./routes/v1/destinations.js"
 import { registerEventRoutes } from "./routes/v1/events.js"
@@ -46,10 +48,12 @@ export type AppDeps = {
   readonly logger: Logger
   readonly auth: Auth
   readonly destinations: ReadonlyMap<string, AnyDestinationAdapter>
+  readonly billing?: BillingProvider | null
 }
 
 export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   const { db, env, logger, auth } = deps
+  const billing = deps.billing === undefined ? buildBillingProvider(env) : deps.billing
   const rateLimiter = new TokenBucketLimiter()
 
   const app = new OpenAPIHono<AppEnv>({
@@ -77,6 +81,7 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   // above, even though its path is under /v1/*: the SPA calls this before sign-in to decide
   // which social buttons to render, so it must work with zero credentials.
   registerAuthProviderRoutes(app, env)
+  registerPublicBillingRoutes(app, db, billing, env, logger)
 
   // Public agent-onboarding endpoints (job H): request-code / verify-code. Same public,
   // pre-requireOrg registration as the two above — an agent holding no credentials at all
@@ -96,11 +101,12 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
 
   registerMeRoutes(app, db)
   registerApiKeyRoutes(app, auth, db)
-  registerOrganizationRoutes(app, auth, db)
+  registerOrganizationRoutes(app, auth, db, env)
   registerMemberRoutes(app, db)
   registerInvitationRoutes(app, auth, db, env)
   registerPlanRoutes(app, db)
   registerPlanGrantRoutes(app, db, env)
+  registerBillingRoutes(app, db, billing, env)
   registerQuickstartRoutes(app, db, env.APP_URL)
   registerProjectRoutes(app, db)
   registerFormRoutes(app, db, env.APP_URL)

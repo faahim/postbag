@@ -26,7 +26,8 @@ export function OrgSwitcher() {
   const [createOpen, setCreateOpen] = useState(false)
 
   const organizations = me.data?.organizations ?? []
-  const activeName = organizations.find((org) => org.is_active)?.name ?? me.data?.organization.name ?? "Workspace"
+  const activeName =
+    organizations.find((org) => org.is_active)?.name ?? me.data?.organization.name ?? "Workspace"
 
   async function switchTo(organizationId: string) {
     if (setActive.isPending) return
@@ -41,13 +42,19 @@ export function OrgSwitcher() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-            {activeName}
-            <ChevronsUpDown className="size-3.5" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="max-w-36 shrink gap-1.5 text-muted-foreground sm:max-w-64"
+          >
+            <span className="min-w-0 flex-1 truncate text-left">{activeName}</span>
+            <ChevronsUpDown className="size-3.5 shrink-0" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
-          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Workspaces</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+            Workspaces
+          </DropdownMenuLabel>
           {organizations.map((org) => (
             <DropdownMenuItem
               key={org.id}
@@ -58,7 +65,11 @@ export function OrgSwitcher() {
             >
               <Check className={org.is_active ? "size-3.5 opacity-100" : "size-3.5 opacity-0"} />
               <span className="flex-1 truncate">{org.name}</span>
-              {org.role !== null && <span className="text-xs text-muted-foreground">{ROLE_LABEL[org.role] ?? org.role}</span>}
+              {org.role !== null && (
+                <span className="text-xs text-muted-foreground">
+                  {ROLE_LABEL[org.role] ?? org.role}
+                </span>
+              )}
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />

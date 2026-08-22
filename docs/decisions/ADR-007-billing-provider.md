@@ -70,10 +70,12 @@ routes return `501 billing_disabled` with a hint, and the instance behaves as
 
 ## Consequences
 - `ROADMAP.md` Phase 3 reads "Polar" instead of "Stripe".
-- A human-required item exists in `PROGRESS.md`: create the Polar organisation,
-  complete KYC with Bangladeshi documents and a local bank account, and confirm a
-  test payout lands before any billing code merges. If it fails, switch the ADR's
-  provider to Paddle by a superseding ADR.
+- Polar integration may be wired and deployed before the first real sale. Sandbox
+  verification is useful when sandbox credentials are available, but it is not a
+  code-merge or deployment gate. KYC, account review, a compatible payout account,
+  the first real purchase and the first payout are tracked as operational evidence;
+  they do not block building or enabling checkout. If the payout rail fails in
+  practice, switch providers through a superseding ADR.
 - Because the seller of record is Polar, our Terms of Service reference Polar's
   terms for payment; our Privacy Policy lists Polar as a sub-processor.
 - Non-EU entity storing EU personal data: GDPR Art. 27 requires an EU representative

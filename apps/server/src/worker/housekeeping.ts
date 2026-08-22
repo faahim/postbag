@@ -1,8 +1,9 @@
 import { newId } from "@postbag/core"
-import { and, eq, isNull, lt } from "drizzle-orm"
-import { events, forms, organizationSettings, type Database } from "@postbag/db"
+import { and, eq, isNull, lt, or } from "drizzle-orm"
+import { events, forms, organizationSettings, submissions, type Database } from "@postbag/db"
 
 import type { Logger } from "../logger.js"
+import { limitsFor } from "../lib/plan.js"
 import { inferFormSchemaDraft } from "../repo/schemaInference.js"
 
 /**
@@ -64,6 +65,34 @@ export async function runPlanExpirySweep(db: Database, logger: Logger): Promise<
       })
     } catch (error) {
       logger.warn({ err: error, organization_id: org.organizationId }, "plan expiry sweep failed for organization")
+    }
+  }
+}
+
+export async function runRetentionSweep(db: Database, logger: Logger): Promise<void> {
+  const now = new Date()
+  const settings = await db
+    .select({ organizationId: organizationSettings.organizationId, plan: organizationSettings.plan, limits: organizationSettings.limits })
+    .from(organizationSettings)
+
+  for (const organizationSetting of settings) {
+    try {
+      const retentionDays = limitsFor(organizationSetting.plan, organizationSetting.limits).retention_days
+      const retentionCutoff = new Date(now.getTime() - retentionDays * 24 * 60 * 60_000)
+      const testCutoff = new Date(now.getTime() - 24 * 60 * 60_000)
+      await db
+        .delete(submissions)
+        .where(
+          and(
+            eq(submissions.organizationId, organizationSetting.organizationId),
+            or(
+              and(eq(submissions.test, false), lt(submissions.receivedAt, retentionCutoff)),
+              and(eq(submissions.test, true), lt(submissions.receivedAt, testCutoff)),
+            ),
+          ),
+        )
+    } catch (error) {
+      logger.warn({ err: error, organization_id: organizationSetting.organizationId }, "retention sweep failed for organization")
     }
   }
 }

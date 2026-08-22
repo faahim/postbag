@@ -5,6 +5,7 @@ import { destinations, routes, type Database } from "@postbag/db"
 
 import type { AnyDestinationAdapter } from "../../destinations/types.js"
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
+import { assertPlanCapacity } from "../../lib/planUsage.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
 import { serializeDestination, type DestinationRow } from "../../repo/serialize.js"
 import { CursorQuerySchema, DeliveryResultSchema, DestinationSchema, errorResponses, IdSchema } from "../../schemas.js"
@@ -194,18 +195,22 @@ export function registerDestinationRoutes(
       throw new PostbagError("validation_failed", `Destination type '${input.type}' is not supported yet.`)
     }
     const parsedConfig = adapter.configSchema.parse(input.config)
-    const [created] = await db
-      .insert(destinations)
-      .values({
-        id: newId("ds"),
-        organizationId: scope.organizationId,
-        type: input.type,
-        name: input.name ?? defaultName(input.type, parsedConfig as Record<string, unknown>),
-        config: parsedConfig as Record<string, unknown>,
-        verified: true,
-      })
-      .returning()
-    if (created === undefined) throw new Error("Failed to create destination.")
+    const created = await db.transaction(async (tx) => {
+      await assertPlanCapacity(tx, scope.organizationId, "destinations")
+      const [destination] = await tx
+        .insert(destinations)
+        .values({
+          id: newId("ds"),
+          organizationId: scope.organizationId,
+          type: input.type,
+          name: input.name ?? defaultName(input.type, parsedConfig as Record<string, unknown>),
+          config: parsedConfig as Record<string, unknown>,
+          verified: true,
+        })
+        .returning()
+      if (destination === undefined) throw new Error("Failed to create destination.")
+      return destination
+    })
     const body: z.infer<typeof DestinationSchema> = serializeDestination(created, redactFor(registry, created))
     return c.json(body, 201)
   })

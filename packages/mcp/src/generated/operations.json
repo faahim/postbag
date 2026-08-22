@@ -501,6 +501,61 @@
     "body": null
   },
   {
+    "operationId": "billing_get",
+    "method": "get",
+    "path": "/v1/billing",
+    "summary": "Get billing status and purchasable plans",
+    "tags": [
+      "billing"
+    ],
+    "params": [],
+    "body": null
+  },
+  {
+    "operationId": "billing_checkout",
+    "method": "post",
+    "path": "/v1/billing/checkout",
+    "summary": "Start a Polar checkout",
+    "tags": [
+      "billing"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "plan": {
+          "type": "string",
+          "enum": [
+            "pro",
+            "team"
+          ]
+        },
+        "interval": {
+          "type": "string",
+          "enum": [
+            "month",
+            "year"
+          ]
+        }
+      },
+      "required": [
+        "plan",
+        "interval"
+      ]
+    }
+  },
+  {
+    "operationId": "billing_portal",
+    "method": "post",
+    "path": "/v1/billing/portal",
+    "summary": "Open the Polar customer portal",
+    "tags": [
+      "billing"
+    ],
+    "params": [],
+    "body": null
+  },
+  {
     "operationId": "quickstart",
     "method": "post",
     "path": "/v1/quickstart",

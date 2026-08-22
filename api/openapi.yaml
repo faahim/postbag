@@ -2339,6 +2339,207 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/billing:
+    get:
+      operationId: billing_get
+      tags:
+        - billing
+      summary: Get billing status and purchasable plans
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                  plan:
+                    type: string
+                  plan_source:
+                    type: string
+                  subscription:
+                    type:
+                      - object
+                      - "null"
+                    properties:
+                      id:
+                        type: string
+                      status:
+                        type: string
+                      current_period_end:
+                        type:
+                          - string
+                          - "null"
+                      cancel_at_period_end:
+                        type: boolean
+                    required:
+                      - id
+                      - status
+                      - current_period_end
+                      - cancel_at_period_end
+                  products:
+                    type: object
+                    properties:
+                      pro:
+                        type: object
+                        properties:
+                          month:
+                            type: boolean
+                          year:
+                            type: boolean
+                        required:
+                          - month
+                          - year
+                      team:
+                        type: object
+                        properties:
+                          month:
+                            type: boolean
+                          year:
+                            type: boolean
+                        required:
+                          - month
+                          - year
+                    required:
+                      - pro
+                      - team
+                required:
+                  - enabled
+                  - plan
+                  - plan_source
+                  - subscription
+                  - products
+  /v1/billing/checkout:
+    post:
+      operationId: billing_checkout
+      tags:
+        - billing
+      summary: Start a Polar checkout
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                plan:
+                  type: string
+                  enum:
+                    - pro
+                    - team
+                interval:
+                  type: string
+                  enum:
+                    - month
+                    - year
+              required:
+                - plan
+                - interval
+      responses:
+        "201":
+          description: checkout created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                required:
+                  - url
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/billing/portal:
+    post:
+      operationId: billing_portal
+      tags:
+        - billing
+      summary: Open the Polar customer portal
+      responses:
+        "201":
+          description: portal session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                required:
+                  - url
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /v1/quickstart:
     post:
       operationId: quickstart

@@ -45,7 +45,7 @@ export function buildAuth(db: Database, env: Env, overrides: BuildAuthOverrides 
     // origin (5173) while proxying /api, /v1 and /s back to this server — trust it so
     // Better Auth's origin check doesn't reject the proxied requests in development.
     trustedOrigins: env.NODE_ENV === "development" ? [env.APP_URL, "http://localhost:5173"] : [env.APP_URL],
-    onUserCreated: (user) => provisionPersonalOrganization(db, user),
+    onUserCreated: (user) => provisionPersonalOrganization(db, user, env.POLAR_ACCESS_TOKEN === undefined),
     socialProviders: socialProvidersFrom(env),
     sendEmailOTP: trackOtpSender(
       overrides.sendEmailOTP ??
