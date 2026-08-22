@@ -1,5 +1,4 @@
 ---
-import Postmark from "@/components/Postmark.astro"
 import { API_URL, GITHUB_URL, LLMS_URL, OPENAPI_URL, SIGNUP_URL } from "@/config"
 const cols = [
   {
@@ -77,7 +76,7 @@ const year = new Date().getFullYear()
 <footer class="mt-24 border-t border-border bg-surface/60">
   <div class="container-x grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.2fr_repeat(6,1fr)] lg:gap-8">
     <div class="max-w-xs sm:col-span-2 lg:col-span-1">
-      <a href="/" class="flex items-center gap-2.5 font-display text-lg font-semibold tracking-tight"><Postmark size={22} title="Postbag" /> Postbag</a>
+      <a href="/" class="flex items-center gap-2.5 font-display text-lg font-semibold tracking-tight"><img src="/logo-mark.svg" alt="" width="24" height="24" class="size-6 shrink-0" loading="lazy" /> Postbag</a>
       <p class="mt-4 text-sm leading-relaxed text-muted-foreground">A form backend that routes. Every submission is a row before it is anything else.</p>
       <a href={SIGNUP_URL} class="btn btn-primary btn-sm mt-5">Create a form</a>
     </div>

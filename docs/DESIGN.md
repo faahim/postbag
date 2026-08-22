@@ -27,9 +27,9 @@ built:
 | Lever | Decision |
 |---|---|
 | **Typography** | Not Inter. Pick a humanist sans with personality for UI and a mono with character for ids, payloads and code (ids like `fm_8f3kq2` are everywhere; they should look *designed*). Tabular numerals on every count. |
-| **Colour** | Near-neutral surfaces with one warm accent drawn from the postbag/postal world (think wax-seal red or postal amber — decided with swatches, not adjectives). Light and dark both first-class; dark is not an inverted afterthought. |
+| **Colour** | Near-neutral surfaces with one warm wax-seal accent for actions and status moments. The logo has its own ink-indigo and periwinkle palette, preserving recognition on both light and dark surfaces. Light and dark both first-class; dark is not an inverted afterthought. |
 | **Radius & density** | One radius scale, slightly tighter than shadcn default; comfortable density on the inbox, compact in tables. |
-| **Signature motif** | A single recurring detail — a postmark/stamp treatment on submission cards, delivery status as a "stamped" badge, the empty-state illustration family. One motif, used consistently, is worth more than ten. |
+| **Signature motif** | The primary logo is two submissions settling into a pocket. The postmark/stamp remains the recurring product motif on submission cards, delivery status and empty states. |
 | **Empty states** | Every list has a designed empty state that teaches the next action. The first-run Forms screen *is* the onboarding. |
 | **Iconography** | Lucide, one stroke width, never mixed sets. |
 

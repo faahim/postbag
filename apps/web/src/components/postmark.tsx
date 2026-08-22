@@ -36,15 +36,9 @@ export type PostmarkProps = {
   readonly size?: number
   readonly className?: string
   readonly title?: string
-  /** "status" (default) colors by delivery outcome — success green, failure red, etc.
-   * "accent" forces the wax-seal red regardless of status: reserved for the brand mark
-   * (sidebar logo) and hero "your form is live" / "it arrived" moments, where the stamp
-   * is identity, not a status readout (docs/DESIGN.md §2, job-E accent presence). */
   readonly tone?: "status" | "accent"
 };
 
-/** The Postbag signature motif — a circular postmark "stamp" used for delivery status,
- * empty-state illustrations, and the logo mark. One motif, used consistently. */
 export function Postmark({ status, size = 20, className, title, tone = "status" }: PostmarkProps) {
   const isDead = status === "dead"
   const isPending = status === "pending" || status === "skipped"

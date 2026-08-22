@@ -1,7 +1,5 @@
 import type { ReactNode } from "react"
 
-import { Postmark } from "@/components/postmark"
-
 export function AuthSplitLayout({ children }: { readonly children: ReactNode }) {
   return (
     <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
@@ -20,12 +18,12 @@ export function AuthSplitLayout({ children }: { readonly children: ReactNode }) 
         }} />
 
         <span className="relative z-10 flex items-center gap-2 text-sm font-semibold tracking-wide">
-          <Postmark status="sent" size={22} className="text-primary-foreground" />
+          <img src={`${import.meta.env.BASE_URL}logo-mark.svg`} alt="" width={24} height={24} className="size-6 shrink-0" />
           Postbag
         </span>
 
         <div className="relative z-10 flex flex-col gap-8">
-          <Postmark status="sent" size={168} className="text-primary-foreground/90" />
+          <img src={`${import.meta.env.BASE_URL}logo-mark.svg`} alt="" width={168} height={168} />
           <div className="flex max-w-md flex-col gap-3">
             <h1 className="text-3xl font-semibold text-balance">A form backend that routes.</h1>
             <p className="text-base text-primary-foreground/80 text-pretty">
