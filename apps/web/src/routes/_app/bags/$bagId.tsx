@@ -80,7 +80,7 @@ function BagDetailRoute() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
         <Link to="/bags" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-3.5" /> Bags
+          <ArrowLeft className="size-3.5" /> Streams
         </Link>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="text-xl font-semibold">{bag.name}</h1>
@@ -123,8 +123,8 @@ function BagDetailRoute() {
                   title="The shape"
                   body={
                     schema === undefined
-                      ? "The fields every delivery from this bag will carry. Attaching the first form fills this in automatically — or set the fields yourself here."
-                      : "Every delivery from this bag carries exactly these fields, whichever form the submission came from. Fields a form doesn't provide arrive empty; anything extra a form sends is kept under “extras”."
+                      ? "The fields every Delivery from this Stream will carry. Attaching the first Form fills this in automatically — or set the fields yourself here."
+                      : "Every Delivery from this Stream carries exactly these fields, whichever Form the Submission came from. Fields a Form doesn't provide arrive empty; anything extra a Form sends is kept under “extras”."
                   }
                 />
                 <ShapeEditor key={schema?.version ?? 0} bagId={bagId} schema={schema} forms={allForms} />
@@ -136,7 +136,7 @@ function BagDetailRoute() {
             {fresh ? (
               <BagExplainer
                 title="Many forms in. One tidy shape out."
-                lede="Say the same contact form lives on three of your sites, and each one names its fields a little differently — fullName, name, Namn. A bag takes everything those forms receive and lines it up into one shape, so wherever you send it — an inbox, Telegram, a webhook — the same fields always arrive in the same places."
+                lede="Say the same contact Form lives on three of your sites, and each one names its fields a little differently — fullName, name, Namn. A Stream takes everything those Forms receive and lines it up into one shape, so wherever you send it — an inbox, Telegram, a webhook — the same fields always arrive in the same places."
                 action={
                   <FirstFormAttach
                     bagId={bagId}
@@ -148,7 +148,7 @@ function BagDetailRoute() {
                 }
                 aside={
                   <>
-                    Only one form? You don't need a bag — route it straight from its own page. Prefer to set the fields yourself first?{" "}
+                    Only one Form? You don't need a Stream — route it straight from its own page. Prefer to set the fields yourself first?{" "}
                     <button
                       type="button"
                       className="font-medium text-foreground underline-offset-4 hover:underline"
@@ -177,8 +177,8 @@ function BagDetailRoute() {
           <TabsContent value="send-to">
             <div className="flex flex-col gap-4">
               <TabIntro
-                title="Where the bag goes"
-                body="One route here delivers every form in the bag — instead of a route per form. Each delivery uses the shape above."
+                title="Where the Stream goes"
+                body="One Route here delivers every Form in the Stream — instead of a Route per Form. Each Delivery uses the shape above."
               />
               <RoutesList subject={{ streamId: bagId }} />
             </div>
@@ -188,7 +188,7 @@ function BagDetailRoute() {
             <div className="flex flex-col gap-4">
               <TabIntro
                 title="Try it on a real submission"
-                body="Pick a recent submission from one of the attached forms and see exactly what this bag would deliver for it. Nothing is sent."
+                body="Pick a recent Submission from one of the attached Forms and see exactly what this Stream would deliver for it. Nothing is sent."
               />
               <PreviewTab bagId={bagId} sources={sources} formsById={formsById} />
             </div>
@@ -216,19 +216,19 @@ function SettingsTab({ bagId, name, routeCount }: { readonly bagId: string; read
       await updateStream.mutateAsync({ name: trimmed })
       toast.success(`Renamed to ${trimmed}.`)
     } catch (error) {
-      toastApiError(error, "Couldn't rename the bag — try again.")
+      toastApiError(error, "Couldn't rename the Stream — try again.")
     }
   }
 
   async function remove() {
     const detail = routeCount > 0 ? ` Its ${routeCount} ${routeCount === 1 ? "route stops" : "routes stop"} delivering.` : ""
-    if (!window.confirm(`Delete “${name}”? The forms in it and their submissions are kept; only the bag goes.${detail}`)) return
+    if (!window.confirm(`Delete “${name}”? The Forms in it and their Submissions are kept; only the Stream goes.${detail}`)) return
     try {
       await deleteStream.mutateAsync(bagId)
       toast.success(`${name} deleted.`)
       await navigate({ to: "/bags" })
     } catch (error) {
-      toastApiError(error, "Couldn't delete the bag — try again.")
+      toastApiError(error, "Couldn't delete the Stream — try again.")
     }
   }
 
@@ -263,11 +263,11 @@ function SettingsTab({ bagId, name, routeCount }: { readonly bagId: string; read
           <div>
             <h3 className="text-sm font-medium text-destructive">Danger zone</h3>
             <p className="text-xs text-muted-foreground text-pretty">
-              Deletes the bag and its routes. The forms in it and every submission they received are kept.
+              Deletes the Stream and its Routes. The Forms in it and every Submission they received are kept.
             </p>
           </div>
           <Button variant="destructive" onClick={() => void remove()} disabled={deleteStream.isPending}>
-            Delete bag
+            Delete Stream
           </Button>
         </CardContent>
       </Card>
@@ -291,7 +291,7 @@ function toastAttachError(error: unknown, formName: string | undefined) {
   if (error instanceof PostbagApiError && error.code === "stream_schema_missing") {
     toast.error(`${formName === undefined ? "That form" : `“${formName}”`} has no fields yet.`, {
       description:
-        "It hasn't received a submission and has no published schema, so there's nothing to shape the bag from. Send it one test submission, pick another form, or define the shape by hand.",
+        "It hasn't received a Submission and has no published Schema, so there's nothing to shape the Stream from. Send it one test Submission, pick another Form, or define the shape by hand.",
       duration: 8000,
     })
     return
@@ -319,7 +319,7 @@ function FirstFormAttach({
     try {
       await addSource.mutateAsync({ form_id: formId })
       toast.success(`${selected?.name ?? "Form"} attached.`, {
-        description: "Its fields are now the bag's shape. Attach more forms under Sources, then send the bag somewhere.",
+        description: "Its fields are now the Stream's shape. Attach more Forms under Sources, then send the Stream somewhere.",
       })
       onAttached()
     } catch (error) {
@@ -330,7 +330,7 @@ function FirstFormAttach({
   if (forms.length === 0) {
     return (
       <div className="flex flex-col gap-2">
-        <p className="text-sm text-muted-foreground">You have no forms yet — a bag needs at least one to collect from.</p>
+        <p className="text-sm text-muted-foreground">You have no Forms yet — a Stream needs at least one to collect from.</p>
         <Button asChild className="w-fit">
           <Link to="/forms">Create a form first</Link>
         </Button>
@@ -360,8 +360,8 @@ function FirstFormAttach({
       </div>
       <p className="text-xs text-muted-foreground">
         {selected === undefined
-          ? "Its fields become the bag's shape. You can change the shape any time."
-          : `“${selected.name}”'s fields become the bag's shape. You can change it any time.`}
+          ? "Its fields become the Stream's shape. You can change the shape any time."
+          : `“${selected.name}”'s fields become the Stream's shape. You can change it any time.`}
       </p>
     </div>
   )
@@ -388,15 +388,15 @@ function SourcesTab({
   return (
     <div className="flex flex-col gap-4">
       <TabIntro
-        title="Forms in this bag"
-        body="Every submission these forms receive lands in the bag. Each form is matched onto the shape field by field — we flag any required field that still has nothing pointing at it."
+        title="Forms in this Stream"
+        body="Every Submission these Forms receive lands in the Stream. Each Form is matched onto the shape field by field — we flag any required field that still has nothing pointing at it."
       />
       {sources.length === 0 ? (
         <EmptyState
-          title="No forms in this bag yet"
+          title="No Forms in this Stream yet"
           description={
             bagFields.length === 0
-              ? "Attach the first one below — its fields become the bag's shape, nothing to write."
+              ? "Attach the first one below — its fields become the Stream's shape, nothing to write."
               : "Attach a form below and match its fields to the shape."
           }
         />
@@ -439,7 +439,7 @@ function SourceCard({
   async function detach() {
     try {
       await removeSource.mutateAsync(source.id)
-      toast.success(`${formName ?? "Form"} detached.`, { description: "Its submissions stay where they are — they just stop landing in this bag." })
+      toast.success(`${formName ?? "Form"} detached.`, { description: "Its Submissions stay where they are — they just stop landing in this Stream." })
     } catch (error) {
       toastApiError(error, "Couldn't detach that form — try again.")
     }
@@ -472,7 +472,7 @@ function SourceCard({
           </div>
         </div>
         {bagFields.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Give the bag a shape under “What gets delivered” to match this form's fields.</p>
+          <p className="text-xs text-muted-foreground">Give the Stream a shape under “What gets delivered” to match this Form's fields.</p>
         ) : (
           <MappingEditor
             streamId={bagId}
@@ -553,7 +553,7 @@ function AttachFormPanel({
     try {
       await addSource.mutateAsync({ form_id: pendingFormId, mapping } as unknown as Parameters<typeof addSource.mutateAsync>[0])
       toast.success(`${pendingForm?.name ?? "Form"} attached.`, {
-        description: bagFields.length === 0 ? "Its fields are now the bag's shape." : undefined,
+        description: bagFields.length === 0 ? "Its fields are now the Stream's shape." : undefined,
       })
       setPendingFormId(undefined)
       setMapping({})
@@ -571,7 +571,7 @@ function AttachFormPanel({
   if (attachable.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Every form you have is already in this bag.{" "}
+        Every Form you have is already in this Stream.{" "}
         <Link to="/forms" className="font-medium text-foreground underline-offset-4 hover:underline">
           Create another form
         </Link>{" "}
@@ -609,7 +609,7 @@ function AttachFormPanel({
       </div>
 
       {pendingFormId !== undefined && bagFields.length === 0 && (
-        <p className="text-xs text-muted-foreground">This is the bag's first form, so its fields become the bag's shape — nothing to match yet.</p>
+        <p className="text-xs text-muted-foreground">This is the Stream's first Form, so its fields become the Stream's shape — nothing to match yet.</p>
       )}
 
       {pendingFormId !== undefined && bagFields.length > 0 && (
@@ -701,7 +701,7 @@ function PreviewTab({
   }
 
   if (sources.length === 0) {
-    return <EmptyState title="Nothing to preview yet" description="Attach a form under Sources first — preview maps one of its real submissions through the bag." />
+    return <EmptyState title="Nothing to preview yet" description="Attach a Form under Sources first — preview maps one of its real Submissions through the Stream." />
   }
 
   const recent = submissions.data?.data ?? []

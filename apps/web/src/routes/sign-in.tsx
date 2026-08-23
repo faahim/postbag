@@ -62,8 +62,10 @@ function SignInRoute() {
     <AuthSplitLayout>
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-1.5">
-          <h2 className="text-2xl font-semibold text-balance">Welcome back</h2>
-          <p className="text-sm text-muted-foreground">Sign in to your Postbag workspace.</p>
+          <h2 className="text-3xl font-semibold tracking-tight text-balance">Welcome back</h2>
+          <p className="text-sm text-muted-foreground text-pretty">
+            Your Forms, Submissions, and Routes are right where you left them.
+          </p>
         </div>
 
         <SocialButtons
@@ -114,7 +116,7 @@ function SignInRoute() {
           <Link
             to="/sign-up"
             search={search.redirect === undefined ? {} : { redirect: search.redirect }}
-            className="font-medium text-foreground underline-offset-4 hover:underline"
+            className="font-medium text-primary underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
           >
             Create an account
           </Link>

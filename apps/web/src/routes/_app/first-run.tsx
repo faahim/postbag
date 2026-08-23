@@ -1,12 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { createFileRoute } from "@tanstack/react-router"
-import { ArrowRight, Terminal } from "lucide-react"
+import { ArrowRight, Inbox, Terminal } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { CopyButton } from "@/components/copy-button"
 import { EmbedSnippetTabs } from "@/components/embed-snippets"
-import { Postmark } from "@/components/postmark"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -44,15 +43,17 @@ function FirstRunRoute() {
 
   if (quickstart.data === undefined) {
     return (
-      <div className="mx-auto flex max-w-lg flex-col gap-8 py-8">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <Postmark status="pending" tone="accent" size={52} />
+      <div className="mx-auto flex max-w-xl flex-col gap-8 py-6 md:py-10">
+        <div className="flex flex-col items-start gap-4">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-xs">
+            <Inbox className="size-5" />
+          </div>
           <h1 className="text-4xl leading-[1.05] font-semibold tracking-tight text-balance md:text-5xl">
-            Create your first form
+            Give your first Form somewhere to go
           </h1>
-          <p className="text-sm text-muted-foreground text-pretty">
-            One name, one inbox. We&apos;ll hand you a working endpoint and the snippet to
-            drop into your site.
+          <p className="max-w-lg text-base text-muted-foreground text-pretty">
+            Name the Form and choose an email. Postbag creates its submit URL, Destination, and
+            Route together.
           </p>
         </div>
 
@@ -88,8 +89,19 @@ function FirstRunRoute() {
                 <Input id="origin" placeholder="https://faahim.dev" {...register("origin")} />
               </div>
 
+              {quickstart.isError ? (
+                <p
+                  className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+                  role="alert"
+                >
+                  {quickstart.error instanceof Error
+                    ? quickstart.error.message
+                    : "Could not create this Form. Please try again."}
+                </p>
+              ) : null}
+
               <Button type="submit" disabled={isSubmitting} className="mt-2 gap-1.5">
-                {isSubmitting ? "Creating…" : "Create form"}
+                {isSubmitting ? "Creating Form…" : "Create Form"}
                 <ArrowRight className="size-4" />
               </Button>
             </form>
@@ -116,14 +128,16 @@ function QuickstartResult({
   const hasReceived = first !== undefined
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-8 py-8">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <Postmark status="sent" tone="accent" size={48} />
+    <div className="mx-auto flex max-w-3xl flex-col gap-8 py-6 md:py-10">
+      <div className="flex max-w-xl flex-col items-start gap-3">
+        <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-xs">
+          <Inbox className="size-5" />
+        </div>
         <h1 className="text-4xl leading-[1.05] font-semibold tracking-tight text-balance md:text-5xl">
-          Your form is live
+          Your Form is ready
         </h1>
-        <p className="text-sm text-muted-foreground text-pretty">
-          Drop this into your site, or send a test submission with curl.
+        <p className="text-base text-muted-foreground text-pretty">
+          Add the snippet to your site, or use curl to send a test Submission now.
         </p>
       </div>
 
@@ -157,25 +171,26 @@ function QuickstartResult({
         <CardContent>
           <div className={`t-skel min-h-24 ${hasReceived ? "is-revealed" : ""}`}>
             <div className={`t-skel-skeleton flex flex-col items-center justify-center gap-3 py-4 text-center ${hasReceived ? "" : "is-pulsing"}`}>
-              <Postmark status="pending" size={32} />
-              <p className="text-sm text-muted-foreground">Waiting for your first submission…</p>
+              <Inbox className="size-7 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Waiting for your first Submission…</p>
             </div>
             <div className="t-skel-content flex flex-col gap-3">
               {first !== undefined && (
                 <>
                   <div className="flex items-center gap-2">
-                    <Postmark status="sent" tone="accent" size={20} />
+                    <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <Inbox className="size-3.5" />
+                    </span>
                     <p className="text-sm font-medium text-foreground">It arrived.</p>
                     <span className="ml-auto text-xs text-muted-foreground tabular-nums">{formatDateTime(first.received_at)}</span>
                   </div>
                   <dl className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
                     {Object.entries(first.data)
                       .slice(0, 4)
-                      .map(([key, value], i) => (
+                      .map(([key, value]) => (
                         <div
                           key={key}
-                          className="flex flex-col gap-0.5 px-3 py-2 animate-in fade-in-0 slide-in-from-bottom-1"
-                          style={{ animationDelay: `${i * 60}ms`, animationDuration: "var(--duration-slow)", animationFillMode: "backwards" }}
+                          className="flex flex-col gap-0.5 px-3 py-2 animate-in fade-in-0 slide-in-from-bottom-1 duration-(--duration-slow)"
                         >
                           <dt className="font-mono text-xs text-muted-foreground">{key}</dt>
                           <dd className="truncate text-sm">{String(value)}</dd>

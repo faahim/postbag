@@ -4,7 +4,7 @@ import { usePrefersReducedMotion } from "@/lib/motion"
 import { cn } from "@/lib/utils"
 
 /**
- * The bag explainer.
+ * The Stream explainer.
  *
  * Three forms on the left (their field lines differ a little — that is the point), one
  * bucket in the middle, one destination on the right. Submissions drop into the bucket as
@@ -169,20 +169,20 @@ export function BagFlowIllustration({ className }: { readonly className?: string
 const STEPS: readonly { readonly title: string; readonly body: string }[] = [
   {
     title: "Attach a form.",
-    body: "The first one sets the bag's shape — Postbag copies its fields. Nothing to write.",
+    body: "The first one sets the Stream's shape — Postbag copies its fields. Nothing to write.",
   },
   {
     title: "Attach the rest, match the fields.",
     body: "“name” on one site, “fullName” on another: point them at the same slot. Required fields that are still empty get flagged right away.",
   },
   {
-    title: "Send the bag somewhere.",
+    title: "Send the Stream somewhere.",
     body: "One route for all of them — email, Telegram, a webhook — instead of one per form.",
   },
 ]
 
-/** The plain-language version of "what is this screen". Used as the empty state of the Bags
- * list and of a fresh bag's Sources tab. `action` is the one thing to do next; `aside` is the
+/** The plain-language version of "what is this screen". Used as the empty state of the Streams
+ * list and of a fresh Stream's Sources tab. `action` is the one thing to do next; `aside` is the
  * honest escape hatch ("you might not need this"). */
 export function BagExplainer({
   title,
@@ -210,7 +210,7 @@ export function BagExplainer({
       </div>
       <div className="grid gap-8 px-6 py-6 md:grid-cols-[1.1fr_1fr] md:px-8">
         <div className="flex flex-col gap-3">
-          <p className="text-xs font-medium tracking-wide text-primary uppercase">What a bag does</p>
+          <p className="text-xs font-medium tracking-wide text-primary uppercase">What a Stream does</p>
           <h2 className="text-xl font-semibold tracking-tight text-balance">{title}</h2>
           <p className="text-sm leading-relaxed text-muted-foreground text-pretty">{lede}</p>
           {action !== undefined && <div className="mt-2">{action}</div>}

@@ -18,7 +18,7 @@ import { formatCount } from "@/lib/format"
 import { toastApiError } from "@/lib/api"
 import { useCreateStream, useDeleteStream, useStreams, useUpdateStream, type Stream } from "@/lib/queries/streams"
 
-const createBagSchema = z.object({ name: z.string().trim().min(1, "Give the bag a name.") })
+const createBagSchema = z.object({ name: z.string().trim().min(1, "Give the Stream a name.") })
 
 export const Route = createFileRoute("/_app/bags/")({
   component: BagsIndexRoute,
@@ -33,7 +33,7 @@ function BagsIndexRoute() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Bags</h1>
+          <h1 className="text-xl font-semibold">Streams</h1>
           <p className="text-sm text-muted-foreground">Collect several forms into one shape, and send them on together.</p>
         </div>
         <Button
@@ -43,7 +43,7 @@ function BagsIndexRoute() {
           className="gap-1.5"
         >
           <Plus className="size-4" />
-          New bag
+          New Stream
         </Button>
       </div>
 
@@ -52,7 +52,7 @@ function BagsIndexRoute() {
       ) : streams.data === undefined || streams.data.length === 0 ? (
         <BagExplainer
           title="Many forms in. One tidy shape out."
-          lede="Say the same contact form lives on three of your sites, and each one names its fields a little differently — fullName, name, Namn. A bag takes everything those forms receive and lines it up into one shape, so wherever you send it — an inbox, Telegram, a webhook — the same fields always arrive in the same places."
+          lede="Say the same contact Form lives on three of your sites, and each one names its fields a little differently — fullName, name, Namn. A Stream takes everything those Forms receive and lines it up into one shape, so wherever you send it — an inbox, Telegram, a webhook — the same fields always arrive in the same places."
           action={
             <Button
               onClick={() => {
@@ -61,10 +61,10 @@ function BagsIndexRoute() {
               className="gap-1.5"
             >
               <Plus className="size-4" />
-              Create your first bag
+              Create your first Stream
             </Button>
           }
-          aside="Only one form? You don't need a bag yet — route it straight from its own page. Bags earn their keep once two or more forms should land in the same place."
+          aside="Only one Form? You don't need a Stream yet — route it straight from its own page. Streams earn their keep once two or more Forms should land in the same place."
         />
       ) : (
         <Table>
@@ -138,8 +138,8 @@ function CreateBagDialog({ open, onOpenChange }: { readonly open: boolean; reado
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New bag</DialogTitle>
-          <DialogDescription>Name it after what lands in it — “Leads”, “Support requests”. You'll attach the first form next.</DialogDescription>
+          <DialogTitle>New Stream</DialogTitle>
+          <DialogDescription>Name it after what lands in it — “Leads”, “Support requests”. You'll attach the first Form next.</DialogDescription>
         </DialogHeader>
         <form
           onSubmit={(e) => {
@@ -155,7 +155,7 @@ function CreateBagDialog({ open, onOpenChange }: { readonly open: boolean; reado
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating…" : "Create bag"}
+              {isSubmitting ? "Creating…" : "Create Stream"}
             </Button>
           </DialogFooter>
         </form>
@@ -171,12 +171,12 @@ function BagRowMenu({ bag, onRename }: { readonly bag: Stream; readonly onRename
   async function remove() {
     const routes = bag.counts.routes
     const detail = routes > 0 ? ` Its ${routes} ${routes === 1 ? "route stops" : "routes stop"} delivering.` : ""
-    if (!window.confirm(`Delete “${bag.name}”? The forms in it and their submissions are kept; only the bag goes.${detail}`)) return
+    if (!window.confirm(`Delete “${bag.name}”? The Forms in it and their Submissions are kept; only the Stream goes.${detail}`)) return
     try {
       await deleteStream.mutateAsync(bag.id)
       toast.success(`${bag.name} deleted.`)
     } catch (error) {
-      toastApiError(error, "Couldn't delete that bag — try again.")
+      toastApiError(error, "Couldn't delete that Stream — try again.")
     }
   }
 
@@ -199,7 +199,7 @@ function BagRowMenu({ bag, onRename }: { readonly bag: Stream; readonly onRename
   )
 }
 
-const renameBagSchema = z.object({ name: z.string().trim().min(1, "Give the bag a name.") })
+const renameBagSchema = z.object({ name: z.string().trim().min(1, "Give the Stream a name.") })
 
 export function RenameBagDialog({ bag, onOpenChange }: { readonly bag: Stream | undefined; readonly onOpenChange: (open: boolean) => void }) {
   const updateStream = useUpdateStream(bag?.id ?? "")
@@ -216,7 +216,7 @@ export function RenameBagDialog({ bag, onOpenChange }: { readonly bag: Stream | 
       toast.success(`Renamed to ${values.name}.`)
       onOpenChange(false)
     } catch (error) {
-      toastApiError(error, "Couldn't rename the bag — try again.")
+      toastApiError(error, "Couldn't rename the Stream — try again.")
     }
   })
 
@@ -224,8 +224,8 @@ export function RenameBagDialog({ bag, onOpenChange }: { readonly bag: Stream | 
     <Dialog open={bag !== undefined} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Rename bag</DialogTitle>
-          <DialogDescription>Routes, forms and the bag's id stay exactly as they are.</DialogDescription>
+          <DialogTitle>Rename Stream</DialogTitle>
+          <DialogDescription>Routes, Forms and the Stream id stay exactly as they are.</DialogDescription>
         </DialogHeader>
         <form
           onSubmit={(e) => {

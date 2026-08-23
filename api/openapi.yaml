@@ -4598,7 +4598,7 @@ paths:
       tags:
         - streams
       summary: Create a stream (optionally with its first schema version and sources)
-      description: "A stream (shown as 'Bag' in the dashboard) collects submissions
+      description: "A Stream collects Submissions
         from many forms into one shared shape. Pass `schema` to define that
         shape up front, or omit it and pass `sources` — the first source's form
         then provides version 1 (copied from its published schema, its inferred
