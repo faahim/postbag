@@ -231,8 +231,9 @@
   .btn-sm { @apply h-9 px-3.5 text-sm; }
 
   .hero-shell {
-    --hero-light-x: 61%;
-    --hero-light-y: 34%;
+    /* Compensated for the glow layer's 12% overscan: visible origin = 61% 34%. */
+    --hero-glow-x: 58.9%;
+    --hero-glow-y: 37.1%;
     position: relative;
     overflow: hidden;
     min-height: clamp(41rem, 100dvh, 50rem);
@@ -242,7 +243,7 @@
   .hero-scene {
     position: absolute;
     z-index: 0;
-    inset: 0;
+    inset: -12%;
     overflow: hidden;
     background: oklch(0.08 0.035 272);
   }
@@ -269,8 +270,8 @@
     pointer-events: none;
     opacity: 0;
     transform: scale(0.82);
-    transform-origin: var(--hero-light-x) var(--hero-light-y);
-    background: radial-gradient(circle at var(--hero-light-x) var(--hero-light-y), oklch(0.9 0.11 278 / 0.4) 0%, oklch(0.72 0.15 279 / 0.17) 24%, transparent 56%);
+    transform-origin: var(--hero-glow-x) var(--hero-glow-y);
+    background: radial-gradient(circle at var(--hero-glow-x) var(--hero-glow-y), oklch(0.9 0.11 278 / 0.4) 0%, oklch(0.72 0.15 279 / 0.17) 24%, transparent 56%);
     mix-blend-mode: screen;
   }
   .hero-scene::after {
@@ -496,8 +497,9 @@
   }
   @media (max-width: 767px) {
     .hero-shell {
-      --hero-light-x: 60%;
-      --hero-light-y: 21%;
+      /* Compensated mobile origin = 60% 21%. */
+      --hero-glow-x: 58.1%;
+      --hero-glow-y: 26.6%;
       min-height: max(40rem, 100dvh);
     }
     .hero-scene img { object-position: center top; }
