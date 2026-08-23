@@ -55,10 +55,6 @@
   --duration-acknowledge: 2400ms;
   --distance-reveal: 18px;
   --scale-press: 0.96;
-  --text-swap-dur: var(--duration-quick);
-  --text-swap-translate-y: 4px;
-  --text-swap-blur: 2px;
-  --text-swap-ease: var(--ease-in-out);
   --icon-swap-dur: var(--duration-fast);
   --icon-swap-blur: 2px;
   --icon-swap-start-scale: 0.25;
@@ -331,41 +327,48 @@
     background: oklch(0.86 0.12 278);
     box-shadow: 0 0 0 1px oklch(0.98 0.02 278 / 0.38) inset, 0 10px 28px oklch(0.58 0.14 278 / 0.28);
   }
-  .copy-agent-icon {
-    width: 1.1rem;
-    height: 1.1rem;
+  .copy-agent-states {
+    display: inline-grid;
+    align-items: center;
+    justify-items: center;
   }
-  .copy-agent-icon .t-icon {
+  .copy-agent-state {
+    grid-area: 1 / 1;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    transition:
+      opacity var(--duration-fast) var(--ease-in-out),
+      filter var(--duration-fast) var(--ease-in-out),
+      transform var(--duration-fast) var(--ease-in-out);
+  }
+  .copy-agent-state[data-copy-state="default"] {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+  .copy-agent-state[data-copy-state="success"] {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateY(4px);
+  }
+  .copy-agent-button[data-copied] .copy-agent-state[data-copy-state="default"] {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateY(-4px);
+  }
+  .copy-agent-button[data-copied] .copy-agent-state[data-copy-state="success"] {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
   }
   .hero-secondary-action {
     color: oklch(0.94 0.018 278);
     box-shadow: 0 0 0 1px oklch(0.84 0.06 278 / 0.45) inset;
   }
   .hero-secondary-action:hover { background: oklch(0.93 0.04 278 / 0.1); }
-  .t-text-swap {
-    display: inline-block;
-    transform: translateY(0);
-    filter: blur(0);
-    opacity: 1;
-    transition:
-      transform var(--text-swap-dur) var(--text-swap-ease),
-      filter var(--text-swap-dur) var(--text-swap-ease),
-      opacity var(--text-swap-dur) var(--text-swap-ease);
-    will-change: transform, filter, opacity;
-  }
-  .t-text-swap.is-exit {
-    transform: translateY(calc(var(--text-swap-translate-y) * -1));
-    filter: blur(var(--text-swap-blur));
-    opacity: 0;
-  }
-  .t-text-swap.is-enter-start {
-    transform: translateY(var(--text-swap-translate-y));
-    filter: blur(var(--text-swap-blur));
-    opacity: 0;
-    transition: none;
-  }
   .t-icon-swap {
     position: relative;
     display: inline-grid;
@@ -418,7 +421,7 @@
   @keyframes t-check-draw { to { stroke-dashoffset: 0; } }
   @media (prefers-reduced-motion: reduce) {
     .hero-scene[data-copy-pulse] { animation: none; }
-    .t-text-swap { transition: none !important; }
+    .copy-agent-state { transition: none !important; }
     .t-icon-swap .t-icon { transition: none !important; }
     .t-success-check { animation: none !important; opacity: 1; }
     .t-success-check svg path { animation: none !important; stroke-dashoffset: 0 !important; }

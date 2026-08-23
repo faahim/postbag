@@ -34,15 +34,19 @@ import { Check, Copy } from "@lucide/astro"
           class="btn btn-primary copy-agent-button"
           data-copy-agent
           data-copy-text={AGENT_PROMPT}
-          data-copy-label="Copy agent prompt"
+          aria-label="Copy agent prompt"
         >
-          <span class="t-icon-swap copy-agent-icon" data-state="a" aria-hidden="true">
-            <span class="t-icon" data-icon="a"><Copy size={16} stroke-width={2} /></span>
-            <span class="t-icon" data-icon="b">
+          <span class="copy-agent-states" aria-hidden="true">
+            <span class="copy-agent-state" data-copy-state="default">
+              <Copy size={16} stroke-width={2} />
+              <span>Copy agent prompt</span>
+            </span>
+            <span class="copy-agent-state" data-copy-state="success">
               <span class="t-success-check" data-state="out"><Check size={17} stroke-width={2.4} /></span>
+              <span>Copied</span>
             </span>
           </span>
-          <span class="t-text-swap" aria-live="polite">Copy agent prompt</span>
+          <span class="sr-only" data-copy-announcement aria-live="polite"></span>
         </button>
         <a href="/docs/self-hosting/" class="btn hero-secondary-action">Self-host Postbag</a>
       </div>
@@ -52,29 +56,14 @@ import { Check, Copy } from "@lucide/astro"
 
 <script>
   const heroAsset = document.querySelector<HTMLElement>("[data-hero-asset]")
-  const swapDuration = parseFloat(
-    getComputedStyle(document.documentElement).getPropertyValue("--text-swap-dur")
-  ) || 150
   let pulseReset: ReturnType<typeof setTimeout> | undefined
-
-  function swapText(label: HTMLElement, next: string) {
-    label.classList.add("is-exit")
-    setTimeout(() => {
-      label.textContent = next
-      label.classList.remove("is-exit")
-      label.classList.add("is-enter-start")
-      void label.offsetHeight
-      label.classList.remove("is-enter-start")
-    }, swapDuration)
-  }
 
   async function copyText(text: string) {
     await navigator.clipboard.writeText(text)
   }
 
   document.querySelectorAll<HTMLButtonElement>("[data-copy-agent]").forEach((button) => {
-    const label = button.querySelector<HTMLElement>(".t-text-swap")
-    const icons = button.querySelector<HTMLElement>(".t-icon-swap")
+    const announcement = button.querySelector<HTMLElement>("[data-copy-announcement]")
     const check = button.querySelector<HTMLElement>(".t-success-check")
     const checkPath = check?.querySelector<SVGPathElement>("path")
     if (checkPath) {
@@ -84,27 +73,25 @@ import { Check, Copy } from "@lucide/astro"
     }
     let labelReset: ReturnType<typeof setTimeout> | undefined
     button.addEventListener("click", async () => {
-      if (!label || button.disabled) return
+      if (button.disabled) return
       const prompt = button.dataset.copyText
       if (!prompt) return
 
       try {
         await copyText(prompt)
       } catch {
-        swapText(label, "Could not copy")
-        labelReset = setTimeout(() => swapText(label, button.dataset.copyLabel ?? "Copy"), 1800)
+        if (announcement) announcement.textContent = "Could not copy the agent prompt"
         return
       }
 
       button.disabled = true
       button.setAttribute("data-copied", "")
-      icons?.setAttribute("data-state", "b")
+      if (announcement) announcement.textContent = "Agent prompt copied"
       if (check) {
         check.setAttribute("data-state", "out")
         void check.offsetWidth
         check.setAttribute("data-state", "in")
       }
-      swapText(label, "Copied")
       clearTimeout(pulseReset)
       heroAsset?.removeAttribute("data-copy-pulse")
       if (heroAsset) {
@@ -114,11 +101,10 @@ import { Check, Copy } from "@lucide/astro"
       }
       clearTimeout(labelReset)
       labelReset = setTimeout(() => {
-        swapText(label, button.dataset.copyLabel ?? "Copy")
-        icons?.setAttribute("data-state", "a")
         check?.setAttribute("data-state", "out")
         button.removeAttribute("data-copied")
         button.disabled = false
+        if (announcement) announcement.textContent = ""
       }, 1800)
     })
   })

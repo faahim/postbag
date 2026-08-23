@@ -24,15 +24,19 @@ const {
             class="btn btn-primary copy-agent-button"
             data-copy-agent
             data-copy-text={primary.copyText}
-            data-copy-label={primary.label}
+            aria-label={primary.label}
           >
-            <span class="t-icon-swap copy-agent-icon" data-state="a" aria-hidden="true">
-              <span class="t-icon" data-icon="a"><Copy size={16} stroke-width={2} /></span>
-              <span class="t-icon" data-icon="b">
+            <span class="copy-agent-states" aria-hidden="true">
+              <span class="copy-agent-state" data-copy-state="default">
+                <Copy size={16} stroke-width={2} />
+                <span>{primary.label}</span>
+              </span>
+              <span class="copy-agent-state" data-copy-state="success">
                 <span class="t-success-check" data-state="out"><Check size={17} stroke-width={2.4} /></span>
+                <span>Copied</span>
               </span>
             </span>
-            <span class="t-text-swap" aria-live="polite">{primary.label}</span>
+            <span class="sr-only" data-copy-announcement aria-live="polite"></span>
           </button>
         ) : (
           <a href={primary.href ?? SIGNUP_URL} class="btn btn-primary">{primary.label}</a>
