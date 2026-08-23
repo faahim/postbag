@@ -60,7 +60,7 @@ type DerivedSchema = {
 /** Where a stream's *first* schema comes from when a form is attached before one exists:
  * the form's published schema, else its inferred (unpublished) draft, else the fields seen
  * in its recent submissions. `null` means the form has nothing to copy yet. Nobody should
- * have to hand-write JSON Schema to start a Bag — the first form *is* the shape. */
+ * have to hand-write JSON Schema to start a Stream — the first Form *is* the shape. */
 async function deriveSchemaFromForm(
   db: Queryable,
   organizationId: string,
@@ -767,7 +767,7 @@ export function registerStreamRoutes(app: OpenAPIHono<AppEnv>, db: Database): vo
       let mapping = input.mapping
       if (schemaVersion === null) {
         // First form in, shape out: the stream copies this form's fields as version 1 and
-        // the form maps onto it one-to-one. Nobody starts a Bag by writing JSON Schema.
+        // the Form maps onto it one-to-one. Nobody starts a Stream by writing JSON Schema.
         const derived = await publishDerivedFirstSchema(tx, scope.organizationId, streamId, input.form_id)
         schemaVersion = 1
         schemaJson = derived.jsonSchema

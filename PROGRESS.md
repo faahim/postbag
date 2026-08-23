@@ -118,11 +118,11 @@ the rules and `docs/` for the design.
 - [x] Job A (Codex, spec `tasks/job-A-scaffold.md`): monorepo + `packages/core` (pure domain, 10 test files) + `packages/db` (23 tables, 1 migration, claim/notify helpers) + `packages/auth` (Better Auth, org-owned API keys via `referenceId`→`organization_id`). Codex's sandbox had no network/Docker, so Claude installed deps and verified: lint 0, typecheck ok, migrate ok, 49/49 tests. Fixed by Claude: pnpm `allowBuilds`, ESLint typed-rule scoping, engine range.
 - [x] Job B (Sonnet, spec `tasks/job-B-server.md`): `apps/server` — submit path, `/v1` (all openapi paths), Better Auth + API keys + org provisioning on signup, worker with email/telegram/webhook adapters, `/health`, `/llms.txt`, generated `/openapi.json`, multi-stage Dockerfile. Verified by Claude: lint 0, typecheck ok, 72/72 tests, image builds. Known gaps (tracked in Next up): system-webhook dispatch, digest sending, schema inference for `observe`, RLS second fence, `drizzle-kit generate` broken by `@postbag/core` export map (migration 0001 hand-written).
 
-- [x] Job E (Sonnet, spec `tasks/job-E-design-polish.md`): display-scale first-run headline, accent-red brand postmark, staggered "It arrived" reveal, inbox id chips + postmark status + fade truncation, delivery timeline, collapsible meta, hover lift. Verified: lint 0, typecheck ok, build ok. **Honest verdict:** better, still "tidy" rather than "distinctive" — the next design step should be a session with Fahim's eye (swatches, hero composition, illustration family), not another agent pass.
+- [x] Job E (Sonnet, spec `tasks/job-E-design-polish.md`): historical dashboard polish pass. Its accent-red postmark treatment was retired by the 2026-08-24 brand overhaul in favour of periwinkle receiving/routing marks. Original verification: lint 0, typecheck ok, build ok.
 - [x] `staticApp.ts` now also resolves `dist/public` when run from source, so `pnpm --filter @postbag/server dev` serves a built SPA.
 - [x] Job D (Sonnet, spec `tasks/job-D-server-followups.md`): scope implication (`manage ⊇ read ⊇ submit`), template context with real names, CF client IP/country, isolated worker tests, **system-webhook dispatch via Postgres trigger** + `system_webhook_deliveries` + `GET /v1/webhooks/{id}/deliveries`, digest routes (one payload per period), observe-mode inference (`form_schema_drafts`, `POST /v1/forms/{id}/schema/infer`), `drizzle-kit generate` fixed (export map + reconstructed snapshots), RLS policies + `postbag_app` role (migrations 0002, 0003). Claude removed `FORCE ROW LEVEL SECURITY` (would break non-superuser self-host owners; Principle 7) — owners exempt, `postbag_app` fenced. **Open:** request-path `SET LOCAL ROLE postbag_app` + `app.org_id` (flag `RLS_ENFORCED`, inert). Verified by Claude on a fresh DB: lint 0, typecheck ok, 110/110 tests, image builds.
 - [x] **Dashboard live in production** at `https://postbag.withfaahim.com/app/` (deploy of `6ec3802`, 2026-08-21 00:32 UTC; CI green). Sign in with the account in `~/.postbag/credentials`.
-- [x] Job C (Sonnet, spec `tasks/job-C-dashboard.md`): `apps/web` (Vite+React+shadcn, all 10 screens, postmark motif, Instrument Sans/JetBrains Mono, wax-seal accent, ⌘K, live inbox) + `packages/sdk` (openapi-typescript + openapi-fetch). SPA builds into `apps/server/dist/public`, served at `/app`. Verified by Claude: lint 0, typecheck ok, 81 tests (worker tests need a clean DB — see job D), Docker image serves `/app` + `/health`. Design verdict: coherent and clean; a dedicated polish pass (job E) should push it from 'tidy' to 'distinctive'.
+- [x] Job C (Sonnet, spec `tasks/job-C-dashboard.md`): `apps/web` (Vite+React+shadcn, all 10 screens, ⌘K, live inbox) + `packages/sdk` (openapi-typescript + openapi-fetch). SPA builds into `apps/server/dist/public`, served at `/app`. Its original wax/postmark identity was superseded by the 2026-08-24 brand overhaul. Original verification: lint 0, typecheck ok, 81 tests.
 - [x] **Production verified end-to-end 2026-08-21 23:25 UTC:** `d4a8f3a` deployed; `/health` db up + worker alive; signup → `/v1/me` → API key → `/v1/quickstart` → real submission → email delivered via Resend in ~1 s and confirmed in Fahim's Gmail.
   Fahim's production account: `afiur.fahim@gmail.com`, org `org_3yv5z32sed4q`, project `postbag`, form `fm_gwdahpd22tjy` ("Overnight smoke test"). Password + full-scope API key saved at **`~/.postbag/credentials`** (mode 600, not in repo).
 
@@ -142,16 +142,16 @@ the rules and `docs/` for the design.
   `/.well-known/skills/` (bundled into dist by the server build); landing "set up your agent" block; llms.txt section.
   184 tests.
 
-- [x] **Job M (2026-08-22, Bag first-run — Eric's "Publish a stream schema before attaching sources" dead end):**
-  the dashboard could not publish a stream schema, so a fresh Bag was unusable. Fixed end to end: server derives a
-  stream's **version 1 from the first attached form** (published schema → inferred draft → recent submissions; identity
+- [x] **Job M (2026-08-22, Stream first-run — Eric's "Publish a stream schema before attaching sources" dead end):**
+  the dashboard could not publish a Stream Schema, so a fresh Stream was unusable. Fixed end to end: server derives a
+  Stream's **version 1 from the first attached Form** (published Schema → inferred draft → recent Submissions; identity
   mapping; `stream.schema.changed` event records `derived_from`) in both `POST /v1/streams` and
   `POST /v1/streams/{id}/sources`; new error code `stream_schema_missing` (core + site errors page) replaces the bare
-  422 when nothing can be derived. Dashboard: `BagExplainer` ("the sorting office" SVG/SMIL animation + plain-language
-  copy + numbered steps) on the Bags list and on every fresh bag, first-form attach from the explainer, `ShapeEditor`
-  on "What gets delivered" (fields/type/required, seed from a form, publish vN+1), Sources show form names, pre-match
+  422 when nothing can be derived. Dashboard: `StreamExplainer` (receiving-pocket SVG/SMIL animation + plain-language
+  copy + numbered steps) on the Streams list and on every fresh Stream, first-Form attach from the explainer, `ShapeEditor`
+  on "What gets delivered" (fields/type/required, seed from a Form, publish vN+1), Sources show Form names, pre-match
   same-named fields on attach, detach, preview by name + `extras` note, header badges. `toastApiError` shows the API
-  `hint` as the toast description app-wide (bags, mapping editor, plan card, members). Docs: routing.md,
+  `hint` as the toast description app-wide (Streams, Mapping editor, plan card, members). Docs: routing.md,
   DOMAIN-MODEL.md (StreamSchema), errors.md, SKILL.md, CLI option help, OpenAPI + MCP operations regenerated.
   Verified locally in the browser (light + dark); lint 0, typecheck ok, 239/239 tests.
 

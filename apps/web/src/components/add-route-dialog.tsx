@@ -139,7 +139,7 @@ export function AddRouteDialog({
           <DialogDescription>
             {"formId" in subject
               ? "Deliver every submission on this form directly."
-              : "Deliver everything this bag collects."}
+              : "Deliver everything this Stream collects."}
           </DialogDescription>
         </DialogHeader>
 

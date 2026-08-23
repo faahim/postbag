@@ -6,8 +6,7 @@ import { FEATURES } from "@/content/features"
 import { breadcrumbLd, webPageLd } from "@/lib/seo"
 import { SITE_URL } from "@/config"
 import { ArrowUpRight } from "@lucide/astro"
-import { Image } from "astro:assets"
-import dashboardForm from "@/assets/dashboard-form.png"
+import RoutingMark from "@/components/RoutingMark.astro"
 
 const crumbs = [ { name: "Home", href: "/" }, { name: "Features", href: "/features/" } ]
 const title = "Postbag features: routing, durable delivery, destinations, schemas, spam protection, self-hosting"
@@ -47,9 +46,24 @@ const ld = [ webPageLd({ url: `${SITE_URL}/features/`, name: title, description 
       <p>Forms, a live inbox, Destinations, Routes, Streams, Deliveries, events and API keys. Everything it does goes through the same <code>/v1</code> an agent uses. Nothing useful is locked behind the screen.</p>
       <a class="inline-link" href="/for-ai-agents/">See how agents work with Postbag <ArrowUpRight size={16} stroke-width={1.7} aria-hidden="true" /></a>
     </div>
-    <figure class="product-window-shot" data-reveal>
-      <Image src={dashboardForm} alt="The Postbag dashboard showing a Form's page, its submit URL, Inbox, Embed, Fields, Send to and Settings tabs, and two received Submissions" class="shot h-auto w-full" widths={[720, 1200, 1440]} sizes="(min-width: 1180px) 1180px, 100vw" loading="lazy" />
-      <figcaption>A Form in the production dashboard, with real Submissions.</figcaption>
+    <figure class="product-window-scene" data-reveal aria-label="The dashboard and API meet at the same durable Form record">
+      <div class="product-entry">
+        <p>Dashboard</p>
+        <strong>Forms · Streams · Deliveries</strong>
+        <span>See it, filter it, route it.</span>
+      </div>
+      <div class="product-record" aria-hidden="true">
+        <span class="product-trace"></span>
+        <RoutingMark status="sent" size={54} tone="accent" />
+        <code>fm_contact</code>
+        <span class="product-trace"></span>
+      </div>
+      <div class="product-entry product-entry-api">
+        <p>API</p>
+        <strong><code>POST /v1/forms</code></strong>
+        <span>Create it, test it, hand it over.</span>
+      </div>
+      <figcaption>Two entrances. One Form record.</figcaption>
     </figure>
   </section>
 
@@ -86,9 +100,17 @@ const ld = [ webPageLd({ url: `${SITE_URL}/features/`, name: title, description 
   .product-window-copy { max-width: 43rem; }
   .inline-link { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 1.5rem; color: var(--primary); font-size: 0.94rem; font-weight: 650; text-decoration: none; transition-property: color, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
   .inline-link:hover { color: var(--primary-hover); transform: translateX(0.2rem); }
-  .product-window-shot { overflow: hidden; border-radius: calc(var(--radius) + 16px); background: var(--surface-2); box-shadow: var(--shadow-lg); }
-  .product-window-shot :global(img) { outline: 1px solid var(--image-outline); outline-offset: -1px; }
-  .product-window-shot figcaption { padding: 0.8rem 1rem 0.95rem; color: var(--muted-foreground); font-size: 0.82rem; }
+  .product-window-scene { position: relative; display: grid; gap: 1px; overflow: hidden; border-radius: calc(var(--radius) + 16px); background: var(--border-strong); box-shadow: var(--shadow-lg); }
+  .product-window-scene::before { position: absolute; inset: 0; background: radial-gradient(circle at 50% 48%, color-mix(in oklch, var(--primary) 18%, transparent), transparent 44%); pointer-events: none; content: ""; }
+  .product-entry { position: relative; min-height: 10rem; padding: 1.5rem; background: var(--surface); }
+  .product-entry p { color: var(--primary); font-family: var(--font-mono); font-size: .68rem; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
+  .product-entry strong { display: block; margin-top: .75rem; font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; }
+  .product-entry span { display: block; margin-top: .45rem; color: var(--muted-foreground); font-size: .9rem; }
+  .product-record { position: relative; z-index: 1; display: flex; min-height: 8rem; align-items: center; justify-content: center; gap: 1rem; padding: 1.5rem; color: var(--primary); background: var(--background); }
+  .product-record code { color: var(--foreground); font-size: .78rem; }
+  .product-trace { width: clamp(2rem, 9vw, 6rem); height: 1px; background: linear-gradient(90deg, transparent, var(--primary)); }
+  .product-trace:last-child { transform: scaleX(-1); }
+  .product-window-scene figcaption { position: relative; z-index: 1; padding: .8rem 1rem .95rem; color: var(--muted-foreground); background: var(--surface-2); font-size: .82rem; }
   .feature-definition { display: grid; gap: 1.5rem; margin-top: 7rem; padding: 3rem 0; border-top: 1px solid var(--border-strong); }
   .feature-definition > p { max-width: 43rem; margin-top: 0; }
   @media (min-width: 48rem) {
@@ -102,6 +124,8 @@ const ld = [ webPageLd({ url: `${SITE_URL}/features/`, name: title, description 
     .feature-route > li:nth-child(even) .feature-stop-copy { grid-column: 3; }
     .feature-route > li:nth-child(even) .feature-stop-link { grid-column: 3; }
     .product-window { grid-template-columns: minmax(16rem, 0.7fr) minmax(0, 1.3fr); align-items: center; gap: clamp(2rem, 6vw, 6rem); }
+    .product-window-scene { grid-template-columns: 1fr 1fr; }
+    .product-record, .product-window-scene figcaption { grid-column: 1 / -1; }
     .feature-definition { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: clamp(2rem, 8vw, 8rem); }
   }
   @media (prefers-reduced-motion: reduce) { .feature-stop-mark span, .feature-stop-link, .inline-link { transition: none; } }

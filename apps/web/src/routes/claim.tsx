@@ -224,8 +224,8 @@ function ClaimSandboxRoute() {
         <div className="flex items-start gap-3 text-sm text-muted-foreground">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
           <p className="text-pretty">
-            This one-time claim token moves the Form only into your active workspace and is
-            consumed when the claim succeeds.
+            This sandbox capability moves the Form only into your active workspace. It remains
+            usable until the Form is claimed or expires, so keep it private.
           </p>
         </div>
 

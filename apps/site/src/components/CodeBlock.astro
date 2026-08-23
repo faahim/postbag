@@ -13,7 +13,7 @@ const { code, lang = "text", title, class: className = "", copy = true, dense = 
       {copy && (
         <button
           type="button"
-          class={`copy-btn relative -mr-1.5 inline-flex items-center gap-1.5 rounded-md px-2.5 font-sans text-xs font-medium text-muted-foreground transition-colors duration-150 hover:bg-surface-2 hover:text-foreground ${large ? "h-11 min-w-11" : "h-8"}`}
+          class={`copy-btn relative -mr-1.5 inline-flex items-center gap-1.5 rounded-md px-2.5 font-sans text-xs font-medium text-muted-foreground transition-colors duration-(--duration-quick) hover:bg-surface-2 hover:text-foreground ${large ? "h-11 min-w-11" : "h-8"}`}
           data-copy
           aria-label="Copy code"
         >

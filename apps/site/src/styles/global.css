@@ -58,21 +58,27 @@
   --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: ease-in-out;
   --duration-acknowledge: 2400ms;
+  --duration-nav-kicker-delay: 110ms;
+  --duration-nav-list-delay: 140ms;
+  --duration-nav-stagger: 45ms;
+  --duration-nav-footer-delay: 320ms;
+  --duration-nav-ambient-delay: 160ms;
+  --duration-copy-sheen: 720ms;
   --distance-reveal: 18px;
   --scale-press: 0.96;
   --icon-swap-dur: var(--duration-fast);
   --icon-swap-blur: 2px;
   --icon-swap-start-scale: 0.25;
   --icon-swap-ease: var(--ease-in-out);
-  --check-opacity-dur: 500ms;
-  --check-rotate-dur: 500ms;
+  --check-opacity-dur: var(--duration-slow);
+  --check-rotate-dur: var(--duration-slow);
   --check-rotate-from: 80deg;
-  --check-bob-dur: 500ms;
+  --check-bob-dur: var(--duration-slow);
   --check-y-amount: 40px;
-  --check-blur-dur: 500ms;
+  --check-blur-dur: var(--duration-slow);
   --check-blur-from: 10px;
-  --check-path-dur: 500ms;
-  --check-path-delay: 80ms;
+  --check-path-dur: var(--duration-slow);
+  --check-path-delay: var(--duration-micro);
   --check-ease-out: var(--ease-smooth-out);
   --check-ease-opacity: var(--ease-smooth-out);
   --check-ease-rotate: var(--ease-smooth-out);
@@ -387,10 +393,10 @@
     transform: translateY(0);
   }
   .mobile-nav-drawer[data-state="open"] .mobile-nav-kicker {
-    transition-delay: 110ms;
+    transition-delay: var(--duration-nav-kicker-delay);
   }
   .mobile-nav-drawer[data-state="open"] .mobile-nav-links li {
-    transition-delay: calc(140ms + var(--menu-index) * 45ms);
+    transition-delay: calc(var(--duration-nav-list-delay) + var(--menu-index) * var(--duration-nav-stagger));
   }
   .mobile-nav-footer {
     display: flex;
@@ -405,7 +411,7 @@
     transform: translateY(14px);
     transition-property: opacity, filter, transform;
     transition-duration: var(--duration-medium);
-    transition-delay: 320ms;
+    transition-delay: var(--duration-nav-footer-delay);
     transition-timing-function: var(--ease-smooth-out);
   }
   .mobile-nav-sign-in {
@@ -438,7 +444,7 @@
     transform: translate3d(12px, 16px, 0) rotate(-7deg) scale(0.92);
     transition-property: opacity, filter, transform;
     transition-duration: var(--duration-slow);
-    transition-delay: 160ms;
+    transition-delay: var(--duration-nav-ambient-delay);
     transition-timing-function: var(--ease-smooth-out);
   }
   .mobile-nav-ambient::before {
@@ -664,7 +670,7 @@
       0 12px 32px oklch(0.58 0.14 278 / 0.34);
   }
   .copy-agent-button[data-copied]::before {
-    animation: copy-button-sheen 720ms var(--ease-smooth-out) 80ms both;
+    animation: copy-button-sheen var(--duration-copy-sheen) var(--ease-smooth-out) var(--duration-micro) both;
   }
   @keyframes copy-button-sheen {
     0% { opacity: 0; transform: translateX(-180%) skewX(-18deg); }

@@ -7,13 +7,13 @@ import { cn } from "@/lib/utils"
  * The Stream explainer.
  *
  * Three forms on the left (their field lines differ a little — that is the point), one
- * bucket in the middle, one destination on the right. Submissions drop into the bucket as
+ * receiving pocket in the middle, one destination on the right. Submissions settle into the pocket as
  * plain dots; what leaves follows one Route, always the same. Many in, one shape out.
  *
  * Quiet on purpose: hairlines, the app's neutrals, and periwinkle only on the routing mark
  * and the outgoing dot. Motion is SMIL `animateMotion` along the same lines the diagram
  * already draws, so the still picture (reduced motion, screenshots) tells the same story.
- * The routing mark brightens on each arrival via CSS (`.bag-explainer-route-mark`, styles/index.css).
+ * The routing mark brightens on each arrival via CSS (`.stream-explainer-route-mark`, styles/index.css).
  */
 
 const LOOP_SECONDS = 4.8
@@ -66,7 +66,7 @@ function inFlight(cy: number, entryX: number): string {
   return `${inGuide(cy, entryX)} L ${entryX} ${POCKET.frontTop + 14}`
 }
 
-export function BagFlowIllustration({ className }: { readonly className?: string }) {
+export function StreamFlowIllustration({ className }: { readonly className?: string }) {
   const reducedMotion = usePrefersReducedMotion()
   const dur = `${LOOP_SECONDS}s`
 
@@ -127,7 +127,7 @@ export function BagFlowIllustration({ className }: { readonly className?: string
       <g>
         <path d={panel(POCKET.frontTop)} fill="var(--card)" stroke="var(--foreground)" strokeOpacity="0.55" strokeWidth="1.5" strokeLinejoin="round" />
         {/* receiving aperture and Route trace */}
-        <g className="bag-explainer-route-mark" stroke="var(--primary)" strokeLinecap="round" strokeLinejoin="round">
+        <g className="stream-explainer-route-mark" stroke="var(--primary)" strokeLinecap="round" strokeLinejoin="round">
           <path d="M309 102h5.4l3 3h5.2l3-3h5.4v10.5a2.5 2.5 0 0 1-2.5 2.5h-17a2.5 2.5 0 0 1-2.5-2.5Z" fill="var(--primary)" fillOpacity="0.1" strokeWidth="1.25" />
           <path d="M321 110h7v-5" strokeWidth="1.45" />
           <path d="m325.8 107.2 2.2-2.2 2.2 2.2" strokeWidth="1.45" />
@@ -184,7 +184,7 @@ const STEPS: readonly { readonly title: string; readonly body: string }[] = [
 /** The plain-language version of "what is this screen". Used as the empty state of the Streams
  * list and of a fresh Stream's Sources tab. `action` is the one thing to do next; `aside` is the
  * honest escape hatch ("you might not need this"). */
-export function BagExplainer({
+export function StreamExplainer({
   title,
   lede,
   action,
@@ -206,7 +206,7 @@ export function BagExplainer({
       )}
     >
       <div className="border-b border-border/70 bg-background/60 px-4 py-3 sm:px-8">
-        <BagFlowIllustration className="mx-auto max-w-xl" />
+        <StreamFlowIllustration className="mx-auto max-w-xl" />
       </div>
       <div className="grid gap-8 px-6 py-6 md:grid-cols-[1.1fr_1fr] md:px-8">
         <div className="flex flex-col gap-3">

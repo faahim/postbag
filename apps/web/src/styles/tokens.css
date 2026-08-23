@@ -86,10 +86,10 @@
   --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
   --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
 
-  /* Bag explainer — one loop of forms flowing into a bucket and one shape flowing out.
+  /* Stream explainer — one loop of Forms flowing into a receiving pocket and one shape flowing out.
      Scene-length, not interaction-length, so it doesn't reuse the interaction scale above. */
-  --bag-loop: 4800ms;
-  --bag-ease: var(--ease-smooth-out);
+  --stream-loop: 4800ms;
+  --stream-ease: var(--ease-smooth-out);
   --distance-micro: 4px;
   --distance-small: 6px;
   --distance-base: 8px;

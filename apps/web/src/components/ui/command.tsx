@@ -20,7 +20,7 @@ function Command({ className, ...props }: ComponentProps<typeof CommandPrimitive
 
 function CommandDialog({
   title = "Command palette",
-  description = "Search forms, bags, destinations and actions",
+  description = "Search Forms, Streams, Destinations and actions",
   children,
   ...props
 }: ComponentProps<typeof Dialog> & {

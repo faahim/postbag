@@ -33,7 +33,7 @@ built:
 | **Typography** | Instrument Sans for UI, Bricolage Grotesque for marketing display moments, and JetBrains Mono for ids, payloads and code. Tabular numerals on every count. Do not begin the overhaul with a font migration. |
 | **Colour** | Midnight ink and ink-indigo carry marketing; periwinkle is the primary action and active-routing colour. Product surfaces stay quieter and near-neutral. Red is reserved for destructive semantics and rare status moments. Light and dark are both first-class. |
 | **Radius & density** | One radius scale, slightly tighter than shadcn default; comfortable density on the inbox, compact in tables. |
-| **Signature motif** | The primary logo is two Submissions settling into a pocket. Marketing uses the receiving aperture, luminous Form planes and restrained routing traces. Product UI borrows the same geometry quietly. The postmark may remain only where it communicates a real Submission or Delivery state. |
+| **Signature motif** | The primary logo is two Submissions settling into a pocket. Marketing uses the receiving aperture, luminous Form planes and restrained routing traces. Product UI borrows the same geometry quietly. Status and empty-state marks use that receiving/routing geometry; the old red circular postmark is retired. |
 | **Empty states** | Every list has a designed empty state that teaches the next action. The first-run Forms screen *is* the onboarding. |
 | **Iconography** | Lucide, one stroke width, never mixed sets. |
 

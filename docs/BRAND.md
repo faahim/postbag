@@ -213,6 +213,9 @@ inputs, code, payloads, or dense tables.
 Avoid cartoon bags, postal costumes, robots, mascots, circuit-board density,
 decorative arrows, generic rounded-square check badges, and repeated generic cards.
 
+The retired dashboard paths `/bags` and `/bags/:id` exist only as redirects for old
+bookmarks. New dashboard code, navigation, and copy use `/streams` and **Stream**.
+
 ### Layout
 
 - The approved hero is one continuous receiving environment. Preserve it.

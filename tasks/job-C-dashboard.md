@@ -1,5 +1,8 @@
 # Job C — `apps/web`: the Postbag dashboard (Vite + React + shadcn/ui) and `packages/sdk`
 
+> Historical implementation brief. Its “Bag”, wax-red and postmark directions were
+> superseded by `docs/BRAND.md`, `docs/DESIGN.md`, and the fixed **Stream** vocabulary.
+
 You are building the dashboard of **Postbag** at `/Users/faahim/Developer/postbag` (branch
 `main`; no git commands; leave changes in the working tree; finish with the changed-file list).
 The API (`apps/server`) exists and runs locally; the dashboard is **just another client of

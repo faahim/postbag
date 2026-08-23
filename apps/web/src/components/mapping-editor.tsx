@@ -16,7 +16,7 @@ const CONST = "__const__"
 export function MappingEditor({
   streamId,
   sourceId,
-  bagFields,
+  streamFields,
   requiredFields,
   formFields,
   initialMapping,
@@ -24,7 +24,7 @@ export function MappingEditor({
 }: {
   readonly streamId: string
   readonly sourceId: string
-  readonly bagFields: readonly string[]
+  readonly streamFields: readonly string[]
   readonly requiredFields: readonly string[]
   readonly formFields: readonly string[]
   readonly initialMapping: Readonly<Record<string, MappingRule>>
@@ -69,7 +69,7 @@ export function MappingEditor({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
-        {bagFields.map((field) => {
+        {streamFields.map((field) => {
           const required = requiredFields.includes(field)
           const isMissing = liveMissing.includes(field)
           const current = selectValueFor(field)

@@ -76,19 +76,19 @@ function buildSchema(fields: readonly Field[], previous: Readonly<Record<string,
 const FIELD_NAME = /^[A-Za-z_][A-Za-z0-9_.-]*$/u
 
 /**
- * The bag's shape — the fields every delivery from it carries — as a list people can edit
+ * The Stream's shape — the fields every Delivery from it carries — as a list people can edit
  * without seeing JSON Schema. Publishing always creates the next version (schemas are
  * immutable, Golden rule 5); attached forms are re-checked against it by the server.
  *
  * Mount with `key={schema.version}` so a fresh publish resets the draft.
  */
 export function ShapeEditor({
-  bagId,
+  streamId,
   schema,
   forms,
   onPublished,
 }: {
-  readonly bagId: string
+  readonly streamId: string
   readonly schema: SchemaVersion | undefined
   /** Forms that can seed an empty shape ("start from this form's fields"). */
   readonly forms: readonly { readonly id: string; readonly name: string }[]
@@ -100,7 +100,7 @@ export function ShapeEditor({
   const [newName, setNewName] = useState("")
   const [nameError, setNameError] = useState<string | undefined>(undefined)
   const [changelog, setChangelog] = useState("")
-  const publish = usePublishStreamSchema(bagId)
+  const publish = usePublishStreamSchema(streamId)
 
   const draft = buildSchema(fields, previous)
   const dirty = schema === undefined ? fields.length > 0 : JSON.stringify(draft) !== JSON.stringify(buildSchema(fieldsFromSchema(previous, previousUi), previous))

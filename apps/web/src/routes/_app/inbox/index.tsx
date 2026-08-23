@@ -54,10 +54,10 @@ function InboxRoute() {
         {streams.data !== undefined && streams.data.length > 0 && (
           <Select value={streamId ?? "all"} onValueChange={(v) => { setStreamId(v === "all" ? undefined : v) }}>
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="All bags" />
+              <SelectValue placeholder="All Streams" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All bags</SelectItem>
+              <SelectItem value="all">All Streams</SelectItem>
               {streams.data.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
                   {s.name}

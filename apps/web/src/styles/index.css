@@ -185,13 +185,13 @@
   }
 
   /* Stream explainer — the routing mark brightens each time a Submission lands
-     (three arrivals per loop, timed to the SMIL dots in components/bag-explainer.tsx). */
-  .bag-explainer-route-mark {
+     (three arrivals per loop, timed to the SMIL dots in components/stream-explainer.tsx). */
+  .stream-explainer-route-mark {
     transform-box: fill-box;
     transform-origin: center;
-    animation: bag-route-mark var(--bag-loop) var(--bag-ease) infinite;
+    animation: stream-route-mark var(--stream-loop) var(--stream-ease) infinite;
   }
-  @keyframes bag-route-mark {
+  @keyframes stream-route-mark {
     0%,
     23%,
     31%,
@@ -209,7 +209,7 @@
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .bag-explainer-route-mark {
+    .stream-explainer-route-mark {
       animation: none !important;
       opacity: 0.7;
     }

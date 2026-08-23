@@ -28,6 +28,8 @@ import { Route as AppFormsFormIdRouteImport } from './routes/_app/forms/$formId'
 import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox/index'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
 import { Route as AppSettingsMembersRouteImport } from './routes/_app/settings/members'
+import { Route as AppStreamsIndexRouteImport } from './routes/_app/streams/index'
+import { Route as AppStreamsStreamIdRouteImport } from './routes/_app/streams/$streamId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -123,6 +125,16 @@ const AppSettingsMembersRoute = AppSettingsMembersRouteImport.update({
   path: '/settings/members',
   getParentRoute: () => AppRoute,
 } as any)
+const AppStreamsIndexRoute = AppStreamsIndexRouteImport.update({
+  id: '/streams/',
+  path: '/streams/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStreamsStreamIdRoute = AppStreamsStreamIdRouteImport.update({
+  id: '/streams/$streamId',
+  path: '/streams/$streamId',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -135,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/events/webhooks': typeof AppEventsWebhooksRoute
   '/forms/$formId': typeof AppFormsFormIdRoute
   '/settings/members': typeof AppSettingsMembersRoute
+  '/streams/$streamId': typeof AppStreamsStreamIdRoute
   '/api-keys/': typeof AppApiKeysIndexRoute
   '/bags/': typeof AppBagsIndexRoute
   '/deliveries/': typeof AppDeliveriesIndexRoute
@@ -143,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/forms/': typeof AppFormsIndexRoute
   '/inbox/': typeof AppInboxIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
+  '/streams/': typeof AppStreamsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -155,6 +169,7 @@ export interface FileRoutesByTo {
   '/events/webhooks': typeof AppEventsWebhooksRoute
   '/forms/$formId': typeof AppFormsFormIdRoute
   '/settings/members': typeof AppSettingsMembersRoute
+  '/streams/$streamId': typeof AppStreamsStreamIdRoute
   '/api-keys': typeof AppApiKeysIndexRoute
   '/bags': typeof AppBagsIndexRoute
   '/deliveries': typeof AppDeliveriesIndexRoute
@@ -163,6 +178,7 @@ export interface FileRoutesByTo {
   '/forms': typeof AppFormsIndexRoute
   '/inbox': typeof AppInboxIndexRoute
   '/settings': typeof AppSettingsIndexRoute
+  '/streams': typeof AppStreamsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -177,6 +193,7 @@ export interface FileRoutesById {
   '/_app/events/webhooks': typeof AppEventsWebhooksRoute
   '/_app/forms/$formId': typeof AppFormsFormIdRoute
   '/_app/settings/members': typeof AppSettingsMembersRoute
+  '/_app/streams/$streamId': typeof AppStreamsStreamIdRoute
   '/_app/api-keys/': typeof AppApiKeysIndexRoute
   '/_app/bags/': typeof AppBagsIndexRoute
   '/_app/deliveries/': typeof AppDeliveriesIndexRoute
@@ -185,6 +202,7 @@ export interface FileRoutesById {
   '/_app/forms/': typeof AppFormsIndexRoute
   '/_app/inbox/': typeof AppInboxIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
+  '/_app/streams/': typeof AppStreamsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -199,6 +217,7 @@ export interface FileRouteTypes {
     | '/events/webhooks'
     | '/forms/$formId'
     | '/settings/members'
+    | '/streams/$streamId'
     | '/api-keys/'
     | '/bags/'
     | '/deliveries/'
@@ -207,6 +226,7 @@ export interface FileRouteTypes {
     | '/forms/'
     | '/inbox/'
     | '/settings/'
+    | '/streams/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -219,6 +239,7 @@ export interface FileRouteTypes {
     | '/events/webhooks'
     | '/forms/$formId'
     | '/settings/members'
+    | '/streams/$streamId'
     | '/api-keys'
     | '/bags'
     | '/deliveries'
@@ -227,6 +248,7 @@ export interface FileRouteTypes {
     | '/forms'
     | '/inbox'
     | '/settings'
+    | '/streams'
   id:
     | '__root__'
     | '/'
@@ -240,6 +262,7 @@ export interface FileRouteTypes {
     | '/_app/events/webhooks'
     | '/_app/forms/$formId'
     | '/_app/settings/members'
+    | '/_app/streams/$streamId'
     | '/_app/api-keys/'
     | '/_app/bags/'
     | '/_app/deliveries/'
@@ -248,6 +271,7 @@ export interface FileRouteTypes {
     | '/_app/forms/'
     | '/_app/inbox/'
     | '/_app/settings/'
+    | '/_app/streams/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -394,6 +418,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsMembersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/streams/': {
+      id: '/_app/streams/'
+      path: '/streams'
+      fullPath: '/streams/'
+      preLoaderRoute: typeof AppStreamsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/streams/$streamId': {
+      id: '/_app/streams/$streamId'
+      path: '/streams/$streamId'
+      fullPath: '/streams/$streamId'
+      preLoaderRoute: typeof AppStreamsStreamIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -403,6 +441,7 @@ interface AppRouteChildren {
   AppEventsWebhooksRoute: typeof AppEventsWebhooksRoute
   AppFormsFormIdRoute: typeof AppFormsFormIdRoute
   AppSettingsMembersRoute: typeof AppSettingsMembersRoute
+  AppStreamsStreamIdRoute: typeof AppStreamsStreamIdRoute
   AppApiKeysIndexRoute: typeof AppApiKeysIndexRoute
   AppBagsIndexRoute: typeof AppBagsIndexRoute
   AppDeliveriesIndexRoute: typeof AppDeliveriesIndexRoute
@@ -411,6 +450,7 @@ interface AppRouteChildren {
   AppFormsIndexRoute: typeof AppFormsIndexRoute
   AppInboxIndexRoute: typeof AppInboxIndexRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
+  AppStreamsIndexRoute: typeof AppStreamsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -419,6 +459,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEventsWebhooksRoute: AppEventsWebhooksRoute,
   AppFormsFormIdRoute: AppFormsFormIdRoute,
   AppSettingsMembersRoute: AppSettingsMembersRoute,
+  AppStreamsStreamIdRoute: AppStreamsStreamIdRoute,
   AppApiKeysIndexRoute: AppApiKeysIndexRoute,
   AppBagsIndexRoute: AppBagsIndexRoute,
   AppDeliveriesIndexRoute: AppDeliveriesIndexRoute,
@@ -427,6 +468,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFormsIndexRoute: AppFormsIndexRoute,
   AppInboxIndexRoute: AppInboxIndexRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
+  AppStreamsIndexRoute: AppStreamsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

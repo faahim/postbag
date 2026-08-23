@@ -31,7 +31,7 @@ const updated = new Date(LEGAL.effectiveDate).toLocaleDateString("en-GB", { day:
           <li>
             <a
               href={`/legal/${d.slug}/`}
-              class="-mx-2 block rounded px-2 py-1 text-[13.5px] text-muted-foreground transition-colors duration-150 hover:bg-surface-2 hover:text-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"
+              class="-mx-2 block rounded px-2 py-1 text-[13.5px] text-muted-foreground transition-colors duration-(--duration-quick) hover:bg-surface-2 hover:text-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"
               aria-current={d.slug === doc.slug ? "page" : undefined}
             >
               {d.title}
@@ -58,7 +58,7 @@ const updated = new Date(LEGAL.effectiveDate).toLocaleDateString("en-GB", { day:
               <li>
                 <a
                   href={`#${h.slug}`}
-                  class={`-ml-px block border-l border-transparent py-0.5 ${h.depth === 2 ? "pl-3" : "pl-6"} text-[13px] text-muted-foreground transition-colors duration-150 hover:border-foreground hover:text-foreground`}
+                  class={`-ml-px block border-l border-transparent py-0.5 ${h.depth === 2 ? "pl-3" : "pl-6"} text-[13px] text-muted-foreground transition-colors duration-(--duration-quick) hover:border-foreground hover:text-foreground`}
                 >
                   {h.text}
                 </a>
