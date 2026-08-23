@@ -53,30 +53,34 @@ const others = USE_CASES.filter((item) => item.slug !== uc.slug)
 </Base>
 
 <style>
-  .usecase-detail { display: grid; gap: 3.5rem; }
+  .usecase-detail { display: grid; gap: clamp(3.5rem, 8vw, 6.5rem); padding-top: clamp(2.5rem, 6vw, 5rem); }
   .usecase-article { min-width: 0; }
-  .usecase-section { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); gap: 1rem; padding: 2.4rem 0; border-top: 1px solid var(--border); }
+  .usecase-section { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); gap: 0.35rem 1rem; padding: clamp(2.5rem, 6vw, 4.5rem) 0; border-top: 1px solid var(--border); }
   .usecase-section:first-child { padding-top: 0; border-top: 0; }
   .usecase-section-marker { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: 50% 50% calc(var(--radius) + 4px) calc(var(--radius) + 4px); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border-strong); }
   .usecase-section-marker span { width: 0.7rem; height: 0.45rem; margin-top: 0.2rem; border-radius: 0.08rem 0.08rem 0.5rem 0.5rem; background: var(--primary); }
   .usecase-section-heading, .usecase-section-body { grid-column: 2; }
-  .usecase-section h2 { font-size: clamp(1.55rem, 2.6vw, 2.3rem); font-weight: 580; line-height: 1.12; }
-  .usecase-section-body { max-width: 44rem; margin-top: 0.2rem; color: var(--muted-foreground); font-size: 1.03rem; line-height: 1.72; }
+  .usecase-section h2 { max-width: 22ch; font-size: clamp(1.85rem, 3.4vw, 2.8rem); font-weight: 580; line-height: 1.06; letter-spacing: -0.025em; text-wrap: balance; }
+  .usecase-section-body { max-width: 46rem; margin-top: 0.65rem; color: var(--muted-foreground); font-size: clamp(1rem, 1.4vw, 1.08rem); line-height: 1.75; }
   .usecase-section-body p + p { margin-top: 1rem; }
   .usecase-section-body :global(.code-panel) { margin-top: 1.5rem; box-shadow: var(--shadow-md); }
-  .usecase-links { display: grid; gap: 2rem; }
+  .usecase-links { display: grid; align-content: start; gap: 2.5rem; }
   .usecase-links p { color: var(--primary); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
   .usecase-links ul { margin-top: 0.7rem; }
   .usecase-links li + li { margin-top: 0.1rem; }
   .usecase-links a { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); color: var(--muted-foreground); font-size: 0.92rem; text-decoration: none; transition-property: color, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
   .usecase-links a:hover { color: var(--primary); transform: translateX(0.2rem); }
+  .usecase-links a:active { transform: translateX(0.1rem); }
   @media (min-width: 64rem) {
-    .usecase-detail { grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.3fr); align-items: start; gap: clamp(2rem, 6vw, 6rem); }
+    .usecase-detail { grid-template-columns: minmax(0, 1fr) minmax(15rem, 17rem); align-items: start; }
     .usecase-links { position: sticky; top: 6.25rem; }
-    .usecase-section { grid-template-columns: 2.8rem minmax(10rem, 0.42fr) minmax(0, 1fr); gap: 2rem; }
+    .usecase-section { grid-template-columns: 2.8rem minmax(0, 1fr); gap: 0.4rem 1.35rem; }
     .usecase-section-marker { width: 2.55rem; height: 2.55rem; }
     .usecase-section-heading { grid-column: 2; }
-    .usecase-section-body { grid-column: 3; grid-row: 1; margin-top: 0; }
+    .usecase-section-body { grid-column: 2; margin-top: 0.65rem; }
   }
-  @media (prefers-reduced-motion: reduce) { .usecase-links a { transition: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .usecase-links a { transition: none; }
+    .usecase-links a:hover, .usecase-links a:active { transform: none; }
+  }
 </style>
