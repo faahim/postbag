@@ -8,12 +8,13 @@ the rules and `docs/` for the design.
 ## Current state (update this block, don't append)
 
 - **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in *Next up*.
-- **Brand overhaul direction approved 2026-08-23; implementation started 2026-08-24:** `docs/BRAND.md` is the source
-  of truth. Core message: “Your forms have somewhere to go.” Positioning: the open-source form backend built for
-  agents. Visual direction: midnight-indigo tactile routing derived from the pocket logo; red returns to destructive
-  and rare status semantics. The homepage uses a Clay-inspired continuous hero environment: forms arrive in a familiar
-  receiving pocket, rest safely and travel onward, while copy occupies a calm lower field. Marketing begins first, then
-  the quieter dashboard identity coat.
+- **Brand overhaul complete on `codex/brand-overhaul` 2026-08-24:** `docs/BRAND.md` is the source of truth. The approved
+  receiving-pocket hero now leads one coherent midnight-indigo/periwinkle identity across the complete homepage,
+  public page family, documentation shell, auth, first-run, empty/status states, manifests and social previews. The old
+  red circular check/postmark family is replaced by the receiving/routing mark; ordinary interface checks remain
+  ordinary. Public claims were reconciled to the live anonymous sandbox/claim contract, public GitHub repository and
+  published npm clients. Static gates, 164 tests, production builds and settled browser checks at desktop/tablet/mobile
+  are green on the branch; merge and production deployment remain intentionally pending.
 - **Anonymous claimable quickstart live 2026-08-23 (ADR-008/009):** `ANONYMOUS_QUICKSTART_ENABLED=true`. Merge `54c4fd8`
   shipped the bounded 24-hour sandbox flow; closeout `b273d46` and API-key-name validation fix `bed1ebd` are deployed
   (`loqdcusasbxdn106nvgrsgu7`, `wqahvskwleapheboflsy0bin`, `mi1vbrf4wdgurxlgldp9hbuh`). Local Postgres, 308 tests,
@@ -72,7 +73,8 @@ the rules and `docs/` for the design.
 
 ## Decisions made tonight (2026-08-21)
 
-- UI label for `stream` = **Bag**. ("Collection" considered; Bag is on-brand and unambiguous.)
+- UI label for `stream` = **Stream** (supersedes the 2026-08-21 “Bag” experiment; fixed domain vocabulary now matches
+  the dashboard, public site and generated API clients).
 - ADR-003 accepted: dashboard = Vite + React SPA served by the API container.
   **Public/marketing pages are a separate Astro site** (SSR/SSG, SEO + GEO optimised) —
   `apps/site`, Phase 3. Nothing public-facing is rendered client-side.
