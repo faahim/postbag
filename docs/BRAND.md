@@ -107,6 +107,8 @@ the simple promise is understood, not crowd the first sentence.
 
 The action copies one direct instruction: install the Postbag skill, then use it to
 set up and test the site's contact form. It never scrolls to a second copy control.
+The button keeps fixed geometry while its copy icon and label become a drawn check
+and “Copied” confirmation.
 
 **Secondary action**
 
@@ -324,6 +326,8 @@ prompt is copied; it must disappear under reduced-motion preferences.
 
 - Marketing uses a committed indigo hero followed by calmer light or dark surfaces.
 - Let one visual own the first viewport and blend into the copy surface.
+- On the homepage, the navigation overlays the hero transparently at rest. After
+  scrolling, it gains a tinted indigo blur and quiet depth boundary.
 - Use generous section rhythm, narrow readable prose and large real product
   artifacts.
 - Prefer planes, split layouts and hairline divisions over repeated card grids.

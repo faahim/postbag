@@ -1,6 +1,7 @@
 ---
 import Postmark from "@/components/Postmark.astro"
 import { SIGNUP_URL } from "@/config"
+import { Check, Copy } from "@lucide/astro"
 interface PrimaryAction { href?: string; label: string; copyText?: string }
 interface Props { title?: string; body?: string; primary?: PrimaryAction; secondary?: { href: string; label: string } }
 const {
@@ -20,11 +21,19 @@ const {
         {primary.copyText ? (
           <button
             type="button"
-            class="btn btn-primary"
+            class="btn btn-primary copy-agent-button"
             data-copy-agent
             data-copy-text={primary.copyText}
             data-copy-label={primary.label}
-          ><span class="t-text-swap" aria-live="polite">{primary.label}</span></button>
+          >
+            <span class="t-icon-swap copy-agent-icon" data-state="a" aria-hidden="true">
+              <span class="t-icon" data-icon="a"><Copy size={16} stroke-width={2} /></span>
+              <span class="t-icon" data-icon="b">
+                <span class="t-success-check" data-state="out"><Check size={17} stroke-width={2.4} /></span>
+              </span>
+            </span>
+            <span class="t-text-swap" aria-live="polite">{primary.label}</span>
+          </button>
         ) : (
           <a href={primary.href ?? SIGNUP_URL} class="btn btn-primary">{primary.label}</a>
         )}

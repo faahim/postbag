@@ -1,5 +1,6 @@
 ---
 import { AGENT_PROMPT } from "@/config"
+import { Check, Copy } from "@lucide/astro"
 ---
 <section class="hero-shell" data-hero>
   <div class="hero-scene" data-hero-asset aria-hidden="true" data-reveal>
@@ -30,11 +31,19 @@ import { AGENT_PROMPT } from "@/config"
         <button
           id="agent-prompt"
           type="button"
-          class="btn btn-primary"
+          class="btn btn-primary copy-agent-button"
           data-copy-agent
           data-copy-text={AGENT_PROMPT}
           data-copy-label="Copy agent prompt"
-        ><span class="t-text-swap" aria-live="polite">Copy agent prompt</span></button>
+        >
+          <span class="t-icon-swap copy-agent-icon" data-state="a" aria-hidden="true">
+            <span class="t-icon" data-icon="a"><Copy size={16} stroke-width={2} /></span>
+            <span class="t-icon" data-icon="b">
+              <span class="t-success-check" data-state="out"><Check size={17} stroke-width={2.4} /></span>
+            </span>
+          </span>
+          <span class="t-text-swap" aria-live="polite">Copy agent prompt</span>
+        </button>
         <a href="/docs/self-hosting/" class="btn hero-secondary-action">Self-host Postbag</a>
       </div>
     </div>
@@ -65,6 +74,14 @@ import { AGENT_PROMPT } from "@/config"
 
   document.querySelectorAll<HTMLButtonElement>("[data-copy-agent]").forEach((button) => {
     const label = button.querySelector<HTMLElement>(".t-text-swap")
+    const icons = button.querySelector<HTMLElement>(".t-icon-swap")
+    const check = button.querySelector<HTMLElement>(".t-success-check")
+    const checkPath = check?.querySelector<SVGPathElement>("path")
+    if (checkPath) {
+      const pathLength = Math.ceil(checkPath.getTotalLength()) + 1
+      checkPath.style.strokeDasharray = String(pathLength)
+      checkPath.style.strokeDashoffset = String(pathLength)
+    }
     let labelReset: ReturnType<typeof setTimeout> | undefined
     button.addEventListener("click", async () => {
       if (!label || button.disabled) return
@@ -80,6 +97,13 @@ import { AGENT_PROMPT } from "@/config"
       }
 
       button.disabled = true
+      button.setAttribute("data-copied", "")
+      icons?.setAttribute("data-state", "b")
+      if (check) {
+        check.setAttribute("data-state", "out")
+        void check.offsetWidth
+        check.setAttribute("data-state", "in")
+      }
       swapText(label, "Copied")
       clearTimeout(pulseReset)
       heroAsset?.removeAttribute("data-copy-pulse")
@@ -91,6 +115,9 @@ import { AGENT_PROMPT } from "@/config"
       clearTimeout(labelReset)
       labelReset = setTimeout(() => {
         swapText(label, button.dataset.copyLabel ?? "Copy")
+        icons?.setAttribute("data-state", "a")
+        check?.setAttribute("data-state", "out")
+        button.removeAttribute("data-copied")
         button.disabled = false
       }, 1800)
     })
