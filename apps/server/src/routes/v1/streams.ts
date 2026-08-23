@@ -218,7 +218,7 @@ const createRouteDef = createRoute({
   tags: ["streams"],
   summary: "Create a stream (optionally with its first schema version and sources)",
   description:
-    "A stream (shown as 'Bag' in the dashboard) collects submissions from many forms into one shared shape. " +
+    "A Stream collects Submissions from many Forms into one shared shape. " +
     "Pass `schema` to define that shape up front, or omit it and pass `sources` — the first source's form then " +
     "provides version 1 (copied from its published schema, its inferred draft, or the fields seen in recent " +
     "submissions) with an identity mapping, so `{ name, sources: [{ form_id }] }` is a complete request.",
