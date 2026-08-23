@@ -1,7 +1,10 @@
 export const ERROR_DEFINITIONS = {
   not_found: { status: 404, hint: "Check the id and organization scope." },
   forbidden: { status: 403, hint: "Use credentials with permission for this operation." },
-  unauthorized: { status: 401, hint: "Provide a session cookie or an Authorization: Bearer pb_live_… key." },
+  unauthorized: {
+    status: 401,
+    hint: "Provide a session cookie or an Authorization: Bearer pb_live_… key.",
+  },
   validation_failed: { status: 422, hint: "Correct the fields described in details and retry." },
   mapping_incomplete: { status: 422, hint: "Map every required stream field before attaching." },
   stream_schema_missing: {
@@ -23,6 +26,34 @@ export const ERROR_DEFINITIONS = {
   rate_limited: { status: 429, hint: "Retry after the indicated delay." },
   origin_rejected: { status: 403, hint: "Add the site origin to the Form allowed origins." },
   idempotency_conflict: { status: 409, hint: "Reuse the key only for the identical operation." },
+  anonymous_quickstart_disabled: {
+    status: 503,
+    hint: "Use POST /v1/auth/request-code, then the authenticated POST /v1/quickstart path.",
+  },
+  sandbox_unauthorized: {
+    status: 401,
+    hint: "Provide the sandbox token using the documented Sandbox authorization scheme.",
+  },
+  sandbox_expired: {
+    status: 410,
+    hint: "Create a new sandbox. Anonymous Forms expire after 24 hours.",
+  },
+  sandbox_limit_reached: {
+    status: 409,
+    hint: "Claim this Form or create a new sandbox. A sandbox accepts at most five Submissions.",
+  },
+  sandbox_claimed: {
+    status: 410,
+    hint: "This sandbox token has been consumed. Use the claimed Form through the authenticated API.",
+  },
+  sandbox_claim_email_mismatch: {
+    status: 403,
+    hint: "Sign in with the verified email address bound when this sandbox was created.",
+  },
+  sandbox_capacity_reached: {
+    status: 503,
+    hint: "Use the authenticated quickstart path or retry after other anonymous sandboxes expire.",
+  },
   conflict: { status: 409, hint: "The resource already exists, or is still referenced elsewhere." },
   plan_limit_reached: { status: 402, hint: "Change plan limits or remove an unused resource." },
   billing_disabled: {
@@ -60,7 +91,10 @@ export const ERROR_DEFINITIONS = {
   },
   // Job L — members, invitations, roles.
   invitation_expired: { status: 410, hint: "Ask an owner or admin to invite you again." },
-  invitation_already_used: { status: 409, hint: "This invitation was already accepted or revoked." },
+  invitation_already_used: {
+    status: 409,
+    hint: "This invitation was already accepted or revoked.",
+  },
   invitation_email_mismatch: {
     status: 403,
     hint: "Sign out and sign in (or up) with the invited email address, then accept again.",

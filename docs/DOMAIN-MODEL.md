@@ -13,9 +13,16 @@ Organization ─┬─ Membership ── User
               ├─ Event (audit + org webhooks)
               ├─ BillingEvent (verified Polar subscription event queue)
               └─ DriftEvent
+
+AnonymousSandbox ── AnonymousSubmission
+        │
+        └── claim ──► Organization / Project / Form / Submission
 ```
 
-Tenancy: **every row carries `organization_id`** and every query is scoped by it.
+Tenancy: **every tenant-owned row carries `organization_id`** and every query is
+scoped by it. Anonymous sandbox staging rows are deliberately non-tenant and can
+only be addressed with their hashed capability token; claiming moves their data
+into tenant-owned rows atomically.
 IDs are prefixed public ids (`fm_…`, `sb_…`, `st_…`, `ds_…`, `rt_…`, `dl_…`) so an
 id is self-describing in logs, URLs, and agent conversations.
 
@@ -49,20 +56,40 @@ done by Streams. A "Default" project exists from signup.
 The thing a website posts to. Identified publicly by `public_id` (`fm_8f3kq2`),
 which appears in the submit URL and is not secret.
 
-| Field | Notes |
-|---|---|
-| `slug`, `name`, `tags[]` | `tags` are how streams select forms in bulk (`tag:vending`). |
-| `schema_mode` | `observe` (default) · `enforce` · `managed`. See *FormSchema*. |
-| `current_schema_version` | Null until a schema exists. |
-| `settings.allowed_origins[]` | CORS + Origin/Referer check. Empty = any. |
-| `settings.redirect_url` | Where HTML (non-JS) posts are sent after a 303. Can be overridden per-submit by `_redirect`. |
-| `settings.honeypot_field` | Default `_gotcha`. Non-empty value ⇒ flagged spam, still stored. |
-| `settings.turnstile` | Optional Cloudflare Turnstile secret; verified server-side. |
-| `settings.rate_limit` | Per-IP per-form, with a burst. Overflow ⇒ stored as `quarantined`, reason `rate_limited`. |
-| `settings.reply_to_field` | Which submitted field becomes Reply-To on email deliveries (default: first field that looks like an email). |
-| `status` | `active` · `paused` (paused forms store but do not deliver). |
+| Field                        | Notes                                                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `slug`, `name`, `tags[]`     | `tags` are how streams select forms in bulk (`tag:vending`).                                                |
+| `schema_mode`                | `observe` (default) · `enforce` · `managed`. See _FormSchema_.                                              |
+| `current_schema_version`     | Null until a schema exists.                                                                                 |
+| `settings.allowed_origins[]` | CORS + Origin/Referer check. Empty = any.                                                                   |
+| `settings.redirect_url`      | Where HTML (non-JS) posts are sent after a 303. Can be overridden per-submit by `_redirect`.                |
+| `settings.honeypot_field`    | Default `_gotcha`. Non-empty value ⇒ flagged spam, still stored.                                            |
+| `settings.turnstile`         | Optional Cloudflare Turnstile secret; verified server-side.                                                 |
+| `settings.rate_limit`        | Per-IP per-form, with a burst. Overflow ⇒ stored as `quarantined`, reason `rate_limited`.                   |
+| `settings.reply_to_field`    | Which submitted field becomes Reply-To on email deliveries (default: first field that looks like an email). |
+| `status`                     | `active` · `paused` (paused forms store but do not deliver).                                                |
 
 A form can be attached to zero or more streams and can have direct routes of its own.
+
+## Sandbox
+
+A temporary, unclaimed Form used to prove receipt before a person creates or signs
+into an account. It keeps the final `fm_…` public id and submit URL, expires after
+24 hours, accepts at most five Submissions of at most 16 KiB and never creates a
+Destination or Delivery.
+
+The capability token is shown once, stored only as a keyed hash and required to read
+or claim the sandbox. A separately encrypted copy exists only so an idempotent create
+retry can replay the original response. A claim-email hash may bind the sandbox to
+the verified email of the claimant; the raw email is not stored.
+
+Claiming locks the sandbox, resolves a real Project, creates the tenant-owned Form
+with the same public id, copies accepted rows as test Submissions with their original
+ids and timestamps, then consumes the token. New submissions use the normal Form
+path; copied test Submissions never retroactively create Deliveries. Expired,
+unclaimed sandboxes are deleted by the explicit retention job. See
+[ADR-008](./decisions/ADR-008-anonymous-claimable-quickstart.md) and
+[ADR-009](./decisions/ADR-009-anonymous-admission-boundary.md).
 
 ## FormSchema
 
@@ -76,26 +103,26 @@ row; the form's `current_schema_version` moves. Each version holds:
 
 Modes, set on the form:
 
-| Mode | Behaviour |
-|---|---|
-| `observe` | Accept everything. If a schema exists, compare and raise **drift** events; if none, infer one in the background and offer it. Default. |
-| `enforce` | Validate against the current schema. Violations are stored as `quarantined` with reason `schema_violation` — never rejected, never dropped — and raise a drift event. |
+| Mode      | Behaviour                                                                                                                                                                                         |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `observe` | Accept everything. If a schema exists, compare and raise **drift** events; if none, infer one in the background and offer it. Default.                                                            |
+| `enforce` | Validate against the current schema. Violations are stored as `quarantined` with reason `schema_violation` — never rejected, never dropped — and raise a drift event.                             |
 | `managed` | Postbag owns the schema. `GET /s/{public_id}/schema` serves it (CORS open) and sites render the form from it. Validation as `enforce`. The site cannot drift because it has no schema of its own. |
 
 ## Submission
 
 One received payload.
 
-| Field | Notes |
-|---|---|
-| `public_id` | `sb_…` |
-| `data` | JSON object of submitted fields, after stripping control fields (`_redirect`, `_gotcha`, …). Files are referenced by `fl_…` ids (Phase 2). |
-| `form_schema_version` | Version validated against, or null. |
-| `status` | `received` · `quarantined` · `spam`. All three are stored and visible. |
-| `quarantine_reason` | `schema_violation` · `rate_limited` · `origin_rejected` · `turnstile_failed` · `over_quota`. |
-| `spam` | `{ score, reasons[] }` — honeypot, heuristics, later ML. |
-| `meta` | `ip`, `user_agent`, `origin`, `referer`, `country`, `received_at`, `content_type`. |
-| `idempotency_key` | From the `Idempotency-Key` header or `_idempotency` field. Unique per form. |
+| Field                 | Notes                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `public_id`           | `sb_…`                                                                                                                                     |
+| `data`                | JSON object of submitted fields, after stripping control fields (`_redirect`, `_gotcha`, …). Files are referenced by `fl_…` ids (Phase 2). |
+| `form_schema_version` | Version validated against, or null.                                                                                                        |
+| `status`              | `received` · `quarantined` · `spam`. All three are stored and visible.                                                                     |
+| `quarantine_reason`   | `schema_violation` · `rate_limited` · `origin_rejected` · `turnstile_failed` · `over_quota`.                                               |
+| `spam`                | `{ score, reasons[] }` — honeypot, heuristics, later ML.                                                                                   |
+| `meta`                | `ip`, `user_agent`, `origin`, `referer`, `country`, `received_at`, `content_type`.                                                         |
+| `idempotency_key`     | From the `Idempotency-Key` header or `_idempotency` field. Unique per form.                                                                |
 
 Unique: `(form_id, idempotency_key)`.
 
@@ -129,11 +156,11 @@ Per (stream, form): how that form's fields produce the stream schema's fields.
 
 ```jsonc
 {
-  "name":    { "from": "fullName" },              // direct
+  "name": { "from": "fullName" }, // direct
   "company": { "from": "Företag" },
-  "phone":   { "from": "tel", "default": null },
-  "site":    { "const": "kontorsautomat.se" },    // literal
-  "message": { "expr": "$join([subject, body], '\n\n')" }   // expression (Phase 2)
+  "phone": { "from": "tel", "default": null },
+  "site": { "const": "kontorsautomat.se" }, // literal
+  "message": { "expr": "$join([subject, body], '\n\n')" }, // expression (Phase 2)
 }
 ```
 
@@ -146,13 +173,13 @@ and to the agent making the call — not at delivery time.
 
 Somewhere submissions can go. Org-scoped and reusable across routes.
 
-| Type | Config | Notes |
-|---|---|---|
-| `email` | `to[]`, `cc[]`, `subject_template`, `from_name` | Sent via Resend from a Postbag domain, Reply-To set from the submission. Per-org sending domains in Phase 3. |
-| `telegram` | `bot_token`, `chat_id`, `template` | Bot API. `/start` pairing flow in dashboard later. |
-| `webhook` | `url`, `secret`, `headers{}` | POST JSON, HMAC-SHA256 signature header, timestamp, retries. **The universal extension point.** |
-| `slack`, `discord` | incoming webhook url, template | Phase 2. |
-| `dekhval`, `smedja`, … | native | Phase 3, and only once the webhook path has proven the need. |
+| Type                   | Config                                          | Notes                                                                                                        |
+| ---------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `email`                | `to[]`, `cc[]`, `subject_template`, `from_name` | Sent via Resend from a Postbag domain, Reply-To set from the submission. Per-org sending domains in Phase 3. |
+| `telegram`             | `bot_token`, `chat_id`, `template`              | Bot API. `/start` pairing flow in dashboard later.                                                           |
+| `webhook`              | `url`, `secret`, `headers{}`                    | POST JSON, HMAC-SHA256 signature header, timestamp, retries. **The universal extension point.**              |
+| `slack`, `discord`     | incoming webhook url, template                  | Phase 2.                                                                                                     |
+| `dekhval`, `smedja`, … | native                                          | Phase 3, and only once the webhook path has proven the need.                                                 |
 
 Secrets in `config` are encrypted at rest with an org-independent KMS key. A
 destination can be **tested** (`POST /v1/destinations/{id}/test`) with a sample
@@ -162,28 +189,28 @@ payload — this is the agent's verification step.
 
 `source → destination` with rules. Source is **either** a form **or** a stream.
 
-| Field | Notes |
-|---|---|
-| `filter` | Expression over the (mapped) payload; falsey ⇒ delivery `skipped`. Phase 2. |
-| `transform` | Template/expression producing the destination payload. Default identity. Phase 2. |
-| `window` | `{ from, until }` timestamps; outside the window ⇒ `skipped`. Ships Phase 1 — it is what the HonestBox case needs. |
-| `mode` | `instant` (default) · `digest { cron, timezone }`. |
-| `quality` | Minimum quality bar: e.g. `exclude_spam: true`, `exclude_quarantined: true` (defaults true/true). |
-| `enabled` | |
+| Field       | Notes                                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------ |
+| `filter`    | Expression over the (mapped) payload; falsey ⇒ delivery `skipped`. Phase 2.                                        |
+| `transform` | Template/expression producing the destination payload. Default identity. Phase 2.                                  |
+| `window`    | `{ from, until }` timestamps; outside the window ⇒ `skipped`. Ships Phase 1 — it is what the HonestBox case needs. |
+| `mode`      | `instant` (default) · `digest { cron, timezone }`.                                                                 |
+| `quality`   | Minimum quality bar: e.g. `exclude_spam: true`, `exclude_quarantined: true` (defaults true/true).                  |
+| `enabled`   |                                                                                                                    |
 
 ## Delivery
 
 The **outbox**. One row per (submission, route), created transactionally with the
 submission's routing, drained by the worker.
 
-| Field | Notes |
-|---|---|
-| `status` | `pending` · `sending` · `sent` · `failed` (will retry) · `dead` (gave up, alert raised) · `skipped` (filter/window/quality). |
-| `attempts`, `next_attempt_at`, `last_error` | Exponential backoff with jitter; max attempts per destination type. |
-| `payload` | Snapshot of exactly what was (or will be) sent, after mapping + transform. |
-| `schema_version` | Stream schema version (or form schema version for direct routes) the payload conforms to. |
-| `response` | Status, truncated body, latency of the last attempt. |
-| `dedupe_key` | `"{submission_id}:{route_id}"` — **unique**. |
+| Field                                       | Notes                                                                                                                        |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `status`                                    | `pending` · `sending` · `sent` · `failed` (will retry) · `dead` (gave up, alert raised) · `skipped` (filter/window/quality). |
+| `attempts`, `next_attempt_at`, `last_error` | Exponential backoff with jitter; max attempts per destination type.                                                          |
+| `payload`                                   | Snapshot of exactly what was (or will be) sent, after mapping + transform.                                                   |
+| `schema_version`                            | Stream schema version (or form schema version for direct routes) the payload conforms to.                                    |
+| `response`                                  | Status, truncated body, latency of the last attempt.                                                                         |
+| `dedupe_key`                                | `"{submission_id}:{route_id}"` — **unique**.                                                                                 |
 
 Digest routes create a **Digest** row keyed `(route_id, period_key)` — unique — and
 deliveries are grouped under it.
@@ -209,3 +236,5 @@ once a human or agent has published a new schema version or dismissed it.
 3. `digests (route_id, period_key)` unique.
 4. `form_schemas (form_id, version)` and `stream_schemas (stream_id, version)` unique; rows never updated.
 5. Every tenant-owned row has a non-null `organization_id`, and every foreign key across tenant tables is checked to be within the same organization (composite FK or trigger).
+6. Anonymous sandbox rows are non-tenant staging rows; capability-token checks and
+   the atomic claim transaction are their ownership boundary.

@@ -42,7 +42,10 @@ export async function mintApiKey(auth: Auth, input: MintApiKeyInput): Promise<Mi
       name: input.name,
       organizationId: input.organizationId,
       ...(input.userId === undefined ? {} : { userId: input.userId }),
-      metadata: { scopes: input.scopes },
+      metadata: {
+        scopes: input.scopes,
+        ...(input.userId === undefined ? {} : { created_by_user_id: input.userId }),
+      },
     },
   })
   return created as unknown as MintedApiKey
@@ -54,7 +57,9 @@ const ApiKeyCreateInputSchema = z.object({
     .array(ScopeSchema)
     .min(1)
     .default(["manage"])
-    .describe("manage ⊇ read ⊇ submit — a manage key satisfies every read- or submit-scoped call too."),
+    .describe(
+      "manage ⊇ read ⊇ submit — a manage key satisfies every read- or submit-scoped call too.",
+    ),
 })
 
 const ApiKeyCreatedSchema = z.object({
@@ -87,7 +92,10 @@ const createApiKeyRoute = createRoute({
     "store it immediately.",
   request: { body: { content: { "application/json": { schema: ApiKeyCreateInputSchema } } } },
   responses: {
-    201: { description: "created", content: { "application/json": { schema: ApiKeyCreatedSchema } } },
+    201: {
+      description: "created",
+      content: { "application/json": { schema: ApiKeyCreatedSchema } },
+    },
     ...errorResponses,
   },
 })
@@ -100,7 +108,10 @@ const listApiKeysRoute = createRoute({
   summary: "List API keys for the active organization",
   description: "Prefixes only — full key values are never returned again after creation.",
   responses: {
-    200: { description: "ok", content: { "application/json": { schema: z.array(ApiKeySummarySchema) } } },
+    200: {
+      description: "ok",
+      content: { "application/json": { schema: z.array(ApiKeySummarySchema) } },
+    },
   },
 })
 
@@ -111,7 +122,9 @@ const deleteApiKeyRoute = createRoute({
   tags: ["discovery"],
   summary: "Delete an API key",
   description: "Revokes the key immediately; any client still using it starts getting 401s.",
-  request: { params: z.object({ id: z.string().describe("The API key id (not the key value itself).") }) },
+  request: {
+    params: z.object({ id: z.string().describe("The API key id (not the key value itself).") }),
+  },
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })
 
@@ -152,7 +165,8 @@ export function registerApiKeyRoutes(app: OpenAPIHono<AppEnv>, auth: Auth, db: D
       .where(and(eq(apikey.referenceId, scope.organizationId), eq(apikey.configId, "postbag")))
     return c.json(
       rows.map((row) => {
-        const metadata = row.metadata === null ? {} : (JSON.parse(row.metadata) as { scopes?: unknown })
+        const metadata =
+          row.metadata === null ? {} : (JSON.parse(row.metadata) as { scopes?: unknown })
         const scopes = Array.isArray(metadata.scopes)
           ? metadata.scopes.filter(
               (value): value is "manage" | "read" | "submit" =>
@@ -184,7 +198,9 @@ export function registerApiKeyRoutes(app: OpenAPIHono<AppEnv>, auth: Auth, db: D
     if (row === undefined) throw new PostbagError("not_found", "No API key with that id.")
     // Delete directly: better-auth's deleteApiKey endpoint gates on a browser session,
     // which does not exist for a bearer-key caller; ownership is already org-scoped above.
-    await db.delete(apikey).where(and(eq(apikey.id, id), eq(apikey.referenceId, scope.organizationId)))
+    await db
+      .delete(apikey)
+      .where(and(eq(apikey.id, id), eq(apikey.referenceId, scope.organizationId)))
     return c.body(null, 204)
   })
 }

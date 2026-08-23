@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Which sign-in methods this instance has configured
-         * @description Public, unauthenticated — no API key needed. Email+password is always available. `social` lists only the OAuth providers this instance has both a client id and secret for (self-host parity: a self-hosted instance with neither configured returns an empty list). The dashboard calls this once, cached, to decide which social sign-in buttons to render.
+         * @description Public, unauthenticated. Email/password reports sign-in and sign-up separately because hosted Postbag keeps password sign-in for existing users while disabling new password registration. `social` lists only the OAuth providers this instance has both a client id and secret for (self-host parity: a self-hosted instance with neither configured returns an empty list). The dashboard calls this once, cached, to decide which social sign-in buttons to render.
          */
         get: operations["auth_providers"];
         put?: never;
@@ -75,6 +75,43 @@ export interface paths {
          * @description Public, unauthenticated. Verifies the code sent by POST /v1/auth/request-code and, on success, mints an API key through the same path POST /v1/api-keys uses — default scope manage. A new email provisions a personal organization first, exactly like every other sign-up path. An existing user's key is minted against their personal organization (the one they own, oldest first, if they belong to several). This does not set a session cookie — it mints a key, it does not log a browser in.
          */
         post: operations["auth_verify_code"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/sandboxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a bounded 24-hour sandbox Form without an account
+         * @description Requires a canonical UUIDv4 Idempotency-Key. Creates an inert sandbox Form that can accept at most five test Submissions and cannot create Destinations, Routes, Deliveries, Events or outbound traffic.
+         */
+        post: operations["public_sandboxes_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/sandboxes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a sandbox and its bounded Submissions using the sandbox capability */
+        get: operations["public_sandboxes_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -417,6 +454,26 @@ export interface paths {
          * @description Creates (idempotently, by name within project) the project if missing, the form, a destination for whichever of notify_email/telegram/webhook was given, and a direct route, then returns the form, an embeddable snippet, a browser-equivalent curl command to verify delivery, and next steps. Allowed origins are compared canonically, so paths, trailing slashes, host casing, and default ports do not cause mismatches. Everything it does is also available as individual calls (POST /v1/forms, /v1/destinations, /v1/routes); this is a convenience, not a special path.
          */
         post: operations["quickstart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sandboxes/{id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim a sandbox Form into the active organization
+         * @description Requires both an authenticated manage-scoped actor and the sandbox capability in Postbag-Sandbox-Token. The Form id and submit URL remain unchanged.
+         */
+        post: operations["sandboxes_claim"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1465,7 +1522,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        email_password: boolean;
+                        email_password: {
+                            sign_in: boolean;
+                            sign_up: boolean;
+                        };
+                        email_code: {
+                            sign_in: boolean;
+                            sign_up: boolean;
+                        };
                         social: ("google" | "github")[];
                         sign_in_url: string;
                     };
@@ -1669,6 +1733,190 @@ export interface operations {
             };
             /** @description Invalid or expired code */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    public_sandboxes_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Canonical lowercase UUIDv4 generated with a CSPRNG. */
+                "idempotency-key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /**
+                     * Format: uri
+                     * @description The site origin allowed to submit, canonicalized before storage.
+                     */
+                    origin?: string;
+                    /**
+                     * Format: email
+                     * @description Optional verified-email binding. Include only when the user explicitly supplied it.
+                     */
+                    claim_email?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description created or idempotently replayed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        sandbox: {
+                            /** @example fm_8f3kq2 */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            status: "active" | "claimed" | "expired" | "blocked";
+                            submit_url: string;
+                            /** @example 2026-08-21T09:00:00.000Z */
+                            expires_at: string;
+                            accepted_count: number;
+                            remaining: number;
+                        };
+                        /** @description Shown only in this response. Treat it as a secret. */
+                        sandbox_token: string;
+                        authorization: {
+                            /** @enum {string} */
+                            scheme: "Sandbox";
+                            example: string;
+                        };
+                        embed: {
+                            html: string;
+                            fetch: string;
+                            react: string;
+                            astro: string;
+                            nextjs_action: string;
+                        };
+                        verify: {
+                            curl: string;
+                            then: string;
+                        };
+                        claim_url: string;
+                        next: {
+                            why: string;
+                            method: string;
+                            path: string;
+                            headers?: {
+                                [key: string]: string;
+                            };
+                            body?: {
+                                [key: string]: unknown;
+                            };
+                        }[];
+                    };
+                };
+            };
+            /** @description Idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Source allowance exhausted */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled or globally full */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    public_sandboxes_get: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Sandbox <sandbox_token> */
+                authorization: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example fm_8f3kq2 */
+                        id: string;
+                        name: string;
+                        /** @enum {string} */
+                        status: "active" | "claimed" | "expired" | "blocked";
+                        submit_url: string;
+                        /** @example 2026-08-21T09:00:00.000Z */
+                        expires_at: string;
+                        accepted_count: number;
+                        remaining: number;
+                        submissions: {
+                            /** @example fm_8f3kq2 */
+                            id: string;
+                            data: {
+                                [key: string]: unknown;
+                            };
+                            meta: {
+                                [key: string]: unknown;
+                            };
+                            /** @example 2026-08-21T09:00:00.000Z */
+                            received_at: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid sandbox capability */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Expired or consumed */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3262,6 +3510,89 @@ export interface operations {
             };
             /** @description Error */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    sandboxes_claim: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The sandbox token returned at creation. */
+                "postbag-sandbox-token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description claimed or idempotently returned */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        claimed: true;
+                        idempotent: boolean;
+                        form: {
+                            /** @example fm_8f3kq2 */
+                            id: string;
+                            /** @example fm_8f3kq2 */
+                            project_id: string;
+                            slug: string;
+                            name: string;
+                            submit_url: string;
+                        };
+                        copied_test_submissions: number;
+                        next: {
+                            why: string;
+                            method: string;
+                            path: string;
+                            body?: {
+                                [key: string]: unknown;
+                            };
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid sandbox capability */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Target organization Form limit reached */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Claim email mismatch */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Expired or consumed */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };

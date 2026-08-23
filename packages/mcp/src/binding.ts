@@ -1,7 +1,7 @@
 import type { GeneratedOperation, JsonSchema } from "./types.js"
 
 export interface ParamBinding {
-  readonly kind: "path" | "query"
+  readonly kind: "path" | "query" | "header"
   readonly realName: string
 }
 

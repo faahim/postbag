@@ -12,7 +12,7 @@ export type HttpMethod = "get" | "post" | "put" | "patch" | "delete"
 
 export interface OperationParam {
   readonly name: string
-  readonly in: "path" | "query"
+  readonly in: "path" | "query" | "header"
   readonly required: boolean
   readonly schema: JsonSchema
   readonly description?: string

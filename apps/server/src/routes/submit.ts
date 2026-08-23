@@ -11,6 +11,8 @@ import {
 } from "@postbag/core"
 import { and, eq } from "drizzle-orm"
 import {
+  acceptAnonymousSubmission,
+  anonymousSandboxes,
   deliveries,
   driftEvents,
   forms,
@@ -23,15 +25,21 @@ import type { Context, Hono } from "hono"
 
 import type { Env } from "../env.js"
 import { clientIp } from "../lib/clientIp.js"
+import { jsonDepth, sandboxSubmissionIdempotencyHash } from "../lib/anonymousSandbox.js"
 import { decideCors } from "../lib/cors.js"
 import { envelope } from "../lib/errors.js"
 import { countMonthlySubmissions, lockPlanCapacity, organizationLimits } from "../lib/planUsage.js"
 import type { Logger } from "../logger.js"
 import type { TokenBucketLimiter } from "../lib/rateLimit.js"
 import type { AppEnv } from "../lib/scope.js"
-import { getDirectRoutesForForm, getStreamMembershipsForForm, getStreamSchemaJson } from "../repo/routing.js"
+import {
+  getDirectRoutesForForm,
+  getStreamMembershipsForForm,
+  getStreamSchemaJson,
+} from "../repo/routing.js"
 
 const MAX_BODY_BYTES = 256 * 1_024
+const MAX_ANONYMOUS_BODY_BYTES = 16 * 1_024
 // See the digest TODO near the delivery insert below.
 const DIGEST_PARKED_UNTIL = new Date("9999-01-01T00:00:00.000Z")
 
@@ -59,11 +67,14 @@ type FormSettings = {
   readonly turnstile?: { readonly secret?: string; readonly enabled?: boolean }
 }
 
-async function readBoundedBody(request: Request): Promise<{ raw: ArrayBuffer; contentType: string }> {
+async function readBoundedBody(
+  request: Request,
+  maxBytes = MAX_BODY_BYTES,
+): Promise<{ raw: ArrayBuffer; contentType: string }> {
   const contentType = (request.headers.get("content-type") ?? "").split(";")[0]?.trim() ?? ""
   const raw = await request.arrayBuffer()
-  if (raw.byteLength > MAX_BODY_BYTES) {
-    throw new PayloadTooLarge(`The submission body exceeds ${String(MAX_BODY_BYTES)} bytes.`)
+  if (raw.byteLength > maxBytes) {
+    throw new PayloadTooLarge(`The submission body exceeds ${String(maxBytes)} bytes.`)
   }
   return { raw, contentType }
 }
@@ -78,7 +89,10 @@ function parseUrlEncoded(text: string): Record<string, unknown> {
   return result
 }
 
-async function parseMultipart(raw: ArrayBuffer, contentType: string): Promise<Record<string, unknown>> {
+async function parseMultipart(
+  raw: ArrayBuffer,
+  contentType: string,
+): Promise<Record<string, unknown>> {
   const request = new Request("http://local/multipart", {
     method: "POST",
     headers: { "content-type": contentType },
@@ -88,7 +102,9 @@ async function parseMultipart(raw: ArrayBuffer, contentType: string): Promise<Re
   const grouped = new Map<string, unknown[]>()
   form.forEach((value, key) => {
     if (value instanceof File) {
-      throw new PostbagError("unsupported_media_type", "File uploads are not supported yet.", { field: key })
+      throw new PostbagError("unsupported_media_type", "File uploads are not supported yet.", {
+        field: key,
+      })
     }
     const existing = grouped.get(key) ?? []
     existing.push(value)
@@ -103,8 +119,13 @@ async function parseMultipart(raw: ArrayBuffer, contentType: string): Promise<Re
 
 async function parseBody(
   request: Request,
-): Promise<{ readonly input: Record<string, unknown>; readonly contentType: string; readonly isForm: boolean }> {
-  const { raw, contentType } = await readBoundedBody(request)
+  maxBytes = MAX_BODY_BYTES,
+): Promise<{
+  readonly input: Record<string, unknown>
+  readonly contentType: string
+  readonly isForm: boolean
+}> {
+  const { raw, contentType } = await readBoundedBody(request, maxBytes)
   const text = new TextDecoder().decode(raw)
   if (contentType === "application/json") {
     if (text.trim().length === 0) return { input: {}, contentType, isForm: false }
@@ -144,7 +165,9 @@ async function verifyTurnstile(secret: string, token: string | undefined): Promi
       signal: AbortSignal.timeout(3_000),
     })
     const body: unknown = await response.json()
-    return typeof body === "object" && body !== null && (body as { success?: boolean }).success === true
+    return (
+      typeof body === "object" && body !== null && (body as { success?: boolean }).success === true
+    )
   } catch {
     return false
   }
@@ -169,7 +192,6 @@ function respond(
 
 export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void {
   const { db, logger, rateLimiter } = deps
-  void deps.env
 
   app.options("/s/:formId", (c) => {
     const origin = c.req.header("origin")
@@ -189,7 +211,9 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
     const [row] = await db
       .select()
       .from(formSchemas)
-      .where(and(eq(formSchemas.formId, form.id), eq(formSchemas.version, form.currentSchemaVersion)))
+      .where(
+        and(eq(formSchemas.formId, form.id), eq(formSchemas.version, form.currentSchemaVersion)),
+      )
       .limit(1)
     if (row === undefined) return c.json(envelope("not_found", "Schema version not found."), 404)
     c.header("Access-Control-Allow-Origin", "*")
@@ -214,8 +238,110 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
   app.post("/s/:formId", async (c) => {
     const requestId = c.get("requestId") as string | undefined
     const formId = c.req.param("formId")
-    const form = await getForm(db, formId)
-    if (form === null) return c.json(envelope("not_found", "No form with that id."), 404)
+    let form = await getForm(db, formId)
+    let parsedBody:
+      | {
+          readonly input: Record<string, unknown>
+          readonly contentType: string
+          readonly isForm: boolean
+        }
+      | undefined
+
+    if (form === null) {
+      const [sandbox] = await db
+        .select({
+          id: anonymousSandboxes.id,
+          allowedOrigin: anonymousSandboxes.allowedOrigin,
+        })
+        .from(anonymousSandboxes)
+        .where(eq(anonymousSandboxes.id, formId))
+        .limit(1)
+      if (sandbox === undefined) return c.json(envelope("not_found", "No form with that id."), 404)
+
+      const requestOrigin = c.req.header("origin")
+      c.header("Vary", "Origin")
+      if (sandbox.allowedOrigin === null) {
+        c.header("Access-Control-Allow-Origin", requestOrigin ?? "*")
+      } else if (requestOrigin === sandbox.allowedOrigin) {
+        c.header("Access-Control-Allow-Origin", sandbox.allowedOrigin)
+      } else if (requestOrigin !== undefined) {
+        throw new PostbagError(
+          "origin_rejected",
+          "This origin is not allowed to submit to the sandbox Form.",
+        )
+      }
+
+      parsedBody = await parseBody(c.req.raw, MAX_ANONYMOUS_BODY_BYTES)
+      const normalized = normalizeBody(parsedBody.input, parsedBody.contentType)
+      if (jsonDepth(normalized.data) > 4) {
+        throw new PayloadTooLarge(
+          "Anonymous submission data may be nested at most four levels deep.",
+        )
+      }
+      const idempotencyKey =
+        c.req.header("idempotency-key") ??
+        (typeof normalized.control._idempotency === "string"
+          ? normalized.control._idempotency
+          : undefined)
+      const receivedAt = new Date()
+      const anonymousResult = await acceptAnonymousSubmission(db, {
+        sandboxId: formId,
+        data: normalized.data,
+        meta: {
+          origin: requestOrigin ?? null,
+          content_type: parsedBody.contentType,
+          user_agent: c.req.header("user-agent") ?? "",
+        },
+        idempotencyKeyHash:
+          idempotencyKey === undefined
+            ? null
+            : sandboxSubmissionIdempotencyHash(deps.env.BETTER_AUTH_SECRET, formId, idempotencyKey),
+        receivedAt,
+      })
+
+      if (anonymousResult.kind === "accepted") {
+        logger.info(
+          {
+            sandbox_id: formId,
+            submission_id: anonymousResult.submissionId,
+            request_id: requestId,
+            idempotent: anonymousResult.idempotent,
+          },
+          "anonymous_submission.accepted",
+        )
+        const accept = c.req.header("accept") ?? ""
+        if (parsedBody.isForm && !accept.includes("application/json")) {
+          return c.redirect(`/s/${formId}/thanks`, 303)
+        }
+        return c.json({
+          ok: true,
+          submission_id: anonymousResult.submissionId,
+          status: "received",
+          test: true,
+          ...(anonymousResult.idempotent ? { idempotent: true } : {}),
+        })
+      }
+
+      // Claim may have committed between the initial normal-Form lookup and the sandbox's
+      // conditional counter update. Resolve the real Form again before reporting a sandbox
+      // error so the stable /s/{id} URL never has a claim-race gap.
+      form = await getForm(db, formId)
+      if (form === null) {
+        if (anonymousResult.expiresAt !== null && anonymousResult.expiresAt <= receivedAt) {
+          throw new PostbagError("sandbox_expired", "This sandbox has expired.")
+        }
+        if (anonymousResult.acceptedCount !== null && anonymousResult.acceptedCount >= 5) {
+          throw new PostbagError(
+            "sandbox_limit_reached",
+            "This sandbox has already accepted five Submissions.",
+          )
+        }
+        if (anonymousResult.status === "claimed") {
+          throw new PostbagError("sandbox_claimed", "This sandbox was already claimed.")
+        }
+        throw new PostbagError("sandbox_unauthorized", "This sandbox is not available.")
+      }
+    }
 
     const settings = form.settings as FormSettings
     const allowedOrigins = settings.allowed_origins ?? []
@@ -224,7 +350,7 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
     c.header("Vary", "Origin")
     if (cors.allowOrigin !== null) c.header("Access-Control-Allow-Origin", cors.allowOrigin)
 
-    const { input, contentType, isForm } = await parseBody(c.req.raw)
+    const { input, contentType, isForm } = parsedBody ?? (await parseBody(c.req.raw))
     const { data, control } = normalizeBody(input, contentType)
     const ctrl = control as ControlFields
     const isTest = ctrl._test === true || ctrl._test === "true"
@@ -267,20 +393,36 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
     let status: "received" | "quarantined" | "spam" = spam.score >= 0.5 ? "spam" : "received"
     let quarantineReason: string | null = null
 
-    if (status !== "spam" && requestOrigin !== undefined && allowedOrigins.length > 0 && cors.allowOrigin === null) {
+    if (
+      status !== "spam" &&
+      requestOrigin !== undefined &&
+      allowedOrigins.length > 0 &&
+      cors.allowOrigin === null
+    ) {
       status = "quarantined"
       quarantineReason = "origin_rejected"
     }
     if (status === "received") {
       const rateLimit = settings.rate_limit ?? {}
-      const allowed = rateLimiter.consume(`${formId}:${meta.ip}`, rateLimit.per_minute ?? 10, rateLimit.burst ?? 20)
+      const allowed = rateLimiter.consume(
+        `${formId}:${meta.ip}`,
+        rateLimit.per_minute ?? 10,
+        rateLimit.burst ?? 20,
+      )
       if (!allowed) {
         status = "quarantined"
         quarantineReason = "rate_limited"
       }
     }
-    if (status === "received" && settings.turnstile?.enabled === true && settings.turnstile.secret !== undefined) {
-      const token = typeof data["cf-turnstile-response"] === "string" ? data["cf-turnstile-response"] : undefined
+    if (
+      status === "received" &&
+      settings.turnstile?.enabled === true &&
+      settings.turnstile.secret !== undefined
+    ) {
+      const token =
+        typeof data["cf-turnstile-response"] === "string"
+          ? data["cf-turnstile-response"]
+          : undefined
       const ok = await verifyTurnstile(settings.turnstile.secret, token)
       if (!ok) {
         status = "quarantined"
@@ -289,12 +431,18 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
     }
 
     let formSchemaVersion: number | null = null
-    const driftFindings: { readonly kind: string; readonly field: string; readonly details: Readonly<Record<string, unknown>> }[] = []
+    const driftFindings: {
+      readonly kind: string
+      readonly field: string
+      readonly details: Readonly<Record<string, unknown>>
+    }[] = []
     if (form.currentSchemaVersion !== null) {
       const [schemaRow] = await db
         .select()
         .from(formSchemas)
-        .where(and(eq(formSchemas.formId, formId), eq(formSchemas.version, form.currentSchemaVersion)))
+        .where(
+          and(eq(formSchemas.formId, formId), eq(formSchemas.version, form.currentSchemaVersion)),
+        )
         .limit(1)
       if (schemaRow !== undefined) {
         formSchemaVersion = schemaRow.version
@@ -327,11 +475,18 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
           })
 
     const receivedAt = new Date()
-    const mappingByStream = new Map(streamMemberships.map((membership) => [membership.streamId, membership]))
+    const mappingByStream = new Map(
+      streamMemberships.map((membership) => [membership.streamId, membership]),
+    )
     const schemaJsonByStream = new Map<string, Readonly<Record<string, unknown>>>()
     for (const membership of streamMemberships) {
       if (membership.schemaVersion === null) continue
-      const schemaJson = await getStreamSchemaJson(db, form.organizationId, membership.streamId, membership.schemaVersion)
+      const schemaJson = await getStreamSchemaJson(
+        db,
+        form.organizationId,
+        membership.streamId,
+        membership.schemaVersion,
+      )
       if (schemaJson !== null) schemaJsonByStream.set(membership.streamId, schemaJson)
     }
 
@@ -350,7 +505,10 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
 
       const plans = planDeliveries({
         submission: { id: "pending", status, receivedAt },
-        form: { status: form.status as "active" | "paused", schemaVersion: form.currentSchemaVersion },
+        form: {
+          status: form.status as "active" | "paused",
+          schemaVersion: form.currentSchemaVersion,
+        },
         directRoutes,
         streamMemberships,
       })
@@ -433,7 +591,9 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
 
       return {
         submissionId: newSubmissionId,
-        hasPendingDelivery: plans.some((plan) => plan.status === "pending" && plan.digestPeriodKey === undefined),
+        hasPendingDelivery: plans.some(
+          (plan) => plan.status === "pending" && plan.digestPeriodKey === undefined,
+        ),
         status,
       }
     })
@@ -443,13 +603,25 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
     }
 
     logger.info(
-      { org_id: form.organizationId, form_id: formId, submission_id: result.submissionId, request_id: requestId },
+      {
+        org_id: form.organizationId,
+        form_id: formId,
+        submission_id: result.submissionId,
+        request_id: requestId,
+      },
       "submission.received",
     )
 
-    const responseBody: Record<string, unknown> = { ok: true, submission_id: result.submissionId, status: result.status }
+    const responseBody: Record<string, unknown> = {
+      ok: true,
+      submission_id: result.submissionId,
+      status: result.status,
+    }
     if (isTest) {
-      const rows = await db.select({ id: deliveries.id }).from(deliveries).where(eq(deliveries.submissionId, result.submissionId))
+      const rows = await db
+        .select({ id: deliveries.id })
+        .from(deliveries)
+        .where(eq(deliveries.submissionId, result.submissionId))
       responseBody["deliveries"] = rows.map((row) => row.id)
     }
     return respond(c, form, settings, redirectOverride, responseBody, isForm)

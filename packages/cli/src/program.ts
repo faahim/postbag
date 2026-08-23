@@ -15,6 +15,7 @@ import { registerOrgsCommands } from "./commands/orgs.js"
 import { registerPlanCommands } from "./commands/plan.js"
 import { registerProjectsCommands } from "./commands/projects.js"
 import { registerRoutesCommands } from "./commands/routes.js"
+import { registerSandboxCommands } from "./commands/sandboxes.js"
 import { registerSchemaCommands } from "./commands/schema.js"
 import { registerStreamsCommands } from "./commands/streams.js"
 import { registerSubmissionsCommands } from "./commands/submissions.js"
@@ -49,6 +50,7 @@ export function buildProgram(deps: CliDeps = defaultDeps()): Command {
 
   registerAuthCommands(program, deps)
   registerInitCommand(program, deps)
+  registerSandboxCommands(program, deps)
   registerFormsCommands(program, deps)
   registerSubmissionsCommands(program, deps)
   registerSchemaCommands(program, deps)

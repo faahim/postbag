@@ -1,20 +1,40 @@
 # Agent-native
 
 "Agent-native" is a property the whole surface has, not a feature bolted on. The
-test (Principle 8): an agent holding **only an API key** can go from a fresh site
-repo to a working, verified, routed form without a browser or a human.
+test (Principle 8): an agent with no credentials can prove durable receipt, then an
+agent holding an API key can claim and route the same Form without a browser.
 
 ## 1. Discoverable
 
-| URL | Returns |
-|---|---|
-| `GET https://api.postbag.dev/` with `Accept: text/markdown` (or `/llms.txt`) | The agent onboarding page: what Postbag is, the three calls that matter, the vocabulary, links below. |
-| `GET /openapi.json` | The full contract. |
-| `GET /v1/me` | Who am I, which org, which scopes, plan limits, what exists already (counts). The first call an agent should make. |
-| Every error | `{ error: { code, message, hint, docs } }` — `hint` says what to do, `docs` is a deep link. |
-| Every create response | Includes `next`: a short list of suggested follow-up calls with ready-to-use bodies. |
+| URL                                                                          | Returns                                                                                                            |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `GET https://api.postbag.dev/` with `Accept: text/markdown` (or `/llms.txt`) | The agent onboarding page: what Postbag is, the three calls that matter, the vocabulary, links below.              |
+| `GET /openapi.json`                                                          | The full contract.                                                                                                 |
+| `GET /v1/me`                                                                 | Who am I, which org, which scopes, plan limits, what exists already (counts). The first call an agent should make. |
+| Every error                                                                  | `{ error: { code, message, hint, docs } }` — `hint` says what to do, `docs` is a deep link.                        |
+| Every create response                                                        | Includes `next`: a short list of suggested follow-up calls with ready-to-use bodies.                               |
 
 ## 2. One call to a working form
+
+### Finish first, claim after
+
+`POST /v1/public/sandboxes` creates a 24-hour sandbox Form before an account exists.
+It requires a CSPRNG-generated lowercase UUIDv4 `Idempotency-Key` and accepts only a
+name, optional site origin and optional explicitly supplied claim email. The response
+returns the stable submit URL, embed snippets, a sandbox capability token, verification
+calls and `/app/claim#token=…`.
+
+The agent may store up to five 16 KiB test Submissions, then verify them with
+`GET /v1/public/sandboxes/{id}` and `Authorization: Sandbox <token>`. The sandbox
+stores but never creates Destinations, Routes, Deliveries, Events or outbound traffic.
+
+Claim through the browser, or use the existing email-code flow to obtain a manage key
+and call `POST /v1/sandboxes/{id}/claim` with `Postbag-Sandbox-Token`. Claiming keeps
+the Form id and submit URL, copies the accepted rows as tests with their original
+timestamps, and never delivers them retroactively. Only new submissions can route
+after a Destination and Route are configured.
+
+### Authenticated quickstart
 
 ```
 POST /v1/quickstart
@@ -80,13 +100,14 @@ All three are thin over the generated SDK; none has logic the API lacks.
   writes `postbag.json` into the repo (`form_id`, `submit_url`, `project`), so later
   sessions — human or agent — can find the wiring. `postbag submissions tail`,
   `postbag destinations test`, `postbag schema publish`.
+  Before login, `postbag sandbox create|status`; after login, `postbag sandbox claim`.
 - **MCP server** — `npx @postbag/mcp`, tools mirror the API one-to-one plus
   `postbag_quickstart` and `postbag_explain` (returns the llms.txt). Resources expose
   forms and stream schemas.
 - **SDK** — `@postbag/sdk`, generated from OpenAPI; also the submit helper
   `submit(formId, data)` for browser/server use.
 
-## 7. For agents building *with* Postbag in a site repo
+## 7. For agents building _with_ Postbag in a site repo
 
 `postbag.json` at the repo root is the convention. `CLAUDE.md`/`AGENTS.md` templates
 that Smedja and other factories scaffold should include:

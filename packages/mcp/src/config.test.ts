@@ -9,10 +9,13 @@ describe("resolveConfig", () => {
   })
 
   it("prefers argv flags over env vars", () => {
-    const result = resolveConfig(["--api-key", "pb_live_flag", "--api-url", "http://localhost:3000"], {
-      POSTBAG_API_KEY: "pb_live_env",
-      POSTBAG_API_URL: "https://env.example",
-    })
+    const result = resolveConfig(
+      ["--api-key", "pb_live_flag", "--api-url", "http://localhost:3000"],
+      {
+        POSTBAG_API_KEY: "pb_live_env",
+        POSTBAG_API_URL: "https://env.example",
+      },
+    )
     expect(result).toEqual({ apiKey: "pb_live_flag", apiUrl: "http://localhost:3000" })
   })
 
@@ -21,11 +24,8 @@ describe("resolveConfig", () => {
     expect(result).toEqual({ apiKey: "pb_live_eq", apiUrl: DEFAULT_API_URL })
   })
 
-  it("errors with a clear message when no key is available", () => {
+  it("starts without a key for public sandbox operations", () => {
     const result = resolveConfig([], {})
-    expect("error" in result).toBe(true)
-    if ("error" in result) {
-      expect(result.error).toContain("POSTBAG_API_KEY")
-    }
+    expect(result).toEqual({ apiUrl: DEFAULT_API_URL })
   })
 })

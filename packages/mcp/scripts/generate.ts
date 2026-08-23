@@ -37,7 +37,11 @@ function resolvePointer(pointer: string, doc: Record<string, unknown>): unknown 
 }
 
 /** Recursively replaces every `$ref` with the schema it points to. Guards against cycles. */
-function dereference(node: unknown, doc: Record<string, unknown>, seen: ReadonlySet<string>): unknown {
+function dereference(
+  node: unknown,
+  doc: Record<string, unknown>,
+  seen: ReadonlySet<string>,
+): unknown {
   if (Array.isArray(node)) {
     return node.map((item) => dereference(item, doc, seen))
   }
@@ -61,7 +65,11 @@ function dereferenceSchema(node: unknown, doc: Record<string, unknown>): JsonSch
   return requireRecord(dereference(node, doc, new Set()), "dereferenced schema")
 }
 
-function buildParams(op: Record<string, unknown>, doc: Record<string, unknown>, context: string): OperationParam[] {
+function buildParams(
+  op: Record<string, unknown>,
+  doc: Record<string, unknown>,
+  context: string,
+): OperationParam[] {
   const raw = op["parameters"]
   if (!Array.isArray(raw)) return []
 
@@ -73,8 +81,8 @@ function buildParams(op: Record<string, unknown>, doc: Record<string, unknown>, 
     if (typeof name !== "string") {
       throw new Error(`Parameter without a name at ${context}`)
     }
-    if (location !== "path" && location !== "query") {
-      // header/cookie params aren't part of the tool surface.
+    if (location !== "path" && location !== "query" && location !== "header") {
+      // Cookie params aren't part of the tool surface.
       continue
     }
     const schema = dereferenceSchema(param["schema"] ?? {}, doc)
@@ -90,7 +98,11 @@ function buildParams(op: Record<string, unknown>, doc: Record<string, unknown>, 
   return params
 }
 
-function buildBody(op: Record<string, unknown>, doc: Record<string, unknown>, context: string): JsonSchema | null {
+function buildBody(
+  op: Record<string, unknown>,
+  doc: Record<string, unknown>,
+  context: string,
+): JsonSchema | null {
   const requestBody = op["requestBody"]
   if (!isRecord(requestBody)) return null
   const content = requireRecord(requestBody["content"], `${context} requestBody.content`)
@@ -121,7 +133,9 @@ export function buildOperations(rawDoc: unknown): GeneratedOperation[] {
       const summary = typeof op["summary"] === "string" ? op["summary"] : undefined
       const description = typeof op["description"] === "string" ? op["description"] : undefined
       const rawTags = op["tags"]
-      const tags = Array.isArray(rawTags) ? rawTags.filter((tag): tag is string => typeof tag === "string") : undefined
+      const tags = Array.isArray(rawTags)
+        ? rawTags.filter((tag): tag is string => typeof tag === "string")
+        : undefined
 
       operations.push({
         operationId,
@@ -148,7 +162,10 @@ function outputPath(): string {
 }
 
 /** The exact contents `pnpm generate` writes to `src/generated/operations.json`. */
-export async function generateOperationsJson(): Promise<{ readonly json: string; readonly count: number }> {
+export async function generateOperationsJson(): Promise<{
+  readonly json: string
+  readonly count: number
+}> {
   const yamlText = await readFile(specPath(), "utf8")
   const doc: unknown = parse(yamlText)
   const operations = buildOperations(doc)

@@ -15,7 +15,11 @@ const ALL_SCOPES = ["manage", "read", "submit"] as const
 // `asResponse: true` is passed, so this is a typing-only workaround.
 type VerifyApiKeyResult = {
   readonly valid: boolean
-  readonly key: { readonly id: string; readonly referenceId: string; readonly metadata: unknown } | null
+  readonly key: {
+    readonly id: string
+    readonly referenceId: string
+    readonly metadata: unknown
+  } | null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -30,6 +34,12 @@ function scopesFromMetadata(metadata: unknown): readonly ("manage" | "read" | "s
     (value): value is "manage" | "read" | "submit" =>
       value === "manage" || value === "read" || value === "submit",
   )
+}
+
+function userIdFromMetadata(metadata: unknown): string | undefined {
+  if (!isRecord(metadata)) return undefined
+  const userId = metadata["created_by_user_id"]
+  return typeof userId === "string" && userId.length > 0 ? userId : undefined
 }
 
 /** Job L §1: the `activeOrganizationId`-less fallback is the org the user *owns* (oldest
@@ -54,9 +64,14 @@ export function requireOrg(auth: Auth, db: Database): MiddlewareHandler<{ Variab
       if (!result.valid || result.key === null) {
         throw unauthorized("The API key is invalid, disabled, or expired.")
       }
+      const userId = userIdFromMetadata(result.key.metadata)
       const scope: RequestScope = {
         organizationId: result.key.referenceId,
-        actor: { type: "api_key", apiKeyId: result.key.id },
+        actor: {
+          type: "api_key",
+          apiKeyId: result.key.id,
+          ...(userId === undefined ? {} : { userId }),
+        },
         // Effective scopes: manage ⊇ read ⊇ submit (@postbag/auth). Expanding here means
         // every downstream `assertScope` check and the /v1/me echo see the same set.
         scopes: expandScopes(scopesFromMetadata(result.key.metadata)),

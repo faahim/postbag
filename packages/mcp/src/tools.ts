@@ -110,6 +110,7 @@ export async function callOperationTool(
   const { operation, binding } = entry
   let path = operation.path
   const query = new URLSearchParams()
+  const headers: Record<string, string> = {}
   const body: Record<string, unknown> = {}
   let wholeBody: unknown
 
@@ -118,9 +119,14 @@ export async function callOperationTool(
     if (paramBinding !== undefined) {
       if (value === undefined) continue
       if (paramBinding.kind === "path") {
-        path = path.replace(`{${paramBinding.realName}}`, encodeURIComponent(paramValueToString(value)))
-      } else {
+        path = path.replace(
+          `{${paramBinding.realName}}`,
+          encodeURIComponent(paramValueToString(value)),
+        )
+      } else if (paramBinding.kind === "query") {
         query.set(paramBinding.realName, paramValueToString(value))
+      } else {
+        headers[paramBinding.realName] = paramValueToString(value)
       }
       continue
     }
@@ -134,17 +140,27 @@ export async function callOperationTool(
   }
 
   if (path.includes("{")) {
-    return errorResult(`Missing a required path parameter for ${operation.operationId} — resulting path: ${path}`)
+    return errorResult(
+      `Missing a required path parameter for ${operation.operationId} — resulting path: ${path}`,
+    )
   }
 
   const queryString = query.toString()
   const fullPath = queryString.length > 0 ? `${path}?${queryString}` : path
 
   const requestBody =
-    binding.bodyMode === "whole" ? (isRecord(wholeBody) ? wholeBody : {}) : binding.bodyMode === "properties" ? body : undefined
+    binding.bodyMode === "whole"
+      ? isRecord(wholeBody)
+        ? wholeBody
+        : {}
+      : binding.bodyMode === "properties"
+        ? body
+        : undefined
 
-  const result = await callJsonApi(config, operation.method, fullPath, requestBody)
-  return result.ok ? { content: jsonContent(result.body) } : { isError: true, content: jsonContent(result.body) }
+  const result = await callJsonApi(config, operation.method, fullPath, requestBody, headers)
+  return result.ok
+    ? { content: jsonContent(result.body) }
+    : { isError: true, content: jsonContent(result.body) }
 }
 
 export async function callExplainTool(config: ApiClientOptions): Promise<CallToolResult> {

@@ -3,7 +3,7 @@ import { PostbagError } from "@postbag/core"
 
 export type ScopeActor =
   | { readonly type: "session"; readonly userId: string }
-  | { readonly type: "api_key"; readonly apiKeyId: string }
+  | { readonly type: "api_key"; readonly apiKeyId: string; readonly userId?: string }
 
 export type RequestScope = {
   readonly organizationId: string
@@ -29,7 +29,9 @@ export function assertScope(scope: RequestScope, required: ApiKeyScope): void {
 export function assertSessionActor(
   scope: RequestScope,
   message: string,
-): asserts scope is RequestScope & { actor: { readonly type: "session"; readonly userId: string } } {
+): asserts scope is RequestScope & {
+  actor: { readonly type: "session"; readonly userId: string }
+} {
   if (scope.actor.type !== "session") {
     throw new PostbagError("forbidden", message)
   }

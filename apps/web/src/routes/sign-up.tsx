@@ -9,8 +9,10 @@ import { SocialButtons } from "@/components/social-buttons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import { signUp, waitForSession } from "@/lib/auth-client"
 import { signUpSchema, type SignUpValues } from "@/lib/auth-schemas"
+import { useAuthProviders } from "@/lib/queries/auth-providers"
 
 const searchSchema = z.object({ redirect: z.string().optional() })
 
@@ -22,6 +24,7 @@ export const Route = createFileRoute("/sign-up")({
 function SignUpRoute() {
   const navigate = useNavigate()
   const search = Route.useSearch()
+  const providers = useAuthProviders()
   const [formError, setFormError] = useState<string | null>(null)
   const {
     register,
@@ -31,7 +34,11 @@ function SignUpRoute() {
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null)
-    const { error } = await signUp.email({ name: values.name, email: values.email, password: values.password })
+    const { error } = await signUp.email({
+      name: values.name,
+      email: values.email,
+      password: values.password,
+    })
     if (error) {
       setFormError(error.message ?? "Could not create your account.")
       return
@@ -48,7 +55,9 @@ function SignUpRoute() {
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-1.5">
           <h2 className="text-2xl font-semibold text-balance">Create your workspace</h2>
-          <p className="text-sm text-muted-foreground">One form and one email, in under three minutes.</p>
+          <p className="text-sm text-muted-foreground">
+            One form and one email, in under three minutes.
+          </p>
         </div>
 
         <SocialButtons
@@ -56,46 +65,76 @@ function SignUpRoute() {
           {...(search.redirect === undefined ? {} : { callbackURL: search.redirect })}
         />
 
-        <form
-          onSubmit={(e) => {
-            void onSubmit(e)
-          }}
-          className="flex flex-col gap-4"
-          noValidate
-        >
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" autoComplete="name" placeholder="Ada Lovelace" {...register("name")} aria-invalid={errors.name !== undefined} />
-            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+        {providers.isLoading ? (
+          <div className="flex flex-col gap-3" aria-label="Loading sign-up options">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" autoComplete="email" placeholder="you@example.com" {...register("email")} aria-invalid={errors.email !== undefined} />
-            {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              placeholder="At least 8 characters"
-              {...register("password")}
-              aria-invalid={errors.password !== undefined}
-            />
-            {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
-          </div>
+        ) : providers.data?.email_password.sign_up === true ? (
+          <form
+            onSubmit={(e) => {
+              void onSubmit(e)
+            }}
+            className="flex flex-col gap-4"
+            noValidate
+          >
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                autoComplete="name"
+                placeholder="Ada Lovelace"
+                {...register("name")}
+                aria-invalid={errors.name !== undefined}
+              />
+              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                {...register("email")}
+                aria-invalid={errors.email !== undefined}
+              />
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                {...register("password")}
+                aria-invalid={errors.password !== undefined}
+              />
+              {errors.password && (
+                <p className="text-xs text-destructive">{errors.password.message}</p>
+              )}
+            </div>
 
-          {formError !== null && (
-            <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive" role="alert">
-              {formError}
-            </p>
-          )}
+            {formError !== null && (
+              <p
+                className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+                role="alert"
+              >
+                {formError}
+              </p>
+            )}
 
-          <Button type="submit" disabled={isSubmitting} className="mt-2">
-            {isSubmitting ? "Creating your workspace…" : "Create account"}
-          </Button>
-        </form>
+            <Button type="submit" disabled={isSubmitting} className="mt-2">
+              {isSubmitting ? "Creating your workspace…" : "Create account"}
+            </Button>
+          </form>
+        ) : (
+          <p className="text-sm text-muted-foreground text-pretty">
+            Hosted Postbag uses Google or GitHub for new accounts. Existing password accounts can
+            still sign in.
+          </p>
+        )}
 
         <p className="text-center text-sm text-muted-foreground">
           Already have a workspace?{" "}

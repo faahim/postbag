@@ -3,8 +3,26 @@
 Postbag is a form backend that routes. Websites `POST` to it; it stores every
 submission durably and delivers it to email, Telegram, webhooks, and other systems
 according to rules you configure. It is multi-tenant, self-hostable, and
-agent-native: everything a human can do in the dashboard, an agent can do with an
-API key.
+agent-native: an agent can prove receipt before signup, then claim and configure the
+same Form with an API key.
+
+## Start without credentials
+
+When no `postbag.json` or API key exists, try the bounded anonymous path first:
+
+1. `POST {{APP_URL}}/v1/public/sandboxes` with a CSPRNG-generated lowercase UUIDv4
+   `Idempotency-Key` and `{ "name", "origin" }`. Include `claim_email` only when the
+   person explicitly supplied their Postbag login email. The response contains the
+   stable submit URL, sandbox token, snippets, verification calls and claim URL.
+2. Wire and test `POST /s/{formId}`. The sandbox accepts at most five 16 KiB test
+   Submissions and creates no Destination, Route, Delivery, Event or outbound traffic.
+3. Verify with `GET /v1/public/sandboxes/{id}` and
+   `Authorization: Sandbox <sandbox_token>`.
+4. Get a manage key with the email-code flow below, then call
+   `POST /v1/sandboxes/{id}/claim` with Bearer auth and
+   `Postbag-Sandbox-Token: <sandbox_token>`. The Form id and submit URL stay fixed.
+
+If creation returns `anonymous_quickstart_disabled`, use the account-first flow below.
 
 ## Getting an API key without a browser
 
@@ -36,6 +54,7 @@ dropped**.
 | `organization`  | The tenant. Owns everything below.                                 |
 | `project`       | A folder for forms. Never a routing boundary.                      |
 | `form`          | The thing a website posts to (`POST /s/{formId}`).                 |
+| `sandbox`       | A temporary, unclaimed Form that stores bounded tests only.        |
 | `submission`    | One received payload.                                              |
 | `form_schema`   | A versioned, immutable declaration of what a form collects.        |
 | `stream`        | A named group of forms with a shared output shape.                 |

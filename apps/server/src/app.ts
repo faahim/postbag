@@ -21,6 +21,10 @@ import { registerAppStatic } from "./routes/staticApp.js"
 import { registerSiteStatic } from "./routes/staticSite.js"
 import { registerSubmitRoutes } from "./routes/submit.js"
 import { registerApiKeyRoutes } from "./routes/v1/apiKeys.js"
+import {
+  registerAuthenticatedAnonymousSandboxRoutes,
+  registerPublicAnonymousSandboxRoutes,
+} from "./routes/v1/anonymousSandboxes.js"
 import { registerAuthCodeRoutes } from "./routes/v1/authCodes.js"
 import { registerAuthProviderRoutes } from "./routes/v1/authProviders.js"
 import { registerBillingRoutes, registerPublicBillingRoutes } from "./routes/v1/billing.js"
@@ -28,7 +32,10 @@ import { registerDeliveryRoutes } from "./routes/v1/deliveries.js"
 import { registerDestinationRoutes } from "./routes/v1/destinations.js"
 import { registerEventRoutes } from "./routes/v1/events.js"
 import { registerFormRoutes } from "./routes/v1/forms.js"
-import { registerInvitationRoutes, registerPublicInvitationRoutes } from "./routes/v1/invitations.js"
+import {
+  registerInvitationRoutes,
+  registerPublicInvitationRoutes,
+} from "./routes/v1/invitations.js"
 import { registerMeRoutes } from "./routes/v1/me.js"
 import { registerMemberRoutes } from "./routes/v1/members.js"
 import { registerOrganizationRoutes } from "./routes/v1/organizations.js"
@@ -87,6 +94,7 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   // pre-requireOrg registration as the two above — an agent holding no credentials at all
   // must be able to reach these.
   registerAuthCodeRoutes(app, auth, db, env, rateLimiter)
+  registerPublicAnonymousSandboxRoutes(app, db, env)
 
   // Job L: GET /v1/invitations/{id} must render for a visitor who is signed out and not
   // yet an org member — same pre-requireOrg registration as the three routes above.
@@ -108,6 +116,7 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   registerPlanGrantRoutes(app, db, env)
   registerBillingRoutes(app, db, billing, env)
   registerQuickstartRoutes(app, db, env.APP_URL)
+  registerAuthenticatedAnonymousSandboxRoutes(app, db, env)
   registerProjectRoutes(app, db)
   registerFormRoutes(app, db, env.APP_URL)
   registerSubmissionRoutes(app, db)
@@ -145,6 +154,13 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
     description:
       "An API key minted via POST /v1/api-keys (or the dashboard), sent as `Authorization: Bearer pb_live_…`. " +
       "Scopes are manage ⊇ read ⊇ submit — a manage key satisfies every read- or submit-scoped call too.",
+  })
+  app.openAPIRegistry.registerComponent("securitySchemes", "sandboxAuth", {
+    type: "http",
+    scheme: "Sandbox",
+    description:
+      "The capability returned by POST /v1/public/sandboxes, sent as `Authorization: Sandbox <sandbox_token>`. " +
+      "It can read one bounded sandbox but cannot claim it without a separately authenticated organization.",
   })
 
   app.doc31("/openapi.json", {

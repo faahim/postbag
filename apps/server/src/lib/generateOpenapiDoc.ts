@@ -33,6 +33,8 @@ export async function generateOpenapiDocument(): Promise<Record<string, unknown>
     MAIL_FROM: "Postbag <notify@postbag.dev>",
     MIGRATE_ON_BOOT: false,
     RLS_ENFORCED: false,
+    ANONYMOUS_QUICKSTART_ENABLED: false,
+    ANONYMOUS_SANDBOX_GLOBAL_LIMIT: 1000,
     POLAR_SERVER: "production",
     LEGACY_HOSTS: [],
     PLATFORM_ADMIN_EMAILS: [],

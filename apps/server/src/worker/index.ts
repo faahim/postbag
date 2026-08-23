@@ -20,7 +20,12 @@ import type { Env } from "../env.js"
 import type { Logger } from "../logger.js"
 import { runBillingEventSweep } from "./billing.js"
 import { runDigestSweep } from "./digests.js"
-import { runPlanExpirySweep, runRetentionSweep, runSchemaInferenceSweep } from "./housekeeping.js"
+import {
+  runAnonymousSandboxCleanup,
+  runPlanExpirySweep,
+  runRetentionSweep,
+  runSchemaInferenceSweep,
+} from "./housekeeping.js"
 import { recordEvent } from "./shared.js"
 import { processSystemWebhookDeliveries } from "./systemWebhooks.js"
 
@@ -44,7 +49,10 @@ async function heartbeat(db: Database, workerId: string): Promise<void> {
     .onConflictDoUpdate({ target: workerHeartbeats.workerId, set: { heartbeatAt: new Date() } })
 }
 
-async function buildContext(db: Database, claimed: ClaimedDelivery): Promise<DeliveryContext | null> {
+async function buildContext(
+  db: Database,
+  claimed: ClaimedDelivery,
+): Promise<DeliveryContext | null> {
   const [route] = await db
     .select()
     .from(routes)
@@ -55,7 +63,12 @@ async function buildContext(db: Database, claimed: ClaimedDelivery): Promise<Del
   const [submission] = await db
     .select()
     .from(submissions)
-    .where(and(eq(submissions.organizationId, claimed.organizationId), eq(submissions.id, claimed.submissionId)))
+    .where(
+      and(
+        eq(submissions.organizationId, claimed.organizationId),
+        eq(submissions.id, claimed.submissionId),
+      ),
+    )
     .limit(1)
 
   // Job D 1b: every destination's template context carries the real form/project/stream
@@ -75,7 +88,9 @@ async function buildContext(db: Database, claimed: ClaimedDelivery): Promise<Del
       const [projectRow] = await db
         .select({ id: projects.id, name: projects.name, slug: projects.slug })
         .from(projects)
-        .where(and(eq(projects.organizationId, claimed.organizationId), eq(projects.id, row.projectId)))
+        .where(
+          and(eq(projects.organizationId, claimed.organizationId), eq(projects.id, row.projectId)),
+        )
         .limit(1)
       if (projectRow !== undefined) project = projectRow
     }
@@ -86,7 +101,9 @@ async function buildContext(db: Database, claimed: ClaimedDelivery): Promise<Del
     const [row] = await db
       .select({ id: streams.id, name: streams.name, slug: streams.slug })
       .from(streams)
-      .where(and(eq(streams.organizationId, claimed.organizationId), eq(streams.id, route.streamId)))
+      .where(
+        and(eq(streams.organizationId, claimed.organizationId), eq(streams.id, route.streamId)),
+      )
       .limit(1)
     if (row !== undefined) stream = row
   }
@@ -99,7 +116,9 @@ async function buildContext(db: Database, claimed: ClaimedDelivery): Promise<Del
     project,
     stream,
     submission:
-      submission === undefined ? null : { id: submission.id, received_at: submission.receivedAt.toISOString() },
+      submission === undefined
+        ? null
+        : { id: submission.id, received_at: submission.receivedAt.toISOString() },
     extras: {},
     meta: submission?.meta ?? {},
   }
@@ -123,9 +142,13 @@ async function markDestinationOutcome(
     await db
       .update(destinations)
       .set({ consecutiveFailures: 0, health: "ok", updatedAt: new Date() })
-      .where(and(eq(destinations.organizationId, organizationId), eq(destinations.id, destinationId)))
+      .where(
+        and(eq(destinations.organizationId, organizationId), eq(destinations.id, destinationId)),
+      )
     if (wasFailing) {
-      await recordEvent(db, organizationId, "destination.recovered", { destination_id: destinationId })
+      await recordEvent(db, organizationId, "destination.recovered", {
+        destination_id: destinationId,
+      })
     }
     return
   }
@@ -134,14 +157,22 @@ async function markDestinationOutcome(
   const nowFailing = consecutiveFailures >= FAILING_THRESHOLD && destination.health !== "failing"
   await db
     .update(destinations)
-    .set({ consecutiveFailures, health: nowFailing ? "failing" : destination.health, updatedAt: new Date() })
+    .set({
+      consecutiveFailures,
+      health: nowFailing ? "failing" : destination.health,
+      updatedAt: new Date(),
+    })
     .where(and(eq(destinations.organizationId, organizationId), eq(destinations.id, destinationId)))
   if (nowFailing) {
     await recordEvent(db, organizationId, "destination.failing", { destination_id: destinationId })
   }
 }
 
-async function disableDestination(db: Database, organizationId: string, destinationId: string): Promise<void> {
+async function disableDestination(
+  db: Database,
+  organizationId: string,
+  destinationId: string,
+): Promise<void> {
   await db
     .update(destinations)
     .set({ health: "failing", updatedAt: new Date() })
@@ -156,11 +187,22 @@ function resultAsRecord(result: DeliveryResult): Record<string, unknown> {
   return { ...result }
 }
 
-async function markSent(db: Database, claimed: ClaimedDelivery, result: DeliveryResult): Promise<void> {
+async function markSent(
+  db: Database,
+  claimed: ClaimedDelivery,
+  result: DeliveryResult,
+): Promise<void> {
   await db
     .update(deliveries)
-    .set({ status: "sent", sentAt: new Date(), lastResponse: resultAsRecord(result), lastError: null })
-    .where(and(eq(deliveries.organizationId, claimed.organizationId), eq(deliveries.id, claimed.id)))
+    .set({
+      status: "sent",
+      sentAt: new Date(),
+      lastResponse: resultAsRecord(result),
+      lastError: null,
+    })
+    .where(
+      and(eq(deliveries.organizationId, claimed.organizationId), eq(deliveries.id, claimed.id)),
+    )
 }
 
 async function markDead(
@@ -176,7 +218,9 @@ async function markDead(
       lastResponse: result === null ? undefined : resultAsRecord(result),
       lastError: message,
     })
-    .where(and(eq(deliveries.organizationId, claimed.organizationId), eq(deliveries.id, claimed.id)))
+    .where(
+      and(eq(deliveries.organizationId, claimed.organizationId), eq(deliveries.id, claimed.id)),
+    )
 }
 
 async function markFailedForRetry(
@@ -194,7 +238,9 @@ async function markFailedForRetry(
       lastResponse: result === null ? undefined : resultAsRecord(result),
       lastError: message,
     })
-    .where(and(eq(deliveries.organizationId, claimed.organizationId), eq(deliveries.id, claimed.id)))
+    .where(
+      and(eq(deliveries.organizationId, claimed.organizationId), eq(deliveries.id, claimed.id)),
+    )
   return next
 }
 
@@ -235,7 +281,12 @@ async function processDelivery(
   const [destination] = await db
     .select()
     .from(destinations)
-    .where(and(eq(destinations.organizationId, claimed.organizationId), eq(destinations.id, claimed.destinationId)))
+    .where(
+      and(
+        eq(destinations.organizationId, claimed.organizationId),
+        eq(destinations.id, claimed.destinationId),
+      ),
+    )
     .limit(1)
   if (destination === undefined) {
     await failDelivery(db, log, claimed, "webhook", "Destination no longer exists.")
@@ -244,7 +295,13 @@ async function processDelivery(
 
   const adapter = registry.get(destination.type)
   if (adapter === undefined) {
-    await failDelivery(db, log, claimed, destination.type, `No adapter registered for '${destination.type}'.`)
+    await failDelivery(
+      db,
+      log,
+      claimed,
+      destination.type,
+      `No adapter registered for '${destination.type}'.`,
+    )
     return
   }
 
@@ -256,9 +313,17 @@ async function processDelivery(
 
   let result: DeliveryResult
   try {
-    result = await adapter.deliver(destination.config, claimed.payload as Readonly<Record<string, unknown>>, ctx)
+    result = await adapter.deliver(
+      destination.config,
+      claimed.payload as Readonly<Record<string, unknown>>,
+      ctx,
+    )
   } catch (error) {
-    result = { ok: false, status_code: null, error: error instanceof Error ? error.message : "Unknown delivery error." }
+    result = {
+      ok: false,
+      status_code: null,
+      error: error instanceof Error ? error.message : "Unknown delivery error.",
+    }
   }
 
   if (result.ok === true) {
@@ -295,12 +360,18 @@ async function processDelivery(
       submission_id: claimed.submissionId,
       destination_id: claimed.destinationId,
     })
-    log.error({ attempts: claimed.attempts, error: result.error }, "delivery.dead: max attempts reached")
+    log.error(
+      { attempts: claimed.attempts, error: result.error },
+      "delivery.dead: max attempts reached",
+    )
     return
   }
 
   const next = await markFailedForRetry(db, claimed, result, result.error ?? "Delivery failed.")
-  log.warn({ attempts: claimed.attempts, next_attempt_at: next.toISOString(), error: result.error }, "delivery.failed")
+  log.warn(
+    { attempts: claimed.attempts, next_attempt_at: next.toISOString(), error: result.error },
+    "delivery.failed",
+  )
 }
 
 export function startWorker(
@@ -336,6 +407,9 @@ export function startWorker(
     })
     runRetentionSweep(db, log).catch((error: unknown) => {
       log.error({ err: error }, "retention sweep failed")
+    })
+    runAnonymousSandboxCleanup(db, log).catch((error: unknown) => {
+      log.error({ err: error }, "anonymous sandbox cleanup failed")
     })
     runBillingEventSweep(db, env, log).catch((error: unknown) => {
       log.error({ err: error }, "billing event sweep failed")
