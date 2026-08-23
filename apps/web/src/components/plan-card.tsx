@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { VipBadge } from "@/components/vip-badge"
 import { toastApiError } from "@/lib/api"
+import type { BillingIntent } from "@/lib/billing-intent"
 import { formatCount, formatDate } from "@/lib/format"
 import { useMe } from "@/lib/queries/me"
 import { useRedeemPlanCode } from "@/lib/queries/plan"
@@ -61,7 +62,7 @@ function LimitRow({
   )
 }
 
-export function PlanCard() {
+export function PlanCard({ checkoutIntent = null }: { readonly checkoutIntent?: BillingIntent | null }) {
   const me = useMe()
   const redeem = useRedeemPlanCode()
   const [redeemOpen, setRedeemOpen] = useState(false)
@@ -135,7 +136,7 @@ export function PlanCard() {
           </div>
         </div>
 
-        <PlanBillingControls planSource={organization.plan_source} />
+        <PlanBillingControls planSource={organization.plan_source} checkoutIntent={checkoutIntent} />
 
         {arrived && (
           <div className="flex animate-in items-center gap-1.5 text-sm text-primary fade-in-0 zoom-in-75 duration-(--duration-very-slow) ease-(--ease-bounce)">

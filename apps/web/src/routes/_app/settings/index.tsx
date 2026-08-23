@@ -12,13 +12,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { authClient } from "@/lib/auth-client"
+import { billingIntentFromSearch, billingIntentSearchSchema } from "@/lib/billing-intent"
 import { useMe } from "@/lib/queries/me"
 
 export const Route = createFileRoute("/_app/settings/")({
   component: SettingsRoute,
+  validateSearch: billingIntentSearchSchema,
 })
 
 function SettingsRoute() {
+  const search = Route.useSearch()
   const queryClient = useQueryClient()
   const me = useMe()
   const [name, setName] = useState<string | undefined>(undefined)
@@ -49,7 +52,7 @@ function SettingsRoute() {
 
       <SettingsNav />
 
-      <PlanCard />
+      <PlanCard checkoutIntent={billingIntentFromSearch(search)} />
 
       {me.isLoading || me.data === undefined ? (
         <Skeleton className="h-48 w-full" />

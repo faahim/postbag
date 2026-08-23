@@ -1,5 +1,5 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router"
-import { useEffect } from "react"
+import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
+import { useEffect, useRef } from "react"
 
 import { AppShell } from "@/components/app-shell/app-shell"
 import { Postmark } from "@/components/postmark"
@@ -11,11 +11,19 @@ export const Route = createFileRoute("/_app")({
 
 function AppLayout() {
   const { data: session, isPending } = useSession()
+  const location = useLocation()
   const navigate = useNavigate()
+  const protectedDestination = useRef(location.href)
+  const redirectStarted = useRef(false)
 
   useEffect(() => {
-    if (!isPending && session == null) {
-      void navigate({ to: "/sign-in" })
+    if (!isPending && session == null && !redirectStarted.current) {
+      redirectStarted.current = true
+      void navigate({
+        to: "/sign-in",
+        search: { redirect: protectedDestination.current },
+        replace: true,
+      })
     }
   }, [isPending, session, navigate])
 

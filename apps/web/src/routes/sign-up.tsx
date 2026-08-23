@@ -51,7 +51,10 @@ function SignUpRoute() {
           <p className="text-sm text-muted-foreground">One form and one email, in under three minutes.</p>
         </div>
 
-        <SocialButtons intent="sign-up" />
+        <SocialButtons
+          intent="sign-up"
+          {...(search.redirect === undefined ? {} : { callbackURL: search.redirect })}
+        />
 
         <form
           onSubmit={(e) => {

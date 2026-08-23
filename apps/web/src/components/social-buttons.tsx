@@ -38,11 +38,15 @@ export function SocialButtons({
 
   async function handleClick(provider: SocialProvider) {
     setPendingProvider(provider)
+    const errorCallbackURL =
+      callbackURL === undefined
+        ? "/app/sign-in?error=oauth"
+        : `/app/sign-in?error=oauth&redirect=${encodeURIComponent(callbackURL)}`
     const { error } = await signIn.social({
       provider,
       callbackURL: callbackURL ?? "/app",
       newUserCallbackURL: callbackURL ?? "/app?welcome=1",
-      errorCallbackURL: "/app/sign-in?error=oauth",
+      errorCallbackURL,
     })
     // On success Better Auth navigates the browser away immediately — nothing left to do
     // here. Only reset the pressed state if the call failed before ever redirecting.

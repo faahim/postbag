@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toastApiError } from "@/lib/api"
+import type { BillingIntent } from "@/lib/billing-intent"
 import {
   useBilling,
   useBillingCheckout,
@@ -30,25 +31,46 @@ const PRICE: Record<
   },
 }
 
-export function PlanBillingControls({ planSource }: { readonly planSource: string }) {
+export function PlanBillingControls({
+  planSource,
+  checkoutIntent,
+}: {
+  readonly planSource: string
+  readonly checkoutIntent: BillingIntent | null
+}) {
   const billing = useBilling()
   const checkout = useBillingCheckout()
   const portal = useBillingPortal()
-  const [interval, setInterval] = useState<CheckoutInterval>("month")
+  const [interval, setInterval] = useState<CheckoutInterval>(checkoutIntent?.interval ?? "month")
+  const automaticCheckoutStarted = useRef(false)
   const billingData = billing.data
   const availablePlans: readonly CheckoutPlan[] =
     billingData === undefined
       ? []
       : CHECKOUT_PLANS.filter((plan) => billingData.products[plan][interval])
 
-  async function startCheckout(plan: CheckoutPlan) {
+  const startCheckout = useCallback(async (plan: CheckoutPlan) => {
     try {
       const { url } = await checkout.mutateAsync({ plan, interval })
       window.location.assign(url)
     } catch (error) {
       toastApiError(error, "Couldn't start checkout — try again.")
     }
-  }
+  }, [checkout, interval])
+
+  useEffect(() => {
+    if (
+      automaticCheckoutStarted.current ||
+      checkoutIntent === null ||
+      planSource !== "free" ||
+      billingData?.enabled !== true ||
+      !billingData.products[checkoutIntent.plan][checkoutIntent.interval]
+    ) {
+      return
+    }
+    automaticCheckoutStarted.current = true
+    void startCheckout(checkoutIntent.plan)
+  }, [billingData, checkoutIntent, planSource, startCheckout])
 
   async function openPortal() {
     try {
@@ -144,7 +166,11 @@ export function PlanBillingControls({ planSource }: { readonly planSource: strin
               {availablePlans.map((plan) => (
                 <div
                   key={plan}
-                  className="flex flex-col gap-3 rounded-lg border border-border/70 bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  className={`flex flex-col gap-3 rounded-lg border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between ${
+                    checkoutIntent?.plan === plan
+                      ? "border-primary/50 ring-1 ring-primary/20"
+                      : "border-border/70"
+                  }`}
                 >
                   <div className="flex flex-col gap-0.5">
                     <p className="text-sm font-medium text-foreground">{PLAN_LABEL[plan]}</p>

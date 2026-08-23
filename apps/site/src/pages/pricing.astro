@@ -4,7 +4,7 @@ import PageHeader from "@/components/PageHeader.astro"
 import Faq from "@/components/Faq.astro"
 import CtaBand from "@/components/CtaBand.astro"
 import Postmark from "@/components/Postmark.astro"
-import { GITHUB_URL, PLANS, SIGNUP_URL, SITE_URL } from "@/config"
+import { APP_URL, GITHUB_URL, PLANS, SIGNUP_URL, SITE_URL } from "@/config"
 import { breadcrumbLd, faqLd, softwareLd, webPageLd } from "@/lib/seo"
 const crumbs = [ { name: "Home", href: "/" }, { name: "Pricing", href: "/pricing/" } ]
 const pro = PLANS.find((p) => p.id === "pro")!
@@ -22,16 +22,23 @@ const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postb
 ---
 <Base title="Pricing" description={`Postbag pricing: Free with 5 forms and 1,000 submissions a month, Pro at $${pro.monthly}/month, Team at $${team.monthly}/month, every feature on every plan. Self-hosting is free and open source.`} canonical="/pricing/" ld={ld}>
   <PageHeader title="Every feature on every plan. Plans differ only in limits." lede="There is no feature gate in Postbag: streams, schemas, signed webhooks and the agent surface are on the free plan. Paid plans raise the numbers. Choose Pro or Team to continue to checkout." crumbs={crumbs} />
-  <section class="container-x">
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-reveal-group="70">
+  <section class="container-x" data-pricing>
+    <div class="mb-8 flex justify-center">
+      <div class="t-tabs" role="tablist" aria-label="Billing interval">
+        <span class="t-tabs-pill" aria-hidden="true"></span>
+        <button type="button" role="tab" class="t-tab" aria-selected="true" aria-controls="pricing-plans" tabindex="0" data-interval="month">Monthly</button>
+        <button type="button" role="tab" class="t-tab" aria-selected="false" aria-controls="pricing-plans" tabindex="-1" data-interval="year">Yearly · save 20%</button>
+      </div>
+    </div>
+    <div id="pricing-plans" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-reveal-group="70">
       {PLANS.map((p) => (
-        <div class={`card flex flex-col p-6 ${p.id === "pro" ? "shadow-md ring-1 ring-primary/30" : ""}`} data-reveal>
+        <div class={`card flex flex-col p-6 ${p.id === "pro" ? "shadow-md ring-1 ring-primary/30" : ""}`} data-reveal data-plan-card={p.id === "free" ? undefined : ""} data-monthly={p.monthly} data-yearly={p.yearly} data-yearly-total={p.yearly * 12}>
           <div class="flex items-baseline justify-between gap-3">
             <h2 class="text-xl font-semibold">{p.name}</h2>
             {p.id === "pro" && <span class="rounded-full bg-accent/60 px-2.5 py-0.5 text-xs font-medium">For many sites</span>}
           </div>
-          <p class="mt-1 font-display text-3xl font-semibold tabular">${p.monthly}<span class="text-base font-normal text-muted-foreground">/month</span></p>
-          <p class="mt-1 text-sm text-muted-foreground tabular">{p.monthly === 0 ? "Free forever, no card." : `$${p.yearly}/month billed yearly.`}</p>
+          <p class="mt-1 font-display text-3xl font-semibold tabular">$<span data-price>{p.monthly}</span><span class="text-base font-normal text-muted-foreground">/month</span></p>
+          <p class="mt-1 text-sm text-muted-foreground tabular" data-price-detail={p.id === "free" ? undefined : ""}>{p.monthly === 0 ? "Free forever, no card." : "Billed monthly."}</p>
           <dl class="mt-5 grid flex-1 gap-2 text-[15px]">
             <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Forms</dt><dd class="tabular">{fmt(p.forms)}</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Submissions / month</dt><dd class="tabular">{fmt(p.submissions)}</dd></div>
@@ -39,7 +46,7 @@ const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postb
             <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Retention</dt><dd class="tabular">{p.retention} days</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Seats, audit log, DPA</dt><dd class={p.id === "team" ? "" : "text-muted-foreground/50"}>{p.id === "team" ? "Included" : "—"}</dd></div>
           </dl>
-          {p.id === "free" ? <a href={SIGNUP_URL} class="btn btn-primary mt-6">Create a form</a> : <a href="/app/settings" class="btn btn-primary mt-6">Choose {p.name}</a>}
+          {p.id === "free" ? <a href={SIGNUP_URL} class="btn btn-primary mt-6">Create a form</a> : <a href={`${APP_URL}/settings?plan=${p.id}&interval=month&checkout=1`} data-checkout data-checkout-base={`${APP_URL}/settings`} data-plan={p.id} class="btn btn-primary mt-6">Choose {p.name}</a>}
         </div>
       ))}
       <div class="card flex flex-col bg-surface-2 p-6 ring-1 ring-border-strong" data-reveal>
@@ -67,3 +74,68 @@ const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postb
   <Faq items={faqs} class="mt-20" title="Pricing questions" />
   <CtaBand />
 </Base>
+<script>
+  document.querySelectorAll<HTMLElement>("[data-pricing]").forEach((root) => {
+    const bar = root.querySelector<HTMLElement>(".t-tabs")
+    const pill = bar?.querySelector<HTMLElement>(".t-tabs-pill")
+    if (!bar || !pill) return
+
+    const tabs = Array.from(bar.querySelectorAll<HTMLButtonElement>("[data-interval]"))
+    const cards = Array.from(root.querySelectorAll<HTMLElement>("[data-plan-card]"))
+
+    function moveTo(tab: HTMLButtonElement, animate: boolean) {
+      if (!animate) {
+        const previousTransition = pill!.style.transition
+        pill!.style.transition = "none"
+        pill!.style.transform = `translateX(${tab.offsetLeft}px)`
+        pill!.style.width = `${tab.offsetWidth}px`
+        void pill!.offsetWidth
+        pill!.style.transition = previousTransition
+        return
+      }
+      pill!.style.transform = `translateX(${tab.offsetLeft}px)`
+      pill!.style.width = `${tab.offsetWidth}px`
+    }
+
+    function activate(tab: HTMLButtonElement) {
+      const interval = tab.dataset.interval === "year" ? "year" : "month"
+      tabs.forEach((candidate) => {
+        const selected = candidate === tab
+        candidate.setAttribute("aria-selected", String(selected))
+        candidate.tabIndex = selected ? 0 : -1
+      })
+      cards.forEach((card) => {
+        const price = card.querySelector<HTMLElement>("[data-price]")
+        const detail = card.querySelector<HTMLElement>("[data-price-detail]")
+        const checkout = card.querySelector<HTMLAnchorElement>("[data-checkout]")
+        if (!price || !detail || !checkout) return
+
+        price.textContent = interval === "year" ? card.dataset.yearly! : card.dataset.monthly!
+        detail.textContent = interval === "year" ? `$${card.dataset.yearlyTotal} billed yearly.` : "Billed monthly."
+        const checkoutUrl = new URL(checkout.dataset.checkoutBase!)
+        checkoutUrl.searchParams.set("plan", checkout.dataset.plan!)
+        checkoutUrl.searchParams.set("interval", interval)
+        checkoutUrl.searchParams.set("checkout", "1")
+        checkout.href = checkoutUrl.toString()
+      })
+    }
+
+    const activeTab = () => tabs.find((tab) => tab.getAttribute("aria-selected") === "true") ?? tabs[0]!
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => {
+        activate(tab)
+        moveTo(tab, true)
+      })
+      tab.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return
+        const offset = event.key === "ArrowRight" ? 1 : tabs.length - 1
+        const next = tabs[(index + offset) % tabs.length]!
+        next.focus()
+        activate(next)
+        moveTo(next, true)
+      })
+    })
+    requestAnimationFrame(() => moveTo(activeTab(), false))
+    window.addEventListener("resize", () => moveTo(activeTab(), false))
+  })
+</script>

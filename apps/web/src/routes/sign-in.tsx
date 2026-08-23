@@ -66,7 +66,10 @@ function SignInRoute() {
           <p className="text-sm text-muted-foreground">Sign in to your Postbag workspace.</p>
         </div>
 
-        <SocialButtons intent="sign-in" />
+        <SocialButtons
+          intent="sign-in"
+          {...(search.redirect === undefined ? {} : { callbackURL: search.redirect })}
+        />
 
         <form
           onSubmit={(e) => {
