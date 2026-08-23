@@ -24,13 +24,13 @@ export async function callJsonApi(
   method: string,
   path: string,
   body: unknown,
+  requestHeaders: Readonly<Record<string, string>> = {},
 ): Promise<ApiJsonResult> {
   const doFetch = options.fetchImpl ?? fetch
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${options.apiKey}`,
-    Accept: "application/json",
-  }
-  if (body !== undefined) headers["Content-Type"] = "application/json"
+  const headers = new Headers({ Accept: "application/json" })
+  if (options.apiKey !== undefined) headers.set("Authorization", `Bearer ${options.apiKey}`)
+  for (const [name, value] of Object.entries(requestHeaders)) headers.set(name, value)
+  if (body !== undefined) headers.set("Content-Type", "application/json")
 
   const response = await doFetch(joinUrl(options.apiUrl, path), {
     method: method.toUpperCase(),
@@ -60,9 +60,11 @@ export interface ApiTextResult {
 /** Calls a plain-text Postbag endpoint (`/llms.txt`) with the bearer key. */
 export async function callTextApi(options: ApiClientOptions, path: string): Promise<ApiTextResult> {
   const doFetch = options.fetchImpl ?? fetch
+  const headers = new Headers({ Accept: "text/markdown, text/plain" })
+  if (options.apiKey !== undefined) headers.set("Authorization", `Bearer ${options.apiKey}`)
   const response = await doFetch(joinUrl(options.apiUrl, path), {
     method: "GET",
-    headers: { Authorization: `Bearer ${options.apiKey}`, Accept: "text/markdown, text/plain" },
+    headers,
   })
   const text = await response.text()
   return { ok: response.ok, status: response.status, text }

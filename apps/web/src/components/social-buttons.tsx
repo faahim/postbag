@@ -72,6 +72,10 @@ export function SocialButtons({
 
   const social = providers.data?.social ?? []
   if (social.length === 0) return null
+  const showEmailAlternative =
+    intent === "sign-in"
+      ? providers.data?.email_password.sign_in === true
+      : providers.data?.email_password.sign_up === true
 
   return (
     <div data-intent={intent} className={cn("flex flex-col gap-2.5", className)}>
@@ -95,7 +99,7 @@ export function SocialButtons({
           </Button>
         )
       })}
-      <Divider />
+      {showEmailAlternative ? <Divider /> : null}
     </div>
   )
 }

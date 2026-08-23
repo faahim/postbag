@@ -19,9 +19,17 @@ Requires Node ≥ 22.
 
 ```sh
 cd my-site
+postbag sandbox create --name "Contact form" --origin https://example.com
+# wire and test the stable Submit URL before creating an account
+POSTBAG_SANDBOX_TOKEN=pbs_… postbag sandbox status
 postbag login                    # paste an API key, or get one by email code — no browser needed
-postbag init --yes                # runs quickstart, writes postbag.json into this repo
+postbag sandbox claim --token pbs_…
 ```
+
+The sandbox lasts 24 hours, stores at most five test Submissions and cannot deliver.
+Its token is shown once and is never saved to credentials or `postbag.json`. Claiming
+keeps the Form id and submit URL. If the hosted anonymous path is disabled, use
+`postbag login` followed by the authenticated `postbag init --yes` flow.
 
 `postbag init` creates (idempotently) a project and a form, wires up whichever of
 `--email`/`--telegram` you passed as a destination, and prints a ready-to-paste embed
@@ -126,6 +134,8 @@ Never hand-write a submit URL — run `postbag init` once, then `postbag forms c
 
 ```
 postbag login [--api-key <key>] [--email <addr>] [--code <digits>] | logout | whoami
+postbag sandbox create --name <name> [--origin <url>] [--claim-email <email>]
+postbag sandbox status|claim [--token <token>]
 postbag init [--name] [--email] [--telegram <chatId>] [--project] [--yes] [--force]
 postbag forms list|get <id>|create|update <id>|delete <id>|embed <id>
 postbag submissions list|get <id>|tail --form <id> [--interval <s>]

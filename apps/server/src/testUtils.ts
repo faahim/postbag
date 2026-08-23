@@ -1,6 +1,15 @@
 import { newId } from "@postbag/core"
 import { eq } from "drizzle-orm"
-import { createDb, member, organization, organizationSettings, projects, user, type Database, type DatabaseClient } from "@postbag/db"
+import {
+  createDb,
+  member,
+  organization,
+  organizationSettings,
+  projects,
+  user,
+  type Database,
+  type DatabaseClient,
+} from "@postbag/db"
 import type { OpenAPIHono } from "@hono/zod-openapi"
 
 import { createApp, type AppDeps } from "./app.js"
@@ -26,6 +35,8 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     MAIL_FROM: "Postbag <postbag@updates.withfaahim.com>",
     MIGRATE_ON_BOOT: false,
     RLS_ENFORCED: false,
+    ANONYMOUS_QUICKSTART_ENABLED: false,
+    ANONYMOUS_SANDBOX_GLOBAL_LIMIT: 1000,
     POLAR_SERVER: "sandbox",
     POLAR_ACCESS_TOKEN: "polar_test",
     LEGACY_HOSTS: [],
@@ -55,7 +66,14 @@ export function buildHarness(
   const logger = createLogger(env)
   const auth = buildAuth(client.db, env, authOverrides)
   const destinations = createDestinationRegistry(env)
-  const deps: AppDeps = { db: client.db, env, logger, auth, destinations, ...(billing === undefined ? {} : { billing }) }
+  const deps: AppDeps = {
+    db: client.db,
+    env,
+    logger,
+    auth,
+    destinations,
+    ...(billing === undefined ? {} : { billing }),
+  }
   const app = createApp(deps)
   return {
     app,
@@ -81,12 +99,20 @@ export type SeededOrg = {
 export async function seedOrganization(db: Database, name = "Test Org"): Promise<SeededOrg> {
   const organizationId = newId("org")
   await db.insert(organization).values({ id: organizationId, name, slug: organizationId })
-  await db.insert(organizationSettings).values({ organizationId, plan: "free", timezone: "UTC", limits: {} })
+  await db
+    .insert(organizationSettings)
+    .values({ organizationId, plan: "free", timezone: "UTC", limits: {} })
   const projectId = newId("prj")
-  await db.insert(projects).values({ id: projectId, organizationId, slug: "default", name: "Default", tags: [] })
+  await db
+    .insert(projects)
+    .values({ id: projectId, organizationId, slug: "default", name: "Default", tags: [] })
   const userId = newId("usr")
-  await db.insert(user).values({ id: userId, name, email: `${userId}@example.test`, emailVerified: true })
-  await db.insert(member).values({ id: globalThis.crypto.randomUUID(), organizationId, userId, role: "owner" })
+  await db
+    .insert(user)
+    .values({ id: userId, name, email: `${userId}@example.test`, emailVerified: true })
+  await db
+    .insert(member)
+    .values({ id: globalThis.crypto.randomUUID(), organizationId, userId, role: "owner" })
   return { organizationId, projectId, userId }
 }
 
@@ -107,21 +133,29 @@ export async function cleanupOrganization(db: Database, organizationId: string):
   await db.delete(organization).where(eq(organization.id, organizationId))
 }
 
-export type SeededUser = { readonly userId: string; readonly email: string; readonly cookie: string }
+export type SeededUser = {
+  readonly userId: string
+  readonly email: string
+  readonly cookie: string
+}
 
 /** Signs a brand-new user up through the real HTTP flow (so `provisionPersonalOrganization`
  * runs exactly as it does in production) and returns a session cookie for it. Used by job L's
  * role-matrix tests to get a real signed-in actor of a given role in a *shared* test org —
  * callers then add a `member` row for that org/role directly (see `addMember`) and, if the
  * test needs `scope.organizationId` to resolve to that org, call `setActiveOrganization`. */
-export async function signUpTestUser(app: OpenAPIHono<AppEnv>, name = "Test User"): Promise<SeededUser> {
+export async function signUpTestUser(
+  app: OpenAPIHono<AppEnv>,
+  name = "Test User",
+): Promise<SeededUser> {
   const email = `${newId("usr")}@example.test`
   const res = await app.request("/api/auth/sign-up/email", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ email, password: "correct horse battery staple", name }),
   })
-  if (res.status >= 400) throw new Error(`Test sign-up failed with status ${String(res.status)}: ${await res.text()}`)
+  if (res.status >= 400)
+    throw new Error(`Test sign-up failed with status ${String(res.status)}: ${await res.text()}`)
   const setCookie = res.headers.get("set-cookie")
   const cookie = setCookie?.split(";")[0]
   if (cookie === undefined) throw new Error("Test sign-up did not return a session cookie.")
@@ -147,6 +181,13 @@ export async function addMember(
 /** Makes `organizationId` the active organization for a signed-in test session (the user
  * must already have a `member` row there — see `addMember`) so `requireOrg` resolves
  * `scope.organizationId` to it on every subsequent request with this cookie. */
-export async function setActiveOrganizationForTest(auth: Auth, cookie: string, organizationId: string): Promise<void> {
-  await auth.api.setActiveOrganization({ headers: new Headers({ cookie }), body: { organizationId } })
+export async function setActiveOrganizationForTest(
+  auth: Auth,
+  cookie: string,
+  organizationId: string,
+): Promise<void> {
+  await auth.api.setActiveOrganization({
+    headers: new Headers({ cookie }),
+    body: { organizationId },
+  })
 }

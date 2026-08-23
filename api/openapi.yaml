@@ -21,6 +21,13 @@ components:
       description: "An API key minted via POST /v1/api-keys (or the dashboard), sent
         as `Authorization: Bearer pb_live_…`. Scopes are manage ⊇ read ⊇ submit
         — a manage key satisfies every read- or submit-scoped call too."
+    sandboxAuth:
+      type: http
+      scheme: Sandbox
+      description: "The capability returned by POST /v1/public/sandboxes, sent as
+        `Authorization: Sandbox <sandbox_token>`. It can read one bounded
+        sandbox but cannot claim it without a separately authenticated
+        organization."
   schemas:
     ErrorEnvelope:
       type: object
@@ -981,12 +988,13 @@ paths:
       tags:
         - discovery
       summary: Which sign-in methods this instance has configured
-      description: "Public, unauthenticated — no API key needed. Email+password is
-        always available. `social` lists only the OAuth providers this instance
-        has both a client id and secret for (self-host parity: a self-hosted
-        instance with neither configured returns an empty list). The dashboard
-        calls this once, cached, to decide which social sign-in buttons to
-        render."
+      description: "Public, unauthenticated. Email/password reports sign-in and
+        sign-up separately because hosted Postbag keeps password sign-in for
+        existing users while disabling new password registration. `social` lists
+        only the OAuth providers this instance has both a client id and secret
+        for (self-host parity: a self-hosted instance with neither configured
+        returns an empty list). The dashboard calls this once, cached, to decide
+        which social sign-in buttons to render."
       security: []
       responses:
         "200":
@@ -997,7 +1005,25 @@ paths:
                 type: object
                 properties:
                   email_password:
-                    type: boolean
+                    type: object
+                    properties:
+                      sign_in:
+                        type: boolean
+                      sign_up:
+                        type: boolean
+                    required:
+                      - sign_in
+                      - sign_up
+                  email_code:
+                    type: object
+                    properties:
+                      sign_in:
+                        type: boolean
+                      sign_up:
+                        type: boolean
+                    required:
+                      - sign_in
+                      - sign_up
                   social:
                     type: array
                     items:
@@ -1009,6 +1035,7 @@ paths:
                     type: string
                 required:
                   - email_password
+                  - email_code
                   - social
                   - sign_in_url
   /v1/billing/webhook:
@@ -1246,6 +1273,280 @@ paths:
                   - next
         "401":
           description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/public/sandboxes:
+    post:
+      operationId: public_sandboxes_create
+      tags:
+        - discovery
+      summary: Create a bounded 24-hour sandbox Form without an account
+      description: Requires a canonical UUIDv4 Idempotency-Key. Creates an inert
+        sandbox Form that can accept at most five test Submissions and cannot
+        create Destinations, Routes, Deliveries, Events or outbound traffic.
+      security: []
+      parameters:
+        - schema:
+            type: string
+            description: Canonical lowercase UUIDv4 generated with a CSPRNG.
+          required: true
+          description: Canonical lowercase UUIDv4 generated with a CSPRNG.
+          name: idempotency-key
+          in: header
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                origin:
+                  type: string
+                  format: uri
+                  description: The site origin allowed to submit, canonicalized before storage.
+                claim_email:
+                  type: string
+                  format: email
+                  description: Optional verified-email binding. Include only when the user
+                    explicitly supplied it.
+              required:
+                - name
+              additionalProperties: false
+      responses:
+        "201":
+          description: created or idempotently replayed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sandbox:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: fm_8f3kq2
+                      name:
+                        type: string
+                      status:
+                        type: string
+                        enum:
+                          - active
+                          - claimed
+                          - expired
+                          - blocked
+                      submit_url:
+                        type: string
+                      expires_at:
+                        type: string
+                        example: 2026-08-21T09:00:00.000Z
+                      accepted_count:
+                        type: integer
+                      remaining:
+                        type: integer
+                    required:
+                      - id
+                      - name
+                      - status
+                      - submit_url
+                      - expires_at
+                      - accepted_count
+                      - remaining
+                  sandbox_token:
+                    type: string
+                    description: Shown only in this response. Treat it as a secret.
+                  authorization:
+                    type: object
+                    properties:
+                      scheme:
+                        type: string
+                        enum:
+                          - Sandbox
+                      example:
+                        type: string
+                    required:
+                      - scheme
+                      - example
+                  embed:
+                    type: object
+                    properties:
+                      html:
+                        type: string
+                      fetch:
+                        type: string
+                      react:
+                        type: string
+                      astro:
+                        type: string
+                      nextjs_action:
+                        type: string
+                    required:
+                      - html
+                      - fetch
+                      - react
+                      - astro
+                      - nextjs_action
+                  verify:
+                    type: object
+                    properties:
+                      curl:
+                        type: string
+                      then:
+                        type: string
+                    required:
+                      - curl
+                      - then
+                  claim_url:
+                    type: string
+                  next:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        why:
+                          type: string
+                        method:
+                          type: string
+                        path:
+                          type: string
+                        headers:
+                          type: object
+                          additionalProperties:
+                            type: string
+                        body:
+                          type: object
+                          additionalProperties: {}
+                      required:
+                        - why
+                        - method
+                        - path
+                required:
+                  - sandbox
+                  - sandbox_token
+                  - authorization
+                  - embed
+                  - verify
+                  - claim_url
+                  - next
+        "409":
+          description: Idempotency conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "429":
+          description: Source allowance exhausted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "503":
+          description: Disabled or globally full
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/public/sandboxes/{id}:
+    get:
+      operationId: public_sandboxes_get
+      tags:
+        - discovery
+      summary: Read a sandbox and its bounded Submissions using the sandbox capability
+      security:
+        - sandboxAuth: []
+      parameters:
+        - schema:
+            type: string
+            example: fm_8f3kq2
+          required: true
+          name: id
+          in: path
+        - schema:
+            type: string
+            description: Sandbox <sandbox_token>
+          required: true
+          description: Sandbox <sandbox_token>
+          name: authorization
+          in: header
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: fm_8f3kq2
+                  name:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - claimed
+                      - expired
+                      - blocked
+                  submit_url:
+                    type: string
+                  expires_at:
+                    type: string
+                    example: 2026-08-21T09:00:00.000Z
+                  accepted_count:
+                    type: integer
+                  remaining:
+                    type: integer
+                  submissions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: fm_8f3kq2
+                        data:
+                          type: object
+                          additionalProperties: {}
+                        meta:
+                          type: object
+                          additionalProperties: {}
+                        received_at:
+                          type: string
+                          example: 2026-08-21T09:00:00.000Z
+                      required:
+                        - id
+                        - data
+                        - meta
+                        - received_at
+                required:
+                  - id
+                  - name
+                  - status
+                  - submit_url
+                  - expires_at
+                  - accepted_count
+                  - remaining
+                  - submissions
+        "401":
+          description: Invalid sandbox capability
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "410":
+          description: Expired or consumed
           content:
             application/json:
               schema:
@@ -2749,6 +3050,114 @@ paths:
                 $ref: "#/components/schemas/ErrorEnvelope"
         "422":
           description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/sandboxes/{id}/claim:
+    post:
+      operationId: sandboxes_claim
+      tags:
+        - forms
+      summary: Claim a sandbox Form into the active organization
+      description: Requires both an authenticated manage-scoped actor and the sandbox
+        capability in Postbag-Sandbox-Token. The Form id and submit URL remain
+        unchanged.
+      parameters:
+        - schema:
+            type: string
+            example: fm_8f3kq2
+          required: true
+          name: id
+          in: path
+        - schema:
+            type: string
+            description: The sandbox token returned at creation.
+          required: true
+          description: The sandbox token returned at creation.
+          name: postbag-sandbox-token
+          in: header
+      responses:
+        "200":
+          description: claimed or idempotently returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  claimed:
+                    type: boolean
+                    enum:
+                      - true
+                  idempotent:
+                    type: boolean
+                  form:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: fm_8f3kq2
+                      project_id:
+                        type: string
+                        example: fm_8f3kq2
+                      slug:
+                        type: string
+                      name:
+                        type: string
+                      submit_url:
+                        type: string
+                    required:
+                      - id
+                      - project_id
+                      - slug
+                      - name
+                      - submit_url
+                  copied_test_submissions:
+                    type: integer
+                  next:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        why:
+                          type: string
+                        method:
+                          type: string
+                        path:
+                          type: string
+                        body:
+                          type: object
+                          additionalProperties: {}
+                      required:
+                        - why
+                        - method
+                        - path
+                required:
+                  - claimed
+                  - idempotent
+                  - form
+                  - copied_test_submissions
+                  - next
+        "401":
+          description: Invalid sandbox capability
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "402":
+          description: Target organization Form limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Claim email mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "410":
+          description: Expired or consumed
           content:
             application/json:
               schema:

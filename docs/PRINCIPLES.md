@@ -7,12 +7,12 @@ principle needs an ADR to amend it.
 ## 1. Two personas, one test each
 
 **The solo dev.** Has one contact form on one site. Wants an endpoint and an email.
-*Test:* time from signup to first email in the inbox under **three minutes**, meeting
+_Test:_ time from signup to first email in the inbox under **three minutes**, meeting
 exactly **one** new noun (Form).
 
 **The operator.** Runs many sites — an agency with client sites, a lead-gen business,
 a Smedja fleet. Wants forms from many sites grouped, normalised to one shape, and sent
-to a partner or a CRM with rules. *Test:* fifteen sites → one partner with a delivery
+to a partner or a CRM with rules. _Test:_ fifteen sites → one partner with a delivery
 window, configured **without code and without a support ticket**.
 
 A feature that serves one persona while taxing the other is redesigned or hidden.
@@ -23,40 +23,41 @@ the operator's model to flatter the solo dev — **hide** it.
 
 Every advanced concept has a default under which it does not exist for the user.
 
-| Concept | The default that makes it invisible |
-|---|---|
-| Project | A "Default" project is created on signup. Forms live there until the user makes another. |
-| Stream | A form with no stream routes directly to destinations. Streams appear the first time a user wants two forms to go to the same place. |
-| Form schema | No declared schema + `observe` mode = accept anything. The user never picks a mode; they are just "collecting submissions". |
-| Mapping | A route with no mapping is identity passthrough. |
-| `managed` schema mode | API/CLI/MCP feature. Never an onboarding step, never a dashboard prompt. |
-| Filters, transforms, windows, digests | Absent from the route until opened under "Rules". |
+| Concept                               | The default that makes it invisible                                                                                                  |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Project                               | A "Default" project is created on signup. Forms live there until the user makes another.                                             |
+| Stream                                | A form with no stream routes directly to destinations. Streams appear the first time a user wants two forms to go to the same place. |
+| Form schema                           | No declared schema + `observe` mode = accept anything. The user never picks a mode; they are just "collecting submissions".          |
+| Mapping                               | A route with no mapping is identity passthrough.                                                                                     |
+| `managed` schema mode                 | API/CLI/MCP feature. Never an onboarding step, never a dashboard prompt.                                                             |
+| Filters, transforms, windows, digests | Absent from the route until opened under "Rules".                                                                                    |
 
 The API exposes all of it, always. The UI reveals it progressively.
 
 ## 3. Vocabulary
 
 One word per concept. The API uses the engineering word; the UI may use a friendlier
-label, but it is a *label*, not a second concept. Do not invent synonyms in code,
+label, but it is a _label_, not a second concept. Do not invent synonyms in code,
 docs, or copy.
 
-| Concept | API / code | UI label (draft) |
-|---|---|---|
-| Tenant | `organization` | Workspace |
-| Folder for forms | `project` | Project |
-| Endpoint that receives submissions | `form` | Form |
-| One received payload | `submission` | Submission |
-| Declared shape of a form | `form_schema` | Fields |
-| A named group of forms with a shared output shape | `stream` | Bag *(candidate — on-brand; decide before Phase 1 UI)* |
-| The shared output shape of a stream | `stream_schema` | What gets delivered |
-| A form's field → stream field assignment | `mapping` | Match fields |
-| Somewhere submissions can be sent | `destination` | Destination |
-| form/stream → destination with rules | `route` | Send to |
-| One attempt-tracked send of one submission via one route | `delivery` | Delivery |
-| A change in what a form is actually receiving vs its schema | `drift` | Change detected |
+| Concept                                                     | API / code      | UI label (draft)                                       |
+| ----------------------------------------------------------- | --------------- | ------------------------------------------------------ |
+| Tenant                                                      | `organization`  | Workspace                                              |
+| Folder for forms                                            | `project`       | Project                                                |
+| Endpoint that receives submissions                          | `form`          | Form                                                   |
+| Temporary, unclaimed Form                                   | `sandbox`       | Sandbox Form                                           |
+| One received payload                                        | `submission`    | Submission                                             |
+| Declared shape of a form                                    | `form_schema`   | Fields                                                 |
+| A named group of forms with a shared output shape           | `stream`        | Bag _(candidate — on-brand; decide before Phase 1 UI)_ |
+| The shared output shape of a stream                         | `stream_schema` | What gets delivered                                    |
+| A form's field → stream field assignment                    | `mapping`       | Match fields                                           |
+| Somewhere submissions can be sent                           | `destination`   | Destination                                            |
+| form/stream → destination with rules                        | `route`         | Send to                                                |
+| One attempt-tracked send of one submission via one route    | `delivery`      | Delivery                                               |
+| A change in what a form is actually receiving vs its schema | `drift`         | Change detected                                        |
 
-Words we do **not** use: *endpoint* (as a noun for form), *integration*, *channel*,
-*hook* (for destination), *entry*, *response* (for submission), *pipeline*.
+Words we do **not** use: _endpoint_ (as a noun for form), _integration_, _channel_,
+_hook_ (for destination), _entry_, _response_ (for submission), _pipeline_.
 
 ## 4. Never lose a submission
 
@@ -68,6 +69,10 @@ Words we do **not** use: *endpoint* (as a noun for form), *integration*, *channe
 - Correctness is carried by **unique constraints in the database**, not by
   application logic: one submission per idempotency key, one delivery per
   (submission, route), one digest per (route, period).
+- Anonymous sandbox admission is the narrow exception: a request becomes a
+  Submission only after its bounded slot and row commit atomically. The five-row,
+  expiry and payload boundaries reject admission attempts; they do not discard
+  accepted Submissions. See [ADR-009](./decisions/ADR-009-anonymous-admission-boundary.md).
 
 ## 5. Contract first
 

@@ -8,8 +8,8 @@ description: Use when a site or app needs a form endpoint, contact form, lead ca
 Postbag is a form backend that routes. Point any HTML form (or a `fetch` call) at a
 Postbag endpoint and every submission is stored durably, then delivered to email,
 Telegram, webhooks and other systems according to rules. It is agent-native:
-everything a human can do in the dashboard, you can do with an API key — no browser,
-no human in the loop except to read a 6-digit code out of their inbox once.
+you can prove durable receipt before signup, then claim and configure the same Form
+with an API key. A human is needed only to authenticate ownership.
 
 Root of the API: `https://postbag.dev`. Full contract: `https://postbag.dev/openapi.json`. Agent
 onboarding page (short, always current): `https://postbag.dev/llms.txt`. Human docs:
@@ -22,9 +22,25 @@ onboarding page (short, always current): `https://postbag.dev/llms.txt`. Human d
    the same purpose. `npx postbag whoami` confirms the saved key still works.
 2. **Is `POSTBAG_API_KEY` set, or does `~/.config/postbag/credentials.json` exist?**
    Use that key. `npx postbag whoami` / `GET https://postbag.dev/v1/me` confirms it.
-3. **Otherwise, get a key without a browser.** Ask the human for their email, then
-   run the code flow below. This is the only step that needs a human, and it takes
-   one message from them (the 6-digit code).
+3. **Otherwise, create a sandbox first.** Run `npx postbag sandbox create --name …
+--origin …`, wire the returned stable submit URL, send a test and verify it with
+   `postbag sandbox status`. Do not include `--claim-email` unless the person
+   explicitly supplied their Postbag login email. Keep the token private.
+4. **When the work is ready to own, get a key.** Ask the person for their email, run
+   the code flow below, then `postbag sandbox claim --token …`. If sandbox creation
+   returns `anonymous_quickstart_disabled`, use this account-first flow immediately.
+
+## Start and verify before signup
+
+```
+npx postbag sandbox create --name "Portfolio contact" --origin https://example.com
+# wire the returned submit URL, then send a test
+POSTBAG_SANDBOX_TOKEN=pbs_… npx postbag sandbox status
+```
+
+The sandbox lasts 24 hours, accepts at most five 16 KiB test Submissions and never
+creates outbound traffic. Its Form id and submit URL remain unchanged after claim.
+The token is a secret and is not written to `postbag.json` or saved credentials.
 
 ## Getting a key (no browser)
 
@@ -47,6 +63,12 @@ curl -X POST https://postbag.dev/v1/auth/verify-code -d '{"email":"you@example.c
 
 A new email provisions an organization first; an existing email reuses its own. The
 key is shown once — store it as `POSTBAG_API_KEY` or let `postbag login` save it.
+
+To claim work already completed in a sandbox:
+
+```
+POSTBAG_API_KEY=pb_live_… postbag sandbox claim --token pbs_…
+```
 
 ## One call to a working form
 
@@ -126,7 +148,8 @@ done.
 
 ## Vocabulary
 
-`form` — the endpoint a site posts to. `submission` — one received payload.
+`sandbox` — a temporary, unclaimed Form. `form` — the thing a site posts to.
+`submission` — one received payload.
 `stream` — a named group of forms with a shared output shape (a "Bag" in the
 dashboard; attach the first form and its fields become the stream's version-1 schema,
 no hand-written schema needed). `destination` —

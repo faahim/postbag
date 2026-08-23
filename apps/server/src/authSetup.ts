@@ -7,6 +7,11 @@ import { provisionPersonalOrganization } from "./provisioning.js"
 
 export type Auth = ReturnType<typeof createAuth>
 
+export function isHostedInstance(env: Pick<Env, "APP_URL">): boolean {
+  const hostname = new URL(env.APP_URL).hostname.toLowerCase()
+  return hostname === "postbag.dev" || hostname === "api.postbag.dev"
+}
+
 /** Google enabled iff both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set, same for
  * GitHub (env.ts rejects a half-configured pair at boot) — self-host parity: an operator
  * who sets neither gets an instance with no social providers, nothing else changes. */
@@ -44,9 +49,12 @@ export function buildAuth(db: Database, env: Env, overrides: BuildAuthOverrides 
     // serves apps/web/dist under /app). Only the Vite dev server runs on a different
     // origin (5173) while proxying /api, /v1 and /s back to this server — trust it so
     // Better Auth's origin check doesn't reject the proxied requests in development.
-    trustedOrigins: env.NODE_ENV === "development" ? [env.APP_URL, "http://localhost:5173"] : [env.APP_URL],
-    onUserCreated: (user) => provisionPersonalOrganization(db, user, env.POLAR_ACCESS_TOKEN === undefined),
+    trustedOrigins:
+      env.NODE_ENV === "development" ? [env.APP_URL, "http://localhost:5173"] : [env.APP_URL],
+    onUserCreated: (user) =>
+      provisionPersonalOrganization(db, user, env.POLAR_ACCESS_TOKEN === undefined),
     socialProviders: socialProvidersFrom(env),
+    disableEmailPasswordSignUp: isHostedInstance(env),
     sendEmailOTP: trackOtpSender(
       overrides.sendEmailOTP ??
         createOtpEmailSender(
@@ -58,6 +66,8 @@ export function buildAuth(db: Database, env: Env, overrides: BuildAuthOverrides 
   })
 }
 
-function trackOtpSender(sender: CreateAuthOptions["sendEmailOTP"]): CreateAuthOptions["sendEmailOTP"] {
+function trackOtpSender(
+  sender: CreateAuthOptions["sendEmailOTP"],
+): CreateAuthOptions["sendEmailOTP"] {
   return sender === undefined ? undefined : withFailureTracking(sender)
 }
