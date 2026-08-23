@@ -9,7 +9,7 @@ export function Sidebar() {
   return (
     <aside className="hidden w-56 shrink-0 flex-col border-r border-border/70 bg-card/60 px-3 py-4 md:flex">
       <Link to="/" className="mb-6 flex items-center gap-2 px-2 text-sm font-semibold tracking-tight">
-        <img src={`${import.meta.env.BASE_URL}logo-mark.svg`} alt="" width={24} height={24} className="size-6 shrink-0" />
+        <img src={`${import.meta.env.BASE_URL}logo-mark-455264e.svg`} alt="" width={24} height={24} className="size-6 shrink-0" />
         Postbag
       </Link>
 

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="140 130 744 744" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="126 120 772 772" fill="none">
   <defs>
     <linearGradient id="background" x1="507.736" y1="1025.952" x2="515.764" y2="-2.452" gradientUnits="userSpaceOnUse">
       <stop stop-color="#060921"/>
@@ -134,7 +134,19 @@
     </linearGradient>
 
     <filter id="objectShadow" x="150" y="125" width="730" height="790" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="24" stdDeviation="34" flood-color="#02051F" flood-opacity="0.44"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="13" result="ambientBlur"/>
+      <feOffset in="ambientBlur" dy="9" result="ambientOffset"/>
+      <feFlood flood-color="#02051F" flood-opacity="0.28" result="ambientColor"/>
+      <feComposite in="ambientColor" in2="ambientOffset" operator="in" result="ambientShadow"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="contactBlur"/>
+      <feOffset in="contactBlur" dy="5" result="contactOffset"/>
+      <feFlood flood-color="#11184F" flood-opacity="0.2" result="contactColor"/>
+      <feComposite in="contactColor" in2="contactOffset" operator="in" result="contactShadow"/>
+      <feMerge>
+        <feMergeNode in="ambientShadow"/>
+        <feMergeNode in="contactShadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
     <filter id="cardShadow" x="240" y="150" width="590" height="510" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
       <feDropShadow dx="0" dy="11" stdDeviation="17" flood-color="#273489" flood-opacity="0.2"/>

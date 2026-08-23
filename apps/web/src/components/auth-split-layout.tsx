@@ -18,12 +18,12 @@ export function AuthSplitLayout({ children }: { readonly children: ReactNode }) 
         }} />
 
         <span className="relative z-10 flex items-center gap-2 text-sm font-semibold tracking-wide">
-          <img src={`${import.meta.env.BASE_URL}logo-mark.svg`} alt="" width={24} height={24} className="size-6 shrink-0" />
+          <img src={`${import.meta.env.BASE_URL}logo-mark-455264e.svg`} alt="" width={24} height={24} className="size-6 shrink-0" />
           Postbag
         </span>
 
         <div className="relative z-10 flex flex-col gap-8">
-          <img src={`${import.meta.env.BASE_URL}logo-mark.svg`} alt="" width={168} height={168} />
+          <img src={`${import.meta.env.BASE_URL}logo-mark-455264e.svg`} alt="" width={168} height={168} />
           <div className="flex max-w-md flex-col gap-3">
             <h1 className="text-3xl font-semibold text-balance">A form backend that routes.</h1>
             <p className="text-base text-primary-foreground/80 text-pretty">
