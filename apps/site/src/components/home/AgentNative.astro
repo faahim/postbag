@@ -2,54 +2,71 @@
 import CodeBlock from "@/components/CodeBlock.astro"
 import { API_URL, LLMS_URL, OPENAPI_URL } from "@/config"
 
-const sandboxFlow = `$ curl -X POST ${API_URL}/v1/public/sandboxes \
-  -H "content-type: application/json" \
-  -H "Idempotency-Key: <uuidv4>" \
+const sandboxFlow = `$ curl -X POST ${API_URL}/v1/public/sandboxes \\
+  -H "content-type: application/json" \\
+  -H "Idempotency-Key: <uuidv4>" \\
   -d '{"name":"Contact","origin":"https://example.com"}'
 
-{ "sandbox": { "id": "fm_…", "submit_url": "${API_URL}/s/fm_…", "expires_at": "2026-08-25T09:00:00Z" },
-  "sandbox_token": "pbs_…", "embed": { "html": "<form …>" }, "next": [ … ] }
+{ "sandbox": { "id": "fm_…", "status": "active",
+    "submit_url": "${API_URL}/s/fm_…",
+    "expires_at": "2026-08-25T09:00:00Z",
+    "accepted_count": 0, "remaining": 5 },
+  "sandbox_token": "pbs_…", "claim_url": "${API_URL}/app/claim#token=…" }
 
-$ curl ${API_URL}/v1/public/sandboxes/fm_… \
+$ curl ${API_URL}/v1/public/sandboxes/fm_… \\
   -H "Authorization: Sandbox pbs_…"
-{ "submissions": [{ "status": "received", "test": true }] }`
+
+{ "id": "fm_…", "status": "active", "remaining": 4,
+  "submissions": [{ "id": "sb_…", "received_at": "…" }] }`
 
 const steps = [
-  { n: "Read", body: "The agent reads llms.txt and learns the three anonymous calls, the fixed vocabulary and the exact limits." },
-  { n: "Create", body: "POST /v1/public/sandboxes creates a 24-hour Form and returns its stable submit URL, ready-made embeds and a one-time sandbox capability." },
-  { n: "Wire and test", body: "It puts the embed in the site, posts a test Submission and reads it back. The receipt is durable and inert: nothing is sent onward before claim." },
-  { n: "Claim when ready", body: "Only then do you authenticate. Claiming keeps the same Form id and submit URL; the agent can add Destinations and Routes and verify a new Delivery." },
+  { title: "Create", body: "The response shows the sandbox capability once. The agent keeps it and can reuse it to verify receipt until claim or expiry." },
+  { title: "Wire", body: "The Form already has its permanent id and stable submit URL. The agent places the returned embed in your site." },
+  { title: "Prove", body: "Up to five test Submissions can be stored and read back for 24 hours. Nothing goes to a Destination yet." },
+  { title: "Claim", body: "Sign in only when you want to keep it. Claiming preserves the Form id and submit URL." },
+  { title: "Route", body: "Add a Destination and Route, then send a new test to verify a real Delivery. Earlier sandbox tests stay inert." },
 ] as const
 ---
-<section class="container-x mt-28 sm:mt-36" aria-labelledby="agents-heading" id="agents">
-  <div class="max-w-2xl" data-reveal>
-    <h2 id="agents-heading" class="text-3xl font-semibold text-balance sm:text-4xl">What the agent does with that prompt.</h2>
-    <p class="mt-4 text-lg leading-relaxed text-muted-foreground">
-      No signup. No dashboard. Your agent can leave a working Form behind before you even make an account. You only step in if you want to keep it and send Submissions onward.
-    </p>
-  </div>
-
-  <div class="mt-10 grid gap-10 lg:grid-cols-[0.55fr_0.45fr] lg:gap-16" data-reveal-group="80">
-    <ol class="grid gap-8">
-      {steps.map((s, i) => (
-        <li class="flex gap-4" data-reveal>
-          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent font-mono text-[13px] font-semibold text-accent-foreground tabular">{i + 1}</span>
-          <div class="min-w-0 pt-0.5">
-            <h3 class="font-display text-[17px] font-semibold">{s.n}</h3>
-            <p class="mt-1 text-[15px] leading-relaxed text-muted-foreground">{s.body}</p>
-          </div>
-        </li>
-      ))}
-    </ol>
-    <div class="min-w-0" data-reveal style="--reveal-delay: 120ms">
-      <CodeBlock code={sandboxFlow} lang="bash" title="anonymous create → prove receipt" dense />
+<section class="agent-native-wrap mt-28 sm:mt-40" aria-labelledby="agents-heading" id="agents">
+  <div class="container-x py-20 sm:py-28">
+    <div class="max-w-3xl" data-reveal>
+      <h2 id="agents-heading" class="text-4xl font-semibold sm:text-6xl">The agent can finish before you sign up.</h2>
+      <p class="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">It creates a working Form, wires the stable submit URL and proves Postbag stored a test. You step in when there is something worth keeping.</p>
     </div>
-  </div>
 
-  <div class="mt-10 flex flex-wrap items-center gap-3" data-reveal>
-    <a href="/for-ai-agents/" class="btn btn-primary">How agents use Postbag</a>
-    <a href={LLMS_URL} class="btn btn-secondary">llms.txt</a>
-    <a href={OPENAPI_URL} class="btn btn-secondary">openapi.json</a>
-    <a href={`${API_URL}/.well-known/skills/index.json`} class="btn btn-secondary">.well-known/skills/</a>
+    <div class="mt-14 grid gap-12 lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:gap-20">
+      <ol class="agent-steps">
+        {steps.map((step) => (
+          <li class="agent-step" data-reveal>
+            <span class="agent-node" aria-hidden="true"></span>
+            <div>
+              <h3 class="text-xl font-semibold">{step.title}</h3>
+              <p class="mt-2 text-[15px] leading-relaxed text-muted-foreground">{step.body}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div class="min-w-0" data-reveal style="--reveal-delay: var(--duration-quick)">
+        <CodeBlock code={sandboxFlow} lang="bash" title="create, then prove receipt" dense />
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">The capability is shown only in the creation response. It is not single-use for status reads; it remains valid until the Form is claimed, expires or is blocked.</p>
+      </div>
+    </div>
+
+    <nav class="mt-14 flex flex-wrap gap-3" aria-label="Agent resources" data-reveal>
+      <a href="/for-ai-agents/" class="btn btn-primary">How agents use Postbag</a>
+      <a href={LLMS_URL} class="btn btn-secondary">llms.txt</a>
+      <a href={OPENAPI_URL} class="btn btn-secondary">openapi.json</a>
+      <a href={`${API_URL}/.well-known/skills/index.json`} class="btn btn-secondary">Agent skill</a>
+    </nav>
   </div>
 </section>
+
+<style>
+  .agent-native-wrap { position: relative; overflow: hidden; background: color-mix(in oklch, var(--surface-2) 82%, var(--primary)); box-shadow: inset 0 1px 0 var(--border), inset 0 -1px 0 var(--border); }
+  .agent-native-wrap::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .42; background: radial-gradient(circle at 78% 25%, color-mix(in oklch, var(--primary) 22%, transparent), transparent 34%); }
+  .agent-steps { position: relative; display: grid; gap: 0; }
+  .agent-steps::before { content: ""; position: absolute; top: 1.1rem; bottom: 1.1rem; left: .43rem; width: 1px; background: var(--border-strong); }
+  .agent-step { position: relative; display: grid; grid-template-columns: 1rem 1fr; gap: 1.2rem; padding-bottom: 2.2rem; }
+  .agent-step:last-child { padding-bottom: 0; }
+  .agent-node { position: relative; z-index: 1; width: .9rem; height: .9rem; margin-top: .38rem; border: 2px solid var(--primary); border-radius: 50%; background: var(--background); box-shadow: 0 0 0 .3rem color-mix(in oklch, var(--background) 78%, transparent); }
+</style>

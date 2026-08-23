@@ -27,6 +27,11 @@
   --accent-foreground: oklch(0.31 0.1 277);
   --success: oklch(0.6 0.135 152);
   --warning: oklch(0.7 0.15 82);
+  --brand-ink: oklch(0.105 0.038 272);
+  --brand-indigo: oklch(0.18 0.06 274);
+  --brand-periwinkle: oklch(0.78 0.13 278);
+  --brand-form: oklch(0.965 0.012 278);
+  --brand-muted: oklch(0.78 0.035 278);
   --ink-code: oklch(0.22 0.036 272);
   --ring: oklch(0.47 0.16 279 / 0.5);
   --radius: 0.5rem;
@@ -117,6 +122,11 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-indigo: var(--brand-indigo);
+  --color-brand-periwinkle: var(--brand-periwinkle);
+  --color-brand-form: var(--brand-form);
+  --color-brand-muted: var(--brand-muted);
   --color-ring: var(--ring);
   --font-display: var(--font-display);
   --font-sans: var(--font-sans);

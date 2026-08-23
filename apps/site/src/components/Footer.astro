@@ -1,105 +1,87 @@
 ---
 import { API_URL, GITHUB_URL, LLMS_URL, OPENAPI_URL, SIGNUP_URL } from "@/config"
+
 const cols = [
   {
     title: "Product",
     links: [
       { href: "/features/", label: "Features" },
-      { href: "/features/routing/", label: "Routing and streams" },
-      { href: "/features/never-lose-a-submission/", label: "Durable delivery" },
+      { href: "/features/routing/", label: "Routing and Streams" },
       { href: "/features/destinations/", label: "Destinations" },
-      { href: "/features/schemas-and-drift/", label: "Schemas and drift" },
-      { href: "/features/spam-protection/", label: "Spam protection" },
-      { href: "/features/self-hosting/", label: "Self-hosting" },
+      { href: "/features/schemas-and-drift/", label: "Schemas and Drift" },
       { href: "/pricing/", label: "Pricing" },
+    ],
+  },
+  {
+    title: "Build",
+    links: [
+      { href: "/docs/quickstart/", label: "Quickstart" },
+      { href: "/docs/agents/", label: "Agent guide" },
+      { href: "/docs/submit-endpoint/", label: "Submit URL" },
+      { href: "/docs/self-hosting/", label: "Self-hosting" },
+      { href: "/docs/api/", label: "API reference" },
+    ],
+  },
+  {
+    title: "Explore",
+    links: [
+      { href: "/compare/", label: "Compare" },
+      { href: "/use-cases/", label: "Use cases" },
+      { href: "/changelog/", label: "Changelog" },
+      { href: "/glossary/", label: "Glossary" },
+      { href: "/about/", label: "About" },
     ],
   },
   {
     title: "For agents",
     links: [
       { href: "/for-ai-agents/", label: "Agent-native overview" },
-      { href: "/docs/agents/", label: "Agent guide" },
       { href: LLMS_URL, label: "llms.txt" },
       { href: "/llms-full.txt", label: "llms-full.txt" },
-      { href: OPENAPI_URL, label: "openapi.json" },
-      { href: "/docs/api/", label: "API reference" },
-    ],
-  },
-  {
-    title: "Docs",
-    links: [
-      { href: "/docs/", label: "Documentation" },
-      { href: "/docs/quickstart/", label: "Quickstart" },
-      { href: "/docs/submit-endpoint/", label: "Submit endpoint" },
-      { href: "/docs/webhooks/", label: "Webhook signatures" },
-      { href: "/docs/self-hosting/", label: "Self-host guide" },
-      { href: "/glossary/", label: "Glossary" },
-      { href: "/changelog/", label: "Changelog" },
-    ],
-  },
-  {
-    title: "Compare",
-    links: [
-      { href: "/compare/", label: "Alternatives" },
-      { href: "/compare/formspree/", label: "vs Formspree" },
-      { href: "/compare/formspark/", label: "vs Formspark" },
-      { href: "/compare/getform/", label: "vs Getform" },
-      { href: "/compare/basin/", label: "vs Basin" },
-      { href: "/compare/web3forms/", label: "vs Web3Forms" },
-      { href: "/compare/netlify-forms/", label: "vs Netlify Forms" },
-    ],
-  },
-  {
-    title: "Use cases",
-    links: [
-      { href: "/use-cases/", label: "All use cases" },
-      { href: "/use-cases/contact-form/", label: "Contact form" },
-      { href: "/use-cases/agencies/", label: "Agencies and fleets" },
-      { href: "/use-cases/lead-routing/", label: "Lead routing" },
-      { href: "/use-cases/ai-built-websites/", label: "AI-built websites" },
-      { href: "/use-cases/static-sites/", label: "Static sites and JAMstack" },
-      { href: "/about/", label: "About" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { href: "/legal/terms/", label: "Terms of Service" },
-      { href: "/legal/privacy/", label: "Privacy Policy" },
-      { href: "/legal/dpa/", label: "Data Processing Addendum" },
-      { href: "/legal/subprocessors/", label: "Sub-processors" },
+      { href: OPENAPI_URL, label: "OpenAPI" },
+      { href: GITHUB_URL, label: "GitHub" },
     ],
   },
 ]
 const year = new Date().getFullYear()
 ---
-<footer class="mt-24 border-t border-border bg-surface/60">
-  <div class="container-x grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.2fr_repeat(6,1fr)] lg:gap-8">
-    <div class="max-w-xs sm:col-span-2 lg:col-span-1">
-      <a href="/" class="flex items-center gap-2.5 font-display text-lg font-semibold tracking-tight"><img src="/logo-mark-455264e.svg" alt="" width="24" height="24" class="size-6 shrink-0" loading="lazy" /> Postbag</a>
-      <p class="mt-4 text-sm leading-relaxed text-muted-foreground">A form backend that routes. Every submission is a row before it is anything else.</p>
-      <a href={SIGNUP_URL} class="btn btn-primary btn-sm mt-5">Create a form</a>
-    </div>
-    {cols.map((c) => (
-      <div>
-        <h2 class="font-sans text-[13px] font-semibold tracking-normal text-foreground">{c.title}</h2>
-        <ul class="mt-3 space-y-2">
-          {c.links.map((l) => (
-            <li><a href={l.href} class="text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground">{l.label}</a></li>
-          ))}
-        </ul>
+<footer class="relative mt-24 overflow-hidden bg-brand-ink text-brand-form">
+  <div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-indigo/45 via-transparent to-brand-periwinkle/10" aria-hidden="true"></div>
+  <div class="container-x relative py-16 sm:py-20">
+    <div class="grid gap-14 border-b border-brand-form/10 pb-14 lg:grid-cols-[1.25fr_2fr] lg:gap-20">
+      <div class="max-w-lg">
+        <a href="/" class="flex items-center gap-2.5 font-display text-xl font-semibold tracking-tight">
+          <img src="/logo-mark-455264e.svg" alt="" width="28" height="28" class="size-7 shrink-0" loading="lazy" />
+          Postbag
+        </a>
+        <p class="mt-6 font-display text-3xl font-semibold leading-tight text-brand-form sm:text-4xl">Somewhere to go. Somewhere that is yours.</p>
+        <p class="mt-5 max-w-md text-base leading-relaxed text-brand-muted">The open-source form backend built for agents. Use Postbag Cloud, or run the same product yourself.</p>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <a href={SIGNUP_URL} class="btn btn-primary btn-sm">Create a Form</a>
+          <a href="/docs/self-hosting/" class="btn btn-sm bg-brand-form/10 text-brand-form hover:bg-brand-form/15">Self-host Postbag</a>
+        </div>
       </div>
-    ))}
-  </div>
-  <div class="border-t border-border">
-    <div class="container-x flex flex-col gap-3 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-      <p>© {year} Postbag. Built by <a href="https://faahim.dev" class="underline-offset-2 hover:underline">Fahim</a>. Business timezone Europe/Stockholm.</p>
-      <ul class="flex flex-wrap gap-4">
-        <li><a href={GITHUB_URL} class="hover:text-foreground">GitHub</a></li>
-        <li><a href={`${API_URL}/health`} class="hover:text-foreground">API status</a></li>
-        <li><a href="/sitemap-index.xml" class="hover:text-foreground">Sitemap</a></li>
-        <li><a href="/legal/privacy/" class="hover:text-foreground">Privacy</a></li>
-        <li><a href="/legal/terms/" class="hover:text-foreground">Terms</a></li>
+      <div class="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4">
+        {cols.map((col) => (
+          <div>
+            <h2 class="font-sans text-[13px] font-semibold text-brand-form">{col.title}</h2>
+            <ul class="mt-4 space-y-2.5">
+              {col.links.map((link) => (
+                <li><a href={link.href} class="text-sm text-brand-muted transition-colors duration-(--duration-quick) hover:text-brand-form">{link.label}</a></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+    <div class="flex flex-col gap-4 pt-6 text-xs text-brand-muted sm:flex-row sm:items-center sm:justify-between">
+      <p>© {year} Postbag. Built by <a href="https://faahim.dev" class="underline-offset-2 hover:underline">Fahim</a>.</p>
+      <ul class="flex flex-wrap gap-x-4 gap-y-2">
+        <li><a href={`${API_URL}/health`} class="hover:text-brand-form">API status</a></li>
+        <li><a href="/sitemap-index.xml" class="hover:text-brand-form">Sitemap</a></li>
+        <li><a href="/legal/privacy/" class="hover:text-brand-form">Privacy</a></li>
+        <li><a href="/legal/terms/" class="hover:text-brand-form">Terms</a></li>
+        <li><a href="/legal/dpa/" class="hover:text-brand-form">DPA</a></li>
       </ul>
     </div>
   </div>

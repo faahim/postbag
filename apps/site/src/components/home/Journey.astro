@@ -1,180 +1,106 @@
 ---
-import Postmark from "@/components/Postmark.astro"
 import { EXAMPLE, RETRY } from "@/config"
+
 const stages = [
-  {
-    id: "arrive",
-    title: "It arrives.",
-    body: "POST /s/{form} takes urlencoded, multipart or JSON, up to 256 KB. Honeypot, origin allowlist, per-form rate limit and Turnstile all run first, and every outcome is stored with a status. Spam is a label, not a bin.",
-    link: { href: "/features/spam-protection/", label: "How spam is handled" },
-  },
-  {
-    id: "row",
-    title: "It is a row before it is anything else.",
-    body: "One transaction inserts the submission, plans one delivery per matching route, and writes the event. The HTTP 200 is your receipt. Nothing in the write path talks to a third party.",
-    link: { href: "/features/never-lose-a-submission/", label: "Why the database makes it correct" },
-  },
-  {
-    id: "drain",
-    title: "The outbox drains.",
-    body: `A worker claims pending deliveries with SELECT … FOR UPDATE SKIP LOCKED, wakes on NOTIFY and on a 15-second tick regardless. Failures back off as ${RETRY.formula}, then go dead and loud. Many workers are safe by construction.`,
-    link: { href: "/docs/architecture/", label: "The outbox, explained" },
-  },
-  {
-    id: "stamped",
-    title: "Every attempt is on the record.",
-    body: "Each delivery keeps its payload snapshot, attempts, last error and the provider's response. Retry from the dashboard or the API. Submissions are only ever deleted by you or by your retention policy.",
-    link: { href: "/docs/api/", label: "Deliveries in the API" },
-  },
-]
+  { title: "Received", body: "Postbag checks the request and stores every accepted outcome with a status. Spam is a label, not a bin.", state: "HTTP 200" },
+  { title: "Saved first", body: "One transaction writes the Submission, plans a Delivery for each matching Route and records the event.", state: "committed" },
+  { title: "Routed second", body: "Only the worker talks to email, Telegram or webhooks. A provider outage cannot erase the Submission.", state: "worker awake" },
+  { title: "Kept on record", body: `Failures retry with ${RETRY.formula}. Payloads, attempts and provider responses stay inspectable.`, state: "attempt 2 sent" },
+] as const
 ---
-<section class="container-x mt-28 sm:mt-36" aria-labelledby="journey-heading" id="journey" data-journey>
-  <div class="max-w-2xl" data-reveal>
-    <h2 id="journey-heading" class="text-3xl font-semibold sm:text-4xl">What happens to a submission</h2>
-    <p class="mt-4 text-lg leading-relaxed text-muted-foreground">The database makes it correct; events make it fast. If every event stream died, every submission would still arrive. Late, never lost.</p>
+<section class="container-x mt-28 sm:mt-40" aria-labelledby="journey-heading" id="journey" data-journey>
+  <div class="mx-auto max-w-3xl text-center" data-reveal>
+    <h2 id="journey-heading" class="text-4xl font-semibold sm:text-5xl">It lands before it travels.</h2>
+    <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">The database makes it correct. Events make it fast. Delivery can wait; your Submission does not have to.</p>
   </div>
 
-  <div class="mt-12 grid gap-10 lg:grid-cols-2 lg:gap-20">
-    <!-- Sticky visual: a delivery record that fills in as the reader scrolls the stages. -->
-    <div class="min-w-0 lg:sticky lg:top-24 lg:self-start">
-      <figure class="card relative max-w-full overflow-hidden p-0 shadow-lg" aria-label="Diagram of a submission record being stored, routed and delivered">
-        <div class="flex h-10 items-center justify-between border-b border-border px-4 font-mono text-[12px] text-muted-foreground">
-          <span>submission <span class="text-foreground">{EXAMPLE.submission}</span></span>
-          <span class="j-status chip shrink-0" data-j="status">incoming</span>
-        </div>
-        <div class="relative grid gap-4 overflow-x-auto p-5 font-mono text-[12px] sm:text-[12.5px]">
-          <!-- Stage 1: the request -->
-          <div class="j-block" data-j="request">
-            <p class="text-muted-foreground">POST /s/{EXAMPLE.form} · application/json · 412 B</p>
-            <pre class="mt-2 rounded-md bg-background p-3 leading-relaxed hairline">{`{ "email": "maja@kontorsautomat.se",\n  "message": "Two machines for the Solna office?",\n  "_gotcha": "" }`}</pre>
+  <div class="mt-14 grid gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(19rem,0.72fr)] lg:gap-20">
+    <div class="min-w-0 lg:sticky lg:top-24 lg:self-start" data-reveal>
+      <figure class="journey-receipt overflow-hidden rounded-2xl bg-surface" aria-label="A Submission being saved and routed through the durable outbox">
+        <figcaption class="flex min-h-12 items-center justify-between gap-4 px-5 font-mono text-xs text-muted-foreground">
+          <span>Submission <span class="text-foreground">{EXAMPLE.submission}</span></span>
+          <span class="journey-state text-primary" data-journey-state>incoming</span>
+        </figcaption>
+        <div class="p-5 sm:p-7">
+          <div class="arrival-track" aria-hidden="true">
+            <span class="form-plane"><i></i><i></i><i></i></span>
+            <span class="receiving-slot"></span>
           </div>
-          <!-- Stage 2: the row + planned deliveries -->
-          <div class="j-block" data-j="row">
-            <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-md bg-background p-3 hairline">
-              <span class="text-muted-foreground">status</span><span class="j-field" data-j="row-status">received</span>
-              <span class="text-muted-foreground">spam</span><span>score 0 · honeypot clean</span>
-              <span class="text-muted-foreground">schema</span><span>v3 · no drift</span>
-              <span class="text-muted-foreground">idempotency</span><span>unique (form, key) ✓</span>
+          <div class="mt-7 grid gap-4 font-mono text-xs sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+            <div class="journey-node" data-node="submission">
+              <span class="text-muted-foreground">Submission</span>
+              <strong class="mt-1 block font-medium text-foreground">status: received</strong>
             </div>
-            <p class="mt-3 text-muted-foreground">deliveries planned in the same transaction</p>
-            <ul class="mt-1.5 grid gap-1.5">
-              <li class="j-delivery flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-background px-3 py-2 hairline" data-j="d1">
-                <span><span class="text-muted-foreground">dl_a91x02</span> → email · ops@honestbox.se</span>
-                <span class="flex items-center gap-1.5"><span class="j-dstatus" data-j="d1-status">pending</span><span class="j-stamp"><Postmark status="sent" size={18} tone="status" title="Sent" /></span></span>
-              </li>
-              <li class="j-delivery flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-background px-3 py-2 hairline" data-j="d2">
-                <span><span class="text-muted-foreground">dl_a91x03</span> → webhook · crm.dekhval.com</span>
-                <span class="flex items-center gap-1.5"><span class="j-dstatus" data-j="d2-status">pending</span><span class="j-stamp"><Postmark status="sent" size={18} tone="status" title="Sent" /></span></span>
-              </li>
-              <li class="j-delivery flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-background px-3 py-2 hairline" data-j="d3">
-                <span><span class="text-muted-foreground">dl_a91x04</span> → telegram · sales chat</span>
-                <span class="flex items-center gap-1.5"><span class="j-dstatus" data-j="d3-status">pending</span><span class="j-stamp"><Postmark status="sent" size={18} tone="status" title="Sent" /></span></span>
-              </li>
-            </ul>
+            <span class="route-thread" aria-hidden="true"></span>
+            <div class="journey-node" data-node="delivery">
+              <span class="text-muted-foreground">Delivery</span>
+              <strong class="mt-1 block font-medium text-foreground" data-delivery-status>waiting for Route</strong>
+            </div>
           </div>
-          <!-- Stage 3/4: worker log -->
-          <div class="j-block" data-j="log">
-            <p class="text-muted-foreground">worker</p>
-            <ol class="mt-1.5 grid gap-1 break-words text-muted-foreground">
-              <li class="j-line" data-j="l1"><span class="text-foreground">NOTIFY</span> postbag_deliveries · claimed 3 (skip locked)</li>
-              <li class="j-line" data-j="l2">dl_a91x02 email → 200 · 412 ms</li>
-              <li class="j-line" data-j="l3">dl_a91x03 webhook → 503 · retry in 30 s ± 20%</li>
-              <li class="j-line" data-j="l4">dl_a91x04 telegram → 200 · 188 ms</li>
-              <li class="j-line" data-j="l5">dl_a91x03 webhook → 200 · attempt 2 · 964 ms</li>
-            </ol>
+          <div class="mt-4 grid gap-2 font-mono text-[11px] text-muted-foreground sm:grid-cols-3">
+            <span class="record-line" data-record="one">unique (form_id, idempotency_key)</span>
+            <span class="record-line" data-record="two">unique (submission_id, route_id)</span>
+            <span class="record-line" data-record="three">provider response retained</span>
           </div>
-          <!-- The big postmark -->
-          <div class="j-bigstamp pointer-events-none absolute right-5 top-4 hidden sm:block" aria-hidden="true"><Postmark status="sent" size={88} /></div>
         </div>
       </figure>
+      <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <a href="/features/never-lose-a-submission/" class="font-medium text-primary underline-offset-4 hover:underline">Why save first matters</a>
+        <a href="/docs/architecture/" class="font-medium text-primary underline-offset-4 hover:underline">Read the architecture</a>
+      </div>
     </div>
 
-    <ol class="grid min-w-0 gap-16 lg:gap-[38vh] lg:py-[18vh]">
-      {stages.map((s, i) => (
-        <li class="j-stage max-w-md scroll-mt-32" data-stage={i + 1}>
-          <h3 class="text-2xl font-semibold sm:text-[1.75rem]">{s.title}</h3>
-          <p class="mt-3 text-[17px] leading-relaxed text-muted-foreground">{s.body}</p>
-          <a href={s.link.href} class="mt-4 inline-flex items-center gap-1.5 text-[15px] font-medium text-primary underline-offset-4 hover:underline">{s.link.label} <span aria-hidden="true">→</span></a>
+    <ol class="grid gap-12 lg:gap-[24vh] lg:py-[8vh]">
+      {stages.map((stage, index) => (
+        <li class="journey-stage scroll-mt-32" data-stage={index + 1}>
+          <p class="font-mono text-xs text-primary tabular-nums">{stage.state}</p>
+          <h3 class="mt-3 text-3xl font-semibold">{stage.title}</h3>
+          <p class="mt-3 text-[17px] leading-relaxed text-muted-foreground">{stage.body}</p>
         </li>
       ))}
     </ol>
   </div>
 </section>
+
 <style>
-  /* The record fills in per stage. Each block has an entry transition; stage-specific states below. */
-  [data-journey] .j-block,
-  [data-journey] .j-line,
-  [data-journey] .j-stamp,
-  [data-journey] .j-bigstamp {
-    transition:
-      opacity var(--duration-slow) var(--ease-smooth-out),
-      transform var(--duration-slow) var(--ease-smooth-out),
-      filter var(--duration-slow) var(--ease-smooth-out);
-  }
-  [data-journey] .j-block { opacity: 0.22; transform: translateY(6px); }
-  [data-journey] .j-line { opacity: 0; transform: translateX(-4px); }
-  [data-journey] .j-stamp { opacity: 0; transform: scale(0.4) rotate(-20deg); filter: blur(3px); }
-  [data-journey] .j-bigstamp { opacity: 0; transform: scale(1.6) rotate(-14deg); filter: blur(6px); }
-
-  [data-journey][data-stage="1"] [data-j="request"],
-  [data-journey][data-stage="2"] [data-j="request"],
-  [data-journey][data-stage="2"] [data-j="row"],
-  [data-journey][data-stage="3"] [data-j="row"],
-  [data-journey][data-stage="3"] [data-j="log"],
-  [data-journey][data-stage="4"] [data-j="row"],
-  [data-journey][data-stage="4"] [data-j="log"] { opacity: 1; transform: none; }
-  [data-journey][data-stage="3"] [data-j="request"],
-  [data-journey][data-stage="4"] [data-j="request"] { opacity: 0.5; }
-
-  [data-journey][data-stage="3"] [data-j="l1"],
-  [data-journey][data-stage="3"] [data-j="l2"],
-  [data-journey][data-stage="3"] [data-j="l3"],
-  [data-journey][data-stage="3"] [data-j="l4"],
-  [data-journey][data-stage="4"] .j-line { opacity: 1; transform: none; }
-  [data-journey][data-stage="3"] [data-j="l2"] { transition-delay: 120ms; }
-  [data-journey][data-stage="3"] [data-j="l3"] { transition-delay: 240ms; }
-  [data-journey][data-stage="3"] [data-j="l4"] { transition-delay: 360ms; }
-  [data-journey][data-stage="4"] [data-j="l5"] { transition-delay: 120ms; }
-
-  [data-journey][data-stage="3"] [data-j="d1"] .j-stamp,
-  [data-journey][data-stage="3"] [data-j="d3"] .j-stamp,
-  [data-journey][data-stage="4"] .j-stamp { opacity: 1; transform: none; filter: none; }
-  [data-journey][data-stage="4"] .j-bigstamp { opacity: 0.9; transform: rotate(-10deg); filter: none; }
-  [data-journey] .j-dstatus::after { content: "pending"; }
-  [data-journey][data-stage="3"] [data-j="d1"] .j-dstatus::after,
-  [data-journey][data-stage="3"] [data-j="d3"] .j-dstatus::after,
-  [data-journey][data-stage="4"] .j-dstatus::after { content: "sent"; color: var(--success); }
-  [data-journey][data-stage="3"] [data-j="d2"] .j-dstatus::after { content: "failed · retrying"; color: var(--warning); }
-  [data-journey] .j-dstatus { font-size: 0; }
-  [data-journey] .j-dstatus::after { font-size: 12.5px; }
-  [data-journey] .j-status::after { content: "incoming"; }
-  [data-journey][data-stage="2"] .j-status::after,
-  [data-journey][data-stage="3"] .j-status::after { content: "received · 200 OK"; }
-  [data-journey][data-stage="4"] .j-status::after { content: "received · 3/3 sent"; }
-  [data-journey] .j-status { font-size: 0; }
-  [data-journey] .j-status::after { font-size: 12px; }
-
-  @media (prefers-reduced-motion: reduce) {
-    [data-journey] .j-block, [data-journey] .j-line, [data-journey] .j-stamp, [data-journey] .j-bigstamp { transition: none; }
-  }
-  /* Without JS (or on narrow screens where the visual is not sticky) show the completed record. */
-  .no-js [data-journey] .j-block, .no-js [data-journey] .j-line, .no-js [data-journey] .j-stamp { opacity: 1; transform: none; filter: none; }
+  .journey-receipt { box-shadow: var(--shadow-xl), inset 0 0 0 1px var(--border); }
+  .arrival-track { position: relative; display: grid; place-items: center; min-height: 12rem; overflow: hidden; border-radius: calc(var(--radius) + 8px); background: var(--surface-2); }
+  .arrival-track::before { content: ""; position: absolute; inset: 0; opacity: .55; background: radial-gradient(circle at 50% 76%, color-mix(in oklch, var(--primary) 28%, transparent), transparent 38%); }
+  .form-plane { position: relative; width: 7rem; height: 4.8rem; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-lg), inset 0 0 0 1px var(--border-strong); transform: translateY(-2.1rem) rotate(-4deg); transition-property: transform, opacity; transition-duration: var(--duration-slow); transition-timing-function: var(--ease-smooth-out); }
+  .form-plane i { display: block; width: 62%; height: 2px; margin: 1rem 1.25rem -0.55rem; border-radius: 999px; background: var(--border-strong); }
+  .receiving-slot { position: absolute; bottom: 2.2rem; width: min(78%, 21rem); height: 2.7rem; border-radius: 50%; background: var(--foreground); box-shadow: 0 -1px 0 var(--border-strong), 0 18px 30px color-mix(in oklch, var(--primary) 22%, transparent); transform: scaleY(.4); }
+  .journey-node { min-height: 4.5rem; padding: 1rem; border-radius: var(--radius); background: var(--background); box-shadow: inset 0 0 0 1px var(--border); transition-property: opacity, transform, box-shadow; transition-duration: var(--duration-medium); transition-timing-function: var(--ease-smooth-out); }
+  .route-thread { width: 3rem; height: 1px; background: var(--border-strong); transition-property: background-color, transform; transition-duration: var(--duration-medium); transition-timing-function: var(--ease-smooth-out); }
+  .record-line { opacity: .38; transition-property: opacity; transition-duration: var(--duration-medium); transition-timing-function: var(--ease-smooth-out); }
+  [data-journey][data-stage="1"] .form-plane { transform: translateY(-.7rem) rotate(-2deg); }
+  [data-journey][data-stage="2"] .form-plane,
+  [data-journey][data-stage="3"] .form-plane,
+  [data-journey][data-stage="4"] .form-plane { transform: translateY(1.1rem) rotate(0deg) scale(.92); }
+  [data-journey][data-stage="2"] [data-record="one"],
+  [data-journey][data-stage="3"] [data-record="one"],
+  [data-journey][data-stage="4"] .record-line { opacity: 1; }
+  [data-journey][data-stage="3"] .route-thread,
+  [data-journey][data-stage="4"] .route-thread { background: var(--primary); transform: scaleX(1.15); }
+  [data-journey][data-stage="3"] [data-node="delivery"],
+  [data-journey][data-stage="4"] [data-node="delivery"] { box-shadow: inset 0 0 0 1px var(--primary), var(--shadow-md); }
+  @media (max-width: 639px) { .route-thread { width: 1px; height: 2rem; margin: -1rem auto; } }
+  @media (prefers-reduced-motion: reduce) { .form-plane, .journey-node, .route-thread, .record-line { transition: none; } }
 </style>
+
 <script>
   import { inView } from "motion"
-  const root = document.querySelector<HTMLElement>("[data-journey]")
-  if (root) {
-    const stages = root.querySelectorAll<HTMLElement>("[data-stage]")
-    const mq = window.matchMedia("(min-width: 1024px)")
-    const set = (n: string) => root.setAttribute("data-stage", n)
-    set("1")
-    if (!mq.matches) {
-      // Narrow screens: the visual sits above the text; show it complete.
-      set("4")
-    } else {
-      stages.forEach((el) => {
-        inView(el, () => { set(el.dataset.stage!) }, { margin: "-45% 0px -45% 0px" })
-      })
+  const journey = document.querySelector<HTMLElement>("[data-journey]")
+  if (journey) {
+    const labels = ["incoming", "stored", "Delivery pending", "attempt 2 sent"]
+    const delivery = journey.querySelector<HTMLElement>("[data-delivery-status]")
+    const state = journey.querySelector<HTMLElement>("[data-journey-state]")
+    const setStage = (value: number) => {
+      journey.dataset.stage = String(value)
+      if (state) state.textContent = labels[value - 1] ?? labels[0]!
+      if (delivery) delivery.textContent = value < 3 ? "waiting for worker" : value === 3 ? "retry scheduled" : "sent on attempt 2"
     }
+    const media = window.matchMedia("(min-width: 1024px)")
+    setStage(media.matches ? 1 : 4)
+    if (media.matches) journey.querySelectorAll<HTMLElement>("[data-stage]").forEach((stage) => inView(stage, () => setStage(Number(stage.dataset.stage)), { margin: "-42% 0px -42% 0px" }))
   }
 </script>
