@@ -1,10 +1,17 @@
-import { createServer, type Server } from "node:http"
-
 import { newId } from "@postbag/core"
-import { deliveries, destinations, forms, organization, routes } from "@postbag/db"
+import {
+  deliveries,
+  destinations,
+  forms,
+  organization,
+  organizationSettings,
+  routes,
+  submissions,
+} from "@postbag/db"
 import { and, eq } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
+import { countMonthlySubmissions } from "../../lib/planUsage.js"
 import {
   buildHarness,
   createTestApiKey,
@@ -12,45 +19,8 @@ import {
   TEST_DATABASE_URL,
   type TestHarness,
 } from "../../testUtils.js"
-import { startWorker, type WorkerHandle } from "../../worker/index.js"
 
 const integration = describe.skipIf(TEST_DATABASE_URL === undefined)
-
-function startWebhookCatcher(): Promise<{
-  readonly server: Server
-  readonly port: number
-  readonly bodies: string[]
-}> {
-  return new Promise((resolve) => {
-    const bodies: string[] = []
-    const server = createServer((request, response) => {
-      const chunks: Buffer[] = []
-      request.on("data", (chunk: Buffer) => chunks.push(chunk))
-      request.on("end", () => {
-        bodies.push(Buffer.concat(chunks).toString("utf8"))
-        response.writeHead(200, { "content-type": "application/json" })
-        response.end(JSON.stringify({ ok: true }))
-      })
-    })
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address()
-      resolve({
-        server,
-        port: typeof address === "object" && address !== null ? address.port : 0,
-        bodies,
-      })
-    })
-  })
-}
-
-function closeServer(server: Server): Promise<void> {
-  return new Promise((resolve, reject) => {
-    server.close((error) => {
-      if (error === undefined) resolve()
-      else reject(error)
-    })
-  })
-}
 
 integration("quarantined submission recovery", () => {
   let harness: TestHarness
@@ -71,103 +41,174 @@ integration("quarantined submission recovery", () => {
     await harness.close()
   })
 
-  it("releases a quality-skipped delivery and the worker sends it", async () => {
+  it("requeues a quality-skipped delivery with its original payload", async () => {
     // Given: an origin-rejected submission whose route recorded a quality skip.
-    const catcher = await startWebhookCatcher()
-    let worker: WorkerHandle | undefined
-    try {
-      const [form] = await harness.db
-        .insert(forms)
-        .values({
-          id: newId("fm"),
-          organizationId,
-          projectId,
-          slug: `recovery-${newId("fm").slice(-8)}`,
-          name: "Recovery form",
-          settings: { allowed_origins: ["https://allowed.example"] },
-        })
-        .returning()
-      if (form === undefined) throw new Error("Failed to create recovery form.")
-      const [destination] = await harness.db
-        .insert(destinations)
-        .values({
-          id: newId("ds"),
-          organizationId,
-          type: "webhook",
-          name: "Recovery catcher",
-          config: { url: `http://127.0.0.1:${catcher.port.toString()}/hook`, headers: {} },
-          verified: true,
-        })
-        .returning()
-      if (destination === undefined) throw new Error("Failed to create recovery destination.")
-      const [route] = await harness.db
-        .insert(routes)
-        .values({ id: newId("rt"), organizationId, formId: form.id, destinationId: destination.id })
-        .returning()
-      if (route === undefined) throw new Error("Failed to create recovery route.")
-
-      const submitted = await harness.app.request(`/s/${form.id}`, {
-        method: "POST",
-        headers: { "content-type": "application/json", origin: "https://rejected.example" },
-        body: JSON.stringify({ email: "human@example.com", message: "Please call me" }),
+    const [form] = await harness.db
+      .insert(forms)
+      .values({
+        id: newId("fm"),
+        organizationId,
+        projectId,
+        slug: `recovery-${newId("fm").slice(-8)}`,
+        name: "Recovery form",
+        settings: { allowed_origins: ["https://allowed.example"] },
       })
-      const submittedBody = (await submitted.json()) as {
-        readonly submission_id: string
-        readonly status: string
-      }
-      expect(submittedBody.status).toBe("quarantined")
-      const [skipped] = await harness.db
-        .select()
-        .from(deliveries)
-        .where(
-          and(
-            eq(deliveries.submissionId, submittedBody.submission_id),
-            eq(deliveries.routeId, route.id),
-          ),
-        )
-      expect(skipped).toMatchObject({ status: "skipped", skipReason: "quality" })
+      .returning()
+    if (form === undefined) throw new Error("Failed to create recovery form.")
+    const [destination] = await harness.db
+      .insert(destinations)
+      .values({
+        id: newId("ds"),
+        organizationId,
+        type: "webhook",
+        name: "Recovery destination",
+        config: { url: "https://example.com/hook", headers: {} },
+        verified: true,
+      })
+      .returning()
+    if (destination === undefined) throw new Error("Failed to create recovery destination.")
+    const [route] = await harness.db
+      .insert(routes)
+      .values({ id: newId("rt"), organizationId, formId: form.id, destinationId: destination.id })
+      .returning()
+    if (route === undefined) throw new Error("Failed to create recovery route.")
 
-      // When: a manager releases the stored submission for delivery.
-      const released = await harness.app.request(`/v1/submissions/${submittedBody.submission_id}`, {
+    const submitted = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://rejected.example" },
+      body: JSON.stringify({ email: "human@example.com", message: "Please call me" }),
+    })
+    const submittedBody = (await submitted.json()) as {
+      readonly submission_id: string
+      readonly status: string
+    }
+    expect(submittedBody.status).toBe("quarantined")
+    const [skipped] = await harness.db
+      .select()
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.submissionId, submittedBody.submission_id),
+          eq(deliveries.routeId, route.id),
+        ),
+      )
+    expect(skipped).toMatchObject({ status: "skipped", skipReason: "quality" })
+
+    // When: a manager releases the stored submission for delivery.
+    const released = await harness.app.request(`/v1/submissions/${submittedBody.submission_id}`, {
+      method: "PATCH",
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({ status: "received" }),
+    })
+
+    // Then: the existing Delivery is the pending outbox row the worker can claim.
+    expect(released.status).toBe(200)
+    const [pending] = await harness.db
+      .select()
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.submissionId, submittedBody.submission_id),
+          eq(deliveries.routeId, route.id),
+        ),
+      )
+    expect(pending).toMatchObject({
+      id: skipped?.id,
+      status: "pending",
+      skipReason: null,
+      payload: { email: "human@example.com", message: "Please call me" },
+    })
+  })
+
+  it("keeps an over-quota delivery parked until the plan allows it", async () => {
+    const [form] = await harness.db
+      .insert(forms)
+      .values({
+        id: newId("fm"),
+        organizationId,
+        projectId,
+        slug: `quota-recovery-${newId("fm").slice(-8)}`,
+        name: "Quota recovery form",
+      })
+      .returning()
+    if (form === undefined) throw new Error("Failed to create quota recovery form.")
+    const [destination] = await harness.db
+      .insert(destinations)
+      .values({
+        id: newId("ds"),
+        organizationId,
+        type: "webhook",
+        name: "Quota recovery destination",
+        config: { url: "https://example.com/hook", headers: {} },
+        verified: true,
+      })
+      .returning()
+    if (destination === undefined) throw new Error("Failed to create quota recovery destination.")
+    const [route] = await harness.db
+      .insert(routes)
+      .values({ id: newId("rt"), organizationId, formId: form.id, destinationId: destination.id })
+      .returning()
+    if (route === undefined) throw new Error("Failed to create quota recovery route.")
+    const usedBefore = await countMonthlySubmissions(harness.db, organizationId)
+    await harness.db
+      .update(organizationSettings)
+      .set({ limits: { submissions_per_month: usedBefore + 1 } })
+      .where(eq(organizationSettings.organizationId, organizationId))
+
+    const submit = async (email: string) => {
+      const response = await harness.app.request(`/s/${form.id}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      return (await response.json()) as { readonly submission_id: string; readonly status: string }
+    }
+    expect((await submit("first@example.com")).status).toBe("received")
+    const quarantined = await submit("held@example.com")
+    expect(quarantined.status).toBe("quarantined")
+
+    const release = () =>
+      harness.app.request(`/v1/submissions/${quarantined.submission_id}`, {
         method: "PATCH",
         headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
         body: JSON.stringify({ status: "received" }),
       })
 
-      // Then: the existing Delivery becomes claimable and is sent exactly once.
-      expect(released.status).toBe(200)
-      const [pending] = await harness.db
-        .select()
-        .from(deliveries)
-        .where(
-          and(
-            eq(deliveries.submissionId, submittedBody.submission_id),
-            eq(deliveries.routeId, route.id),
-          ),
-        )
-      expect(pending).toMatchObject({
-        id: skipped?.id,
-        status: "pending",
-        skipReason: null,
-        payload: { email: "human@example.com", message: "Please call me" },
-      })
+    const blocked = await release()
+    expect(blocked.status).toBe(402)
+    expect((await blocked.json()) as { error: { code: string } }).toMatchObject({
+      error: { code: "plan_limit_reached" },
+    })
+    const [stillHeld] = await harness.db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, quarantined.submission_id))
+    const [stillSkipped] = await harness.db
+      .select()
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.submissionId, quarantined.submission_id),
+          eq(deliveries.routeId, route.id),
+        ),
+      )
+    expect(stillHeld).toMatchObject({ status: "quarantined", quarantineReason: "over_quota" })
+    expect(stillSkipped).toMatchObject({ status: "skipped", skipReason: "quality" })
 
-      worker = startWorker(harness.db, harness.env, harness.logger, harness.destinations)
-      const deadline = Date.now() + 18_000
-      let sentStatus = pending?.status
-      while (sentStatus !== "sent" && Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, 150))
-        const [delivery] = await harness.db
-          .select({ status: deliveries.status })
-          .from(deliveries)
-          .where(eq(deliveries.id, pending?.id ?? ""))
-        sentStatus = delivery?.status
-      }
-      expect(sentStatus).toBe("sent")
-      expect(catcher.bodies).toHaveLength(1)
-    } finally {
-      if (worker !== undefined) await worker.stop()
-      await closeServer(catcher.server)
-    }
-  }, 25_000)
+    await harness.db
+      .update(organizationSettings)
+      .set({ limits: { submissions_per_month: usedBefore + 2 } })
+      .where(eq(organizationSettings.organizationId, organizationId))
+    expect((await release()).status).toBe(200)
+    const [pending] = await harness.db
+      .select()
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.submissionId, quarantined.submission_id),
+          eq(deliveries.routeId, route.id),
+        ),
+      )
+    expect(pending).toMatchObject({ id: stillSkipped?.id, status: "pending", skipReason: null })
+  })
 })

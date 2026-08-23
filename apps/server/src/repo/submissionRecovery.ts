@@ -1,7 +1,14 @@
-import { applyMapping, planDeliveries, StreamSourceInputSchema, type Mapping } from "@postbag/core"
+import {
+  applyMapping,
+  planDeliveries,
+  PostbagError,
+  StreamSourceInputSchema,
+  type Mapping,
+} from "@postbag/core"
 import { and, eq } from "drizzle-orm"
 import { deliveries, forms, notifyDeliveries, submissions, type Database } from "@postbag/db"
 
+import { countMonthlySubmissions, lockPlanCapacity, organizationLimits } from "../lib/planUsage.js"
 import {
   getDirectRoutesForForm,
   getStreamMembershipsForForm,
@@ -84,6 +91,19 @@ export async function restoreSubmission(
   }
 
   const result = await db.transaction(async (tx) => {
+    if (input.submission.quarantineReason === "over_quota") {
+      await lockPlanCapacity(tx, input.organizationId, "submissions")
+      const limit = (await organizationLimits(tx, input.organizationId)).submissions_per_month
+      const used = await countMonthlySubmissions(tx, input.organizationId)
+      if (used > limit) {
+        throw new PostbagError(
+          "plan_limit_reached",
+          "This organization is still over its monthly submission limit.",
+          { resource: "submissions", limit, used },
+        )
+      }
+    }
+
     const [updated] = await tx
       .update(submissions)
       .set({ status: "received", quarantineReason: null })

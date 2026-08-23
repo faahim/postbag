@@ -22,7 +22,7 @@ const terms = [
   { t: "Digest", d: "For digest-mode routes, one delivery grouping a period's submissions, unique per (route, period)." },
   { t: "Drift", d: "A change in what a form actually receives versus its declared schema: new_field, missing_field or type_change. Recorded as a drift event until resolved. UI label: Change detected." },
   { t: "Outbox", d: "The pattern where work to be done (deliveries) is written in the same transaction as the data that caused it, then drained by a worker. The database makes it correct; events make it fast." },
-  { t: "Quarantine", d: "A submission status for outcomes that are stored but not delivered by default: schema_violation, rate_limited, origin_rejected, turnstile_failed. Visible and reversible." },
+  { t: "Quarantine", d: "A submission status for outcomes that are stored but not delivered by default: schema_violation, rate_limited, origin_rejected, turnstile_failed, over_quota. Visible and reversible." },
   { t: "Agent-native", d: "A property of the whole surface: an agent holding only an API key can discover the API, create what it needs, receive embed snippets, verify a test submission arrived, and wire a destination, without a browser or a human." },
 ]
 const ld = [

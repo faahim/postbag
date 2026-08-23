@@ -73,8 +73,11 @@ Response (creates the project/form/destination/route idempotently by name):
 {
   "form": { "id": "fm_8f3kq2", "submit_url": "https://postbag.dev/s/fm_8f3kq2" },
   "embed": { "html": "…", "fetch": "…", "react": "…", "astro": "…", "nextjs_action": "…" },
-  "verify": { "curl": "curl -X POST … -d '{\"_test\":true,…}'", "then": "GET /v1/forms/fm_8f3kq2/submissions?limit=1" },
-  "next": [ { "why": "Add Telegram", "call": "POST /v1/destinations", "body": { "…": "…" } } ]
+  "verify": {
+    "curl": "curl -X POST … -d '{\"_test\":true,…}'",
+    "then": "GET /v1/forms/fm_8f3kq2/submissions?limit=1"
+  },
+  "next": [{ "why": "Add Telegram", "call": "POST /v1/destinations", "body": { "…": "…" } }]
 }
 ```
 
@@ -114,7 +117,8 @@ Do not treat a request without an `Origin` header as browser proof. If the test
 submission is `quarantined`, fetch it with `GET /v1/submissions/{id}` and read
 `quarantine_reason`: `origin_rejected`, `schema_violation`, `rate_limited`,
 `turnstile_failed`, or `over_quota`. Resolve the cause, then `PATCH` the submission
-to `{"status":"received"}` to release it and queue its deliveries.
+to `{"status":"received"}` to release it and queue its deliveries. An `over_quota`
+release returns `plan_limit_reached` until the current plan has capacity.
 
 `_test: true` submissions are excluded from quotas and auto-purged after 24h — this
 is the standard way to confirm a form actually delivers before telling the human it's

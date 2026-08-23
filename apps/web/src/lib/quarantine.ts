@@ -25,7 +25,8 @@ const REASONS: Readonly<Record<QuarantineReason, QuarantineReasonDetail>> = {
   },
   over_quota: {
     label: "Monthly limit reached",
-    description: "This workspace reached its monthly submission allowance.",
+    description:
+      "This workspace reached its monthly allowance. Upgrade or wait for capacity before releasing it.",
   },
 }
 

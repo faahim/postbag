@@ -661,7 +661,7 @@ export interface paths {
         head?: never;
         /**
          * Change status (re-routes if moving to received)
-         * @description Moving a quarantined submission to `received` re-runs routing and queues deliveries for it.
+         * @description Moving a quarantined submission to `received` re-runs routing and queues deliveries for it. An `over_quota` submission stays quarantined until the current plan has capacity.
          */
         patch: operations["submissions_update"];
         trace?: never;
