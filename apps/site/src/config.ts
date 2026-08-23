@@ -16,7 +16,7 @@ export const GITHUB_URL = "https://github.com/faahim/postbag"
 export const AUTHOR = { name: "Fahim", url: "https://faahim.dev" }
 export const TAGLINE = "A form backend that routes."
 /** The single line an agent pastes to set up a form. Shown in the hero, AgentNative and for-ai-agents. */
-export const AGENT_PROMPT = `Set up a contact form on this site with Postbag. Read ${LLMS_URL} first.`
+export const AGENT_PROMPT = "Install the Postbag skill with `npx skills add faahim/postbag --skill postbag`, then use it to set up and test a working contact form for this site."
 export const DESCRIPTION =
   "Postbag is the open-source form backend built for agents. An agent can create, wire and test a Sandbox Form before signup; claim it to add Destinations, Routes and outbound Delivery."
 

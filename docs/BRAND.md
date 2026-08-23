@@ -98,12 +98,15 @@ the simple promise is understood, not crowd the first sentence.
 
 **Lede**
 
-> Your agent can create, wire and test a working Form. No signup. No dashboard.
-> Claim it when you want to keep it and send submissions onward.
+> Your agent creates, wires and tests a working Form before you sign up. Claim it
+> whenever you want.
 
 **Primary action**
 
-> Give this to your agent
+> Copy agent prompt
+
+The action copies one direct instruction: install the Postbag skill, then use it to
+set up and test the site's contact form. It never scrolls to a second copy control.
 
 **Secondary action**
 
@@ -289,8 +292,8 @@ The hero follows the Clay composition pattern: one continuous, full-height artwo
 owns the hero; sculptural activity occupies the upper stage; and the message sits on
 a deliberately quiet part of that same indigo environment. Copy and controls never
 cover a focal object. Desktop and mobile use separately composed artwork rather than
-cropping away the story. A rounded light panel overlaps the bottom edge to hand off
-to the next section.
+cropping away the story. The hero ends cleanly without an inverted callout panel;
+the primary action completes the agent handoff in place.
 
 Production sources and optimized consumers:
 

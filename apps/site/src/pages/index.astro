@@ -11,7 +11,7 @@ import SelfHost from "@/components/home/SelfHost.astro"
 import Faq from "@/components/Faq.astro"
 import CtaBand from "@/components/CtaBand.astro"
 import { faqLd, softwareLd, webPageLd } from "@/lib/seo"
-import { DESCRIPTION, SITE_URL } from "@/config"
+import { AGENT_PROMPT, DESCRIPTION, SITE_URL } from "@/config"
 
 const faqs = [
   { q: "What is Postbag?", a: "Postbag is a form backend that routes. You point an HTML form (or a fetch call) at a Postbag submit URL; Postbag stores every submission durably and then delivers it to email, Telegram and signed webhooks according to routes you configure. It is multi-tenant, self-hostable, and agent-native: everything in the dashboard is available through the same /v1 API." },
@@ -43,6 +43,6 @@ const ld = [
   <CtaBand
     title="Let your agent start without you."
     body="It can create, wire and test a Form before you make an account. Claim it only when you want to keep it and send Submissions onward."
-    primary={{ href: "#agent-prompt", label: "Give this to your agent" }}
+    primary={{ label: "Copy agent prompt", copyText: AGENT_PROMPT }}
   />
 </Base>

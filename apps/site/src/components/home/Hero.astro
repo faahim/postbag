@@ -1,5 +1,5 @@
 ---
-import AgentPromptSwitcher from "@/components/AgentPromptSwitcher.astro"
+import { AGENT_PROMPT } from "@/config"
 ---
 <section class="hero-shell" data-hero>
   <div class="hero-scene" data-hero-asset aria-hidden="true" data-reveal>
@@ -24,41 +24,75 @@ import AgentPromptSwitcher from "@/components/AgentPromptSwitcher.astro"
     </div>
     <div class="hero-intro">
       <p class="hero-lede" data-reveal>
-        Your agent can create, wire and test a working Form. No signup. No dashboard. Claim it when you want to keep it and send submissions onward.
+        Your agent creates, wires and tests a working Form before you sign up. Claim it whenever you want.
       </p>
       <div class="hero-actions" data-reveal style="--reveal-delay: 120ms">
-        <a href="#agent-prompt" class="btn btn-primary">Give this to your agent</a>
+        <button
+          id="agent-prompt"
+          type="button"
+          class="btn btn-primary"
+          data-copy-agent
+          data-copy-text={AGENT_PROMPT}
+          data-copy-label="Copy agent prompt"
+        ><span class="t-text-swap" aria-live="polite">Copy agent prompt</span></button>
         <a href="/docs/self-hosting/" class="btn hero-secondary-action">Self-host Postbag</a>
       </div>
     </div>
   </div>
 </section>
 
-<section class="hero-handoff" aria-labelledby="hero-handoff-heading">
-  <div class="container-x">
-    <div class="hero-handoff-panel" data-reveal>
-      <div class="hero-handoff-heading">
-        <p class="hero-handoff-kicker">One line. Then you can go do something else.</p>
-        <h2 id="hero-handoff-heading">Give the job to your agent.</h2>
-      </div>
-      <div id="agent-prompt" class="hero-prompt">
-        <AgentPromptSwitcher class="hero-agent-prompt" />
-      </div>
-    </div>
-  </div>
-</section>
-
 <script>
-  document.querySelectorAll<HTMLElement>("[data-hero]").forEach((hero) => {
-    const asset = hero.querySelector<HTMLElement>("[data-hero-asset]")
-    let reset: ReturnType<typeof setTimeout> | undefined
-    document.addEventListener("postbag:codecopied", () => {
-      if (!asset) return
-      clearTimeout(reset)
-      asset.removeAttribute("data-copy-pulse")
-      void asset.offsetWidth
-      asset.setAttribute("data-copy-pulse", "")
-      reset = setTimeout(() => asset.removeAttribute("data-copy-pulse"), 2500)
+  const heroAsset = document.querySelector<HTMLElement>("[data-hero-asset]")
+  const swapDuration = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue("--text-swap-dur")
+  ) || 150
+  let pulseReset: ReturnType<typeof setTimeout> | undefined
+
+  function swapText(label: HTMLElement, next: string) {
+    label.classList.add("is-exit")
+    setTimeout(() => {
+      label.textContent = next
+      label.classList.remove("is-exit")
+      label.classList.add("is-enter-start")
+      void label.offsetHeight
+      label.classList.remove("is-enter-start")
+    }, swapDuration)
+  }
+
+  async function copyText(text: string) {
+    await navigator.clipboard.writeText(text)
+  }
+
+  document.querySelectorAll<HTMLButtonElement>("[data-copy-agent]").forEach((button) => {
+    const label = button.querySelector<HTMLElement>(".t-text-swap")
+    let labelReset: ReturnType<typeof setTimeout> | undefined
+    button.addEventListener("click", async () => {
+      if (!label || button.disabled) return
+      const prompt = button.dataset.copyText
+      if (!prompt) return
+
+      try {
+        await copyText(prompt)
+      } catch {
+        swapText(label, "Could not copy")
+        labelReset = setTimeout(() => swapText(label, button.dataset.copyLabel ?? "Copy"), 1800)
+        return
+      }
+
+      button.disabled = true
+      swapText(label, "Copied")
+      clearTimeout(pulseReset)
+      heroAsset?.removeAttribute("data-copy-pulse")
+      if (heroAsset) {
+        void heroAsset.offsetWidth
+        heroAsset.setAttribute("data-copy-pulse", "")
+        pulseReset = setTimeout(() => heroAsset.removeAttribute("data-copy-pulse"), 2500)
+      }
+      clearTimeout(labelReset)
+      labelReset = setTimeout(() => {
+        swapText(label, button.dataset.copyLabel ?? "Copy")
+        button.disabled = false
+      }, 1800)
     })
   })
 </script>

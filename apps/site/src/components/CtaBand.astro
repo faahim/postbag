@@ -1,7 +1,8 @@
 ---
 import Postmark from "@/components/Postmark.astro"
 import { SIGNUP_URL } from "@/config"
-interface Props { title?: string; body?: string; primary?: { href: string; label: string }; secondary?: { href: string; label: string } }
+interface PrimaryAction { href?: string; label: string; copyText?: string }
+interface Props { title?: string; body?: string; primary?: PrimaryAction; secondary?: { href: string; label: string } }
 const {
   title = "Your first form is three minutes away.",
   body = "Sign up, get a submit URL, point a form at it. The first submission lands in your inbox and your email. Everything else appears when you need it.",
@@ -16,7 +17,17 @@ const {
       <h2 class="text-3xl font-semibold text-background sm:text-4xl">{title}</h2>
       <p class="mt-4 text-base leading-relaxed text-background/75 sm:text-lg">{body}</p>
       <div class="mt-8 flex flex-wrap gap-3">
-        <a href={primary.href} class="btn btn-primary">{primary.label}</a>
+        {primary.copyText ? (
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-copy-agent
+            data-copy-text={primary.copyText}
+            data-copy-label={primary.label}
+          ><span class="t-text-swap" aria-live="polite">{primary.label}</span></button>
+        ) : (
+          <a href={primary.href ?? SIGNUP_URL} class="btn btn-primary">{primary.label}</a>
+        )}
         <a href={secondary.href} class="btn bg-background/10 text-background hover:bg-background/20">{secondary.label}</a>
       </div>
     </div>
