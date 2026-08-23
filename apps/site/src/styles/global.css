@@ -43,6 +43,10 @@
   --shadow-xl:
     0 24px 48px oklch(0.2 0.035 272 / 0.14), 0 8px 16px oklch(0.2 0.035 272 / 0.06), 0 0 0 1px oklch(0.2 0.035 272 / 0.03);
   --image-outline: rgba(0, 0, 0, 0.1);
+  --canvas-grain-image: url("/brand/interface-grain-v1.webp");
+  --canvas-grain-size: 40rem;
+  --canvas-grain-opacity: 0.075;
+  --canvas-grain-blend: multiply;
 
   --font-display: "Bricolage Grotesque Variable", "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
@@ -110,6 +114,8 @@
   --shadow-lg: 0 12px 24px oklch(0 0 0 / 0.4), 0 4px 8px oklch(0 0 0 / 0.28), 0 0 0 1px oklch(1 0 0 / 0.05);
   --shadow-xl: 0 24px 48px oklch(0 0 0 / 0.5), 0 8px 16px oklch(0 0 0 / 0.3), 0 0 0 1px oklch(1 0 0 / 0.06);
   --image-outline: rgba(255, 255, 255, 0.1);
+  --canvas-grain-opacity: 0.095;
+  --canvas-grain-blend: screen;
 }
 
 @theme inline {
@@ -163,11 +169,29 @@
   }
   html, body { overflow-x: clip; }
   body {
+    position: relative;
+    isolation: isolate;
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01";
     min-height: 100dvh;
+  }
+  body::before {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: var(--canvas-grain-image);
+    background-size: var(--canvas-grain-size);
+    background-repeat: repeat;
+    mix-blend-mode: var(--canvas-grain-blend);
+    opacity: var(--canvas-grain-opacity);
+    content: "";
+  }
+  body > :where(a, header, nav, main, footer) {
+    position: relative;
+    z-index: 1;
   }
   h1, h2, h3, h4 {
     font-family: var(--font-display);
@@ -186,10 +210,44 @@
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
   }
+  @media print {
+    body::before { display: none; }
+  }
 }
 
 @layer components {
   .container-x { @apply mx-auto w-full max-w-[1180px] px-5 sm:px-8; }
+
+  .brand-ink-canvas,
+  .brand-canvas-panel {
+    isolation: isolate;
+  }
+
+  .brand-ink-canvas::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: var(--canvas-grain-image);
+    background-size: var(--canvas-grain-size);
+    background-repeat: repeat;
+    mix-blend-mode: screen;
+    opacity: 0.085;
+    content: "";
+  }
+
+  .brand-canvas-panel::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: var(--canvas-grain-image);
+    background-size: var(--canvas-grain-size);
+    background-repeat: repeat;
+    mix-blend-mode: var(--canvas-grain-blend);
+    opacity: var(--canvas-grain-opacity);
+    content: "";
+  }
 
   .nav-scroll-sentinel {
     position: absolute;

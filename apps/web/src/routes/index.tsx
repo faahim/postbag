@@ -24,7 +24,7 @@ function IndexRoute() {
   if (isPending || (session != null && me.isLoading)) {
     return (
       <div
-        className="flex min-h-dvh items-center justify-center bg-background"
+        className="flex min-h-dvh items-center justify-center"
         role="status"
         aria-label="Loading Postbag"
       >

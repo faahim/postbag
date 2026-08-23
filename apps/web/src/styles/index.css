@@ -65,9 +65,31 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+    position: relative;
+    isolation: isolate;
+    min-height: 100dvh;
     font-feature-settings:
       "cv11",
       "ss01";
+  }
+
+  body::before {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: var(--canvas-grain-image);
+    background-size: var(--canvas-grain-size);
+    background-repeat: repeat;
+    mix-blend-mode: var(--canvas-grain-blend);
+    opacity: var(--canvas-grain-opacity);
+    content: "";
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
+    min-height: 100dvh;
   }
 
   h1,
@@ -94,6 +116,24 @@
 }
 
 @layer components {
+  .brand-ink-canvas {
+    isolation: isolate;
+    background-color: var(--background);
+  }
+
+  .brand-ink-canvas::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: var(--canvas-grain-image);
+    background-size: var(--canvas-grain-size);
+    background-repeat: repeat;
+    mix-blend-mode: screen;
+    opacity: 0.08;
+    content: "";
+  }
+
   /* transitions-dev: icon swap — two icons cross-fade in the same grid cell. */
   .t-icon-swap {
     position: relative;

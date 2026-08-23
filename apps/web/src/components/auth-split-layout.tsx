@@ -4,10 +4,10 @@ const logoSrc = `${import.meta.env.BASE_URL}logo-mark-455264e.svg`
 
 export function AuthSplitLayout({ children }: { readonly children: ReactNode }) {
   return (
-    <div className="grid min-h-dvh grid-cols-1 bg-background lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
       <aside
         data-theme="dark"
-        className="relative hidden min-h-dvh overflow-hidden bg-background text-foreground lg:flex lg:flex-col lg:justify-between lg:px-12 lg:py-10 xl:px-16"
+        className="brand-ink-canvas relative hidden min-h-dvh overflow-hidden text-foreground lg:flex lg:flex-col lg:justify-between lg:px-12 lg:py-10 xl:px-16"
       >
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 -left-20 size-80 rounded-full bg-primary/20 blur-3xl" />

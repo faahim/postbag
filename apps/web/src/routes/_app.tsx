@@ -29,7 +29,7 @@ function AppLayout() {
 
   if (isPending || session == null) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-background">
+      <div className="flex h-dvh items-center justify-center">
         <RoutingMark status="pending" size={32} className="animate-pulse" />
       </div>
     )

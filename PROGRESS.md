@@ -12,7 +12,9 @@ the rules and `docs/` for the design.
   receiving-pocket hero now leads one coherent midnight-indigo/periwinkle identity across the complete homepage,
   public page family, documentation shell, auth, first-run, empty/status states, manifests and social previews. The old
   red circular check/postmark family is replaced by the receiving/routing mark; ordinary interface checks remain
-  ordinary. Public claims were reconciled to the live anonymous sandbox/claim contract, public GitHub repository and
+  ordinary. A shared static material grain now carries through the marketing, docs, auth and dashboard canvases while
+  inputs, code, payloads, tables and other working planes remain clear. Public claims were reconciled to the live
+  anonymous sandbox/claim contract, public GitHub repository and
   published npm clients. Static gates, 164 tests, production builds and settled browser checks at desktop/tablet/mobile
   are green on the branch; merge and production deployment remain intentionally pending.
 - **Anonymous claimable quickstart live 2026-08-23 (ADR-008/009):** `ANONYMOUS_QUICKSTART_ENABLED=true`. Merge `54c4fd8`

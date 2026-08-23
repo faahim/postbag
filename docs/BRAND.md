@@ -200,6 +200,12 @@ planes arrive, settle, and move onward.
 Use restrained grain, optical depth, and tinted layered shadows. Do not texture
 inputs, code, payloads, or dense tables.
 
+The canvas itself carries a fine, static material grain in light and dark modes.
+It should remain visible in the breathing room across marketing, documentation,
+auth, and product shells. Cards and working surfaces sit above it as quieter,
+more opaque planes. Brand-ink environments may use the same grain at a slightly
+higher intensity, but never enough to compete with type or the receiving imagery.
+
 ### Shape family
 
 - The settled pocket logo is the primary mark. Do not reopen it.

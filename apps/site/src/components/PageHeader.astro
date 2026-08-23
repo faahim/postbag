@@ -5,7 +5,7 @@ import type { Crumb } from "@/lib/seo"
 interface Props { title: string; lede: string; crumbs?: Crumb[]; eyebrow?: string; modified?: string }
 const { title, lede, crumbs, eyebrow, modified } = Astro.props
 ---
-<header class="relative overflow-hidden border-b border-border/70 bg-gradient-to-b from-accent/55 to-background">
+<header class="brand-canvas-panel relative overflow-hidden border-b border-border/70 bg-gradient-to-b from-accent/55 to-background">
   <RoutingMark size={250} tone="accent" status="sent" class="pointer-events-none absolute -right-12 -top-20 opacity-[0.08]" title="" />
   <div class="container-x relative pt-10 pb-10 sm:pt-16 sm:pb-16">
     {crumbs && <Breadcrumbs crumbs={crumbs} class="mb-7" />}
