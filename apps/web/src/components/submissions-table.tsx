@@ -4,11 +4,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EmptyState } from "@/components/empty-state"
 import { Postmark, type PostmarkStatus } from "@/components/postmark"
 import { formatRelativeTime, splitPrefixedId } from "@/lib/format"
+import { quarantineReasonDetail } from "@/lib/quarantine"
 
 export type SubmissionRow = {
   readonly id: string
   readonly form_id: string
   readonly status: "received" | "quarantined" | "spam"
+  readonly quarantine_reason: string | null
   readonly test: boolean
   readonly data: Readonly<Record<string, unknown>>
   readonly received_at: string
@@ -96,12 +98,17 @@ export function SubmissionsTable({
                 </span>
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-1.5">
-                  <Badge variant={STATUS_VARIANT[row.status]} className="gap-1">
-                    <Postmark status={STATUS_POSTMARK[row.status]} size={12} />
-                    {row.status}
-                  </Badge>
-                  {row.test && <Badge variant="muted">test</Badge>}
+                <div className="flex flex-col items-start gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant={STATUS_VARIANT[row.status]} className="gap-1">
+                      <Postmark status={STATUS_POSTMARK[row.status]} size={12} />
+                      {row.status}
+                    </Badge>
+                    {row.test && <Badge variant="muted">test</Badge>}
+                  </div>
+                  {row.status === "quarantined" && (
+                    <span className="text-xs text-warning-foreground">{quarantineReasonDetail(row.quarantine_reason).label}</span>
+                  )}
                 </div>
               </TableCell>
               {showFormId && <TableCell className="font-mono text-xs text-muted-foreground">{row.form_id}</TableCell>}

@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatDateTime, formatRelativeTime, splitPrefixedId } from "@/lib/format"
+import { quarantineReasonDetail } from "@/lib/quarantine"
 import { toastApiError } from "@/lib/api"
 import type { Delivery } from "@/lib/queries/deliveries"
 import { type SubmissionDetail, useDeleteSubmission, useSubmission, useUpdateSubmissionStatus } from "@/lib/queries/submissions"
@@ -92,14 +93,24 @@ function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: 
   }
 
   async function markSpam() {
-    await updateStatus.mutateAsync({ submissionId: submission.id, status: "spam" })
-    toast.success("Marked as spam.")
+    try {
+      await updateStatus.mutateAsync({ submissionId: submission.id, status: "spam" })
+      toast.success("Marked as spam.")
+    } catch (error) {
+      toastApiError(error, "Couldn't mark the submission as spam — try again.")
+    }
   }
 
-  async function markNotSpam() {
-    await updateStatus.mutateAsync({ submissionId: submission.id, status: "received" })
-    toast.success("Restored — deliveries have been queued.")
+  async function releaseForDelivery() {
+    try {
+      await updateStatus.mutateAsync({ submissionId: submission.id, status: "received" })
+      toast.success("Released — deliveries have been queued.")
+    } catch (error) {
+      toastApiError(error, "Couldn't release the submission — try again.")
+    }
   }
+
+  const quarantineReason = quarantineReasonDetail(submission.quarantine_reason)
 
   return (
     <div className="flex flex-col gap-6">
@@ -113,6 +124,19 @@ function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: 
           </Badge>
         )}
       </div>
+
+      {submission.status === "quarantined" && (
+        <section className="rounded-lg border border-warning/30 bg-warning/10 p-4" aria-labelledby="quarantine-heading">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning-foreground" aria-hidden />
+            <div className="flex min-w-0 flex-col gap-1">
+              <h3 id="quarantine-heading" className="text-sm font-semibold text-foreground">Held from delivery</h3>
+              <p className="text-sm font-medium text-warning-foreground">{quarantineReason.label}</p>
+              <p className="text-sm leading-5 text-muted-foreground">{quarantineReason.description}</p>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="flex flex-col gap-2">
         <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Fields</h3>
@@ -172,16 +196,23 @@ function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: 
         <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-destructive" onClick={() => void remove()} disabled={deleteSubmission.isPending}>
           <Trash2 className="size-3.5" /> Delete
         </Button>
-        <div className="flex gap-2">
-        {submission.status === "spam" ? (
-          <Button variant="outline" size="sm" onClick={() => void markNotSpam()} disabled={updateStatus.isPending}>
-            <ShieldCheck /> Not spam
-          </Button>
-        ) : (
-          <Button variant="outline" size="sm" onClick={() => void markSpam()} disabled={updateStatus.isPending}>
-            <ShieldOff /> Mark spam
-          </Button>
-        )}
+        <div className="flex flex-wrap justify-end gap-2">
+          {submission.status === "spam" ? (
+            <Button variant="outline" size="sm" onClick={() => void releaseForDelivery()} disabled={updateStatus.isPending}>
+              <ShieldCheck /> Not spam
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={() => void markSpam()} disabled={updateStatus.isPending}>
+                <ShieldOff /> Mark spam
+              </Button>
+              {submission.status === "quarantined" && (
+                <Button size="sm" onClick={() => void releaseForDelivery()} disabled={updateStatus.isPending}>
+                  <ShieldCheck /> Release for delivery
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
