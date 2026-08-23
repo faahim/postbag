@@ -248,7 +248,8 @@ cartoonish, postal-themed or generically futuristic.
 Imagine a precision-made aperture in a midnight-indigo instrument panel. Thin
 luminous planes settle into it like saved submissions. Fine grain makes the surface
 feel real; controlled light makes the routing visible. There is no fabric bag,
-rucksack, envelope or office-mailroom nostalgia.
+rucksack or office-mailroom nostalgia. A restrained receiving pocket may borrow the
+immediate familiarity of an open envelope without becoming stationery illustration.
 
 Three material words guide visual decisions:
 
@@ -278,35 +279,39 @@ and an indigo logo system compete.
 
 ### Hero imagery
 
-The approved lead is a **semantic system panorama**, not a decorative image card.
-It tells one continuous story: a Form produces a Submission; the Submission enters
-a substantial receiving structure with visible stored rows; only then do Routes fan
-out toward recognizable email, webhook and messaging Destinations.
+The approved lead is a **receiving landscape**, not a decorative image card or a
+literal infrastructure diagram. It tells one immediate human story: lightweight
+forms arrive in a familiar open pocket, are held safely, and continue along quiet
+paths. The pocket should read at a glance as inviting and protective, never as a
+hole, tunnel, facility or machine.
 
-The hero follows the reference structure literally: the artwork owns an
-uninterrupted upper stage, and the message sits below on the same continuous indigo
-surface. Copy, buttons and prompt controls never cover a focal object. Desktop reads
-left to right; mobile re-composes the same story from top to bottom instead of
-cropping away a stage.
+The hero follows the Clay composition pattern: one continuous, full-height artwork
+owns the hero; sculptural activity occupies the upper stage; and the message sits on
+a deliberately quiet part of that same indigo environment. Copy and controls never
+cover a focal object. Desktop and mobile use separately composed artwork rather than
+cropping away the story. A rounded light panel overlaps the bottom edge to hand off
+to the next section.
 
 Production sources and optimized consumers:
 
-- [`hero-system-panorama-v3.png`](../assets/brand/final-source/hero-system-panorama-v3.png)
-- [`hero-system-mobile-v3.png`](../assets/brand/final-source/hero-system-mobile-v3.png)
-- `apps/site/public/brand/hero-system-panorama-v3.webp`
-- `apps/site/public/brand/hero-system-mobile-v3.webp`
+- [`hero-receiving-pocket-desktop-v5.png`](../assets/brand/final-source/hero-receiving-pocket-desktop-v5.png)
+- [`hero-receiving-pocket-mobile-v5.png`](../assets/brand/final-source/hero-receiving-pocket-mobile-v5.png)
+- `apps/site/public/brand/hero-receiving-pocket-desktop-v5.webp`
+- `apps/site/public/brand/hero-receiving-pocket-mobile-v5.webp`
 
 Earlier still studies remain as an exploration record, not as production assets:
 
 - [`hero-aperture-v1.png`](../assets/brand/concepts/hero-aperture-v1.png)
 - [`hero-routing-field-v1.png`](../assets/brand/concepts/hero-routing-field-v1.png)
 - [`hero-aperture-routed-v2.png`](../assets/brand/concepts/hero-aperture-routed-v2.png)
+- [`hero-world-desktop-v4.png`](../assets/brand/concepts/hero-world-desktop-v4.png)
+- [`hero-world-mobile-v4.png`](../assets/brand/concepts/hero-world-mobile-v4.png)
 
-Avoid fabric, handles, straps, seams, buckles, leather, paper-craft, claymation, toy
-proportions, faces and mascots. An envelope is acceptable only as the terminal email
-Destination in a wider system story. No text is baked into the image. Agent-native
-is carried by the prompt and copy; the small cursor spark in the artwork is a cue,
-not the explanation.
+Avoid handles, straps, seams, buckles, leather, office stationery, paper-craft,
+claymation, toy proportions, faces and mascots. Do not render servers, dashboards,
+destination icons or a flowchart. No text is baked into the image. Agent-native is
+carried by the prompt and copy; restrained route paths and motion may support the
+story, but should not become its explanation.
 
 Motion is earned only after the still composition works without it. The first
 approved interaction is a restrained whole-scene acknowledgement after the agent

@@ -176,58 +176,48 @@
   .hero-shell {
     position: relative;
     overflow: hidden;
+    min-height: clamp(46rem, calc(100dvh + 4rem), 54rem);
     color: oklch(0.965 0.014 278);
     background: oklch(0.115 0.042 272);
   }
-  .hero-shell::after {
-    content: "";
+  .hero-scene {
     position: absolute;
     z-index: 0;
-    inset: auto 0 0;
-    height: clamp(8rem, 15vw, 13rem);
-    pointer-events: none;
-    background: linear-gradient(to bottom, transparent, var(--background));
-  }
-  .hero-art {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    aspect-ratio: 1983 / 793;
+    inset: 0;
     overflow: hidden;
     background: oklch(0.08 0.035 272);
   }
-  .hero-art picture,
-  .hero-art img {
+  .hero-scene picture,
+  .hero-scene img {
     display: block;
     width: 100%;
     height: 100%;
   }
-  .hero-art img {
+  .hero-scene img {
     object-fit: cover;
-    object-position: center;
+    object-position: center top;
     filter: saturate(0.9) contrast(1.03);
   }
-  .hero-art::after {
+  .hero-scene::after {
     content: "";
     position: absolute;
-    inset: auto 0 0;
-    height: 18%;
-    background: linear-gradient(to bottom, transparent, oklch(0.115 0.042 272));
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent 44%, oklch(0.105 0.038 272 / 0.16) 58%, oklch(0.105 0.038 272 / 0.38));
   }
-  .hero-art[data-copy-pulse] { animation: hero-art-acknowledge var(--duration-acknowledge) var(--ease-smooth-out) both; }
-  @keyframes hero-art-acknowledge {
+  .hero-scene[data-copy-pulse] { animation: hero-scene-acknowledge var(--duration-acknowledge) var(--ease-smooth-out) both; }
+  @keyframes hero-scene-acknowledge {
     0%, 100% { filter: brightness(1); }
-    28% { filter: brightness(1.1); }
+    28% { filter: brightness(1.08); }
   }
   .hero-message {
-    position: relative;
+    position: absolute;
     z-index: 1;
+    inset: auto 0 clamp(10rem, 18vw, 15rem);
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.65fr);
+    grid-template-columns: minmax(0, 1.25fr) minmax(22rem, 0.75fr);
     align-items: end;
-    gap: clamp(3rem, 7vw, 7rem);
-    margin-top: -0.5rem;
-    padding-top: clamp(2.5rem, 5vw, 4.5rem);
+    gap: clamp(3rem, 5vw, 5rem);
   }
   .hero-copy {
     max-width: 52rem;
@@ -242,11 +232,11 @@
     color: oklch(0.79 0.09 278);
   }
   .hero-title {
-    font-size: clamp(3.8rem, 6.7vw, 6.75rem);
+    font-size: clamp(3.8rem, 5.9vw, 6rem);
     font-weight: 600;
     line-height: 0.94;
     letter-spacing: -0.04em;
-    text-wrap: balance;
+    text-wrap: normal;
   }
   .hero-lede {
     margin: 0;
@@ -273,44 +263,77 @@
   }
   .hero-secondary-action:hover { background: oklch(0.93 0.04 278 / 0.1); }
   .hero-prompt {
-    position: relative;
-    z-index: 1;
     width: 100%;
     max-width: 48rem;
-    margin: clamp(3.5rem, 7vw, 6rem) auto 0;
-    padding-bottom: clamp(9rem, 16vw, 14rem);
+    margin: 0;
+  }
+  .hero-handoff {
+    position: relative;
+    z-index: 2;
+    margin-top: -2.5rem;
+  }
+  .hero-handoff-panel {
+    display: grid;
+    grid-template-columns: minmax(16rem, 0.65fr) minmax(0, 1.35fr);
+    gap: clamp(2rem, 6vw, 6rem);
+    align-items: center;
+    padding: clamp(2rem, 5vw, 4.5rem);
+    border-radius: 2.5rem 2.5rem 0 0;
+    color: oklch(0.22 0.035 272);
+    background: oklch(0.965 0.011 278);
+  }
+  .hero-handoff-heading h2 {
+    max-width: 12ch;
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 3.5vw, 3.5rem);
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+  }
+  .hero-handoff-kicker {
+    max-width: 26rem;
+    margin-bottom: 0.9rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: oklch(0.45 0.035 273);
   }
   .hero-prompt .code-panel {
-    color: oklch(0.95 0.018 278);
-    background: oklch(0.15 0.045 272);
-    box-shadow: 0 1.25rem 3rem oklch(0.025 0.03 272 / 0.42), 0 0 0 1px oklch(0.82 0.08 278 / 0.2) inset;
+    color: oklch(0.24 0.035 272);
+    background: oklch(0.995 0.004 275);
+    box-shadow: 0 1.25rem 3rem oklch(0.16 0.035 272 / 0.12), 0 0 0 1px oklch(0.76 0.035 275 / 0.34) inset;
   }
   .hero-prompt .code-panel :is(pre, code, pre span) {
-    color: oklch(0.91 0.025 278) !important;
+    color: oklch(0.28 0.035 272) !important;
     background: transparent !important;
   }
-  .hero-prompt .code-panel figcaption { border-color: oklch(0.82 0.08 278 / 0.18); }
-  .hero-prompt .copy-btn { color: oklch(0.72 0.045 278); }
-  .hero-prompt .agent-prompt > p { color: oklch(0.82 0.03 278); }
-  .hero-prompt .t-tabs { background: oklch(0.09 0.035 272); }
-  .hero-prompt .t-tab { color: oklch(0.76 0.03 278); }
-  .hero-prompt .t-tab:hover, .hero-prompt .t-tab[aria-selected="true"] { color: oklch(0.95 0.018 278); }
-  .hero-prompt .t-tabs-pill { background: oklch(0.24 0.065 276 / 0.9); box-shadow: none; }
+  .hero-prompt .code-panel figcaption { border-color: oklch(0.78 0.03 275 / 0.44); }
+  .hero-prompt .copy-btn { color: oklch(0.44 0.035 273); }
+  .hero-prompt .agent-prompt > p { color: oklch(0.4 0.035 273); }
+  .hero-prompt .t-tabs { background: oklch(0.91 0.02 275); }
+  .hero-prompt .t-tab { color: oklch(0.45 0.035 273); }
+  .hero-prompt .t-tab:hover, .hero-prompt .t-tab[aria-selected="true"] { color: oklch(0.22 0.035 272); }
+  .hero-prompt .t-tabs-pill { background: oklch(0.995 0.004 275); box-shadow: var(--shadow-sm); }
   @media (prefers-reduced-motion: reduce) {
-    .hero-art[data-copy-pulse] { animation: none; }
+    .hero-scene[data-copy-pulse] { animation: none; }
   }
   @media (max-width: 767px) {
-    .hero-art { aspect-ratio: 864 / 1821; }
-    .hero-art::after { height: 10%; }
+    .hero-shell { min-height: 65rem; }
+    .hero-scene img { object-position: center top; }
+    .hero-scene::after { background: linear-gradient(to bottom, transparent 40%, oklch(0.105 0.038 272 / 0.1) 51%, oklch(0.105 0.038 272 / 0.3)); }
     .hero-message {
       grid-template-columns: minmax(0, 1fr);
       gap: 1.75rem;
-      margin-top: 0;
-      padding-top: 2.5rem;
+      inset: auto 0 3.5rem;
     }
-    .hero-title { font-size: 3.25rem; line-height: 0.96; }
+    .hero-title { font-size: 3.1rem; line-height: 0.96; }
     .hero-lede { font-size: 1rem; }
-    .hero-prompt { margin-top: 3rem; padding-bottom: 10rem; }
+    .hero-handoff { margin-top: -1.75rem; }
+    .hero-handoff-panel {
+      grid-template-columns: minmax(0, 1fr);
+      padding: 2rem 1.25rem 2.5rem;
+      border-radius: 1.75rem 1.75rem 0 0;
+    }
+    .hero-handoff-heading h2 { max-width: none; font-size: 2.4rem; }
   }
 
   .prose-pb {

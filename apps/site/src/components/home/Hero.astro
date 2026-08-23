@@ -2,13 +2,13 @@
 import AgentPromptSwitcher from "@/components/AgentPromptSwitcher.astro"
 ---
 <section class="hero-shell" data-hero>
-  <div class="hero-art" data-hero-asset aria-hidden="true" data-reveal>
+  <div class="hero-scene" data-hero-asset aria-hidden="true" data-reveal>
     <picture>
-      <source media="(max-width: 767px)" srcset="/brand/hero-system-mobile-v3.webp" width="864" height="1821" />
+      <source media="(max-width: 767px)" srcset="/brand/hero-receiving-pocket-mobile-v5.webp" width="941" height="1672" />
       <img
-        src="/brand/hero-system-panorama-v3.webp"
-        width="1983"
-        height="793"
+        src="/brand/hero-receiving-pocket-desktop-v5.webp"
+        width="1672"
+        height="941"
         alt=""
         fetchpriority="high"
         loading="eager"
@@ -32,10 +32,18 @@ import AgentPromptSwitcher from "@/components/AgentPromptSwitcher.astro"
       </div>
     </div>
   </div>
+</section>
 
+<section class="hero-handoff" aria-labelledby="hero-handoff-heading">
   <div class="container-x">
-    <div id="agent-prompt" class="hero-prompt" data-reveal style="--reveal-delay: 180ms">
-      <AgentPromptSwitcher class="hero-agent-prompt" />
+    <div class="hero-handoff-panel" data-reveal>
+      <div class="hero-handoff-heading">
+        <p class="hero-handoff-kicker">One line. Then you can go do something else.</p>
+        <h2 id="hero-handoff-heading">Give the job to your agent.</h2>
+      </div>
+      <div id="agent-prompt" class="hero-prompt">
+        <AgentPromptSwitcher class="hero-agent-prompt" />
+      </div>
     </div>
   </div>
 </section>
@@ -44,7 +52,7 @@ import AgentPromptSwitcher from "@/components/AgentPromptSwitcher.astro"
   document.querySelectorAll<HTMLElement>("[data-hero]").forEach((hero) => {
     const asset = hero.querySelector<HTMLElement>("[data-hero-asset]")
     let reset: ReturnType<typeof setTimeout> | undefined
-    hero.addEventListener("postbag:codecopied", () => {
+    document.addEventListener("postbag:codecopied", () => {
       if (!asset) return
       clearTimeout(reset)
       asset.removeAttribute("data-copy-pulse")
