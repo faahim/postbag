@@ -148,7 +148,6 @@ export async function restoreSubmission(
             eq(deliveries.submissionId, input.submission.id),
             eq(deliveries.routeId, plan.routeId),
             eq(deliveries.status, "skipped"),
-            eq(deliveries.skipReason, "quality"),
           ),
         )
         .returning({ id: deliveries.id })

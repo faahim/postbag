@@ -30,8 +30,12 @@ const REASONS: Readonly<Record<QuarantineReason, QuarantineReasonDetail>> = {
   },
 }
 
+function isQuarantineReason(reason: string): reason is QuarantineReason {
+  return Object.hasOwn(REASONS, reason)
+}
+
 export function quarantineReasonDetail(reason: string | null): QuarantineReasonDetail {
-  if (reason !== null && reason in REASONS) return REASONS[reason as QuarantineReason]
+  if (reason !== null && isQuarantineReason(reason)) return REASONS[reason]
   return {
     label: reason === null ? "Reason unavailable" : reason.replaceAll("_", " "),
     description:

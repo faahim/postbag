@@ -19,14 +19,19 @@ export function useSubmissions(params: SubmissionListParams = {}) {
     queryKey: ["submissions", params],
     queryFn: async (): Promise<Paginated<Submission>> =>
       unwrap(
-        await api.GET("/v1/submissions", { params: { query: { ...params, limit: 50 } as unknown as never } }),
+        await api.GET("/v1/submissions", {
+          params: { query: { ...params, limit: 50 } as unknown as never },
+        }),
       ),
     refetchInterval: 5000,
     refetchIntervalInBackground: true,
   })
 }
 
-export function useFormSubmissions(formId: string | undefined, opts: { readonly poll?: boolean } = {}) {
+export function useFormSubmissions(
+  formId: string | undefined,
+  opts: { readonly poll?: boolean } = {},
+) {
   return useQuery<Paginated<Submission>>({
     queryKey: ["forms", formId, "submissions"],
     queryFn: async (): Promise<Paginated<Submission>> =>
@@ -45,7 +50,11 @@ export function useSubmission(submissionId: string | undefined) {
   return useQuery<SubmissionDetail>({
     queryKey: ["submissions", submissionId],
     queryFn: async (): Promise<SubmissionDetail> =>
-      unwrap(await api.GET("/v1/submissions/{submissionId}", { params: { path: { submissionId: submissionId ?? "" } } })),
+      unwrap(
+        await api.GET("/v1/submissions/{submissionId}", {
+          params: { path: { submissionId: submissionId ?? "" } },
+        }),
+      ),
     enabled: submissionId !== undefined,
   })
 }
@@ -53,8 +62,19 @@ export function useSubmission(submissionId: string | undefined) {
 export function useUpdateSubmissionStatus() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ submissionId, status }: { readonly submissionId: string; readonly status: SubmissionStatus }): Promise<Submission> =>
-      unwrap(await api.PATCH("/v1/submissions/{submissionId}", { params: { path: { submissionId } }, body: { status } })),
+    mutationFn: async ({
+      submissionId,
+      status,
+    }: {
+      readonly submissionId: string
+      readonly status: SubmissionStatus
+    }): Promise<Submission> =>
+      unwrap(
+        await api.PATCH("/v1/submissions/{submissionId}", {
+          params: { path: { submissionId } },
+          body: { status },
+        }),
+      ),
     onMutate: async ({ submissionId, status }) => {
       // Two cache shapes hold submission rows: the org-wide list (["submissions", params]) and
       // each form's inbox (["forms", formId, "submissions"]). The single-submission detail cache
@@ -66,7 +86,9 @@ export function useUpdateSubmissionStatus() {
       await queryClient.cancelQueries({ predicate: (query) => isSubmissionList(query.queryKey) })
       const previous = queryClient
         .getQueriesData({ predicate: (query) => isSubmissionList(query.queryKey) })
-        .filter((entry): entry is [readonly unknown[], Paginated<Submission>] => Array.isArray((entry[1] as Paginated<Submission> | undefined)?.data))
+        .filter((entry): entry is [readonly unknown[], Paginated<Submission>] =>
+          Array.isArray((entry[1] as Paginated<Submission> | undefined)?.data),
+        )
 
       for (const [key, data] of previous) {
         queryClient.setQueryData<Paginated<Submission>>(key, {
@@ -81,8 +103,17 @@ export function useUpdateSubmissionStatus() {
         queryClient.setQueryData(key, data)
       })
     },
+    onSuccess: (updated) => {
+      queryClient.setQueryData<SubmissionDetail>(["submissions", updated.id], (current) =>
+        current === undefined ? current : { ...current, ...updated },
+      )
+    },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "submissions" || (query.queryKey[0] === "forms" && query.queryKey[2] === "submissions") })
+      await queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === "submissions" ||
+          (query.queryKey[0] === "forms" && query.queryKey[2] === "submissions"),
+      })
     },
   })
 }
@@ -91,7 +122,9 @@ export function useDeleteSubmission() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (submissionId: string): Promise<void> => {
-      const result = await api.DELETE("/v1/submissions/{submissionId}", { params: { path: { submissionId } } })
+      const result = await api.DELETE("/v1/submissions/{submissionId}", {
+        params: { path: { submissionId } },
+      })
       if (result.error !== undefined) unwrap(result)
     },
     onSuccess: async () => {

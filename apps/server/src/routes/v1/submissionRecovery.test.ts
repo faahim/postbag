@@ -120,6 +120,84 @@ integration("quarantined submission recovery", () => {
     })
   })
 
+  it("requeues a window-skipped delivery after the route window changes", async () => {
+    const [form] = await harness.db
+      .insert(forms)
+      .values({
+        id: newId("fm"),
+        organizationId,
+        projectId,
+        slug: `window-recovery-${newId("fm").slice(-8)}`,
+        name: "Window recovery form",
+        settings: { allowed_origins: ["https://allowed.example"] },
+      })
+      .returning()
+    if (form === undefined) throw new Error("Failed to create window recovery form.")
+    const [destination] = await harness.db
+      .insert(destinations)
+      .values({
+        id: newId("ds"),
+        organizationId,
+        type: "webhook",
+        name: "Window recovery destination",
+        config: { url: "https://example.com/hook", headers: {} },
+        verified: true,
+      })
+      .returning()
+    if (destination === undefined) throw new Error("Failed to create window recovery destination.")
+    const [route] = await harness.db
+      .insert(routes)
+      .values({
+        id: newId("rt"),
+        organizationId,
+        formId: form.id,
+        destinationId: destination.id,
+        window: { from: "9999-01-01T00:00:00.000Z" },
+      })
+      .returning()
+    if (route === undefined) throw new Error("Failed to create window recovery route.")
+
+    const submitted = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://rejected.example" },
+      body: JSON.stringify({ email: "window@example.com" }),
+    })
+    const submittedBody = (await submitted.json()) as {
+      readonly submission_id: string
+      readonly status: string
+    }
+    expect(submittedBody.status).toBe("quarantined")
+    const [skipped] = await harness.db
+      .select()
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.submissionId, submittedBody.submission_id),
+          eq(deliveries.routeId, route.id),
+        ),
+      )
+    expect(skipped).toMatchObject({ status: "skipped", skipReason: "window" })
+
+    await harness.db.update(routes).set({ window: {} }).where(eq(routes.id, route.id))
+    const released = await harness.app.request(`/v1/submissions/${submittedBody.submission_id}`, {
+      method: "PATCH",
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({ status: "received" }),
+    })
+
+    expect(released.status).toBe(200)
+    const [pending] = await harness.db
+      .select()
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.submissionId, submittedBody.submission_id),
+          eq(deliveries.routeId, route.id),
+        ),
+      )
+    expect(pending).toMatchObject({ id: skipped?.id, status: "pending", skipReason: null })
+  })
+
   it("keeps an over-quota delivery parked until the plan allows it", async () => {
     const [form] = await harness.db
       .insert(forms)

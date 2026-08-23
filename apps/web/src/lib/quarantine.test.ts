@@ -13,4 +13,8 @@ describe("quarantineReasonDetail", () => {
   it("keeps an unknown future reason visible", () => {
     expect(quarantineReasonDetail("new_policy").label).toBe("new policy")
   })
+
+  it("treats inherited object names as unknown reasons", () => {
+    expect(quarantineReasonDetail("toString").label).toBe("toString")
+  })
 })
