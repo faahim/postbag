@@ -1,11 +1,11 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
-import { planDeliveries, PostbagError } from "@postbag/core"
+import { PostbagError } from "@postbag/core"
 import { and, desc, eq, lt, or, type SQL } from "drizzle-orm"
-import { deliveries, driftEvents, forms, submissions, type Database } from "@postbag/db"
+import { deliveries, driftEvents, submissions, type Database } from "@postbag/db"
 
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
-import { getDirectRoutesForForm, getStreamMembershipsForForm } from "../../repo/routing.js"
+import { restoreSubmission } from "../../repo/submissionRecovery.js"
 import { asJson, serializeDelivery, serializeSubmission } from "../../repo/serialize.js"
 import { CursorQuerySchema, errorResponses, SubmissionDetailSchema, SubmissionSchema } from "../../schemas.js"
 
@@ -148,52 +148,17 @@ export function registerSubmissionRoutes(app: OpenAPIHono<AppEnv>, db: Database)
       .limit(1)
     if (existing === undefined) throw new PostbagError("not_found", "No submission with that id.")
 
-    const [updated] = await db
-      .update(submissions)
-      .set({ status, quarantineReason: status === "quarantined" ? existing.quarantineReason : null })
-      .where(and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)))
-      .returning()
-    if (updated === undefined) throw new Error("Failed to update submission.")
-
+    let updated: typeof submissions.$inferSelect | undefined
     if (status === "received" && existing.status !== "received") {
-      const [form] = await db
-        .select()
-        .from(forms)
-        .where(and(eq(forms.organizationId, scope.organizationId), eq(forms.id, existing.formId)))
-        .limit(1)
-      if (form?.status === "active") {
-        const directRoutes = await getDirectRoutesForForm(db, scope.organizationId, form.id)
-        const streamMemberships = await getStreamMembershipsForForm(db, {
-          id: form.id,
-          organizationId: scope.organizationId,
-          projectId: form.projectId,
-          tags: form.tags,
-        })
-        const plans = planDeliveries({
-          submission: { id: submissionId, status: "received", receivedAt: existing.receivedAt },
-          form: { status: "active", schemaVersion: form.currentSchemaVersion },
-          directRoutes,
-          streamMemberships,
-        })
-        for (const plan of plans) {
-          if (plan.status !== "pending") continue
-          await db
-            .insert(deliveries)
-            .values({
-              organizationId: scope.organizationId,
-              submissionId,
-              routeId: plan.routeId,
-              destinationId: plan.destinationId,
-              status: "pending",
-              attempts: 0,
-              payload: existing.data,
-              schemaVersion: plan.schemaVersion,
-              dedupeKey: `${submissionId}:${plan.routeId}`,
-            })
-            .onConflictDoNothing()
-        }
-      }
+      updated = await restoreSubmission(db, { organizationId: scope.organizationId, submission: existing })
+    } else {
+      ;[updated] = await db
+        .update(submissions)
+        .set({ status, quarantineReason: status === "quarantined" ? existing.quarantineReason : null })
+        .where(and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)))
+        .returning()
     }
+    if (updated === undefined) throw new Error("Failed to update submission.")
 
     const body: z.infer<typeof SubmissionSchema> = serializeSubmission(updated)
     return c.json(body)
