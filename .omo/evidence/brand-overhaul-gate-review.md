@@ -85,4 +85,3 @@ Executed from the reviewed worktree in this gate:
 - all screenshots under `.omo/evidence/final-manual-qa-2/`
 - `.omo/evidence/final_code_review-code-review.md`
 - `.omo/evidence/brand-overhaul-clone-fidelity.md`
-

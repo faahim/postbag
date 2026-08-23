@@ -1,8 +1,8 @@
 # Brand-overhaul clone-fidelity review
 
-**Reviewer:** independent read-only fidelity review  
-**Branch reviewed:** `codex/brand-overhaul`  
-**Commit range inspected:** `1b8a741..7e65621` (plus current uncommitted final-QA evidence)  
+**Reviewer:** independent read-only fidelity review
+**Branch reviewed:** `codex/brand-overhaul`
+**Commit range inspected:** `1b8a741..7e65621` (plus current uncommitted final-QA evidence)
 **Recommendation:** **REQUEST_CHANGES**
 
 ## Scope and method
