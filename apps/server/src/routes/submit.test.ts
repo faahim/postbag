@@ -172,6 +172,22 @@ integration("submit path", () => {
     expect(row?.quarantineReason).toBe("origin_rejected")
   })
 
+  it("accepts a browser origin when the configured URL has a trailing slash", async () => {
+    const form = await createForm({ settings: { allowed_origins: ["https://allowed.example/"] } })
+
+    const response = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://allowed.example" },
+      body: JSON.stringify({ email: "human@example.com" }),
+    })
+    const body = (await response.json()) as { status: string; submission_id: string }
+
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://allowed.example")
+    expect(body.status).toBe("received")
+    const [row] = await db.select().from(submissions).where(eq(submissions.id, body.submission_id))
+    expect(row?.quarantineReason).toBeNull()
+  })
+
   it("returns * when allowed_origins is empty", async () => {
     const form = await createForm()
     const response = await harness.app.request(`/s/${form.id}`, {
