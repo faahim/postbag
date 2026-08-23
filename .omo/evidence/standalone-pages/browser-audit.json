@@ -1,0 +1,41 @@
+{
+  "pricing": {
+    "client": 900,
+    "proDetail": "$144 billed yearly.",
+    "proHref": "https://postbag.dev/app/settings?plan=pro&interval=year&checkout=1",
+    "proPrice": "12",
+    "selected": "true",
+    "width": 900
+  },
+  "surfaces": [
+    {
+      "client": 390,
+      "contact": true,
+      "h1": "Forms deserve a dependable place to land.",
+      "page": "about-mobile",
+      "width": 390
+    },
+    {
+      "client": 1440,
+      "h1": "What changed, and when.",
+      "page": "changelog-desktop",
+      "releases": 6,
+      "width": 1440
+    },
+    {
+      "client": 900,
+      "h1": "One word per concept.",
+      "indexLinks": 18,
+      "page": "glossary-tablet",
+      "terms": 18,
+      "width": 900
+    },
+    {
+      "client": 390,
+      "h1": "This Form took a wrong turn.",
+      "page": "404-mobile",
+      "postmark": false,
+      "width": 390
+    }
+  ]
+}
