@@ -414,7 +414,7 @@ export interface paths {
         put?: never;
         /**
          * One call to a working, routed form
-         * @description Creates (idempotently, by name within project) the project if missing, the form, a destination for whichever of notify_email/telegram/webhook was given, and a direct route, then returns the form, an embeddable snippet, a curl command to verify delivery, and next steps. Everything it does is also available as individual calls (POST /v1/forms, /v1/destinations, /v1/routes); this is a convenience, not a special path.
+         * @description Creates (idempotently, by name within project) the project if missing, the form, a destination for whichever of notify_email/telegram/webhook was given, and a direct route, then returns the form, an embeddable snippet, a browser-equivalent curl command to verify delivery, and next steps. Allowed origins are compared canonically, so paths, trailing slashes, host casing, and default ports do not cause mismatches. Everything it does is also available as individual calls (POST /v1/forms, /v1/destinations, /v1/routes); this is a convenience, not a special path.
          */
         post: operations["quickstart"];
         delete?: never;
@@ -1305,6 +1305,7 @@ export interface components {
             form_id: string;
             /** @enum {string} */
             status: "received" | "quarantined" | "spam";
+            /** @description Machine-readable reason when status is quarantined: schema_violation, rate_limited, origin_rejected, turnstile_failed, or over_quota. Null for received or spam submissions. */
             quarantine_reason: string | null;
             test: boolean;
             data: {

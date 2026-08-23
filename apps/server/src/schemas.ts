@@ -146,7 +146,9 @@ export const SubmissionSchema = z
     id: IdSchema,
     form_id: IdSchema,
     status: z.enum(["received", "quarantined", "spam"]),
-    quarantine_reason: z.string().nullable(),
+    quarantine_reason: z.string().nullable().describe(
+      "Machine-readable reason when status is quarantined: schema_violation, rate_limited, origin_rejected, turnstile_failed, or over_quota. Null for received or spam submissions.",
+    ),
     test: z.boolean(),
     data: JsonRecord,
     form_schema_version: z.number().int().nullable(),

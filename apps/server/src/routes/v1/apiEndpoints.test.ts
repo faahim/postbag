@@ -270,6 +270,20 @@ integration("/v1 API", () => {
     expect(secondBody.form.id).toBe(firstBody.form.id)
   })
 
+  it("quickstart verification exercises the configured browser origin", async () => {
+    const response = await harness.app.request(
+      "/v1/quickstart",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "Origin verification", origin: "https://Example.com/contact/" }),
+      }),
+    )
+    expect(response.status).toBe(201)
+    const body = (await response.json()) as { verify: { curl: string } }
+    expect(body.verify.curl).toContain("-H 'Origin: https://example.com'")
+  })
+
   it("publishing a form schema bumps the version and resolves matching drift events", async () => {
     const createResponse = await harness.app.request(
       "/v1/forms",

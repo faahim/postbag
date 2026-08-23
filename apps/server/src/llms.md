@@ -60,6 +60,11 @@ dropped**.
    `GET /v1/deliveries/{id}` and see `sent` — this is how you verify a destination
    without a browser or a human.
 
+   When a Form has an allowed origin, include the browser's `Origin` header in the
+   test. Postbag compares canonical origins, so paths, trailing slashes, host casing,
+   and default ports normalize automatically. A no-Origin curl does not prove the
+   browser path works.
+
 ## Conventions
 
 - IDs are prefixed and self-describing: `fm_…` form, `sb_…` submission, `st_…`
@@ -69,6 +74,11 @@ dropped**.
 - Every error is `{ error: { code, message, hint, docs } }` — `hint` says what to
   do next, `docs` is a deep link.
 - Every create response includes `next[]`: ready-to-send follow-up calls.
+- A quarantined submission is stored but not delivered. Fetch it with
+  `GET /v1/submissions/{id}` and inspect `quarantine_reason`:
+  `origin_rejected`, `schema_violation`, `rate_limited`, `turnstile_failed`, or
+  `over_quota`. After resolving the cause, `PATCH` it to `{"status":"received"}`
+  to release it and queue delivery.
 - `Idempotency-Key` header is honoured on every `POST` under `/v1`. Creates also
   support `if_exists: "return"` for idempotency by `(project, slug)` / `(org, slug)`.
 - Cursor pagination: `?cursor=&limit=` (max 200), opaque cursors.

@@ -92,7 +92,7 @@ One received payload.
 | `data` | JSON object of submitted fields, after stripping control fields (`_redirect`, `_gotcha`, …). Files are referenced by `fl_…` ids (Phase 2). |
 | `form_schema_version` | Version validated against, or null. |
 | `status` | `received` · `quarantined` · `spam`. All three are stored and visible. |
-| `quarantine_reason` | `schema_violation` · `rate_limited` · `origin_rejected` · `turnstile_failed`. |
+| `quarantine_reason` | `schema_violation` · `rate_limited` · `origin_rejected` · `turnstile_failed` · `over_quota`. |
 | `spam` | `{ score, reasons[] }` — honeypot, heuristics, later ML. |
 | `meta` | `ip`, `user_agent`, `origin`, `referer`, `country`, `received_at`, `content_type`. |
 | `idempotency_key` | From the `Idempotency-Key` header or `_idempotency` field. Unique per form. |

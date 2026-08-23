@@ -72,4 +72,6 @@ The form comes back pre-attached to the stream with a valid mapping and its sche
 - Every error is `{ code, message, hint, docs }`. Read `hint` first; it is written for you.
 - Ids tell you what they are: `fm_`, `sb_`, `st_`, `ds_`, `rt_`, `dl_`, `prj_`.
 - Spam and quarantine are statuses, not rejections. A 200 with `"status": "quarantined"` means stored, not delivered; read `quarantine_reason`.
+- Include the configured site's `Origin` header in test submissions. Paths and trailing slashes are normalized, but a curl without `Origin` does not exercise browser-origin checks.
+- After fixing a quarantine cause, `PATCH /v1/submissions/{id}` to `{"status":"received"}` to release the stored submission and queue its deliveries.
 - Do not poll submissions to "see if it worked"; poll the delivery ids from a `_test` post.
