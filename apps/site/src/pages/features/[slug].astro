@@ -7,10 +7,12 @@ import CtaBand from "@/components/CtaBand.astro"
 import { FEATURES } from "@/content/features"
 import { breadcrumbLd, faqLd, webPageLd } from "@/lib/seo"
 import { SITE_URL } from "@/config"
+import { ArrowUpRight } from "@lucide/astro"
 
 export function getStaticPaths() {
   return FEATURES.map((f) => ({ params: { slug: f.slug }, props: { feature: f } }))
 }
+
 const { feature } = Astro.props
 const path = `/features/${feature.slug}/`
 const crumbs = [ { name: "Home", href: "/" }, { name: "Features", href: "/features/" }, { name: feature.nav, href: path } ]
@@ -19,31 +21,70 @@ const others = FEATURES.filter((f) => f.slug !== feature.slug)
 ---
 <Base title={feature.title} description={feature.description} canonical={path} ld={ld} ogImage="/og/features.png">
   <PageHeader title={feature.title} lede={feature.lede} crumbs={crumbs} />
-  <div class="container-x grid gap-12 lg:grid-cols-[minmax(0,1fr)_260px]">
-    <article class="prose-pb max-w-3xl">
-      <p class="rounded-xl bg-accent/60 px-5 py-4 text-[16px] leading-relaxed text-foreground"><strong>In short:</strong> {feature.definition}</p>
-      {feature.sections.map((s) => (
-        <section>
-          <h2>{s.h}</h2>
-          {s.p.map((p) => <p>{p}</p>)}
-          {s.list && <ul>{s.list.map((li) => <li>{li}</li>)}</ul>}
-          {s.code && <CodeBlock code={s.code.code} lang={s.code.lang} title={s.code.title} />}
+
+  <div class="container-x feature-detail">
+    <aside class="feature-summary" data-reveal>
+      <p>In plain terms</p>
+      <div>{feature.definition}</div>
+    </aside>
+
+    <article class="feature-article">
+      {feature.sections.map((section) => (
+        <section class="feature-section" data-reveal>
+          <div class="feature-section-heading"><h2>{section.h}</h2></div>
+          <div class="feature-section-body">
+            {section.p.map((paragraph) => <p>{paragraph}</p>)}
+            {section.list && <ul>{section.list.map((item) => <li>{item}</li>)}</ul>}
+            {section.code && <CodeBlock code={section.code.code} lang={section.code.lang} title={section.code.title} />}
+          </div>
         </section>
       ))}
     </article>
-    <aside class="lg:sticky lg:top-24 lg:self-start">
-      <nav aria-label="Other features" class="card p-5">
-        <h2 class="font-sans text-[13px] font-semibold">Features</h2>
-        <ul class="mt-3 space-y-2">
-          {others.map((f) => <li><a href={`/features/${f.slug}/`} class="text-sm text-muted-foreground hover:text-foreground">{f.nav}</a></li>)}
+
+    <aside class="feature-links" data-reveal>
+      <nav aria-label="Feature navigation">
+        <p>Keep exploring</p>
+        <ul>
+          {others.map((item) => <li><a href={`/features/${item.slug}/`}>{item.nav}<ArrowUpRight size={15} stroke-width={1.7} aria-hidden="true" /></a></li>)}
         </ul>
-        <h2 class="mt-6 font-sans text-[13px] font-semibold">Related</h2>
-        <ul class="mt-3 space-y-2">
-          {feature.related.map((r) => <li><a href={r.href} class="text-sm text-muted-foreground hover:text-foreground">{r.label}</a></li>)}
+      </nav>
+      <nav aria-label="Related pages">
+        <p>Related</p>
+        <ul>
+          {feature.related.map((item) => <li><a href={item.href}>{item.label}<ArrowUpRight size={15} stroke-width={1.7} aria-hidden="true" /></a></li>)}
         </ul>
       </nav>
     </aside>
   </div>
-  <Faq items={feature.faqs} class="mt-20" />
+
+  <Faq items={feature.faqs} class="mt-24" />
   <CtaBand />
 </Base>
+
+<style>
+  .feature-detail { display: grid; gap: 3.5rem; }
+  .feature-summary { padding: 1.35rem; border-radius: calc(var(--radius) + 8px); background: var(--accent); box-shadow: var(--shadow-sm); }
+  .feature-summary p, .feature-links p { color: var(--primary); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .feature-summary div { margin-top: 0.7rem; color: var(--accent-foreground); font-family: var(--font-display); font-size: 1.22rem; line-height: 1.4; letter-spacing: -0.012em; }
+  .feature-article { min-width: 0; }
+  .feature-section { display: grid; gap: 1rem; padding: 2.4rem 0; border-top: 1px solid var(--border); }
+  .feature-section:first-child { padding-top: 0; border-top: 0; }
+  .feature-section h2 { font-size: clamp(1.55rem, 2.6vw, 2.3rem); font-weight: 580; line-height: 1.12; }
+  .feature-section-body { max-width: 44rem; color: var(--muted-foreground); font-size: 1.03rem; line-height: 1.72; }
+  .feature-section-body p + p { margin-top: 1rem; }
+  .feature-section-body :global(ul) { display: grid; gap: 0.75rem; margin-top: 1.25rem; padding: 0; list-style: none; }
+  .feature-section-body :global(li) { position: relative; padding-left: 1.25rem; }
+  .feature-section-body :global(li)::before { position: absolute; top: 0.62rem; left: 0; width: 0.45rem; height: 0.45rem; border-radius: 999px; background: var(--primary); content: ""; }
+  .feature-section-body :global(.code-panel) { margin-top: 1.5rem; box-shadow: var(--shadow-md); }
+  .feature-links { display: grid; gap: 2rem; }
+  .feature-links ul { margin-top: 0.7rem; }
+  .feature-links li + li { margin-top: 0.1rem; }
+  .feature-links a { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); color: var(--muted-foreground); font-size: 0.92rem; text-decoration: none; transition-property: color, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
+  .feature-links a:hover { color: var(--primary); transform: translateX(0.2rem); }
+  @media (min-width: 64rem) {
+    .feature-detail { grid-template-columns: minmax(11rem, 0.28fr) minmax(0, 1fr) minmax(12rem, 0.3fr); align-items: start; gap: clamp(2rem, 5vw, 5rem); }
+    .feature-summary, .feature-links { position: sticky; top: 6.25rem; }
+    .feature-section { grid-template-columns: minmax(10rem, 0.42fr) minmax(0, 1fr); gap: 2.5rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { .feature-links a { transition: none; } }
+</style>

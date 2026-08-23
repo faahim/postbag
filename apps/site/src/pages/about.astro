@@ -6,30 +6,64 @@ import ContactForm from "@/components/ContactForm.astro"
 import { AUTHOR, GITHUB_URL, SITE_CONTACT_FORM_ID, SITE_URL } from "@/config"
 import { breadcrumbLd, webPageLd } from "@/lib/seo"
 const crumbs = [ { name: "Home", href: "/" }, { name: "About", href: "/about/" } ]
-const ld = [ webPageLd({ url: `${SITE_URL}/about/`, name: "About Postbag", description: "Who builds Postbag and why: a form backend that routes, generalised from a live lead pipeline, built in Sweden by Fahim." }), breadcrumbLd(crumbs), { "@type": "AboutPage", url: `${SITE_URL}/about/`, mainEntity: { "@id": `${SITE_URL}/#organization` } } ]
+const description = "Why Postbag exists: a dependable, open-source form backend built for agents, shaped by a live lead-routing system that could not lose a Submission."
+const ld = [ webPageLd({ url: `${SITE_URL}/about/`, name: "About Postbag", description }), breadcrumbLd(crumbs), { "@type": "AboutPage", url: `${SITE_URL}/about/`, mainEntity: { "@id": `${SITE_URL}/#organization` } } ]
+const principles = [
+  ["Save first", "A Submission becomes a database row before Postbag tries to deliver it anywhere."],
+  ["One contract", "The dashboard, API, SDK, CLI and MCP server all operate the same product."],
+  ["Yours to run", "Postbag Cloud and self-hosting use the same open-source code and core capabilities."],
+]
 ---
-<Base title="About" description="Postbag is a form backend that routes, built by Fahim in Sweden. It generalises a live lead pipeline that fed one partner from many vending-machine websites, and it is built agent-first so the sites AI agents build can wire their own forms." canonical="/about/" ld={ld}>
-  <PageHeader title="Built from a pipeline that could not lose a lead." lede="Postbag generalises a lead pipeline that fed one partner from many small vending-machine websites. The constraints that pipeline had to meet became the product's principles." crumbs={crumbs} />
-  <div class="container-x"><article class="prose-pb max-w-3xl">
-    <h2>Why it exists</h2>
-    <p>Every website has forms; every form needs somewhere to go. The established form backends solve "somewhere" for one site. They fall over when fifteen sites feed one partner with fifteen slightly different forms, when a lead must never be lost even if the CRM is down, or when the person building the site is an AI agent with an API key and no browser. Postbag is the source of truth for what each form collects, what each downstream system receives, and the versioned contract between them.</p>
-    <h2>Principles, briefly</h2>
-    <ul>
-      <li><strong>Never lose a submission.</strong> Spam, violations, quota, rate limits: store with a status. Deletion only by the user or by retention.</li>
-      <li><strong>Contract first.</strong> The OpenAPI document is the truth; dashboard, SDK and agents are clients of the same API.</li>
-      <li><strong>Two personas, one test each.</strong> Solo dev: first email in under three minutes. Operator: fifteen sites to one partner without code.</li>
-      <li><strong>Defaults make concepts disappear.</strong> Projects, streams, schemas and mappings exist only once you need them.</li>
-      <li><strong>Self-hostable by design.</strong> One image, one Postgres. The hosted product is the same image.</li>
-      <li><strong>Agent-native is a property, not a feature.</strong></li>
-      <li><strong>Beautiful by default.</strong> A screen that works but feels off is not done.</li>
-    </ul>
-    <h2>Who</h2>
-    <p>Postbag is built by <a href={AUTHOR.url}>{AUTHOR.name}</a>, an independent developer in Sweden who runs a fleet of small business websites and the systems behind them. The business timezone is Europe/Stockholm. The code lives at <a href={GITHUB_URL}>{GITHUB_URL}</a> (private during the first phase).</p>
-    <h2 id="contact">Contact</h2>
-    <p>Questions, self-hosting access, security reports: use the form below. It posts to a Postbag form in our own account and is routed to the founder's inbox by email. For product status see the <a href="/changelog/">changelog</a>.</p>
-    <ContactForm formId={SITE_CONTACT_FORM_ID} />
-    <h2 id="privacy">Privacy, in plain words</h2>
-    <p>Postbag stores the submissions your forms receive, with the metadata needed to deliver and protect them (IP, user agent, origin, country, timestamps). Data is kept for your plan's retention period or until you delete it, and is sent only to the destinations you configure. Email is delivered through Resend. This site sets no tracking cookies; the only client-side storage is your light/dark preference. The full policy, including account-holder rights and international transfers, is at <a href="/legal/privacy/">/legal/privacy/</a> — see also the <a href="/legal/terms/">Terms of Service</a>, <a href="/legal/dpa/">Data Processing Addendum</a> and <a href="/legal/subprocessors/">sub-processors list</a>.</p>
-  </article></div>
-  <CtaBand />
+<Base title="About" description={description} canonical="/about/" ld={ld}>
+  <PageHeader eyebrow="Why Postbag" title="Forms deserve a dependable place to land." lede="Postbag grew out of a live system routing leads from many small websites to one business. Losing a Submission was never an acceptable failure mode. It still is not." crumbs={crumbs} />
+  <section class="container-x origin-grid" aria-labelledby="origin-heading">
+    <div class="origin-copy" data-reveal>
+      <p class="section-label">The origin</p>
+      <h2 id="origin-heading">The first version had a very ordinary job.</h2>
+      <p>Receive forms from a growing set of websites, keep every lead safe, and send each one to the right place. The sites did not all collect the same fields. The Destination could have a bad day. The person building the next site might be an agent.</p>
+      <p>That ordinary job exposed the product: a durable place between a Form and everything that happens after it.</p>
+    </div>
+    <div class="origin-scene" aria-label="Many Forms settling into one receiving surface" data-reveal style="--reveal-delay: var(--duration-quick)">
+      <span class="form-plane plane-one"></span><span class="form-plane plane-two"></span><span class="form-plane plane-three"></span>
+      <div class="receiving-line"><span></span></div>
+      <p>many sites <b>one dependable record</b></p>
+    </div>
+  </section>
+  <section class="container-x principle-field" aria-labelledby="principles-heading">
+    <div class="principle-intro" data-reveal>
+      <p class="section-label">What stayed</p>
+      <h2 id="principles-heading">The useful constraints became the principles.</h2>
+      <p>No dramatic reinvention. Just the rules that kept the original system understandable when more sites, people and Destinations arrived.</p>
+    </div>
+    <ol class="principle-list">
+      {principles.map(([title, body], index) => (
+        <li data-reveal style={`--reveal-delay: calc(var(--duration-quick) * ${index * 0.4})`}><span class="principle-number">0{index + 1}</span><div><h3>{title}</h3><p>{body}</p></div></li>
+      ))}
+    </ol>
+  </section>
+  <section class="container-x maker" aria-labelledby="maker-heading">
+    <div data-reveal><p class="section-label">Who</p><h2 id="maker-heading">Built by one developer, in the open.</h2></div>
+    <div class="maker-note" data-reveal style="--reveal-delay: var(--duration-micro)">
+      <p>Postbag is built by <a href={AUTHOR.url}>{AUTHOR.name}</a>, an independent developer who runs small business websites and the systems behind them. The repository is public, the server and product are AGPL-3.0, and the SDK, CLI and MCP server are MIT.</p>
+      <a class="source-link" href={GITHUB_URL} rel="noopener">Read the source <span aria-hidden="true">↗</span></a>
+    </div>
+  </section>
+  <section class="container-x contact-grid" id="contact" aria-labelledby="contact-heading">
+    <div class="contact-copy" data-reveal>
+      <p class="section-label">Contact</p><h2 id="contact-heading">A real Form, routed by Postbag.</h2>
+      <p>Questions about the product, self-hosting or security are welcome. This form posts to Postbag and routes to Fahim's inbox.</p>
+      <p class="privacy-note" id="privacy">This site sets no tracking cookies. Postbag stores the data and delivery metadata needed to route your message. Read the <a href="/legal/privacy/">privacy policy</a>, <a href="/legal/terms/">terms</a>, <a href="/legal/dpa/">DPA</a> and <a href="/legal/subprocessors/">sub-processors list</a>.</p>
+    </div>
+    <div class="contact-surface" data-reveal style="--reveal-delay: var(--duration-quick)"><ContactForm formId={SITE_CONTACT_FORM_ID} /></div>
+  </section>
+  <CtaBand title="Give your forms somewhere to go." body="Your agent can create and test a working Form before you sign up. Claim it when you are ready." />
 </Base>
+<style>
+  .section-label{font-family:var(--font-mono);font-size:.72rem;font-weight:650;letter-spacing:.12em;text-transform:uppercase;color:var(--primary)}
+  h2{font-size:clamp(2rem,4vw,3.35rem);line-height:1.02;font-weight:600}.origin-grid{display:grid;gap:3rem;align-items:center;padding-block:3rem 6rem}.origin-copy{max-width:38rem}.origin-copy h2,.principle-intro h2,.maker h2,.contact-copy h2{margin-top:.8rem}.origin-copy>p:not(.section-label),.principle-intro>p:not(.section-label),.maker-note p,.contact-copy>p:not(.section-label){margin-top:1.25rem;color:var(--muted-foreground);font-size:1.05rem;line-height:1.75}
+  .origin-scene{position:relative;min-height:23rem;overflow:hidden;border-radius:calc(var(--radius) + 16px);background:linear-gradient(155deg,var(--foreground),var(--ink-code));box-shadow:var(--shadow-xl)}.origin-scene:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,var(--accent),transparent 45%);opacity:.3}.form-plane{position:absolute;left:50%;width:9rem;height:5.6rem;border-radius:var(--radius);background:var(--primary-foreground);box-shadow:var(--shadow-lg);transform:translateX(-50%) rotate(var(--r))}.plane-one{top:2.5rem;--r:-8deg}.plane-two{top:5rem;margin-left:-5.5rem;--r:-17deg;opacity:.72}.plane-three{top:4.5rem;margin-left:5.2rem;--r:13deg;opacity:.86}.receiving-line{position:absolute;left:12%;right:12%;bottom:6.2rem;height:5.5rem;overflow:hidden;border-radius:50% 50% 18% 18%;background:var(--background);box-shadow:0 -1px 0 var(--border-strong),var(--shadow-xl)}.receiving-line span{position:absolute;inset:.75rem 9% auto;height:1px;background:var(--primary);box-shadow:0 0 1.8rem var(--primary)}.origin-scene p{position:absolute;inset:auto 1.5rem 1.4rem;display:flex;justify-content:space-between;gap:1rem;color:var(--primary-foreground);font-family:var(--font-mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase}.origin-scene b{color:var(--primary);font-weight:650}
+  .principle-field{display:grid;gap:3rem;padding-block:5rem}.principle-intro{max-width:32rem}.principle-list{display:grid}.principle-list li{display:grid;grid-template-columns:3rem 1fr;gap:1rem;padding:1.5rem 0;border-top:1px solid var(--border-strong)}.principle-number{font-family:var(--font-mono);font-size:.75rem;color:var(--primary)}.principle-list h3{font-size:1.25rem;font-weight:600}.principle-list p{margin-top:.45rem;max-width:35rem;color:var(--muted-foreground);line-height:1.65}
+  .maker{display:grid;gap:2rem;margin-block:5rem;padding-block:3rem;border-block:1px solid var(--border-strong)}.maker-note{max-width:38rem}.maker-note a{color:var(--foreground);text-decoration:underline;text-underline-offset:4px}.source-link{display:inline-flex;align-items:center;gap:.5rem;min-height:2.75rem;margin-top:1.25rem;font-weight:600;text-decoration:none!important}.source-link span{color:var(--primary);transition:transform var(--duration-quick) var(--ease-smooth-out)}.source-link:hover span{transform:translate(3px,-3px)}
+  .contact-grid{display:grid;gap:3rem;align-items:start;padding-block:5rem}.contact-copy{max-width:34rem}.privacy-note{font-size:.88rem!important}.privacy-note a{color:var(--foreground);text-decoration:underline;text-underline-offset:3px}.contact-surface{padding:clamp(1.1rem,4vw,2.25rem);border-radius:calc(var(--radius) + 16px);background:var(--surface);box-shadow:var(--shadow-lg)}
+  @media(min-width:52rem){.origin-grid,.principle-field,.maker,.contact-grid{grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);gap:clamp(4rem,8vw,8rem)}.origin-grid{padding-top:5rem}.maker{align-items:start}}@media(prefers-reduced-motion:reduce){.source-link span{transition-duration:1ms}}
+</style>

@@ -5,36 +5,37 @@ import CtaBand from "@/components/CtaBand.astro"
 import { SITE_URL } from "@/config"
 import { breadcrumbLd, webPageLd } from "@/lib/seo"
 const crumbs = [ { name: "Home", href: "/" }, { name: "Changelog", href: "/changelog/" } ]
-// Dated from the repository history. Newest first.
 const entries = [
-  { date: "2026-08-23", title: "Anonymous, claimable quickstart", items: ["Agents can create a bounded 24-hour sandbox Form without credentials, wire its stable submit URL and verify up to five stored test Submissions.", "Email-code or browser authentication claims the same Form id into an organization; copied tests never deliver retroactively, while new Submissions can route normally after Destination setup.", "Hosted launch verified end to end in production with exact-path Cloudflare rate limiting, Cloudflare-only origin access scoped to Postbag's routers, deterministic concurrency tests and real Delivery sent proof."] },
-  { date: "2026-08-21", title: "Agent clients on npm, social login, keys by email code", items: ["postbag CLI (npx postbag login / init / forms / submissions tail …) and @postbag/mcp (one tool per API operation plus postbag_quickstart and postbag_explain) published to npm; @postbag/sdk public.", "Sign in with Google or GitHub; connected accounts in Settings.", "POST /v1/auth/request-code → /verify-code mints an API key from an emailed 6-digit code — no dashboard needed for an agent's first key.", "Agent Skill served at /.well-known/skills/postbag/SKILL.md; every /v1 operation has a stable operationId and the OpenAPI document is generated from the route definitions.", "postbag.dev is the home; old embeds on the previous domain keep working."] },
-  { date: "2026-08-21", title: "Marketing and documentation site", items: ["Public site with docs, comparisons, use cases and glossary, served by the same container at /.", "Markdown twins of every docs page and llms-full.txt for agents; Accept: text/markdown honoured.", "A live demo form on the home page posting real test submissions."] },
-  { date: "2026-08-21", title: "Dashboard polish", items: ["Display-scale first-run headline, accent postmark brand mark, staggered \"It arrived\" reveal.", "Inbox id chips, postmark delivery status, delivery timeline, collapsible metadata."] },
-  { date: "2026-08-21", title: "Server follow-ups", items: ["Scope implication (manage ⊇ read ⊇ submit).", "Client IP and country from Cloudflare headers.", "Organization system webhooks dispatched from a Postgres trigger, with GET /v1/webhooks/{id}/deliveries.", "Digest routes: one payload per period, unique by (route, period).", "Schema inference for observe forms: POST /v1/forms/{id}/schema/infer.", "Row-level security policies and the postbag_app role in migrations."] },
-  { date: "2026-08-21", title: "Production verified end to end", items: ["Signup → GET /v1/me → API key → POST /v1/quickstart → real submission → email delivered in about a second."] },
-  { date: "2026-08-20", title: "Dashboard and SDK", items: ["Vite + React dashboard at /app: forms, inbox, destinations, routes, streams (\"Bags\"), deliveries, events, API keys, settings, command palette, live inbox.", "@postbag/sdk generated from the OpenAPI document."] },
-  { date: "2026-08-20", title: "Server", items: ["Submit path with honeypot, origin allowlist, rate limit, Turnstile, _redirect, _test, idempotency.", "Full /v1 API, Better Auth with API keys, organization provisioning on signup.", "Worker with email, Telegram and webhook adapters; /health; /llms.txt; generated /openapi.json; multi-stage Docker image."] },
-  { date: "2026-08-20", title: "Core, database, auth", items: ["Pure domain package: validation, mapping, routing decisions, spam heuristics, templates, ids, signing, backoff.", "Drizzle schema with 23 tables and migrations; claim and notify helpers.", "Better Auth with organization-owned API keys."] },
-  { date: "2026-08-19", title: "Contract", items: ["Principles, domain model, architecture, agent-native spec, design system, roadmap, ADRs 001 to 005, and the OpenAPI sketch."] },
+  { date: "2026-08-23", title: "Agents can start before signup", summary: "Anonymous, claimable quickstart is live.", items: ["An agent can create a bounded 24-hour sandbox Form without credentials, wire its stable submit URL and verify up to five stored test Submissions.", "The sandbox capability token is shown only when the Form is created. It remains usable until claim or expiry, so the agent must keep it safe.", "After claim, a Destination and Route are required before new Submissions can create outbound Deliveries. Copied tests never deliver retroactively."] },
+  { date: "2026-08-21", title: "The agent surface shipped", summary: "Public clients, email-code keys and discoverable contracts.", items: ["The postbag CLI, @postbag/sdk and @postbag/mcp are published on npm.", "Email-code authentication can mint an API key without a dashboard. Google and GitHub OAuth are available when an instance configures them.", "Every /v1 operation has a stable operationId, and the OpenAPI document is generated from route definitions."] },
+  { date: "2026-08-21", title: "Postbag found its public home", summary: "Site, docs, production domain and real end-to-end proof.", items: ["postbag.dev became the canonical home. Existing submit URLs on the previous domain continue to work.", "The public site launched with docs, comparisons, use cases, glossary and Markdown twins for agents.", "Signup, API key creation, quickstart, a real Submission and email Delivery were verified end to end."] },
+  { date: "2026-08-21", title: "Routing grew up", summary: "System webhooks, digests, inference and a second tenant fence.", items: ["Organization system webhooks dispatch from a Postgres trigger and expose Delivery history.", "Digest Routes group a period's Submissions into one Delivery.", "Observe-mode Forms can infer a Schema, and row-level security policies provide a second tenant boundary."] },
+  { date: "2026-08-20", title: "The working product arrived", summary: "Core, database, server, dashboard and generated SDK.", items: ["The durable submit path, full /v1 API and worker shipped with email, Telegram and webhook Destinations.", "The dashboard shipped Forms, Inbox, Streams, Destinations, Routes, Deliveries, Events, keys and Settings.", "The domain core, 23-table Drizzle model, migrations and organization-owned authentication established the base."] },
+  { date: "2026-08-19", title: "The contract came first", summary: "Principles, vocabulary, architecture and the first API sketch.", items: ["The domain model fixed Form, Submission, Stream, Schema, Mapping, Destination, Route, Delivery and Drift.", "The architecture put durable storage before Delivery and made the database responsible for correctness."] },
 ]
-const ld = [ webPageLd({ url: `${SITE_URL}/changelog/`, name: "Postbag changelog", description: "What shipped in Postbag and when.", modified: entries[0]!.date }), breadcrumbLd(crumbs) ]
+const latest = entries[0]!.date
+const description = "A dated record of what has shipped in Postbag, from the contract and durable submit path to the public agent clients and anonymous quickstart."
+const ld = [ webPageLd({ url: `${SITE_URL}/changelog/`, name: "Postbag changelog", description, modified: latest }), breadcrumbLd(crumbs) ]
 ---
-<Base title="Changelog" description="What has shipped in Postbag and when: the form backend's submit path, API, worker, dashboard, agent surface, system webhooks, digests, schema inference, row-level security, and this site." canonical="/changelog/" ld={ld} modified={entries[0]!.date}>
-  <PageHeader title="Changelog" lede="What shipped, when. Newest first. Dates are from the repository history." crumbs={crumbs} modified={entries[0]!.date} />
-  <section class="container-x max-w-3xl">
-    <ol class="grid gap-10">
-      {entries.map((e) => (
-        <li class="grid gap-2 sm:grid-cols-[140px_1fr] sm:gap-8">
-          <time datetime={e.date} class="font-mono text-sm text-muted-foreground tabular">{e.date}</time>
-          <div>
-            <h2 class="text-xl font-semibold">{e.title}</h2>
-            <ul class="prose-pb mt-2 list-disc pl-5 text-[15px]">{e.items.map((i) => <li>{i}</li>)}</ul>
-          </div>
+<Base title="Changelog" description={description} canonical="/changelog/" ld={ld} modified={latest}>
+  <PageHeader eyebrow="Shipping record" title="What changed, and when." lede="A quiet record of work that is actually in the product. Newest first, with dates from the repository history." crumbs={crumbs} modified={latest} />
+  <section class="container-x release-stream" aria-label="Postbag releases">
+    <div class="stream-line" aria-hidden="true"></div>
+    <ol>
+      {entries.map((entry, index) => (
+        <li class="release" data-reveal style={`--reveal-delay: calc(var(--duration-quick) * ${Math.min(index * 0.36, 1.45)})`}>
+          <div class="date-rail"><span class="route-node" aria-hidden="true"></span><time datetime={entry.date}>{entry.date}</time></div>
+          <article>
+            {index === 0 && <p class="latest">Latest arrival</p>}
+            <h2>{entry.title}</h2><p class="summary">{entry.summary}</p>
+            <ul>{entry.items.map((item) => <li>{item}</li>)}</ul>
+          </article>
         </li>
       ))}
     </ol>
-    <p class="mt-12 text-[15px] text-muted-foreground">Next: off-server backups, email verification on password sign-up, Search Console verification, uptime monitoring and row-level security enforced per request.</p>
   </section>
-  <CtaBand />
+  <CtaBand title="Want the next arrival?" body="Start with a Form now, or follow the public repository to see the work as it lands." secondary={{ href: "https://github.com/faahim/postbag", label: "Follow on GitHub" }} />
 </Base>
+<style>
+  .release-stream{position:relative;max-width:58rem;padding-top:2rem}.stream-line{position:absolute;top:3rem;bottom:0;left:1.42rem;width:1px;background:linear-gradient(var(--primary),var(--border-strong) 18%,var(--border))}.release{display:grid;grid-template-columns:3rem minmax(0,1fr);gap:1rem;padding-bottom:4.5rem}.date-rail{position:relative}.route-node{display:block;width:.7rem;height:.7rem;margin:.45rem 0 0 1.1rem;border:2px solid var(--background);border-radius:50%;background:var(--primary);box-shadow:0 0 0 1px var(--primary),0 0 1.3rem var(--accent)}time{display:block;margin-top:1rem;writing-mode:vertical-rl;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.05em;color:var(--muted-foreground);font-variant-numeric:tabular-nums}.release article{padding:clamp(1.4rem,4vw,2.5rem);border-radius:calc(var(--radius) + 12px);background:var(--surface);box-shadow:var(--shadow-md)}.latest{margin-bottom:.75rem;font-family:var(--font-mono);font-size:.67rem;font-weight:650;letter-spacing:.12em;text-transform:uppercase;color:var(--primary)}h2{font-size:clamp(1.65rem,4vw,2.35rem);font-weight:600;line-height:1.08}.summary{margin-top:.55rem;color:var(--muted-foreground);font-size:1.02rem}.release ul{display:grid;gap:.8rem;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border)}.release article li{position:relative;padding-left:1.25rem;color:var(--muted-foreground);font-size:.94rem;line-height:1.65}.release article li:before{content:"";position:absolute;left:0;top:.7em;width:.38rem;height:1px;background:var(--primary)}@media(min-width:40rem){.release{grid-template-columns:8.5rem minmax(0,1fr);gap:2rem}.stream-line{left:7.75rem}.date-rail{display:flex;align-items:flex-start;justify-content:flex-end;gap:1rem}.route-node{order:2;margin:.5rem 0 0}.date-rail time{margin:.25rem 0 0;writing-mode:initial}}
+</style>

@@ -5,40 +5,104 @@ import CtaBand from "@/components/CtaBand.astro"
 import { FEATURES } from "@/content/features"
 import { breadcrumbLd, webPageLd } from "@/lib/seo"
 import { SITE_URL } from "@/config"
-import { ArrowRight } from "@lucide/astro"
+import { ArrowUpRight } from "@lucide/astro"
 import { Image } from "astro:assets"
 import dashboardForm from "@/assets/dashboard-form.png"
+
 const crumbs = [ { name: "Home", href: "/" }, { name: "Features", href: "/features/" } ]
 const title = "Postbag features: routing, durable delivery, destinations, schemas, spam protection, self-hosting"
-const description = "What Postbag does: a submit endpoint for any HTML form, durable storage with an attempt-tracked outbox, routing with streams and mappings, email/Telegram/webhook destinations, versioned schemas with drift detection, layered spam protection, and one-container self-hosting."
+const description = "What Postbag does: a submit URL for any HTML Form, durable storage with an attempt-tracked outbox, routing with Streams and Mappings, email/Telegram/webhook Destinations, versioned Schemas with Drift detection, layered spam protection, and one-container self-hosting."
 const ld = [ webPageLd({ url: `${SITE_URL}/features/`, name: title, description }), breadcrumbLd(crumbs) ]
 ---
 <Base title="Features" description={description} canonical="/features/" ld={ld} ogImage="/og/features.png">
-  <PageHeader title="Everything a form backend should do, and the routing most of them skip." lede="Postbag receives forms, stores every submission durably, and delivers each one by rules. Six capabilities carry the product; each has its own page with specifics, code and limits." crumbs={crumbs} />
-  <section class="container-x">
-    <ul class="grid gap-4 md:grid-cols-2" data-reveal-group="70">
-      {FEATURES.map((f) => (
+  <PageHeader title="One calm place to receive. A clear route onward." lede="Postbag starts with a Form that works. It grows into durable delivery, precise routing and ownership only when you need those things." crumbs={crumbs} />
+
+  <section class="container-x feature-atlas" aria-labelledby="feature-atlas-heading">
+    <div class="feature-atlas-intro" data-reveal>
+      <p class="text-sm font-medium text-primary">The receiving path</p>
+      <h2 id="feature-atlas-heading">Each part does one job. Together, they make forms easy to leave alone.</h2>
+      <p>Start with a Form. Postbag keeps each Submission on the record, then lets you route it to the places that need to know.</p>
+    </div>
+
+    <ol class="feature-route" data-reveal-group="70">
+      {FEATURES.map((feature) => (
         <li data-reveal>
-          <a href={`/features/${f.slug}/`} class="card group flex h-full flex-col p-6 transition-[box-shadow,transform] duration-200 ease-[var(--ease-smooth-out)] hover:-translate-y-0.5 hover:shadow-md">
-            <h2 class="text-xl font-semibold">{f.nav}</h2>
-            <p class="mt-2 flex-1 text-[15px] leading-relaxed text-muted-foreground">{f.lede}</p>
-            <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">Read more <ArrowRight size={16} class="transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" /></span>
+          <a href={`/features/${feature.slug}/`} class="feature-stop group">
+            <span class="feature-stop-mark" aria-hidden="true"><span /></span>
+            <div class="feature-stop-copy">
+              <p class="feature-stop-label">{feature.nav}</p>
+              <h3>{feature.lede}</h3>
+            </div>
+            <span class="feature-stop-link">Explore <ArrowUpRight size={17} stroke-width={1.7} aria-hidden="true" /></span>
           </a>
         </li>
       ))}
-    </ul>
+    </ol>
   </section>
-  <section class="container-x mt-20" aria-labelledby="dash-heading">
-    <h2 id="dash-heading" class="text-3xl font-semibold sm:text-4xl">And a dashboard that is just another API client.</h2>
-    <p class="mt-4 max-w-2xl text-lg text-muted-foreground">Forms, a live inbox, destinations, routes, streams (shown as Bags), deliveries, events and API keys. Everything it does goes through the same <code class="font-mono text-[0.9em]">/v1</code> an agent uses; there is no UI-only capability.</p>
-    <figure class="mt-8" data-reveal>
-      <Image src={dashboardForm} alt="The Postbag dashboard showing a form's page: its submit URL, the Inbox, Embed, Fields, Send to and Settings tabs, and two received submissions" class="shot h-auto w-full" widths={[720, 1200, 1440]} sizes="(min-width: 1180px) 1180px, 100vw" loading="lazy" />
-      <figcaption class="mt-3 text-sm text-muted-foreground">A form in the production dashboard. Real screenshot, real submissions.</figcaption>
+
+  <section class="container-x product-window" aria-labelledby="dashboard-heading">
+    <div class="product-window-copy" data-reveal>
+      <p class="text-sm font-medium text-primary">When you want to look</p>
+      <h2 id="dashboard-heading">The dashboard is another way into the same product.</h2>
+      <p>Forms, a live inbox, Destinations, Routes, Streams, Deliveries, events and API keys. Everything it does goes through the same <code>/v1</code> an agent uses. Nothing useful is locked behind the screen.</p>
+      <a class="inline-link" href="/for-ai-agents/">See how agents work with Postbag <ArrowUpRight size={16} stroke-width={1.7} aria-hidden="true" /></a>
+    </div>
+    <figure class="product-window-shot" data-reveal>
+      <Image src={dashboardForm} alt="The Postbag dashboard showing a Form's page, its submit URL, Inbox, Embed, Fields, Send to and Settings tabs, and two received Submissions" class="shot h-auto w-full" widths={[720, 1200, 1440]} sizes="(min-width: 1180px) 1180px, 100vw" loading="lazy" />
+      <figcaption>A Form in the production dashboard, with real Submissions.</figcaption>
     </figure>
   </section>
-  <section class="container-x mt-20"><div class="prose-pb max-w-3xl">
-    <h2>What is a form backend?</h2>
-    <p>A form backend is a hosted endpoint that receives HTML form submissions so a website does not need server code of its own. The site's <code>&lt;form action&gt;</code> points at the backend; the backend stores the submission and notifies someone. Postbag is a form backend that also <strong>routes</strong>: it can group many forms into one stream, map their differing fields onto one versioned schema, and deliver that shape to several destinations with rules, while keeping every submission as a durable row. It is multi-tenant, self-hostable, and driven entirely through one API so that AI agents can set it up without a browser.</p>
-  </div></section>
+
+  <section class="container-x feature-definition" aria-labelledby="backend-heading">
+    <div data-reveal>
+      <p class="text-sm font-medium text-primary">The useful definition</p>
+      <h2 id="backend-heading">A form backend receives a Form so your site does not need its own server.</h2>
+    </div>
+    <p data-reveal>Postbag adds the part that matters once the first site becomes a few sites: it can group Forms into a Stream, map their fields onto one versioned Schema, and route that shape to several Destinations. Every Submission remains a durable row while it travels.</p>
+  </section>
+
   <CtaBand />
 </Base>
+
+<style>
+  .feature-atlas { padding-top: 5rem; }
+  .feature-atlas-intro { max-width: 45rem; }
+  .feature-atlas h2, .product-window h2, .feature-definition h2 { margin-top: 0.8rem; font-size: clamp(2rem, 4vw, 3.7rem); font-weight: 600; line-height: 1.04; }
+  .feature-atlas-intro > p:last-child, .product-window-copy > p, .feature-definition > p { margin-top: 1.25rem; color: var(--muted-foreground); font-size: 1.08rem; line-height: 1.72; }
+  .feature-route { position: relative; display: grid; gap: 0; margin-top: 3.5rem; }
+  .feature-route::before { position: absolute; top: 1.8rem; bottom: 1.8rem; left: 1.15rem; border-left: 1px solid var(--border-strong); content: ""; }
+  .feature-route > li { position: relative; }
+  .feature-stop { position: relative; display: grid; grid-template-columns: 2.3rem minmax(0, 1fr); gap: 1rem; padding: 2rem 0; border-bottom: 1px solid var(--border); text-decoration: none; }
+  .feature-stop-mark { position: relative; z-index: 1; display: grid; width: 2.3rem; height: 2.3rem; place-items: center; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--background); box-shadow: var(--shadow-sm); }
+  .feature-stop-mark span { width: 0.7rem; height: 0.7rem; border-radius: 999px; background: var(--primary); box-shadow: 0 0 0 0.28rem var(--accent); transition-property: transform, box-shadow; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
+  .feature-stop-copy { max-width: 48rem; }
+  .feature-stop-label { color: var(--primary); font-size: 0.88rem; font-weight: 650; }
+  .feature-stop h3 { margin-top: 0.45rem; font-family: var(--font-display); font-size: clamp(1.35rem, 2.4vw, 2rem); font-weight: 540; line-height: 1.18; letter-spacing: -0.018em; }
+  .feature-stop-link { display: inline-flex; grid-column: 2; width: fit-content; align-items: center; gap: 0.35rem; margin-top: 0.85rem; color: var(--muted-foreground); font-size: 0.92rem; font-weight: 600; transition-property: color, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
+  .feature-stop:hover .feature-stop-mark span { transform: scale(1.3); box-shadow: 0 0 0 0.42rem var(--accent); }
+  .feature-stop:hover .feature-stop-link { color: var(--primary); transform: translateX(0.25rem); }
+  .feature-stop:focus-visible { outline-offset: 0.5rem; }
+  .product-window { display: grid; gap: 2.5rem; margin-top: 7rem; }
+  .product-window-copy { max-width: 43rem; }
+  .inline-link { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 1.5rem; color: var(--primary); font-size: 0.94rem; font-weight: 650; text-decoration: none; transition-property: color, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
+  .inline-link:hover { color: var(--primary-hover); transform: translateX(0.2rem); }
+  .product-window-shot { overflow: hidden; border-radius: calc(var(--radius) + 16px); background: var(--surface-2); box-shadow: var(--shadow-lg); }
+  .product-window-shot :global(img) { outline: 1px solid var(--image-outline); outline-offset: -1px; }
+  .product-window-shot figcaption { padding: 0.8rem 1rem 0.95rem; color: var(--muted-foreground); font-size: 0.82rem; }
+  .feature-definition { display: grid; gap: 1.5rem; margin-top: 7rem; padding: 3rem 0; border-top: 1px solid var(--border-strong); }
+  .feature-definition > p { max-width: 43rem; margin-top: 0; }
+  @media (min-width: 48rem) {
+    .feature-route::before { left: 50%; }
+    .feature-route > li:nth-child(odd) .feature-stop { grid-template-columns: minmax(0, 1fr) 2.3rem minmax(0, 1fr); }
+    .feature-route > li:nth-child(odd) .feature-stop-mark { grid-column: 2; }
+    .feature-route > li:nth-child(odd) .feature-stop-copy { grid-column: 1; grid-row: 1; justify-self: end; text-align: right; }
+    .feature-route > li:nth-child(odd) .feature-stop-link { grid-column: 1; justify-self: end; }
+    .feature-route > li:nth-child(even) .feature-stop { grid-template-columns: minmax(0, 1fr) 2.3rem minmax(0, 1fr); }
+    .feature-route > li:nth-child(even) .feature-stop-mark { grid-column: 2; }
+    .feature-route > li:nth-child(even) .feature-stop-copy { grid-column: 3; }
+    .feature-route > li:nth-child(even) .feature-stop-link { grid-column: 3; }
+    .product-window { grid-template-columns: minmax(16rem, 0.7fr) minmax(0, 1.3fr); align-items: center; gap: clamp(2rem, 6vw, 6rem); }
+    .feature-definition { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: clamp(2rem, 8vw, 8rem); }
+  }
+  @media (prefers-reduced-motion: reduce) { .feature-stop-mark span, .feature-stop-link, .inline-link { transition: none; } }
+</style>

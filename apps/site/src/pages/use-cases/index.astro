@@ -5,25 +5,71 @@ import CtaBand from "@/components/CtaBand.astro"
 import { USE_CASES } from "@/content/usecases"
 import { breadcrumbLd, webPageLd } from "@/lib/seo"
 import { SITE_URL } from "@/config"
+import { ArrowUpRight } from "@lucide/astro"
+
 const crumbs = [ { name: "Home", href: "/" }, { name: "Use cases", href: "/use-cases/" } ]
 const title = "Postbag use cases: contact forms, agencies, lead routing, AI-built sites, static sites"
 const description = "How people use Postbag: a contact form backend for one site, stream routing for agencies and site fleets, lead routing into CRMs and partners, form backends for AI-built websites, and forms on static and JAMstack sites."
 const ld = [ webPageLd({ url: `${SITE_URL}/use-cases/`, name: title, description }), breadcrumbLd(crumbs) ]
 ---
 <Base title="Use cases" description={description} canonical="/use-cases/" ld={ld}>
-  <PageHeader title="Two personas, one product." lede="The solo developer with one contact form and the operator with fifteen sites feeding one partner. Postbag serves both; the advanced model stays hidden until the second persona needs it." crumbs={crumbs} />
-  <section class="container-x">
-    <ul class="grid gap-4 md:grid-cols-2" data-reveal-group="60">
-      {USE_CASES.map((u) => (
+  <PageHeader title="A Form for the simple job. Routing for the ones that grow." lede="Postbag stays out of the way for one contact Form, then gives an operator the same dependable place to receive and route work across many sites." crumbs={crumbs} />
+
+  <section class="container-x usecase-field" aria-labelledby="usecase-field-heading">
+    <div class="usecase-field-intro" data-reveal>
+      <p class="text-sm font-medium text-primary">Pick your starting point</p>
+      <h2 id="usecase-field-heading">The Form is familiar. The way you work around it can be anything.</h2>
+    </div>
+
+    <ol class="usecase-route" data-reveal-group="80">
+      {USE_CASES.map((useCase) => (
         <li data-reveal>
-          <a href={`/use-cases/${u.slug}/`} class="card flex h-full flex-col p-6 transition-[box-shadow,transform] duration-200 ease-[var(--ease-smooth-out)] hover:-translate-y-0.5 hover:shadow-md">
-            <h2 class="text-xl font-semibold">{u.nav}</h2>
-            <p class="mt-2 flex-1 text-[15px] leading-relaxed text-muted-foreground">{u.lede}</p>
-            <span class="mt-4 text-sm font-medium text-primary">Read more →</span>
+          <a href={`/use-cases/${useCase.slug}/`} class="usecase-stop group">
+            <span class="usecase-aperture" aria-hidden="true"><span /></span>
+            <div>
+              <p>{useCase.nav}</p>
+              <h3>{useCase.title}</h3>
+              <span>{useCase.lede}</span>
+            </div>
+            <span class="usecase-action">Read the path <ArrowUpRight size={17} stroke-width={1.7} aria-hidden="true" /></span>
           </a>
         </li>
       ))}
-    </ul>
+    </ol>
+  </section>
+
+  <section class="container-x usecase-close" data-reveal>
+    <p>Same product, same Form model, same API. Use the dashboard when it helps. Give it to your agent when you would rather keep building.</p>
   </section>
   <CtaBand />
 </Base>
+
+<style>
+  .usecase-field { padding-top: 5rem; }
+  .usecase-field-intro { max-width: 48rem; }
+  .usecase-field h2 { margin-top: 0.75rem; font-size: clamp(2rem, 4vw, 3.65rem); font-weight: 600; line-height: 1.04; }
+  .usecase-route { display: grid; gap: 0; margin-top: 3.25rem; }
+  .usecase-stop { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); gap: 1rem; padding: 2.25rem 0; border-top: 1px solid var(--border); text-decoration: none; }
+  .usecase-route li:last-child .usecase-stop { border-bottom: 1px solid var(--border); }
+  .usecase-aperture { position: relative; display: grid; width: 3.2rem; height: 3.2rem; place-items: center; border-radius: 50% 50% calc(var(--radius) + 8px) calc(var(--radius) + 8px); background: var(--ink-code); box-shadow: inset 0 0 0 1px var(--border-strong), var(--shadow-sm); }
+  .usecase-aperture::before { position: absolute; inset: 0.42rem 0.42rem auto; height: 0.26rem; border-radius: 999px; background: var(--primary); content: ""; opacity: 0.8; }
+  .usecase-aperture span { width: 1.12rem; height: 0.72rem; margin-top: 0.35rem; border-radius: 0.12rem 0.12rem 0.7rem 0.7rem; background: var(--primary-foreground); transition-property: transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
+  .usecase-stop p { color: var(--primary); font-size: 0.88rem; font-weight: 650; }
+  .usecase-stop h3 { max-width: 47rem; margin-top: 0.4rem; font-family: var(--font-display); font-size: clamp(1.35rem, 2.5vw, 2rem); font-weight: 540; line-height: 1.16; letter-spacing: -0.018em; }
+  .usecase-stop div > span { display: block; max-width: 43rem; margin-top: 0.8rem; color: var(--muted-foreground); font-size: 1rem; line-height: 1.65; }
+  .usecase-action { display: inline-flex; grid-column: 2; width: fit-content; align-items: center; gap: 0.35rem; margin-top: 1.2rem; color: var(--muted-foreground); font-size: 0.92rem; font-weight: 650; transition-property: color, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
+  .usecase-stop:hover .usecase-aperture span { transform: translateY(0.12rem) scale(1.08); }
+  .usecase-stop:hover .usecase-action { color: var(--primary); transform: translateX(0.25rem); }
+  .usecase-close { display: grid; justify-items: end; margin-top: 5rem; }
+  .usecase-close p { max-width: 42rem; padding: 1.5rem 0 1.5rem 1.5rem; border-left: 1px solid var(--primary); color: var(--muted-foreground); font-family: var(--font-display); font-size: clamp(1.25rem, 2.1vw, 1.65rem); line-height: 1.42; }
+  @media (min-width: 48rem) {
+    .usecase-stop { grid-template-columns: 5.5rem minmax(0, 1fr) auto; align-items: center; gap: 1.5rem; min-height: 12.5rem; }
+    .usecase-aperture { width: 4.3rem; height: 4.3rem; }
+    .usecase-action { grid-column: 3; margin-top: 0; white-space: nowrap; }
+    .usecase-route li:nth-child(even) .usecase-stop { grid-template-columns: auto minmax(0, 1fr) 5.5rem; }
+    .usecase-route li:nth-child(even) .usecase-aperture { grid-column: 3; }
+    .usecase-route li:nth-child(even) .usecase-stop > div { grid-column: 2; grid-row: 1; }
+    .usecase-route li:nth-child(even) .usecase-action { grid-column: 1; grid-row: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) { .usecase-aperture span, .usecase-action { transition: none; } }
+</style>

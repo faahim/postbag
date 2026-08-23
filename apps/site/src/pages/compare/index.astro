@@ -6,6 +6,8 @@ import Faq from "@/components/Faq.astro"
 import { COMPETITORS } from "@/content/compare"
 import { breadcrumbLd, faqLd, webPageLd } from "@/lib/seo"
 import { SITE_URL } from "@/config"
+import { ArrowUpRight } from "@lucide/astro"
+
 const crumbs = [ { name: "Home", href: "/" }, { name: "Compare", href: "/compare/" } ]
 const title = "Form backend alternatives: Postbag compared with Formspree, Formspark, Getform, Basin, Web3Forms and Netlify Forms"
 const description = "Looking for a Formspree alternative or the best form backend for a static site? Side-by-side comparisons of Postbag with Formspree, Formspark, Getform (Forminit), Basin, Web3Forms and Netlify Forms on free tiers, APIs, signed webhooks, spam, uploads, self-hosting, schemas, multi-site routing and AI-agent support. Facts checked August 2026."
@@ -18,26 +20,119 @@ const faqs = [
 const ld = [ webPageLd({ url: `${SITE_URL}/compare/`, name: title, description, modified: "2026-08-21" }), breadcrumbLd(crumbs), faqLd(faqs) ]
 ---
 <Base title="Compare form backends" description={description} canonical="/compare/" ld={ld} ogImage="/og/compare.png">
-  <PageHeader title="Form backend alternatives, compared honestly." lede="Each page puts Postbag next to one service on the same twelve capabilities, with the vendor's own pages as sources and a date on every fact. Where we could not verify something, we say so." crumbs={crumbs} modified="2026-08-21" />
-  <section class="container-x">
-    <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group="60">
-      {COMPETITORS.map((c) => (
+  <PageHeader title="A form is only the beginning." lede="Compare the work that happens after submit. Every page puts Postbag beside one service, on the same evidence, with the vendor's own sources and a date on every fact." crumbs={crumbs} modified="2026-08-21" />
+
+  <section class="container-x compare-field" aria-labelledby="compare-field-heading">
+    <div class="compare-field-intro" data-reveal>
+      <p class="compare-kicker">A clear route, not a score</p>
+      <h2 id="compare-field-heading">Choose for the form you have now. Keep an eye on the one you will have later.</h2>
+      <p>Most form backends can notify one inbox. The differences show up when a Submission must stay safe, reach a real system, move with your site, or be wired by an agent while you are doing something better with your afternoon.</p>
+      <div class="compare-route" aria-hidden="true"><span></span><i></i><b></b></div>
+    </div>
+
+    <aside class="compare-method" data-reveal style="--reveal-delay: 100ms" aria-labelledby="method-heading">
+      <p id="method-heading" class="compare-kicker">What we hold constant</p>
+      <ul>
+        <li><span>01</span> Prices and free allowances</li>
+        <li><span>02</span> API, signed webhooks and retries</li>
+        <li><span>03</span> Spam, files and destinations</li>
+        <li><span>04</span> Self-hosting, schemas and routing</li>
+        <li><span>05</span> Whether an agent can finish the setup</li>
+      </ul>
+      <p class="compare-method-note">We do not turn this into a score. A missing fact stays missing, and every comparison links to its source.</p>
+    </aside>
+  </section>
+
+  <section class="container-x mt-20 sm:mt-28" aria-labelledby="comparisons-heading">
+    <div class="compare-section-heading">
+      <div>
+        <p class="compare-kicker">The comparison desk</p>
+        <h2 id="comparisons-heading">Six familiar places to start.</h2>
+      </div>
+      <p>Read the one closest to your current setup. The tables keep the details plain, so you can make the call without decoding our marketing first.</p>
+    </div>
+    <ol class="compare-list" data-reveal-group="70">
+      {COMPETITORS.map((c, index) => (
         <li data-reveal>
-          <a href={`/compare/${c.slug}/`} class="card flex h-full flex-col p-6 transition-[box-shadow,transform] duration-200 ease-[var(--ease-smooth-out)] hover:-translate-y-0.5 hover:shadow-md">
-            <h2 class="text-xl font-semibold">Postbag vs {c.name}</h2>
-            <p class="mt-2 flex-1 text-[15px] leading-relaxed text-muted-foreground">{c.lede}</p>
-            <span class="mt-4 text-sm font-medium text-primary">Read the comparison →</span>
+          <a href={`/compare/${c.slug}/`} class="compare-link">
+            <span class="compare-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+            <span class="compare-link-copy">
+              <span class="compare-link-title">Postbag <em>and</em> {c.name}</span>
+              <span class="compare-link-lede">{c.lede}</span>
+            </span>
+            <span class="compare-link-action">Open comparison <ArrowUpRight size={18} stroke-width={1.8} aria-hidden="true" /></span>
           </a>
         </li>
       ))}
-    </ul>
+    </ol>
   </section>
-  <section class="container-x mt-20"><div class="prose-pb max-w-3xl">
-    <h2>How we compare</h2>
-    <p>Twelve capabilities, the same on every page: free tier, entry price, management API, webhooks and whether they are signed, email, chat destinations, spam protection, file uploads, self-hosting, schemas and drift, many-sites-to-one-destination routing, and support for AI agents. Sources are the vendors' own pricing and documentation pages, fetched in August 2026 and linked on each page. We do not rate, we list.</p>
-    <h2>What is usually the deciding factor</h2>
-    <p>For one site: price and captcha options. For several sites or a partner integration: whether submissions are a durable record, whether webhooks are signed and retried, and whether many forms can be normalised to one shape. For agent-built sites: whether the backend can be set up and verified through an API without a human. Postbag was built around the second and third questions.</p>
-  </div></section>
-  <Faq items={faqs} class="mt-20" />
+
+  <section class="container-x mt-24 sm:mt-32" aria-labelledby="reading-heading">
+    <div class="compare-reading">
+      <div>
+        <p class="compare-kicker">How to read this</p>
+        <h2 id="reading-heading">The best choice is usually hiding in the second question.</h2>
+      </div>
+      <div class="compare-reading-copy">
+        <p><strong>For one site:</strong> start with price, uploads and captcha options. They are the practical constraints.</p>
+        <p><strong>For several sites or a partner integration:</strong> look at durable storage, signed webhooks, retries and whether different Forms can arrive in one shape.</p>
+        <p><strong>For agent-built sites:</strong> ask whether the backend can be created and tested without a human clicking around. Postbag was built around that question.</p>
+      </div>
+    </div>
+  </section>
+
+  <Faq items={faqs} class="mt-24" />
   <CtaBand />
 </Base>
+
+<style>
+  .compare-field { position: relative; display: grid; gap: 2rem; overflow: hidden; padding-top: 2.25rem; padding-bottom: 2.25rem; border-top: 1px solid var(--border-strong); border-bottom: 1px solid var(--border); }
+  .compare-field::before { position: absolute; top: -12rem; right: -5rem; width: 29rem; height: 29rem; border: 1px solid var(--border); border-radius: 999px; box-shadow: 0 0 0 2.5rem var(--background), 0 0 0 calc(2.5rem + 1px) var(--border); content: ""; opacity: 0.7; pointer-events: none; }
+  .compare-field-intro, .compare-method { position: relative; z-index: 1; }
+  .compare-kicker { margin: 0; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.13em; line-height: 1.3; text-transform: uppercase; color: var(--primary); }
+  .compare-field h2, .compare-section-heading h2, .compare-reading h2 { margin: 0.7rem 0 0; font-size: clamp(2rem, 4.5vw, 3.5rem); font-weight: 600; line-height: 1.01; }
+  .compare-field-intro > p:not(.compare-kicker) { max-width: 39rem; margin: 1.25rem 0 0; font-size: 1.04rem; line-height: 1.7; color: var(--muted-foreground); }
+  .compare-route { position: relative; width: min(100%, 25rem); height: 3.5rem; margin-top: 2rem; }
+  .compare-route::before { position: absolute; top: 50%; right: 1.25rem; left: 0.3rem; height: 1px; background: linear-gradient(90deg, var(--primary), var(--border-strong)); content: ""; }
+  .compare-route span, .compare-route i, .compare-route b { position: absolute; display: block; border-radius: 999px; }
+  .compare-route span { top: calc(50% - 0.4rem); left: 0; width: 0.8rem; height: 0.8rem; background: var(--primary); box-shadow: 0 0 0 0.4rem var(--accent); }
+  .compare-route i { top: calc(50% - 0.23rem); left: 48%; width: 0.46rem; height: 0.46rem; background: var(--background); box-shadow: 0 0 0 1px var(--primary); }
+  .compare-route b { top: calc(50% - 0.75rem); right: 0; width: 1.5rem; height: 1.5rem; border: 1px solid var(--primary); background: var(--surface); box-shadow: 0 0 0 0.42rem var(--accent); }
+  .compare-method { align-self: end; max-width: 33rem; padding: 1.25rem 0 0; border-top: 1px solid var(--border-strong); }
+  .compare-method ul { display: grid; gap: 0.65rem; padding: 0; margin: 1rem 0 0; list-style: none; color: var(--foreground); font-size: 0.9rem; line-height: 1.45; }
+  .compare-method li { display: grid; grid-template-columns: 1.8rem 1fr; gap: 0.7rem; }
+  .compare-method li span { color: var(--primary); font-family: var(--font-mono); font-size: 0.7rem; }
+  .compare-method-note { max-width: 30rem; margin: 1.25rem 0 0; font-size: 0.85rem; line-height: 1.6; color: var(--muted-foreground); }
+  .compare-section-heading { display: grid; gap: 1rem; align-items: end; margin-bottom: 2.25rem; }
+  .compare-section-heading h2 { font-size: clamp(2rem, 3.5vw, 3rem); }
+  .compare-section-heading > p { max-width: 30rem; margin: 0; color: var(--muted-foreground); line-height: 1.65; }
+  .compare-list { padding: 0; margin: 0; list-style: none; border-top: 1px solid var(--border-strong); }
+  .compare-link { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 1rem; row-gap: 0.5rem; padding: 1.5rem 0; border-bottom: 1px solid var(--border); color: inherit; text-decoration: none; transition-property: color, padding-left, background-color; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
+  .compare-link:hover { padding-left: 0.5rem; background: linear-gradient(90deg, var(--accent), transparent 58%); }
+  .compare-index { padding-top: 0.4rem; color: var(--primary); font-family: var(--font-mono); font-size: 0.72rem; }
+  .compare-link-copy { min-width: 0; }
+  .compare-link-title { display: block; font-family: var(--font-display); font-size: clamp(1.4rem, 2.3vw, 2rem); font-weight: 600; line-height: 1.1; }
+  .compare-link-title em { color: var(--muted-foreground); font-family: var(--font-sans); font-size: 0.7em; font-style: normal; font-weight: 400; }
+  .compare-link-lede { display: block; max-width: 47rem; margin-top: 0.55rem; color: var(--muted-foreground); font-size: 0.94rem; line-height: 1.6; }
+  .compare-link-action { display: inline-flex; grid-column: 2; align-items: center; gap: 0.35rem; width: fit-content; color: var(--primary); font-size: 0.83rem; font-weight: 600; }
+  .compare-link-action :global(svg) { transition: transform var(--duration-fast) var(--ease-smooth-out); }
+  .compare-link:hover .compare-link-action :global(svg) { transform: translate(2px, -2px); }
+  .compare-reading { display: grid; gap: 2rem; padding: 2rem 0; border-top: 1px solid var(--border-strong); border-bottom: 1px solid var(--border); }
+  .compare-reading h2 { font-size: clamp(1.8rem, 3.2vw, 2.65rem); }
+  .compare-reading-copy { display: grid; gap: 1.25rem; max-width: 39rem; }
+  .compare-reading-copy p { margin: 0; color: var(--muted-foreground); font-size: 0.98rem; line-height: 1.68; }
+  .compare-reading-copy strong { color: var(--foreground); font-weight: 600; }
+  @media (min-width: 720px) {
+    .compare-field { grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr); gap: 4rem; min-height: 29rem; padding-top: 3.5rem; padding-bottom: 3.5rem; }
+    .compare-method { padding-top: 1.5rem; }
+    .compare-section-heading { grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.65fr); gap: 3rem; }
+    .compare-link { grid-template-columns: 3.25rem minmax(0, 1fr) auto; gap: 1.5rem; align-items: center; padding-top: 1.8rem; padding-bottom: 1.8rem; }
+    .compare-link-action { grid-column: 3; justify-self: end; white-space: nowrap; }
+    .compare-reading { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 4rem; padding: 3rem 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .compare-link, .compare-link-action :global(svg) { transition: none; }
+    .compare-link:hover { padding-left: 0; }
+    .compare-link:hover .compare-link-action :global(svg) { transform: none; }
+  }
+</style>
