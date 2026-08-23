@@ -91,7 +91,7 @@ export async function restoreSubmission(
   }
 
   const result = await db.transaction(async (tx) => {
-    if (input.submission.quarantineReason === "over_quota") {
+    if (!input.submission.test) {
       await lockPlanCapacity(tx, input.organizationId, "submissions")
       const limit = (await organizationLimits(tx, input.organizationId)).submissions_per_month
       const used = await countMonthlySubmissions(tx, input.organizationId)

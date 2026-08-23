@@ -220,7 +220,12 @@ export function registerQuickstartRoutes(app: OpenAPIHono<AppEnv>, db: Database,
 
     const submitUrl = `${appUrl}/s/${form.id}`
     const embed = renderEmbed(submitUrl, undefined)
-    const verifyOrigin = input.origin === undefined ? "" : ` -H 'Origin: ${new URL(input.origin).origin}'`
+    const allowedOrigins = form.settings["allowed_origins"]
+    const persistedOrigin =
+      Array.isArray(allowedOrigins) && typeof allowedOrigins[0] === "string"
+        ? new URL(allowedOrigins[0]).origin
+        : undefined
+    const verifyOrigin = persistedOrigin === undefined ? "" : ` -H 'Origin: ${persistedOrigin}'`
 
     const body: z.infer<typeof QuickstartResponseSchema> = {
       form: serializeForm(form, appUrl, [], { submissions: 0, lastSubmissionAt: null }),

@@ -198,7 +198,7 @@ integration("quarantined submission recovery", () => {
     expect(pending).toMatchObject({ id: skipped?.id, status: "pending", skipReason: null })
   })
 
-  it("keeps an over-quota delivery parked until the plan allows it", async () => {
+  it("keeps an over-quota delivery parked through intermediate status changes", async () => {
     const [form] = await harness.db
       .insert(forms)
       .values({
@@ -252,6 +252,13 @@ integration("quarantined submission recovery", () => {
         body: JSON.stringify({ status: "received" }),
       })
 
+    const markedSpam = await harness.app.request(`/v1/submissions/${quarantined.submission_id}`, {
+      method: "PATCH",
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({ status: "spam" }),
+    })
+    expect(markedSpam.status).toBe(200)
+
     const blocked = await release()
     expect(blocked.status).toBe(402)
     expect((await blocked.json()) as { error: { code: string } }).toMatchObject({
@@ -270,7 +277,7 @@ integration("quarantined submission recovery", () => {
           eq(deliveries.routeId, route.id),
         ),
       )
-    expect(stillHeld).toMatchObject({ status: "quarantined", quarantineReason: "over_quota" })
+    expect(stillHeld).toMatchObject({ status: "spam", quarantineReason: null })
     expect(stillSkipped).toMatchObject({ status: "skipped", skipReason: "quality" })
 
     await harness.db
