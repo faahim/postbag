@@ -11,7 +11,7 @@ import { otpSendFailures } from "../../lib/otpEmail.js"
 import type { AppEnv } from "../../lib/scope.js"
 import type { Env } from "../../env.js"
 import { ErrorEnvelopeSchema, ScopeSchema } from "../../schemas.js"
-import { mintApiKey } from "./apiKeys.js"
+import { ApiKeyNameSchema, mintApiKey } from "./apiKeys.js"
 
 // Job H 1b: agent onboarding without a browser. An agent holding no credentials at all asks
 // for a code by email, a human reads six digits out of their inbox, the agent gets a manage
@@ -31,7 +31,7 @@ const RequestCodeResponseSchema = z.object({
 const VerifyCodeInputSchema = z.object({
   email: z.email(),
   code: z.string().describe("The 6-digit code from the email."),
-  key_name: z.string().optional().describe('Defaults to "agent · <YYYY-MM-DD>".'),
+  key_name: ApiKeyNameSchema.optional().describe('Defaults to "agent · <YYYY-MM-DD>".'),
   scopes: z.array(ScopeSchema).min(1).default(["manage"]),
 })
 

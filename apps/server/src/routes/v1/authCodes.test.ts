@@ -108,6 +108,35 @@ integration("POST /v1/auth/request-code + /v1/auth/verify-code", () => {
     expect(meBody.organization.id).toBe(body.organization.id)
   })
 
+  it("rejects an overlong key name before consuming the email code", async () => {
+    const { harness: h, captured } = harnessWithCapturingEmail()
+    harness = h
+    db = h.db
+    const email = "bounded-key-name@example.test"
+    cleanupEmails.push(email)
+
+    await requestJson(h, "/v1/auth/request-code", { email })
+    const otp = captured[0]?.otp
+    expect(otp).toMatch(/^\d{6}$/)
+
+    const invalid = await requestJson(h, "/v1/auth/verify-code", {
+      email,
+      code: otp,
+      key_name: "x".repeat(33),
+    })
+    expect(invalid.response.status).toBe(422)
+    expect((invalid.json as { error: { code: string } }).error.code).toBe("validation_failed")
+
+    const valid = await requestJson(h, "/v1/auth/verify-code", {
+      email,
+      code: otp,
+      key_name: "launch-canary",
+    })
+    expect(valid.response.status).toBe(201)
+    const validBody = valid.json as { organization: { id: string } }
+    cleanupOrgIds.push(validBody.organization.id)
+  })
+
   it("an existing user keeps their existing organization and created: false", async () => {
     const { harness: h, captured } = harnessWithCapturingEmail()
     harness = h

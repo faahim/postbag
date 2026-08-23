@@ -2174,7 +2174,7 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": {
-                    /** @description A label to tell keys apart, e.g. 'CI deploy key'. */
+                    /** @description A label to tell keys apart, e.g. 'CI deploy key'. Maximum 32 characters. */
                     name?: string;
                     /**
                      * @description manage ⊇ read ⊇ submit — a manage key satisfies every read- or submit-scoped call too.
