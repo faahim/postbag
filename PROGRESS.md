@@ -8,13 +8,15 @@ the rules and `docs/` for the design.
 ## Current state (update this block, don't append)
 
 - **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in *Next up*.
-- **Anonymous claimable quickstart implemented locally 2026-08-23 (ADR-008/009; production launch gated):** an agent can create a bounded
+- **Anonymous claimable quickstart deployed default-off 2026-08-23 (ADR-008/009; production launch gated):** an agent can create a bounded
   24-hour sandbox Form, wire and test durable receipt, then hand the owner a claim URL. Unclaimed Forms do not deliver;
-  claim transfers the setup into an organization. Marketing has approved future-state copy, but production must keep
-  the current email-code claim until the deployed create, test, expiry and claim paths pass end-to-end verification.
-  Live local Postgres proof covers idempotent creation, the exact-five concurrent cap, claim races, stable ids,
-  no retroactive Delivery, email-bound OTP claim and cleanup. Open gates: full repo checks, settled browser proof,
-  Cloudflare creation-route limit, trusted forwarded-IP verification and the production canary.
+  claim transfers the setup into an organization. Merge `54c4fd8` deployed successfully as Coolify deployment
+  `loqdcusasbxdn106nvgrsgu7`; production health, OpenAPI, claim-page delivery, typed disabled response and both migration
+  tables are verified. Local Postgres proof covers idempotency, the exact-five concurrent cap, claim races, stable ids,
+  no retroactive Delivery, email-bound OTP claim and cleanup; 307 tests, CI, build, typecheck and settled desktop/tablet
+  browser proof are green. `ANONYMOUS_QUICKSTART_ENABLED` remains absent. Open launch gates: a Cloudflare creation-route
+  rate limit (the current token lacks Rulesets Write), blocking direct origin access so forwarded IPs are trusted, then
+  the enabled production email-code → claim → post-claim Delivery canary. Do not change marketing copy before those pass.
 - **Marketing/docs site:** `apps/site` (Astro 5 static, Tailwind v4, Motion), built into `apps/server/dist/site`
   and served at `/` by `apps/server/src/routes/staticSite.ts` (same image; `/app`, `/v1`, `/s`, `/health`,
   `/llms.txt`, `/openapi.json` reserved). `SITE_URL` env (default `https://postbag.dev`) sets canonical URLs;
