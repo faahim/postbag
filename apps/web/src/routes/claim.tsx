@@ -1,11 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { Check, LogIn, PackageCheck, ShieldCheck } from "lucide-react"
+import { Check, CircleAlert, LogIn, PackageCheck, ShieldCheck } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { AuthSplitLayout } from "@/components/auth-split-layout"
-import { Postmark } from "@/components/postmark"
+import { RoutingMark } from "@/components/routing-mark"
 import { SocialButtons } from "@/components/social-buttons"
-import { SuccessCheck } from "@/components/success-check"
+import { SuccessMark } from "@/components/success-mark"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PostbagApiError } from "@/lib/api"
@@ -65,7 +65,9 @@ function ClaimSandboxRoute() {
     return (
       <AuthSplitLayout>
         <div className="flex flex-col items-center gap-5 text-center">
-          <Postmark status="failed" size={44} />
+          <div className="flex size-11 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+            <CircleAlert className="size-5" />
+          </div>
           <div className="flex flex-col gap-1.5">
             <h2 className="text-xl font-semibold text-balance">This claim link is incomplete</h2>
             <p className="text-sm text-muted-foreground text-pretty">
@@ -97,7 +99,9 @@ function ClaimSandboxRoute() {
     return (
       <AuthSplitLayout>
         <div className="flex flex-col items-center gap-5 text-center">
-          <Postmark status="failed" size={44} />
+          <div className="flex size-11 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+            <CircleAlert className="size-5" />
+          </div>
           <div className="flex flex-col gap-1.5">
             <h2 className="text-xl font-semibold text-balance">
               This temporary Form is unavailable
@@ -118,13 +122,13 @@ function ClaimSandboxRoute() {
     return (
       <AuthSplitLayout>
         <div className="flex flex-col items-center gap-5 text-center">
-          <SuccessCheck show size={56} />
+          <SuccessMark show size={56} />
           <div className="flex flex-col gap-1.5">
             <h2 className="text-2xl font-semibold text-balance">The Form is yours</h2>
             <p className="text-sm text-muted-foreground text-pretty">
               {claim.data.copied_test_submissions} test{" "}
               {claim.data.copied_test_submissions === 1 ? "Submission" : "Submissions"} moved with
-              it. New Submissions can be routed after you add a Destination.
+              it. Add a Destination and Route when you are ready to send new Submissions onward.
             </p>
           </div>
           <Button
@@ -146,9 +150,12 @@ function ClaimSandboxRoute() {
       <AuthSplitLayout>
         <div className="flex flex-col gap-7">
           <div className="flex flex-col gap-1.5">
-            <h2 className="text-2xl font-semibold text-balance">Claim {info.name}</h2>
+            <h2 className="text-3xl font-semibold tracking-tight text-balance">
+              Bring {info.name} home
+            </h2>
             <p className="text-sm text-muted-foreground text-pretty">
-              Sign in to move this tested Form into your Postbag workspace.
+              Sign in to move this tested Form into your workspace. Its id and submit URL stay the
+              same.
             </p>
           </div>
 
@@ -159,8 +166,8 @@ function ClaimSandboxRoute() {
                 <p className="text-sm font-medium">Already wired and tested</p>
                 <p className="text-sm text-muted-foreground">
                   {info.accepted_count} of 5 test{" "}
-                  {info.accepted_count === 1 ? "Submission" : "Submissions"} stored. The submit URL
-                  will not change.
+                  {info.accepted_count === 1 ? "Submission" : "Submissions"} stored safely before
+                  signup.
                 </p>
               </div>
             </div>
@@ -194,7 +201,7 @@ function ClaimSandboxRoute() {
 
         <div className="flex flex-col gap-4 rounded-lg border border-border/70 bg-muted/60 p-4 shadow-xs">
           <div className="flex items-start gap-3">
-            <Postmark status="sent" size={28} className="mt-0.5 shrink-0" title="Tested Form" />
+            <RoutingMark status="sent" size={28} className="mt-0.5 shrink-0" title="Tested Form" />
             <div className="min-w-0 flex-1">
               <p className="font-medium text-pretty">{info.name}</p>
               <p className="truncate font-mono text-xs text-muted-foreground">{info.id}</p>
@@ -217,7 +224,8 @@ function ClaimSandboxRoute() {
         <div className="flex items-start gap-3 text-sm text-muted-foreground">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
           <p className="text-pretty">
-            Claiming consumes this link and moves the Form only into your active workspace.
+            This one-time claim token moves the Form only into your active workspace and is
+            consumed when the claim succeeds.
           </p>
         </div>
 

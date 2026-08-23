@@ -3,7 +3,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { DESTINATION_TYPES, DestinationForm } from "@/components/destination-form"
-import { SuccessCheck } from "@/components/success-check"
+import { SuccessMark } from "@/components/success-mark"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -119,7 +119,7 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <Button variant="outline" size="sm" onClick={() => void runTest()} disabled={test.isPending} className="gap-1.5">
-            {result?.ok === true && <SuccessCheck show size={14} />}
+            {result?.ok === true && <SuccessMark show size={14} />}
             {test.isPending ? "Testing…" : "Test"}
           </Button>
           <Button

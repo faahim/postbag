@@ -1,7 +1,7 @@
-import { Postmark, type PostmarkStatus } from "@/components/postmark"
+import { RoutingMark, type RoutingMarkStatus } from "@/components/routing-mark"
 import { cn } from "@/lib/utils"
 
-const LABEL: Record<PostmarkStatus, string> = {
+const LABEL: Record<RoutingMarkStatus, string> = {
   sent: "Sent",
   failed: "Retrying",
   dead: "Dead",
@@ -13,12 +13,12 @@ export function DeliveryStatusBadge({
   status,
   className,
 }: {
-  readonly status: PostmarkStatus
+  readonly status: RoutingMarkStatus
   readonly className?: string
 }) {
   return (
     <span className={cn("inline-flex items-center gap-1.5 text-sm font-medium", className)}>
-      <Postmark status={status} size={16} />
+      <RoutingMark status={status} size={16} />
       {LABEL[status]}
     </span>
   )

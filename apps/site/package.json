@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && node scripts/postbuild.mjs",
+    "brand:social": "node scripts/generate-social-assets.mjs",
     "preview": "astro preview",
     "typecheck": "astro check"
   },

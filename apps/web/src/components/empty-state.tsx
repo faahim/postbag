@@ -1,10 +1,9 @@
 import type { ReactNode } from "react"
 
-import { Postmark, type PostmarkStatus } from "@/components/postmark"
+import { RoutingMark, type RoutingMarkStatus } from "@/components/routing-mark"
 import { cn } from "@/lib/utils"
 
-/** Every list gets one of these — illustration from the postmark motif family, one line
- * of copy, one primary action (docs/DESIGN.md §2). */
+/** Every list gets a quiet receiving mark, one line of copy, and one primary action. */
 export function EmptyState({
   status = "pending",
   title,
@@ -12,7 +11,7 @@ export function EmptyState({
   action,
   className,
 }: {
-  readonly status?: PostmarkStatus
+  readonly status?: RoutingMarkStatus
   readonly title: string
   readonly description?: string
   readonly action?: ReactNode
@@ -25,8 +24,9 @@ export function EmptyState({
         className,
       )}
     >
-      <div className="relative flex size-16 items-center justify-center rounded-full bg-muted/70">
-        <Postmark status={status} size={40} />
+      <div className="relative flex size-16 items-center justify-center overflow-hidden rounded-xl bg-accent/55 shadow-inner">
+        <span className="absolute inset-x-3 top-2 h-8 translate-x-1 rounded-md bg-background/55" aria-hidden="true" />
+        <RoutingMark status={status} size={42} className="relative" />
       </div>
       <div className="flex max-w-sm flex-col gap-1">
         <p className="text-sm font-medium text-foreground">{title}</p>

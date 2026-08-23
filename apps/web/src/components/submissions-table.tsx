@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { EmptyState } from "@/components/empty-state"
-import { Postmark, type PostmarkStatus } from "@/components/postmark"
+import { RoutingMark, type RoutingMarkStatus } from "@/components/routing-mark"
 import { formatRelativeTime, splitPrefixedId } from "@/lib/format"
 import { quarantineReasonDetail } from "@/lib/quarantine"
 
@@ -22,9 +22,8 @@ const STATUS_VARIANT = {
   spam: "destructive",
 } as const
 
-// A submission's status reads as a postmark, not a plain pill — the same stamp motif
-// used for deliveries: a clean stamp once it's landed, a dashed hold, a struck cancel.
-const STATUS_POSTMARK: Record<SubmissionRow["status"], PostmarkStatus> = {
+// A Submission's status uses the same compact receiving/routing language as a Delivery.
+const STATUS_MARK: Record<SubmissionRow["status"], RoutingMarkStatus> = {
   received: "sent",
   quarantined: "pending",
   spam: "dead",
@@ -101,7 +100,7 @@ export function SubmissionsTable({
                 <div className="flex flex-col items-start gap-1">
                   <div className="flex items-center gap-1.5">
                     <Badge variant={STATUS_VARIANT[row.status]} className="gap-1">
-                      <Postmark status={STATUS_POSTMARK[row.status]} size={12} />
+                      <RoutingMark status={STATUS_MARK[row.status]} size={12} />
                       {row.status}
                     </Badge>
                     {row.test && <Badge variant="muted">test</Badge>}

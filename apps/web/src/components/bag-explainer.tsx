@@ -8,12 +8,12 @@ import { cn } from "@/lib/utils"
  *
  * Three forms on the left (their field lines differ a little — that is the point), one
  * bucket in the middle, one destination on the right. Submissions drop into the bucket as
- * plain dots; what leaves is a single stamped dot, always the same. Many in, one shape out.
+ * plain dots; what leaves follows one Route, always the same. Many in, one shape out.
  *
- * Quiet on purpose: hairlines, the app's neutrals, and the wax-seal red only on the postmark
+ * Quiet on purpose: hairlines, the app's neutrals, and periwinkle only on the routing mark
  * and the outgoing dot. Motion is SMIL `animateMotion` along the same lines the diagram
  * already draws, so the still picture (reduced motion, screenshots) tells the same story.
- * The postmark brightens on each arrival via CSS (`.bag-explainer-stamp`, styles/index.css).
+ * The routing mark brightens on each arrival via CSS (`.bag-explainer-route-mark`, styles/index.css).
  */
 
 const LOOP_SECONDS = 4.8
@@ -65,8 +65,6 @@ function inGuide(cy: number, entryX: number): string {
 function inFlight(cy: number, entryX: number): string {
   return `${inGuide(cy, entryX)} L ${entryX} ${POCKET.frontTop + 14}`
 }
-
-const STAMP_TICKS = Array.from({ length: 12 }, (_, i) => i)
 
 export function BagFlowIllustration({ className }: { readonly className?: string }) {
   const reducedMotion = usePrefersReducedMotion()
@@ -128,27 +126,15 @@ export function BagFlowIllustration({ className }: { readonly className?: string
       {/* …and the front panel sits over them, so they visibly go inside */}
       <g>
         <path d={panel(POCKET.frontTop)} fill="var(--card)" stroke="var(--foreground)" strokeOpacity="0.55" strokeWidth="1.5" strokeLinejoin="round" />
-        {/* postmark — the stamp each arrival gets */}
-        <g className="bag-explainer-stamp" stroke="var(--primary)">
-          <circle cx={POCKET.cx} cy="106" r="11" strokeWidth="1.3" />
-          <circle cx={POCKET.cx} cy="106" r="7.5" strokeWidth="0.9" opacity="0.7" />
-          {STAMP_TICKS.map((i) => (
-            <line
-              key={i}
-              x1={POCKET.cx}
-              y1="96.2"
-              x2={POCKET.cx}
-              y2="98.4"
-              strokeWidth="1.1"
-              strokeLinecap="round"
-              transform={`rotate(${(360 / STAMP_TICKS.length) * i} ${POCKET.cx} 106)`}
-            />
-          ))}
-          <circle cx={POCKET.cx} cy="106" r="1.6" fill="var(--primary)" stroke="none" />
+        {/* receiving aperture and Route trace */}
+        <g className="bag-explainer-route-mark" stroke="var(--primary)" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M309 102h5.4l3 3h5.2l3-3h5.4v10.5a2.5 2.5 0 0 1-2.5 2.5h-17a2.5 2.5 0 0 1-2.5-2.5Z" fill="var(--primary)" fillOpacity="0.1" strokeWidth="1.25" />
+          <path d="M321 110h7v-5" strokeWidth="1.45" />
+          <path d="m325.8 107.2 2.2-2.2 2.2 2.2" strokeWidth="1.45" />
         </g>
       </g>
 
-      {/* out — one stamped result per arrival */}
+      {/* out — one routed result per arrival */}
       {!reducedMotion &&
         IN_DELAYS.map((delay) => (
           <g key={delay} opacity="0">

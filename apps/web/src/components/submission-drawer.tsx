@@ -3,7 +3,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { DeliveryStatusBadge } from "@/components/delivery-status"
-import { Postmark, type PostmarkStatus } from "@/components/postmark"
+import { RoutingMark, type RoutingMarkStatus } from "@/components/routing-mark"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -166,11 +166,11 @@ function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: 
                   <span aria-hidden className="absolute top-6 bottom-0 left-[9px] w-px bg-border" />
                 )}
                 <div className="relative z-10 flex size-[18px] shrink-0 items-center justify-center rounded-full bg-card">
-                  <Postmark status={delivery.status as PostmarkStatus} size={18} />
+                  <RoutingMark status={delivery.status as RoutingMarkStatus} size={18} />
                 </div>
                 <div className="flex flex-1 items-start justify-between gap-3 rounded-lg border border-border/70 px-3 py-2.5">
                   <div className="flex flex-col gap-0.5">
-                    <DeliveryStatusBadge status={delivery.status as PostmarkStatus} />
+                    <DeliveryStatusBadge status={delivery.status as RoutingMarkStatus} />
                     <span className="font-mono text-xs text-muted-foreground">{delivery.destination_id}</span>
                     {delivery.last_error !== null && <span className="text-xs text-destructive">{delivery.last_error}</span>}
                   </div>

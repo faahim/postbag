@@ -1,6 +1,6 @@
 ---
 /** The site's own contact form: a real Postbag form (project "site") routed to the owner's email. Dogfooding. */
-import Postmark from "@/components/Postmark.astro"
+import RoutingMark from "@/components/RoutingMark.astro"
 import { API_URL } from "@/config"
 interface Props { formId: string }
 const { formId } = Astro.props
@@ -18,7 +18,7 @@ const inputClass = "h-11 rounded-md bg-background px-3 font-normal text-foregrou
       <p class="text-xs text-muted-foreground">This form is a Postbag form. Of course it is.</p>
       <button type="submit" class="btn btn-primary btn-sm" data-submit><span data-label>Send message</span></button>
     </div>
-    <div data-ok class="hidden items-center gap-3 rounded-md bg-accent/60 px-4 py-3 text-sm" aria-live="polite"><Postmark status="sent" size={24} /> <span>Received. Expect a reply by email.</span></div>
+    <div data-ok class="hidden items-center gap-3 rounded-md bg-accent/60 px-4 py-3 text-sm" aria-live="polite"><RoutingMark status="sent" size={24} /> <span>Received. Expect a reply by email.</span></div>
     <div data-err class="hidden rounded-md bg-surface-2 px-4 py-3 text-sm text-muted-foreground" aria-live="polite"></div>
   </div>
 </form>

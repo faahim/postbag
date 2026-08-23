@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { EmptyState } from "@/components/empty-state"
-import { Postmark, type PostmarkStatus } from "@/components/postmark"
+import { RoutingMark, type RoutingMarkStatus } from "@/components/routing-mark"
 import { EventsNav } from "@/components/events-nav"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -346,7 +346,7 @@ function DeliveriesPanel({ webhookId }: { readonly webhookId: string }) {
           {rows.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-3 py-1.5 text-xs">
               <div className="flex min-w-0 items-center gap-2">
-                <Postmark status={d.status as PostmarkStatus} size={16} />
+                <RoutingMark status={d.status as RoutingMarkStatus} size={16} />
                 <span className="font-mono">{d.event_type}</span>
                 {d.last_error !== null && <span className="truncate text-destructive">{d.last_error}</span>}
               </div>

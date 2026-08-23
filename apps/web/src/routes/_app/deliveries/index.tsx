@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useDestinations } from "@/lib/queries/destinations"
 import { useDeliveries, useRetryDelivery } from "@/lib/queries/deliveries"
 import { formatDateTime, formatRelativeTime } from "@/lib/format"
-import type { PostmarkStatus } from "@/components/postmark"
+import type { RoutingMarkStatus } from "@/components/routing-mark"
 
 export const Route = createFileRoute("/_app/deliveries/")({
   component: DeliveriesRoute,
@@ -92,7 +92,7 @@ function DeliveriesRoute() {
                 }}
               >
                 <TableCell>
-                  <DeliveryStatusBadge status={delivery.status as PostmarkStatus} />
+                  <DeliveryStatusBadge status={delivery.status as RoutingMarkStatus} />
                 </TableCell>
                 <TableCell className="text-sm">{destinationById.get(delivery.destination_id)?.name ?? delivery.destination_id}</TableCell>
                 <TableCell className="tabular-nums text-sm text-muted-foreground">{delivery.attempts}</TableCell>
@@ -134,7 +134,7 @@ function DeliveriesRoute() {
           </DialogHeader>
           {open !== undefined && (
             <div className="flex flex-col gap-4">
-              <DeliveryStatusBadge status={open.status as PostmarkStatus} />
+              <DeliveryStatusBadge status={open.status as RoutingMarkStatus} />
               {open.last_error !== null && <p className="text-sm text-destructive">{open.last_error}</p>}
               <div className="flex flex-col gap-1">
                 <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Payload</h3>

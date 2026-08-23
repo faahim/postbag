@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { SuccessCheck } from "@/components/success-check"
+import { SuccessMark } from "@/components/success-mark"
 import { PlanBillingControls } from "@/components/plan-billing-controls"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -140,7 +140,7 @@ export function PlanCard({ checkoutIntent = null }: { readonly checkoutIntent?: 
 
         {arrived && (
           <div className="flex animate-in items-center gap-1.5 text-sm text-primary fade-in-0 zoom-in-75 duration-(--duration-very-slow) ease-(--ease-bounce)">
-            <SuccessCheck show size={14} />
+            <SuccessMark show size={14} />
             It arrived — plan updated.
           </div>
         )}
