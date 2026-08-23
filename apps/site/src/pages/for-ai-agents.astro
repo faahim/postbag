@@ -9,38 +9,52 @@ import { API_URL, EXAMPLE, LLMS_URL, OPENAPI_URL, SITE_URL } from "@/config"
 import { breadcrumbLd, faqLd, webPageLd } from "@/lib/seo"
 
 const crumbs = [ { name: "Home", href: "/" }, { name: "For AI agents", href: "/for-ai-agents/" } ]
-const title = "Postbag for AI agents: a form backend an agent can set up end to end with one API key"
-const description = "Postbag is agent-native: llms.txt and OpenAPI for discovery, GET /v1/me for context, POST /v1/quickstart for a working routed form in one call, _test submissions to verify delivery, errors with hints and docs links, idempotent creates. Built for Claude Code, Cursor, Codex and any agent with an API key."
+const title = "Postbag for AI agents: start a real Form before signup"
+const description = "Create and test a bounded sandbox Form without credentials, claim it after a human authenticates, then add Destinations and Routes without changing its submit URL."
 const faqs = [
-  { q: "What does an AI agent need to use Postbag?", a: "Nothing to start — not even an API key. It emails itself a 6-digit code (<code>POST /v1/auth/request-code</code>), a human reads the code out of their inbox, and <code>POST /v1/auth/verify-code</code> returns a manage-scoped key (and provisions an organization for a new email). From there it can read /llms.txt and /openapi.json, call GET /v1/me, create a routed form with POST /v1/quickstart, verify with a _test submission, and add destinations or streams, all without a browser." },
-  { q: "How does an agent get an API key without a browser?", a: "Two calls, one human step in between: <code>POST /v1/auth/request-code {\"email\":\"…\"}</code> emails a 6-digit code good for 10 minutes; the human reads it out and gives it to the agent; <code>POST /v1/auth/verify-code {\"email\":\"…\",\"code\":\"…\"}</code> returns a <code>pb_live_…</code> key. <code>postbag login</code> (once published) or <code>npx skills add faahim/postbag --skill postbag</code> drives this same flow." },
-  { q: "How does an agent verify that a form actually works?", a: "It posts to the submit URL with <code>_test: true</code>. The response includes the submission id and delivery ids; polling <code>GET /v1/deliveries/{id}</code> shows <code>sent</code> along with the provider's response. Test submissions are excluded from quotas." },
+  { q: "What does an AI agent need to start?", a: "Nothing — not even an API key. <code>POST /v1/public/sandboxes</code> returns a stable submit URL and one-time capability token for a bounded 24-hour Form. The agent can wire it into the site and verify up to five stored test Submissions before asking the user to authenticate and claim it." },
+  { q: "Can an anonymous sandbox send email or webhooks?", a: "No. It cannot create Destinations, Routes, Deliveries, Events or outbound traffic. Claiming keeps the Form id and submit URL and copies the existing rows as tests, but those tests never deliver retroactively. Only new Submissions after claim and Route setup can deliver." },
+  { q: "How does an agent get an API key without a browser?", a: "Two calls, one human step in between: <code>POST /v1/auth/request-code {\"email\":\"…\"}</code> emails a 6-digit code good for 10 minutes; the human gives it to the agent; <code>POST /v1/auth/verify-code {\"email\":\"…\",\"code\":\"…\",\"key_name\":\"site setup\"}</code> returns a <code>pb_live_…</code> key. API key names are 1–32 characters. <code>postbag login</code> drives the same flow." },
+  { q: "How does an agent verify that a form actually works?", a: "Before claim, it posts to the stable submit URL and reads the stored test back with <code>GET /v1/public/sandboxes/{id}</code> plus the Sandbox capability. After claim and Route setup, a new <code>_test</code> Submission returns delivery ids to poll until <code>sent</code>." },
   { q: "Is there an MCP server or CLI?", a: "Yes, both are on npm: <code>npx postbag login</code> then <code>npx postbag init</code> for the CLI, and <code>npx -y @postbag/mcp</code> for the MCP server (one tool per API operation, plus <code>postbag_quickstart</code> and <code>postbag_explain</code>). Both are thin clients over the same <code>/v1</code> API, which is small and fully described by <code>/openapi.json</code> — nothing they do is impossible over HTTP." },
   { q: "What happens when an agent makes a mistake?", a: "Every error is <code>{ code, message, hint, docs }</code>. The hint says what to do next; docs is a deep link into <a href='/docs/errors/'>the error reference</a>. Validation errors list the offending fields. Incomplete stream mappings fail at attach time with the missing fields listed." },
   { q: "Is it safe for an agent to re-run a setup script?", a: "Yes. <code>Idempotency-Key</code> is honoured on every POST under /v1, and creates accept <code>if_exists: \"return\"</code> so re-running returns the same objects instead of duplicates or errors." },
   { q: "How should a site repo remember its Postbag wiring?", a: "The convention is a <code>postbag.json</code> at the repo root with <code>form_id</code>, <code>submit_url</code> and <code>project</code>, and a line in CLAUDE.md or AGENTS.md saying forms on this site post to Postbag. Later sessions, human or agent, find the wiring there." },
 ]
 
+const sandboxFlow = `$ key=$(node -e 'console.log(crypto.randomUUID())')
+$ curl -X POST ${API_URL}/v1/public/sandboxes \\
+  -H "content-type: application/json" -H "Idempotency-Key: $key" \\
+  -d '{"name":"Contact","origin":"https://example.com"}'
+# → stable submit_url, sandbox_token, embed, verify, claim_url and next[]
+
+$ curl -X POST ${API_URL}/s/fm_… -H "content-type: application/json" \\
+  -d '{"email":"agent@example.com","message":"test"}'
+$ curl ${API_URL}/v1/public/sandboxes/fm_… \\
+  -H "Authorization: Sandbox pbs_…"`
 const keyFlow = `$ curl -X POST ${API_URL}/v1/auth/request-code -d '{"email":"you@example.com"}'
 { "ok": true, "expires_in": 600, "next": "POST /v1/auth/verify-code with { email, code, key_name }" }
 
 # a human reads the 6-digit code out of their inbox and gives it to the agent
 
-$ curl -X POST ${API_URL}/v1/auth/verify-code -d '{"email":"you@example.com","code":"482913"}'
+$ curl -X POST ${API_URL}/v1/auth/verify-code -d '{"email":"you@example.com","code":"482913","key_name":"site setup"}'
 { "api_key": "pb_live_…", "organization": { "id": "org_…", "slug": "…", "name": "…" },
   "user": { "email": "you@example.com", "created": true },
-  "next": [ "POST /v1/quickstart to create a routed form in one call", "GET /v1/me to see limits and what exists" ] }`
+  "next": [ "Store api_key securely", "POST /v1/quickstart …", "GET /v1/me …" ] }
+
+$ curl -X POST ${API_URL}/v1/sandboxes/fm_…/claim \\
+  -H "Authorization: Bearer pb_live_…" -H "Postbag-Sandbox-Token: pbs_…"`
 const ld = [ webPageLd({ url: `${SITE_URL}/for-ai-agents/`, name: title, description }), breadcrumbLd(crumbs), faqLd(faqs) ]
 
 const steps = [
-  { n: "Discover", body: "Read GET /llms.txt (Markdown, written for agents) or GET /openapi.json (the full contract, generated from the live routes). Then GET /v1/me: organization, scopes, plan limits and counts of what already exists.", code: `curl ${API_URL}/llms.txt\ncurl ${API_URL}/v1/me -H "Authorization: Bearer pb_live_…"` },
-  { n: "Create", body: "POST /v1/quickstart creates the project if missing, the form, an email destination and a direct route, idempotently by (project, name). It returns the submit URL, embed snippets for HTML, fetch, React, Astro and Next.js, a verification recipe, and next[] calls.", code: `curl -X POST ${API_URL}/v1/quickstart -H "Authorization: Bearer pb_live_…" -d '{\n  "name": "Portfolio contact",\n  "notify_email": "me@example.com",\n  "origin": "https://example.com",\n  "project": "portfolio"\n}'` },
-  { n: "Verify", body: "Post a test submission. The response carries the submission id and delivery ids; poll a delivery until it is sent. No inbox to check, no human in the loop.", code: `curl -X POST ${API_URL}/s/${EXAMPLE.form} -H "content-type: application/json" \\\n  -d '{"email":"agent@example.com","message":"test","_test":true}'\n# → { "ok": true, "submission_id": "${EXAMPLE.submission}", "status": "received", "deliveries": ["${EXAMPLE.delivery}"] }\n\ncurl ${API_URL}/v1/deliveries/${EXAMPLE.delivery} -H "Authorization: Bearer pb_live_…"\n# → { "status": "sent", "attempts": 1, "response": { "status": 200, "latency_ms": 412 } }` },
-  { n: "Wire", body: "Add destinations and routes with individual calls, test any destination with POST /v1/destinations/{id}/test, and write postbag.json into the repo so the next session finds it.", code: `curl -X POST ${API_URL}/v1/destinations -H "Authorization: Bearer pb_live_…" -d '{\n  "type": "webhook", "name": "CRM", "config": { "url": "https://crm.example.com/hooks/postbag", "secret": "…" }\n}'\ncurl -X POST ${API_URL}/v1/destinations/${EXAMPLE.destination}/test -H "Authorization: Bearer pb_live_…"` },
+  { n: "Create", body: "POST /v1/public/sandboxes needs no credentials. It returns a stable submit URL, framework embeds, a one-time capability token, a browser claim URL and literal next calls. Keep the token and idempotency key secret.", code: `curl -X POST ${API_URL}/v1/public/sandboxes -H "content-type: application/json" -H "Idempotency-Key: <random-uuidv4>" -d '{"name":"Portfolio contact","origin":"https://example.com"}'` },
+  { n: "Prove receipt", body: "Wire the returned submit URL, post a test, then read it with Authorization: Sandbox. The 24-hour sandbox stores at most five tests and cannot send anything outbound.", code: `curl -X POST ${API_URL}/s/${EXAMPLE.form} -H "content-type: application/json" -d '{"email":"agent@example.com","message":"test"}'\n\ncurl ${API_URL}/v1/public/sandboxes/${EXAMPLE.form} -H "Authorization: Sandbox pbs_…"` },
+  { n: "Claim", body: "Use email-code authentication or let the user open the claim URL and sign in. Claiming requires both authenticated organization access and the sandbox token; it keeps the Form id and submit URL.", code: `postbag login\npostbag sandbox claim --token pbs_…\n# or open /app/claim#token=pbs_… and sign in` },
+  { n: "Route", body: "Create a Destination and Route, then post a new real Submission and poll its Delivery. Copied sandbox tests never deliver retroactively.", code: `curl -X POST ${API_URL}/v1/destinations -H "Authorization: Bearer pb_live_…" -d '{\n  "type":"webhook", "name":"CRM", "config":{"url":"https://crm.example.com/hooks/postbag","secret":"…"}\n}'\n# POST /v1/routes for the claimed Form, then submit and poll GET /v1/deliveries/${EXAMPLE.delivery}` },
 ]
 const principles = [
   { t: "Discoverable", b: "llms.txt, openapi.json, and /v1/me. Accept: text/markdown on the site root returns the agent onboarding page." },
-  { t: "One call to a working form", b: "POST /v1/quickstart. Everything it does is also available as individual calls; it is a convenience, not a special path." },
+  { t: "Finish first, claim after", b: "A bounded sandbox proves durable receipt without credentials. Human authentication transfers the same Form into an organization without changing its submit URL." },
   { t: "Verifiable", b: "_test submissions return delivery ids to poll. Destinations have a /test endpoint that returns the provider's response." },
   { t: "Schema-aware, fleet-aware", b: "GET /v1/streams/{id} returns the stream schema and a form template; POST /v1/forms with from_template creates a form that is pre-attached with a valid mapping. An agent cannot produce a form the stream does not understand." },
   { t: "Idempotent and safe to retry", b: "Idempotency-Key on every POST. if_exists: \"return\" on creates. Re-running setup is a no-op, not a mess." },
@@ -52,7 +66,7 @@ To add a form: POST ${API_URL}/v1/forms with the project slug, then use the embe
 Never hand-write a submit URL. Verify with a _test submission and poll the delivery.`
 ---
 <Base title="For AI agents" description={description} canonical="/for-ai-agents/" ld={ld} ogImage="/og/agents.png">
-  <PageHeader title="Built for the agents that build websites." lede="Everything a human can do in the dashboard, an agent can do with an API key. The exit test for this property: a coding agent in a fresh site repo, given only a key, ships a working contact form with email and Telegram in one conversation." crumbs={crumbs}>
+  <PageHeader title="Built for the agents that build websites." lede="An agent can create and test the real Form before asking the user to sign up. Human authentication claims the same submit URL; only then does outbound delivery unlock." crumbs={crumbs}>
     <div class="mt-6 flex flex-wrap gap-3">
       <a href={LLMS_URL} class="btn btn-primary">Read llms.txt</a>
       <a href={OPENAPI_URL} class="btn btn-secondary">openapi.json</a>
@@ -68,15 +82,22 @@ Never hand-write a submit URL. Verify with a _test submission and poll the deliv
     </div>
     <div class="mt-12 grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:gap-12" data-reveal>
       <div>
-        <h3 class="font-display text-xl font-semibold">How does the agent get a key?</h3>
-        <p class="mt-3 text-[15px] leading-relaxed text-muted-foreground">Two calls, one human step in between. A new email provisions an organization first; an existing email reuses its own. The key is shown once.</p>
+        <h3 class="font-display text-xl font-semibold">Start before login</h3>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted-foreground">Create a bounded sandbox, wire its final submit URL and prove receipt. It stores tests but cannot deliver or configure tenant resources.</p>
       </div>
-      <div class="min-w-0"><CodeBlock code={keyFlow} lang="bash" title="request-code → verify-code" dense /></div>
+      <div class="min-w-0"><CodeBlock code={sandboxFlow} lang="bash" title="create → submit → read" dense /></div>
+    </div>
+    <div class="mt-12 grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:gap-12" data-reveal>
+      <div>
+        <h3 class="font-display text-xl font-semibold">Claim when the user is ready</h3>
+        <p class="mt-3 text-[15px] leading-relaxed text-muted-foreground">Two calls, one human step. A verified email creates or resolves the account and returns a manage key; browser OAuth is available too.</p>
+      </div>
+      <div class="min-w-0"><CodeBlock code={keyFlow} lang="bash" title="request-code → verify-code → claim" dense /></div>
     </div>
   </section>
 
   <section class="container-x mt-24" aria-labelledby="flow-heading">
-    <h2 id="flow-heading" class="text-3xl font-semibold sm:text-4xl">Four calls from key to verified.</h2>
+    <h2 id="flow-heading" class="text-3xl font-semibold sm:text-4xl">From no credentials to delivered.</h2>
     <ol class="mt-10 grid gap-12">
       {steps.map((s, i) => (
         <li class="grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-12" data-reveal>
@@ -113,5 +134,5 @@ Never hand-write a submit URL. Verify with a _test submission and poll the deliv
   </section>
 
   <Faq items={faqs} class="mt-24" title="Agent questions" />
-  <CtaBand title="Give your agent a key." body="Create an account, mint an API key with the manage scope, and hand it to Claude Code, Cursor or Codex with one instruction: read /llms.txt and set up a contact form." secondary={{ href: "/docs/agents/", label: "Agent guide" }} />
+  <CtaBand title="Let your agent start." body="It can create and test a sandbox Form now. You authenticate only when it is ready to claim the Form and configure delivery." secondary={{ href: "/docs/agents/", label: "Agent guide" }} />
 </Base>

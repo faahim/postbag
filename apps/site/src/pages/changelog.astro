@@ -7,6 +7,7 @@ import { breadcrumbLd, webPageLd } from "@/lib/seo"
 const crumbs = [ { name: "Home", href: "/" }, { name: "Changelog", href: "/changelog/" } ]
 // Dated from the repository history. Newest first.
 const entries = [
+  { date: "2026-08-23", title: "Anonymous, claimable quickstart", items: ["Agents can create a bounded 24-hour sandbox Form without credentials, wire its stable submit URL and verify up to five stored test Submissions.", "Email-code or browser authentication claims the same Form id into an organization; copied tests never deliver retroactively, while new Submissions can route normally after Destination setup.", "Hosted launch verified end to end in production with exact-path Cloudflare rate limiting, Cloudflare-only origin access scoped to Postbag's routers, deterministic concurrency tests and real Delivery sent proof."] },
   { date: "2026-08-21", title: "Agent clients on npm, social login, keys by email code", items: ["postbag CLI (npx postbag login / init / forms / submissions tail …) and @postbag/mcp (one tool per API operation plus postbag_quickstart and postbag_explain) published to npm; @postbag/sdk public.", "Sign in with Google or GitHub; connected accounts in Settings.", "POST /v1/auth/request-code → /verify-code mints an API key from an emailed 6-digit code — no dashboard needed for an agent's first key.", "Agent Skill served at /.well-known/skills/postbag/SKILL.md; every /v1 operation has a stable operationId and the OpenAPI document is generated from the route definitions.", "postbag.dev is the home; old embeds on the previous domain keep working."] },
   { date: "2026-08-21", title: "Marketing and documentation site", items: ["Public site with docs, comparisons, use cases and glossary, served by the same container at /.", "Markdown twins of every docs page and llms-full.txt for agents; Accept: text/markdown honoured.", "A live demo form on the home page posting real test submissions."] },
   { date: "2026-08-21", title: "Dashboard polish", items: ["Display-scale first-run headline, accent postmark brand mark, staggered \"It arrived\" reveal.", "Inbox id chips, postmark delivery status, delivery timeline, collapsible metadata."] },
@@ -33,7 +34,7 @@ const ld = [ webPageLd({ url: `${SITE_URL}/changelog/`, name: "Postbag changelog
         </li>
       ))}
     </ol>
-    <p class="mt-12 text-[15px] text-muted-foreground">Next: row-level security enforced per request, email verification on password sign-up, Slack and Discord destinations, expression mappings and filters, file uploads, billing.</p>
+    <p class="mt-12 text-[15px] text-muted-foreground">Next: off-server backups, email verification on password sign-up, Search Console verification, uptime monitoring and row-level security enforced per request.</p>
   </section>
   <CtaBand />
 </Base>

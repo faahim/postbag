@@ -5,17 +5,19 @@ order: 0
 section: Start
 ---
 
-Postbag is a form backend that routes. Websites `POST` to a submit URL; Postbag stores every submission durably and delivers it to email, Telegram and signed webhooks according to routes you configure. It is multi-tenant, self-hostable, and agent-native: everything a human can do in the dashboard, an agent can do with an API key.
+Postbag is a form backend that routes. Websites `POST` to a submit URL; Postbag stores every submission durably and delivers it to email, Telegram and signed webhooks according to routes you configure. It is multi-tenant, self-hostable, and agent-native: an agent can create and test a bounded sandbox Form without credentials, then claim and route that same Form after a human authenticates.
 
 ## The one idea
 
 **The database makes it correct; events make it fast.** A submission is a row before it is anything else. Delivery is an outbox drained by a worker. Spam, quota and rate-limit outcomes are stored with a status, never dropped.
 
-## The three calls that matter
+## The two starting paths
 
-1. `GET /v1/me`: who am I, which organization, which scopes, what already exists. Call this first with your API key.
-2. `POST /v1/quickstart`: one call to a working, routed form. Idempotent by (project, name). Returns a submit URL, embed snippets and a verification recipe.
-3. `POST /s/{formId}`: submit to a form. No auth. Accepts JSON, urlencoded and multipart (text fields). Pass `_test: true` to get submission and delivery ids back, so you can poll `GET /v1/deliveries/{id}` and see `sent`.
+**No credentials yet:** `POST /v1/public/sandboxes` creates a bounded 24-hour Form and returns its stable submit URL plus a one-time sandbox capability. Submit to `/s/{formId}`, verify the stored tests with `GET /v1/public/sandboxes/{id}`, then authenticate and call `POST /v1/sandboxes/{id}/claim`. The Form id and submit URL do not change.
+
+**Already authenticated:** call `GET /v1/me` first, then `POST /v1/quickstart` for a working routed Form. It is idempotent by project and name and returns the submit URL, embed snippets and a verification recipe.
+
+Both paths converge on the same tenant Form. Only new Submissions after claim and Route setup can deliver; anonymous and copied test Submissions never deliver retroactively.
 
 ## Where to go next
 

@@ -5,6 +5,15 @@ Read `docs/PRINCIPLES.md`, `docs/ARCHITECTURE.md`, `docs/AGENT-NATIVE.md` and
 `PROGRESS.md` first. Preserve the existing authenticated `/v1/quickstart`; this adds a
 smaller public path for an agent that has no credentials yet.
 
+> **Status: shipped and live 2026-08-23.** Implementation merged in `54c4fd8`,
+> production closeout in `b273d46`, and the shared API-key name validation fix in
+> `bed1ebd`. The hosted feature flag is enabled. The production canary proved
+> anonymous create → inert Submission → email-code authentication → email-bound claim
+> with the same Form id → copied test → Destination and Route → new real Submission →
+> Delivery `sent`, followed by exact resource cleanup. Cloudflare exact-path rate
+> limiting and a Postbag-router-only origin allowlist are live. See `PROGRESS.md` for
+> current resource ids, deployment ids, verification evidence and remaining work.
+
 ## Outcome
 
 An agent can create a temporary Form, wire its stable submit URL into a site, store and
@@ -145,6 +154,8 @@ scoring or new monitoring infrastructure unless observed abuse justifies it.
   is simpler and retryable.
 
 ## Implementation order
+
+Historical execution sequence (complete):
 
 1. Add a short supporting decision for the anonymous admission exception and add **Sandbox** to
    the vocabulary as a temporary, unclaimed Form. Add migrations, Drizzle schemas and narrow
