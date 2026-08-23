@@ -1,34 +1,59 @@
 ---
 title: "Postbag documentation"
-description: "Start here: what Postbag is, the three calls that matter, and where everything else lives. Written for humans and for agents; every page has a Markdown twin."
+description: "Give a Form somewhere dependable to go. Start before signup, use the complete API, or run the same open-source product yourself."
 order: 0
 section: Start
+modified: "2026-08-24"
 ---
 
-Postbag is a form backend that routes. Websites `POST` to a submit URL; Postbag stores every submission durably and delivers it to email, Telegram and signed webhooks according to routes you configure. It is multi-tenant, self-hostable, and agent-native: an agent can create and test a bounded sandbox Form without credentials, then claim and route that same Form after a human authenticates.
+Postbag is the open-source form backend built for agents. A website posts to a stable Form URL. Postbag saves every Submission first, then Routes it to email, Telegram, a signed webhook, or another Destination.
+
+An agent can create and test a bounded sandbox Form before you sign up. When the work is ready to keep, claim the same Form, add a Destination and Route, and send a new Submission to verify Delivery.
+
+## Choose your starting point
+
+### Let your agent handle it
+
+Install the Postbag skill, then give the agent the job:
+
+```bash
+npx skills add faahim/postbag --skill postbag
+```
+
+The agent can create a sandbox, wire the returned submit URL into the site, send a test, and prove Postbag stored it. The sandbox lasts 24 hours and accepts up to five test Submissions. No account or API key is needed for that first proof.
+
+[Follow the agent guide](/docs/agents/)
+
+### Start from an account
+
+If you already have a manage-scoped API key, `POST /v1/quickstart` creates a Form and returns its submit URL, embed snippets, verification call, and next steps. Include at least one email, Telegram, or webhook Destination if you want the quickstart to create a Route and produce Deliveries.
+
+[Open the quickstart](/docs/quickstart/)
+
+### Run Postbag yourself
+
+Postbag is one application image plus Postgres 16. OAuth providers are optional. Email-code authentication and email Delivery need a configured mail provider, while the rest of the product remains available without social login.
+
+[Read the self-hosting guide](/docs/self-hosting/)
 
 ## The one idea
 
-**The database makes it correct; events make it fast.** A submission is a row before it is anything else. Delivery is an outbox drained by a worker. Spam, quota and rate-limit outcomes are stored with a status, never dropped.
+**The database makes it correct; events make it fast.** A Submission is a row before it is anything else. Delivery runs through a durable outbox. Spam, quota, and rate-limit outcomes are stored with a status instead of disappearing.
 
-## The two starting paths
+A Form can receive without a Route. It cannot deliver until a Destination and Route connect it to somewhere onward. That distinction is deliberate: receiving and keeping data must not depend on a provider being available.
 
-**No credentials yet:** `POST /v1/public/sandboxes` creates a bounded 24-hour Form and returns its stable submit URL plus a one-time sandbox capability. Submit to `/s/{formId}`, verify the stored tests with `GET /v1/public/sandboxes/{id}`, then authenticate and call `POST /v1/sandboxes/{id}/claim`. The Form id and submit URL do not change.
+## Find the exact answer
 
-**Already authenticated:** call `GET /v1/me` first, then `POST /v1/quickstart` for a working routed Form. It is idempotent by project and name and returns the submit URL, embed snippets and a verification recipe.
+- [Submit endpoint](/docs/submit-endpoint/) covers content types, control fields, browser origins, and response shapes.
+- [API overview](/docs/api/) covers authentication, resources, pagination, idempotency, and errors.
+- [Routing](/docs/routing/) explains how Forms and Streams connect to Destinations.
+- [Schemas](/docs/schemas/) explains immutable versions, observe mode, and Drift.
+- [Webhook signatures](/docs/webhooks/) includes verification examples for Node, Python, and Go.
+- [Architecture](/docs/architecture/) and [Security](/docs/security/) explain the outbox, tenancy, and trust boundaries.
+- [Error codes](/docs/errors/) maps every API error to a concrete recovery step.
 
-Both paths converge on the same tenant Form. Only new Submissions after claim and Route setup can deliver; anonymous and copied test Submissions never deliver retroactively.
+## Documentation for agents
 
-## Where to go next
+The running server describes itself. `GET /llms.txt` is the short onboarding document and `GET /openapi.json` is generated from the live route definitions.
 
-- [Quickstart](/docs/quickstart/): three minutes to your first email.
-- [Submit endpoint](/docs/submit-endpoint/): every control field, content type and status.
-- [API overview](/docs/api/): resources, conventions, pagination, idempotency, errors.
-- [Agent guide](/docs/agents/): the exact flow an agent should follow, and the repo conventions.
-- [Webhook signatures](/docs/webhooks/): verify `Postbag-Signature` in Node, Python and Go.
-- [Routing](/docs/routing/), [Schemas](/docs/schemas/), [Destinations](/docs/destinations/).
-- [Architecture](/docs/architecture/), [Security](/docs/security/), [Self-hosting](/docs/self-hosting/), [Error codes](/docs/errors/).
-
-## For agents
-
-The live API describes itself: `GET /llms.txt` is the onboarding page in Markdown and `GET /openapi.json` is generated from the route definitions, so it is always current. Every page on this site also has a Markdown twin: request it with `Accept: text/markdown`, or append `index.md` to the URL path. The whole documentation set is concatenated at [/llms-full.txt](/llms-full.txt).
+Every documentation page also has a Markdown twin. Send `Accept: text/markdown` or append `index.md` to its path. [/llms-full.txt](/llms-full.txt) concatenates the complete documentation set for a larger context window.

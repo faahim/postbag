@@ -1,25 +1,36 @@
 ---
 title: "Agent guide: start a Postbag Form before signup"
-description: "Create and verify a bounded sandbox Form without credentials, claim it after email-code or browser authentication, then add Destinations and Routes without changing its submit URL."
+description: "Create, wire, and verify a sandbox Form without credentials, then claim it and configure Delivery without changing its submit URL."
 order: 20
 section: Guides
+modified: "2026-08-24"
 ---
 
-This page is written to be followed by an agent. It is also what `GET /llms.txt` points to. If you have no credentials, start with a sandbox Form. If you already have a manage-scoped API key, use the authenticated quickstart instead.
+This page is written as an execution guide for coding agents. The dashboard is available when a person wants it, but the complete workflow also works through the API, CLI, MCP server, and Postbag skill.
 
-## 0. Orientation
+Install the skill when your environment supports agent skills:
 
-```
-GET {API}/llms.txt                # Markdown onboarding: vocabulary, the three calls, conventions
-GET {API}/openapi.json            # full contract, generated from live routes
-GET {API}/v1/me                   # after auth: organization, scopes, limits, counts
+```bash
+npx skills add faahim/postbag --skill postbag
 ```
 
-Vocabulary is fixed: organization, project, form, submission, form_schema, stream, stream_schema, mapping, destination, route, delivery, drift. Do not invent synonyms when you write code or config for the user.
+The CLI, SDK, and MCP server are published as `postbag`, `@postbag/sdk`, and `@postbag/mcp` on npm.
 
-## 1. Create a sandbox Form without credentials
+## Orient before changing anything
 
-Generate a lowercase UUIDv4 with a cryptographically secure random generator and keep both it and the returned token secret:
+```text
+GET {API}/llms.txt       # short Markdown onboarding
+GET {API}/openapi.json   # complete contract generated from live routes
+GET {API}/v1/me          # organization, scopes, limits, and counts after auth
+```
+
+Use the fixed vocabulary in user-facing text and implementation: Organization, Project, Form, Submission, Stream, Schema, Mapping, Destination, Route, Delivery, and Drift. Do not invent substitutes.
+
+If `postbag.json` already exists, reuse its `form_id` and `submit_url`. Do not create a second Form for the same job.
+
+## Create a sandbox without credentials
+
+Use a canonical UUIDv4 as the idempotency key. Generate it with a cryptographically secure random generator.
 
 ```bash
 curl -X POST {API}/v1/public/sandboxes \
@@ -28,88 +39,95 @@ curl -X POST {API}/v1/public/sandboxes \
   -d '{ "name": "Contact", "origin": "https://example.com" }'
 ```
 
-The response contains the stable `sandbox.submit_url`, embed snippets, a one-time `sandbox_token`, a browser `claim_url`, verification calls and `next[]`. The sandbox lasts 24 hours, accepts at most five 16 KiB test Submissions and cannot create Destinations, Routes, Deliveries, Events or outbound traffic.
+The response contains `sandbox.submit_url`, embed snippets, `sandbox_token`, `claim_url`, verification calls, and `next[]`.
 
-Use `claim_email` only when the user explicitly supplied the email they will use for Postbag. Never infer it from Git metadata or another account.
+The capability is shown only in this creation response. Keep it secret. It can be reused to read and claim this sandbox until the sandbox is claimed or expires. The sandbox lasts 24 hours, accepts at most five 16 KiB test Submissions, and cannot create Destinations, Routes, Deliveries, Events, or outbound traffic.
 
-## 2. Put it in the site and prove receipt
+Set `claim_email` only when the user explicitly supplied the email they will use for Postbag. Never infer it from Git metadata or another account.
 
-Use the returned embed. Keep the honeypot input (`_gotcha`) and never hand-write the submit URL. Submit a test, then read it back with the sandbox capability:
+## Wire and prove receipt
 
-```bash
-POST {submit_url}  { "email": "agent@example.com", "message": "test" }
+Use the embed returned by Postbag. Keep the honeypot input and the exact submit URL.
+
+```text
+POST {submit_url}
+Origin: https://example.com
+{ "email": "agent@example.com", "message": "test" }
+
 GET {API}/v1/public/sandboxes/{id}
 Authorization: Sandbox <sandbox_token>
 ```
 
-Anonymous receipt is durable but inert: there are no delivery ids to poll before claim.
+The read response is the proof: Postbag committed the Submission. Do not look for a Delivery before claim because anonymous receipt is deliberately inert.
 
-## 3. Authenticate and claim the same Form
+## Authenticate and claim
 
-Run `postbag login` to obtain and save a manage key by email code, or let the user open the returned `/app/claim#token=…` URL and sign in with Google or GitHub. For the agent-led path:
+The email-code flow works without a browser:
 
 ```bash
-postbag login
-postbag sandbox claim --token pbs_…
+postbag login --email owner@example.com
+postbag login --email owner@example.com --code 123456
+postbag sandbox claim --token "pbs_…"
 ```
 
-The HTTP equivalent is `POST /v1/auth/request-code`, `POST /v1/auth/verify-code`, then `POST /v1/sandboxes/{id}/claim` with both Bearer authentication and `Postbag-Sandbox-Token`. API key names are 1–32 characters. Claiming keeps the Form id and submit URL and copies the anonymous rows as tests; those tests never deliver retroactively.
+The HTTP flow is `POST /v1/auth/request-code`, `POST /v1/auth/verify-code`, then `POST /v1/sandboxes/{id}/claim` with Bearer authentication and the `Postbag-Sandbox-Token` header. API key names are 1-32 characters.
 
-## 4. Add a Destination and Route, then verify delivery
+Google and GitHub OAuth are optional. They are browser alternatives only when the instance operator configured both credentials for a provider. The email-code and API-key path remains the portable agent path.
 
-Create a Destination and a Route for the claimed Form, then send a new Submission. Only new post-claim Submissions can create Deliveries. Poll the returned Delivery id until `sent`, `failed` or `dead`.
+Claiming preserves the Form id and submit URL. It copies anonymous rows as test Submissions, but those tests never deliver retroactively.
 
-## Authenticated alternative: one call to a routed Form
+## Configure and verify Delivery
 
-```
-POST {API}/v1/quickstart
-{ "name": "<human name>", "project": "<slug, default 'default'>",
-  "origin": "https://<the site>", "notify_email": "<user's email>",
-  "telegram": { "bot_token": "…", "chat_id": "…" } /* optional */,
-  "webhook": { "url": "…", "secret": "…" } /* optional */ }
-```
+Delivery requires two resources after claim:
 
-Idempotent by (project, name): re-running returns the same form. The response has `form.submit_url`, `embed` (html, fetch, react, astro, nextjs_action), `verify` (a curl and a follow-up GET), and `next[]`.
+1. A Destination that defines where the Submission should go.
+2. A Route that connects the Form or Stream to that Destination.
 
-### Verify the authenticated path
+Create both, then send a new `_test` Submission. Poll the returned Delivery id until its status is `sent`, `failed`, or `dead`. If it fails, read `last_error` and the recorded provider response before changing the configuration.
 
-```
-POST {submit_url}  { "email": "agent@example.com", "message": "test", "_test": true }
-→ { "ok": true, "submission_id": "sb_…", "status": "received", "deliveries": ["dl_…"] }
-GET {API}/v1/deliveries/dl_…   → poll until status is "sent" (or "failed"/"dead": read last_error and response)
-```
+`POST /v1/destinations/{id}/test` tests a Destination in isolation. It does not prove that the Form has a Route, so finish with a real Form Submission.
 
-For a destination on its own: `POST {API}/v1/destinations/{id}/test` returns the provider's response inline.
+## Use the authenticated shortcut
 
-## 5. Record the wiring in the repo
-
-Write `postbag.json` at the repo root:
+With a manage-scoped key, `POST /v1/quickstart` can create the Project, Form, Destination, and Route together:
 
 ```json
-{ "form_id": "fm_…", "submit_url": "https://…/s/fm_…", "project": "portfolio" }
+{
+  "name": "Contact",
+  "project": "website",
+  "origin": "https://example.com",
+  "notify_email": "owner@example.com"
+}
 ```
 
-and add to `CLAUDE.md` / `AGENTS.md`:
+Pass at least one of `notify_email`, `telegram`, or `webhook` when Delivery is required. Without one, the call still creates a receiving Form, but it has no Destination or Route.
 
-> Forms on this site post to Postbag. Config in `postbag.json`. To add a form, create it through the Postbag API in the same project and use the embed from the response. Never hand-write a submit URL.
+The response includes `form.submit_url`, framework-specific `embed` snippets, a browser-equivalent `verify` call, and `next[]`. The operation is idempotent by Project and Form name.
 
-## 6. Fleet mode (many sites, one partner)
+## Leave a durable handoff
 
-When a stream already exists for the kind of site you are building:
+Write `postbag.json` at the repository root:
 
+```json
+{
+  "form_id": "fm_…",
+  "submit_url": "https://postbag.dev/s/fm_…",
+  "project": "website"
+}
 ```
-GET  {API}/v1/streams/{id}            # current schema, sources, and a form template
-POST {API}/v1/forms { "from_template": "st_…", "name": "<site> contact", "tags": ["vending"], "schema_mode": "managed" }
-```
 
-The form comes back pre-attached to the stream with a valid mapping and its schema served at `GET /s/{id}/schema`. If the mapping would be incomplete, you get a `422 mapping_incomplete` listing the missing fields, now, not at delivery time.
+Add this instruction to the repository agent file:
+
+> Forms on this site post to Postbag. The wiring is in `postbag.json`. Reuse it. Create additional Forms through the Postbag API and use the returned embed instead of writing submit URLs by hand.
+
+Never store an API key or sandbox capability in the repository.
 
 ## Rules of the road
 
-- Send `Idempotency-Key` on POSTs you might retry. Use `if_exists: "return"` on creates.
-- Every error is `{ code, message, hint, docs }`. Read `hint` first; it is written for you.
-- Ids tell you what they are: `fm_`, `sb_`, `st_`, `ds_`, `rt_`, `dl_`, `prj_`.
-- Spam and quarantine are statuses, not rejections. A 200 with `"status": "quarantined"` means stored, not delivered; read `quarantine_reason`.
-- Include the configured site's `Origin` header in test submissions. Paths and trailing slashes are normalized, but a curl without `Origin` does not exercise browser-origin checks.
-- After fixing a quarantine cause, `PATCH /v1/submissions/{id}` to `{"status":"received"}` to release the stored submission and queue its deliveries.
-- Do not poll submissions to "see if it worked"; poll the delivery ids from a `_test` post.
+- Send `Idempotency-Key` on POST requests you may retry. Use `if_exists: "return"` on supported creates.
+- Every error is `{ code, message, hint, docs }`. Read `hint` before improvising a recovery.
+- Id prefixes are part of the contract: `fm_`, `sb_`, `st_`, `ds_`, `rt_`, `dl_`, and `prj_`.
+- Spam and quarantine are stored statuses. A `200` with `"status": "quarantined"` means Postbag kept the Submission but did not queue Delivery.
+- Include the configured site `Origin` header in verification requests. A curl request without it does not test browser-origin policy.
+- After fixing a quarantine cause, release the stored Submission with `PATCH /v1/submissions/{id}` and `{ "status": "received" }`.
+- Poll the Delivery ids returned by a `_test` Submission. Do not poll a Submission and infer that Delivery worked.

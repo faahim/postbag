@@ -1,69 +1,123 @@
 ---
-title: "Self-hosting guide: Docker, Postgres, environment"
-description: "Run Postbag yourself: the Docker image, Postgres 16, core environment variables, optional anonymous quickstart, health checks and upgrades."
+title: "Self-hosting: one application and Postgres"
+description: "Run the same open-source Postbag yourself with Postgres 16, explicit environment settings, health checks, and optional agent provisioning."
 order: 32
 section: Operate
+modified: "2026-08-24"
 ---
 
-Postbag is one image plus Postgres. The hosted product runs the same image.
+Postbag Cloud and self-hosted Postbag share the same code and core capabilities. A small installation is one application container plus Postgres 16. Run the API and worker together, or split the same image by role when you need independent scaling.
 
-## docker-compose
+## Start with Docker Compose
+
+Build the application image from the public repository:
 
 ```yaml
 services:
   db:
     image: postgres:16-alpine
-    environment: { POSTGRES_DB: postbag, POSTGRES_USER: postbag, POSTGRES_PASSWORD: change-me }
-    volumes: ["postbag-postgres:/var/lib/postgresql/data"]
+    environment:
+      POSTGRES_DB: postbag
+      POSTGRES_USER: postbag
+      POSTGRES_PASSWORD: change-me
+    volumes:
+      - postbag-postgres:/var/lib/postgresql/data
     healthcheck:
-      { test: ["CMD-SHELL", "pg_isready -U postbag -d postbag"], interval: 2s, retries: 15 }
+      test: ["CMD-SHELL", "pg_isready -U postbag -d postbag"]
+      interval: 2s
+      retries: 15
+
   postbag:
-    build: . # or the published image when available
-    depends_on: { db: { condition: service_healthy } }
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgres://postbag:change-me@db:5432/postbag
       NODE_ENV: production
       PORT: "3000"
       APP_URL: https://forms.example.com
-      BETTER_AUTH_SECRET: a-long-random-secret
-      POSTBAG_ROLE: all # api | worker | all
+      BETTER_AUTH_SECRET: replace-with-a-long-random-secret
+      POSTBAG_ROLE: all
       MIGRATE_ON_BOOT: "true"
       TZ: UTC
       RESEND_API_KEY: re_…
       MAIL_FROM: "Forms <forms@example.com>"
       ANONYMOUS_QUICKSTART_ENABLED: "false"
-    ports: ["3000:3000"]
-volumes: { postbag-postgres: {} }
+    ports:
+      - "3000:3000"
+
+volumes:
+  postbag-postgres: {}
 ```
 
-## Environment
+Keep the database on a persistent volume and replace every example secret before the first boot.
 
-| Variable                         | Meaning                                                                                                                                   |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                   | Postgres connection string.                                                                                                               |
-| `APP_URL`                        | Public origin. Used in submit URLs, embed snippets, `llms.txt` and docs links.                                                            |
-| `BETTER_AUTH_SECRET`             | Session signing secret.                                                                                                                   |
-| `POSTBAG_ROLE`                   | `api`, `worker` or `all`. Run two containers for independent scaling; several workers are safe.                                           |
-| `PORT`, `TZ`, `NODE_ENV`         | Defaults `3000`, `UTC`, `production`.                                                                                                     |
-| `MIGRATE_ON_BOOT`                | `true` runs pending Drizzle migrations at start.                                                                                          |
-| `RESEND_API_KEY`, `MAIL_FROM`    | Email destinations. Verify the sending domain in Resend.                                                                                  |
-| `ANONYMOUS_QUICKSTART_ENABLED`   | Defaults `false`. Set `true` to allow public 24-hour sandbox creation; claiming and retention cleanup remain available when switched off. |
-| `ANONYMOUS_SANDBOX_GLOBAL_LIMIT` | Maximum active sandboxes across the instance; defaults to `1000`.                                                                         |
+## Required settings
 
-If anonymous quickstart is exposed publicly, rate-limit the exact creation path (`/v1/public/sandboxes`) at the edge. Do not rate-limit `/s/{formId}`, which is also the paid Form submission path. Ensure the origin trusts forwarded client-IP headers only from your reverse proxy; otherwise source-address limits can be bypassed. The hosted deployment accepts origin traffic only through Cloudflare, but self-hosted operators may use any equivalent trusted proxy path.
+| Variable                 | What it controls                                                                |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `DATABASE_URL`           | Postgres connection string.                                                     |
+| `APP_URL`                | Public origin used in submit URLs, embeds, `llms.txt`, and documentation links. |
+| `BETTER_AUTH_SECRET`     | Session signing secret. Use a long random value.                                |
+| `POSTBAG_ROLE`           | `api`, `worker`, or `all`. Multiple workers are safe.                           |
+| `PORT`, `TZ`, `NODE_ENV` | Defaults are `3000`, `UTC`, and `production`.                                   |
+| `MIGRATE_ON_BOOT`        | Runs committed Drizzle migrations before the process starts.                    |
+
+## Email and sign-in
+
+`RESEND_API_KEY` and `MAIL_FROM` enable email Destinations, email-code authentication, and invitation email. Verify the sending domain before relying on any of those flows.
+
+Google and GitHub OAuth are optional. A provider is enabled only when both its client id and secret are present:
+
+```text
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+GITHUB_CLIENT_ID
+GITHUB_CLIENT_SECRET
+```
+
+Leave an entire pair unset to disable that provider. A half-configured pair stops startup with a named validation error. Self-hosting does not depend on OAuth.
+
+## Anonymous agent provisioning
+
+`ANONYMOUS_QUICKSTART_ENABLED` defaults to `false`. Set it to `true` to allow agents to create bounded 24-hour sandbox Forms without credentials. `ANONYMOUS_SANDBOX_GLOBAL_LIMIT` caps active sandboxes across the instance and defaults to `1000`.
+
+If you expose public sandbox creation, rate-limit the exact `/v1/public/sandboxes` path at the edge. Do not rate-limit `/s/{formId}` as an anonymous-quickstart measure because the same path receives owned Form Submissions.
+
+Trust forwarded client-IP headers only from your reverse proxy. Otherwise an attacker can bypass source-address limits by supplying those headers directly.
+
+Turning public creation off stops new sandboxes. Existing claim and retention cleanup paths remain available.
+
+## Delivery requirements
+
+Receiving a Submission does not require an outbound provider. Delivery does. Configure the relevant provider, then create both a Destination and a Route.
+
+- Email uses `RESEND_API_KEY` and `MAIL_FROM`.
+- Telegram and signed webhooks store their own Destination configuration.
+- A Destination without a Route can be tested directly, but it receives no Form Submissions.
+- A Form without a Destination and Route still stores incoming Submissions.
 
 ## Health and operations
 
-`GET /health` returns database status, worker heartbeat and oldest pending delivery age; the image has a Docker `HEALTHCHECK` on it. Logs are structured JSON. Migrations live in `packages/db/drizzle` and are applied in order; never edit an applied migration.
+`GET /health` reports database status, worker heartbeat, and the oldest pending Delivery age. The application image also defines a Docker health check.
 
-## Upgrades
+Logs are structured JSON. Migrations live in `packages/db/drizzle` and run in order. Never edit a migration that has already been applied.
 
-Pull the new image, restart with `MIGRATE_ON_BOOT=true`. Schemas (form and stream) are immutable versions, so upgrades never rewrite your contracts.
+Back up Postgres independently of the application container. A restore rehearsal matters more than a backup job that has never been opened.
 
-## Single-organization installs
+## Upgrade safely
 
-Disable signups after creating the first organization if the instance is private. Plan limits under the `selfhost` plan are effectively unlimited.
+1. Back up Postgres.
+2. Build the new image from the release you intend to run.
+3. Start it with `MIGRATE_ON_BOOT=true`.
+4. Wait for `/health` to report a live database and worker.
+5. Submit a `_test` payload through a real Form and confirm its Delivery.
 
-## Access to the image
+Form and Stream Schemas are immutable versions. Upgrades do not rewrite published Schema contracts.
 
-Postbag is open source: the server is licensed under AGPL-3.0 and the client packages (SDK, CLI, MCP server) under MIT. The source is public at [github.com/faahim/postbag](https://github.com/faahim/postbag). The image is multi-arch (arm64, amd64) and built from the same Dockerfile as production.
+## Source and licenses
+
+The source is public at [github.com/faahim/postbag](https://github.com/faahim/postbag). The server, dashboard, and site are AGPL-3.0-only. The SDK, CLI, and MCP server are MIT licensed and published on npm.
+
+The Dockerfile builds for arm64 and amd64. Use the same repository image for the API and worker; select the process role with `POSTBAG_ROLE`.
