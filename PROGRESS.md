@@ -8,15 +8,22 @@ the rules and `docs/` for the design.
 ## Current state (update this block, don't append)
 
 - **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in *Next up*.
-- **Anonymous claimable quickstart deployed default-off 2026-08-23 (ADR-008/009; production launch gated):** an agent can create a bounded
-  24-hour sandbox Form, wire and test durable receipt, then hand the owner a claim URL. Unclaimed Forms do not deliver;
-  claim transfers the setup into an organization. Merge `54c4fd8` deployed successfully as Coolify deployment
-  `loqdcusasbxdn106nvgrsgu7`; production health, OpenAPI, claim-page delivery, typed disabled response and both migration
-  tables are verified. Local Postgres proof covers idempotency, the exact-five concurrent cap, claim races, stable ids,
-  no retroactive Delivery, email-bound OTP claim and cleanup; 307 tests, CI, build, typecheck and settled desktop/tablet
-  browser proof are green. `ANONYMOUS_QUICKSTART_ENABLED` remains absent. Open launch gates: a Cloudflare creation-route
-  rate limit (the current token lacks Rulesets Write), blocking direct origin access so forwarded IPs are trusted, then
-  the enabled production email-code → claim → post-claim Delivery canary. Do not change marketing copy before those pass.
+- **Anonymous claimable quickstart live 2026-08-23 (ADR-008/009):** `ANONYMOUS_QUICKSTART_ENABLED=true`. Merge `54c4fd8`
+  shipped the bounded 24-hour sandbox flow; closeout `b273d46` and API-key-name validation fix `bed1ebd` are deployed
+  (`loqdcusasbxdn106nvgrsgu7`, `wqahvskwleapheboflsy0bin`, `mi1vbrf4wdgurxlgldp9hbuh`). Local Postgres, 308 tests,
+  CI, build, lint, typecheck, generated OpenAPI/SDK/MCP consistency and settled desktop/tablet browser proof are green.
+  The production canary proved anonymous create → inert pre-claim Submission → email OTP → email-bound claim with the
+  same Form id → one copied test → email Destination/Route → new real Submission → Delivery `sent`; exact canary Route,
+  Destination, Form and API key cleanup all returned 204 and database checks confirmed their rows were gone. The claimed
+  sandbox token is consumed and its bounded staging/audit rows remain only until retention cleanup.
+- **Anonymous launch edge gates live 2026-08-23:** Cloudflare rate-limits exact path `/v1/public/sandboxes` to 5 requests
+  per 10 seconds with a 10-second mitigation on `postbag.dev` (ruleset `37d4427504ac486d9f23a79430e35f24`, rule
+  `5556f58b2f6b4629bc5d00eb49521a17`) and the legacy hostname (ruleset `97ae2355a19e40d0ba57ac3caea30bf0`,
+  rule `9bff653c3e06475a854740fe16eda41b`). Traefik middleware
+  `postbag-cloudflare-only-jfw5odopfompxmpq7ffgrtn9` contains Cloudflare's authoritative IPv4/IPv6 ranges and is attached
+  only to Postbag's four HTTP and four HTTPS routers. Edge health is 200; direct-origin HTTP/HTTPS and spoofed forwarded
+  headers are 403. Langluer, Anu, Dekhval, Surayt and vending-pipeline health/status stayed unchanged. Keep
+  `postbag.withfaahim.com` secured and served until old-submit-url usage is inventoried; retire it separately, not blindly.
 - **Marketing/docs site:** `apps/site` (Astro 5 static, Tailwind v4, Motion), built into `apps/server/dist/site`
   and served at `/` by `apps/server/src/routes/staticSite.ts` (same image; `/app`, `/v1`, `/s`, `/health`,
   `/llms.txt`, `/openapi.json` reserved). `SITE_URL` env (default `https://postbag.dev`) sets canonical URLs;
@@ -31,7 +38,7 @@ the rules and `docs/` for the design.
   2026-08-21 16:22 UTC** (Fahim's request, after parity verification); a final dump is at
   `~/.config/postbag/backups/postbag-megh-oracle-final-20260821T162011Z.sql.gz` (600). Root SSH works to both servers from Fahim's Mac.
 - **Domain:** **`postbag.dev`** (canonical, `APP_URL`) + alias `api.postbag.dev`; zone id `84f7a4a0b32316b3d420ef347d6d494a`
-  (Afiur.fahim@gmail.com Cloudflare account). A records (proxied) → megh-oracle. Legacy `postbag.withfaahim.com`
+  (Afiur.fahim@gmail.com Cloudflare account). A records (proxied) → dekhval-1. Legacy `postbag.withfaahim.com`
   (zone `4f548539cadf02e52a52ef6957a82e3f`) stays served as an extra Coolify domain so old submit URLs keep working;
   redirect non-`/s` `/v1` paths to postbag.dev (see Next up).
 - **Coolify resources (historical, deleted 2026-08-21):** project `8ngphk5sjmqmwtzvdlr17wcs` · app `ertar2xhyn50wzetdjzzin2g`
@@ -237,8 +244,8 @@ tokens in `~/Developer/smedja/.env` (Cloudflare token: DNS only; no Email Routin
    Until a password account is verified, Better Auth will not auto-link a same-email Google/GitHub sign-in
    (by design — pre-registration takeover); the sign-in page explains to use the password and connect from
    Settings. Also: resend-verification button in Settings → Profile.
-2e. **Agent onboarding** — (a)+(b) shipped (job H); (c) anonymous/claimable quickstart **implemented locally 2026-08-23
-   under ADR-008/009; production launch gated**. Account-first with email code remains the live path until (c) passes its launch gate.
+2e. **Agent onboarding** — (a)+(b) shipped (job H); (c) anonymous/claimable quickstart **live 2026-08-23 under
+   ADR-008/009 with edge, origin, OTP claim and real Delivery production gates passed**. Account-first with email code remains available.
    For the record: (a) agent-assisted signup without a browser —
    `POST /v1/auth/request-code {email}` → emailed 6-digit code (Better Auth `emailOTP` plugin) →
    `POST /v1/auth/verify-code {email, code, key_name}` creates user+org if new and returns a `pb_live_` manage key
@@ -246,8 +253,8 @@ tokens in `~/Developer/smedja/.env` (Cloudflare token: DNS only; no Email Routin
    installable with `npx skills add faahim/postbag`, discoverable at `/.well-known/skills/`), with the landing page
    offering "paste this to your agent"; (c) `POST /v1/public/sandboxes` (no auth) creates a 24-hour
    sandbox Form that stores but does not deliver, plus a `claim_url` that sign-in turns into a real
-   organization — deliveries unlock after claim and Destination setup. (c) requires explicit retention, rate-limit,
-   bot-control and concurrency proof before production copy changes.
+   organization — deliveries unlock after claim and Destination setup. Retention, exact-path edge rate limiting,
+   trusted-origin client IPs, concurrency and end-to-end production delivery proof are recorded above.
 3. Dogfood: portfolio contact form → Postbag. Then Smedja `forge` provisioning.
 4. ~~Marketing site~~ shipped (see Done). Still open: **domain cut-over to `postbag.dev`** (decided; change
    `SITE_URL` + Coolify `APP_URL` + Resend sending domain together, and add `https://postbag.dev` to
