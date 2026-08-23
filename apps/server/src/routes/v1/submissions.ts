@@ -1,15 +1,23 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
-import { planDeliveries, PostbagError } from "@postbag/core"
+import { PostbagError } from "@postbag/core"
 import { and, desc, eq, lt, or, type SQL } from "drizzle-orm"
-import { deliveries, driftEvents, forms, submissions, type Database } from "@postbag/db"
+import { deliveries, driftEvents, submissions, type Database } from "@postbag/db"
 
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
-import { getDirectRoutesForForm, getStreamMembershipsForForm } from "../../repo/routing.js"
+import { restoreSubmission } from "../../repo/submissionRecovery.js"
 import { asJson, serializeDelivery, serializeSubmission } from "../../repo/serialize.js"
-import { CursorQuerySchema, errorResponses, SubmissionDetailSchema, SubmissionSchema } from "../../schemas.js"
+import {
+  CursorQuerySchema,
+  errorResponses,
+  SubmissionDetailSchema,
+  SubmissionSchema,
+} from "../../schemas.js"
 
-const SubmissionListSchema = z.object({ data: z.array(SubmissionSchema), next_cursor: z.string().nullable() })
+const SubmissionListSchema = z.object({
+  data: z.array(SubmissionSchema),
+  next_cursor: z.string().nullable(),
+})
 
 const searchRoute = createRoute({
   method: "get",
@@ -19,13 +27,18 @@ const searchRoute = createRoute({
   summary: "Search submissions across the organization",
   request: {
     query: CursorQuerySchema.extend({
-      stream: z.string().optional().describe("Filter to submissions routed through this stream id."),
+      stream: z
+        .string()
+        .optional()
+        .describe("Filter to submissions routed through this stream id."),
       form: z.string().optional().describe("Filter to one form id."),
       status: z.string().optional().describe("Filter by status: received, quarantined or spam."),
       q: z.string().optional().describe("Free-text search over submission data."),
     }),
   },
-  responses: { 200: { description: "ok", content: { "application/json": { schema: SubmissionListSchema } } } },
+  responses: {
+    200: { description: "ok", content: { "application/json": { schema: SubmissionListSchema } } },
+  },
 })
 
 const getRoute = createRoute({
@@ -47,10 +60,17 @@ const patchRoute = createRoute({
   operationId: "submissions_update",
   tags: ["submissions"],
   summary: "Change status (re-routes if moving to received)",
-  description: "Moving a quarantined submission to `received` re-runs routing and queues deliveries for it.",
+  description:
+    "Moving a quarantined submission to `received` re-runs routing and queues deliveries for it. An `over_quota` submission stays quarantined until the current plan has capacity.",
   request: {
     params: z.object({ submissionId: z.string() }),
-    body: { content: { "application/json": { schema: z.object({ status: z.enum(["received", "quarantined", "spam"]) }) } } },
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({ status: z.enum(["received", "quarantined", "spam"]) }),
+        },
+      },
+    },
   },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: SubmissionSchema } } },
@@ -64,7 +84,8 @@ const deleteRoute = createRoute({
   operationId: "submissions_delete",
   tags: ["submissions"],
   summary: "Delete permanently (GDPR)",
-  description: "Irreversible. Use for data-subject deletion requests; deliveries already sent are unaffected.",
+  description:
+    "Irreversible. Use for data-subject deletion requests; deliveries already sent are unaffected.",
   request: { params: z.object({ submissionId: z.string() }) },
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })
@@ -108,17 +129,29 @@ export function registerSubmissionRoutes(app: OpenAPIHono<AppEnv>, db: Database)
     const [row] = await db
       .select()
       .from(submissions)
-      .where(and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)))
+      .where(
+        and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)),
+      )
       .limit(1)
     if (row === undefined) throw new PostbagError("not_found", "No submission with that id.")
     const deliveryRows = await db
       .select()
       .from(deliveries)
-      .where(and(eq(deliveries.organizationId, scope.organizationId), eq(deliveries.submissionId, submissionId)))
+      .where(
+        and(
+          eq(deliveries.organizationId, scope.organizationId),
+          eq(deliveries.submissionId, submissionId),
+        ),
+      )
     const driftRows = await db
       .select()
       .from(driftEvents)
-      .where(and(eq(driftEvents.organizationId, scope.organizationId), eq(driftEvents.submissionId, submissionId)))
+      .where(
+        and(
+          eq(driftEvents.organizationId, scope.organizationId),
+          eq(driftEvents.submissionId, submissionId),
+        ),
+      )
     const body: z.infer<typeof SubmissionDetailSchema> = {
       ...serializeSubmission(row),
       deliveries: deliveryRows.map(serializeDelivery),
@@ -144,56 +177,34 @@ export function registerSubmissionRoutes(app: OpenAPIHono<AppEnv>, db: Database)
     const [existing] = await db
       .select()
       .from(submissions)
-      .where(and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)))
+      .where(
+        and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)),
+      )
       .limit(1)
     if (existing === undefined) throw new PostbagError("not_found", "No submission with that id.")
 
-    const [updated] = await db
-      .update(submissions)
-      .set({ status, quarantineReason: status === "quarantined" ? existing.quarantineReason : null })
-      .where(and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)))
-      .returning()
-    if (updated === undefined) throw new Error("Failed to update submission.")
-
+    let updated: typeof submissions.$inferSelect | undefined
     if (status === "received" && existing.status !== "received") {
-      const [form] = await db
-        .select()
-        .from(forms)
-        .where(and(eq(forms.organizationId, scope.organizationId), eq(forms.id, existing.formId)))
-        .limit(1)
-      if (form?.status === "active") {
-        const directRoutes = await getDirectRoutesForForm(db, scope.organizationId, form.id)
-        const streamMemberships = await getStreamMembershipsForForm(db, {
-          id: form.id,
-          organizationId: scope.organizationId,
-          projectId: form.projectId,
-          tags: form.tags,
+      updated = await restoreSubmission(db, {
+        organizationId: scope.organizationId,
+        submission: existing,
+      })
+    } else {
+      ;[updated] = await db
+        .update(submissions)
+        .set({
+          status,
+          quarantineReason: status === "quarantined" ? existing.quarantineReason : null,
         })
-        const plans = planDeliveries({
-          submission: { id: submissionId, status: "received", receivedAt: existing.receivedAt },
-          form: { status: "active", schemaVersion: form.currentSchemaVersion },
-          directRoutes,
-          streamMemberships,
-        })
-        for (const plan of plans) {
-          if (plan.status !== "pending") continue
-          await db
-            .insert(deliveries)
-            .values({
-              organizationId: scope.organizationId,
-              submissionId,
-              routeId: plan.routeId,
-              destinationId: plan.destinationId,
-              status: "pending",
-              attempts: 0,
-              payload: existing.data,
-              schemaVersion: plan.schemaVersion,
-              dedupeKey: `${submissionId}:${plan.routeId}`,
-            })
-            .onConflictDoNothing()
-        }
-      }
+        .where(
+          and(
+            eq(submissions.organizationId, scope.organizationId),
+            eq(submissions.id, submissionId),
+          ),
+        )
+        .returning()
     }
+    if (updated === undefined) throw new Error("Failed to update submission.")
 
     const body: z.infer<typeof SubmissionSchema> = serializeSubmission(updated)
     return c.json(body)
@@ -206,12 +217,16 @@ export function registerSubmissionRoutes(app: OpenAPIHono<AppEnv>, db: Database)
     const [row] = await db
       .select({ id: submissions.id })
       .from(submissions)
-      .where(and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)))
+      .where(
+        and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)),
+      )
       .limit(1)
     if (row === undefined) throw new PostbagError("not_found", "No submission with that id.")
     await db
       .delete(submissions)
-      .where(and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)))
+      .where(
+        and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)),
+      )
     return c.body(null, 204)
   })
 }

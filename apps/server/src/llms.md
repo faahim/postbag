@@ -31,20 +31,20 @@ dropped**.
 
 ## Vocabulary
 
-| Word | Meaning |
-|---|---|
-| `organization` | The tenant. Owns everything below. |
-| `project` | A folder for forms. Never a routing boundary. |
-| `form` | The thing a website posts to (`POST /s/{formId}`). |
-| `submission` | One received payload. |
-| `form_schema` | A versioned, immutable declaration of what a form collects. |
-| `stream` | A named group of forms with a shared output shape. |
-| `stream_schema` | The outbound contract a stream's routes deliver. |
-| `mapping` | A form's field → stream field assignment. |
-| `destination` | Somewhere submissions can go (email, telegram, webhook, …). |
-| `route` | form/stream → destination, with rules (window, quality, digest). |
-| `delivery` | One attempt-tracked send of one submission via one route. |
-| `drift` | A change in what a form actually receives vs. its declared schema. |
+| Word            | Meaning                                                            |
+| --------------- | ------------------------------------------------------------------ |
+| `organization`  | The tenant. Owns everything below.                                 |
+| `project`       | A folder for forms. Never a routing boundary.                      |
+| `form`          | The thing a website posts to (`POST /s/{formId}`).                 |
+| `submission`    | One received payload.                                              |
+| `form_schema`   | A versioned, immutable declaration of what a form collects.        |
+| `stream`        | A named group of forms with a shared output shape.                 |
+| `stream_schema` | The outbound contract a stream's routes deliver.                   |
+| `mapping`       | A form's field → stream field assignment.                          |
+| `destination`   | Somewhere submissions can go (email, telegram, webhook, …).        |
+| `route`         | form/stream → destination, with rules (window, quality, digest).   |
+| `delivery`      | One attempt-tracked send of one submission via one route.          |
+| `drift`         | A change in what a form actually receives vs. its declared schema. |
 
 ## The three calls that matter
 
@@ -60,6 +60,11 @@ dropped**.
    `GET /v1/deliveries/{id}` and see `sent` — this is how you verify a destination
    without a browser or a human.
 
+   When a Form has an allowed origin, include the browser's `Origin` header in the
+   test. Postbag compares canonical origins, so paths, trailing slashes, host casing,
+   and default ports normalize automatically. A no-Origin curl does not prove the
+   browser path works.
+
 ## Conventions
 
 - IDs are prefixed and self-describing: `fm_…` form, `sb_…` submission, `st_…`
@@ -69,6 +74,12 @@ dropped**.
 - Every error is `{ error: { code, message, hint, docs } }` — `hint` says what to
   do next, `docs` is a deep link.
 - Every create response includes `next[]`: ready-to-send follow-up calls.
+- A quarantined submission is stored but not delivered. Fetch it with
+  `GET /v1/submissions/{id}` and inspect `quarantine_reason`:
+  `origin_rejected`, `schema_violation`, `rate_limited`, `turnstile_failed`, or
+  `over_quota`. After resolving the cause, `PATCH` it to `{"status":"received"}`
+  to release it and queue delivery. An `over_quota` release returns
+  `plan_limit_reached` until the current plan has capacity.
 - `Idempotency-Key` header is honoured on every `POST` under `/v1`. Creates also
   support `if_exists: "return"` for idempotency by `(project, slug)` / `(org, slug)`.
 - Cursor pagination: `?cursor=&limit=` (max 200), opaque cursors.

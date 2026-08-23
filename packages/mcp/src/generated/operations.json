@@ -574,7 +574,7 @@
     "method": "post",
     "path": "/v1/quickstart",
     "summary": "One call to a working, routed form",
-    "description": "Creates (idempotently, by name within project) the project if missing, the form, a destination for whichever of notify_email/telegram/webhook was given, and a direct route, then returns the form, an embeddable snippet, a curl command to verify delivery, and next steps. Everything it does is also available as individual calls (POST /v1/forms, /v1/destinations, /v1/routes); this is a convenience, not a special path.",
+    "description": "Creates (idempotently, by name within project) the project if missing, the form, a destination for whichever of notify_email/telegram/webhook was given, and a direct route, then returns the form, an embeddable snippet, a browser-equivalent curl command to verify delivery, and next steps. Allowed origins are compared canonically, so paths, trailing slashes, host casing, and default ports do not cause mismatches. Everything it does is also available as individual calls (POST /v1/forms, /v1/destinations, /v1/routes); this is a convenience, not a special path.",
     "tags": [
       "discovery"
     ],
@@ -1523,7 +1523,7 @@
     "method": "patch",
     "path": "/v1/submissions/{submissionId}",
     "summary": "Change status (re-routes if moving to received)",
-    "description": "Moving a quarantined submission to `received` re-runs routing and queues deliveries for it.",
+    "description": "Moving a quarantined submission to `received` re-runs routing and queues deliveries for it. An `over_quota` submission stays quarantined until the current plan has capacity.",
     "tags": [
       "submissions"
     ],

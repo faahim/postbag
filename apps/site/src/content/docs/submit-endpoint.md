@@ -52,7 +52,7 @@ Every error body is `{ "error": { "code", "message", "hint", "docs" } }`. See [E
 
 ## CORS
 
-`settings.allowed_origins` doubles as the CORS allowlist for fetch-based submissions. Empty means any origin may post (and the `Access-Control-Allow-Origin` echoes the request origin). `GET /s/{formId}/schema` (managed forms) is always CORS-open.
+`settings.allowed_origins` doubles as the CORS allowlist for fetch-based submissions. Postbag compares canonical origins: paths and trailing slashes are ignored, host casing is normalized, and default ports are equivalent. Non-default ports remain distinct. Empty means any origin may post (`Access-Control-Allow-Origin: *`). `GET /s/{formId}/schema` (managed forms) is always CORS-open.
 
 ## Metadata stored with each submission
 

@@ -35,7 +35,8 @@ const quickstartRoute = createRoute({
   description:
     "Creates (idempotently, by name within project) the project if missing, the form, a destination for " +
     "whichever of notify_email/telegram/webhook was given, and a direct route, then returns the form, an " +
-    "embeddable snippet, a curl command to verify delivery, and next steps. Everything it does is also " +
+    "embeddable snippet, a browser-equivalent curl command to verify delivery, and next steps. Allowed origins " +
+    "are compared canonically, so paths, trailing slashes, host casing, and default ports do not cause mismatches. Everything it does is also " +
     "available as individual calls (POST /v1/forms, /v1/destinations, /v1/routes); this is a convenience, not a special path.",
   request: { body: { content: { "application/json": { schema: QuickstartInputSchema } } } },
   responses: {
@@ -219,6 +220,12 @@ export function registerQuickstartRoutes(app: OpenAPIHono<AppEnv>, db: Database,
 
     const submitUrl = `${appUrl}/s/${form.id}`
     const embed = renderEmbed(submitUrl, undefined)
+    const allowedOrigins = form.settings["allowed_origins"]
+    const persistedOrigin =
+      Array.isArray(allowedOrigins) && typeof allowedOrigins[0] === "string"
+        ? new URL(allowedOrigins[0]).origin
+        : undefined
+    const verifyOrigin = persistedOrigin === undefined ? "" : ` -H 'Origin: ${persistedOrigin}'`
 
     const body: z.infer<typeof QuickstartResponseSchema> = {
       form: serializeForm(form, appUrl, [], { submissions: 0, lastSubmissionAt: null }),
@@ -226,7 +233,7 @@ export function registerQuickstartRoutes(app: OpenAPIHono<AppEnv>, db: Database,
       routes: createdRoutes.map(serializeRoute),
       embed,
       verify: {
-        curl: `curl -X POST ${submitUrl} -H 'Content-Type: application/json' -d '{"_test":true,"email":"you@example.com","message":"Hello"}'`,
+        curl: `curl -X POST ${submitUrl} -H 'Content-Type: application/json'${verifyOrigin} -d '{"_test":true,"email":"you@example.com","message":"Hello"}'`,
         then: `GET /v1/forms/${form.id}/submissions?limit=1`,
       },
       next:

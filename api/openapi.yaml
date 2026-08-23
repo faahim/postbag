@@ -645,6 +645,9 @@ components:
           type:
             - string
             - "null"
+          description: "Machine-readable reason when status is quarantined:
+            schema_violation, rate_limited, origin_rejected, turnstile_failed,
+            or over_quota. Null for received or spam submissions."
         test:
           type: boolean
         data:
@@ -2617,8 +2620,10 @@ paths:
       description: Creates (idempotently, by name within project) the project if
         missing, the form, a destination for whichever of
         notify_email/telegram/webhook was given, and a direct route, then
-        returns the form, an embeddable snippet, a curl command to verify
-        delivery, and next steps. Everything it does is also available as
+        returns the form, an embeddable snippet, a browser-equivalent curl
+        command to verify delivery, and next steps. Allowed origins are compared
+        canonically, so paths, trailing slashes, host casing, and default ports
+        do not cause mismatches. Everything it does is also available as
         individual calls (POST /v1/forms, /v1/destinations, /v1/routes); this is
         a convenience, not a special path.
       requestBody:
@@ -4020,7 +4025,8 @@ paths:
         - submissions
       summary: Change status (re-routes if moving to received)
       description: Moving a quarantined submission to `received` re-runs routing and
-        queues deliveries for it.
+        queues deliveries for it. An `over_quota` submission stays quarantined
+        until the current plan has capacity.
       parameters:
         - schema:
             type: string
