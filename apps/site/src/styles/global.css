@@ -45,7 +45,8 @@
   --image-outline: rgba(0, 0, 0, 0.1);
   --canvas-grain-image: url("/brand/interface-grain-v1.webp");
   --canvas-grain-size: 40rem;
-  --canvas-grain-opacity: 0.075;
+  --canvas-grain-opacity: 0.105;
+  --canvas-grain-ink-opacity: 0.115;
   --canvas-grain-blend: multiply;
 
   --font-display: "Bricolage Grotesque Variable", "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
@@ -114,7 +115,7 @@
   --shadow-lg: 0 12px 24px oklch(0 0 0 / 0.4), 0 4px 8px oklch(0 0 0 / 0.28), 0 0 0 1px oklch(1 0 0 / 0.05);
   --shadow-xl: 0 24px 48px oklch(0 0 0 / 0.5), 0 8px 16px oklch(0 0 0 / 0.3), 0 0 0 1px oklch(1 0 0 / 0.06);
   --image-outline: rgba(255, 255, 255, 0.1);
-  --canvas-grain-opacity: 0.095;
+  --canvas-grain-opacity: 0.125;
   --canvas-grain-blend: screen;
 }
 
@@ -232,7 +233,7 @@
     background-size: var(--canvas-grain-size);
     background-repeat: repeat;
     mix-blend-mode: screen;
-    opacity: 0.085;
+    opacity: var(--canvas-grain-ink-opacity);
     content: "";
   }
 
@@ -576,11 +577,12 @@
     /* Compensated for the glow layer's 12% overscan: visible origin = 61% 34%. */
     --hero-glow-x: 58.9%;
     --hero-glow-y: 37.1%;
+    --hero-transition-color: oklch(0.115 0.042 272);
     position: relative;
     overflow: hidden;
     min-height: clamp(41rem, 100dvh, 50rem);
     color: oklch(0.965 0.014 278);
-    background: oklch(0.115 0.042 272);
+    background: var(--hero-transition-color);
   }
   .hero-scene {
     position: absolute;
@@ -624,7 +626,13 @@
     z-index: 2;
     inset: 0;
     pointer-events: none;
-    background: linear-gradient(to bottom, transparent 44%, oklch(0.105 0.038 272 / 0.16) 58%, oklch(0.105 0.038 272 / 0.38));
+    background: linear-gradient(
+      to bottom,
+      transparent 42%,
+      oklch(0.105 0.038 272 / 0.18) 56%,
+      color-mix(in oklch, var(--hero-transition-color) 78%, transparent) 72%,
+      var(--hero-transition-color) 86%
+    );
   }
   .hero-scene[data-copy-pulse] {
     animation: hero-scene-acknowledge var(--duration-acknowledge) linear both;
@@ -848,7 +856,15 @@
       min-height: max(40rem, 100dvh);
     }
     .hero-scene img { object-position: center top; }
-    .hero-scene::after { background: linear-gradient(to bottom, transparent 40%, oklch(0.105 0.038 272 / 0.1) 51%, oklch(0.105 0.038 272 / 0.3)); }
+    .hero-scene::after {
+      background: linear-gradient(
+        to bottom,
+        transparent 36%,
+        oklch(0.105 0.038 272 / 0.14) 49%,
+        color-mix(in oklch, var(--hero-transition-color) 76%, transparent) 68%,
+        var(--hero-transition-color) 82%
+      );
+    }
     .hero-message {
       grid-template-columns: minmax(0, 1fr);
       gap: 1.75rem;

@@ -53,7 +53,8 @@
   /* ---- material canvas -------------------------------------------------- */
   --canvas-grain-image: url("/brand/interface-grain-v1.webp");
   --canvas-grain-size: 40rem;
-  --canvas-grain-opacity: 0.055;
+  --canvas-grain-opacity: 0.08;
+  --canvas-grain-ink-opacity: 0.105;
   --canvas-grain-blend: multiply;
 
   /* ---- radius scale — tighter than shadcn default ------------------------ */
@@ -279,7 +280,7 @@
   --border: oklch(0.34 0.052 274 / 0.7);
   --input: oklch(0.34 0.052 274);
   --ring: oklch(0.78 0.13 278 / 0.55);
-  --canvas-grain-opacity: 0.07;
+  --canvas-grain-opacity: 0.095;
   --canvas-grain-blend: screen;
 
   --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.24);

@@ -130,7 +130,7 @@
     background-size: var(--canvas-grain-size);
     background-repeat: repeat;
     mix-blend-mode: screen;
-    opacity: 0.08;
+    opacity: var(--canvas-grain-ink-opacity);
     content: "";
   }
 
