@@ -256,6 +256,7 @@
   .hero-scene picture {
     position: relative;
     z-index: 0;
+    translate: 0 var(--hero-art-shift, 0px);
   }
   .hero-scene img {
     object-fit: cover;
@@ -270,6 +271,7 @@
     pointer-events: none;
     opacity: 0;
     transform: scale(0.82);
+    translate: 0 var(--hero-art-shift, 0px);
     transform-origin: var(--hero-glow-x) var(--hero-glow-y);
     background: radial-gradient(circle at var(--hero-glow-x) var(--hero-glow-y), oklch(0.9 0.11 278 / 0.4) 0%, oklch(0.72 0.15 279 / 0.17) 24%, transparent 56%);
     mix-blend-mode: screen;
@@ -500,6 +502,7 @@
       /* Compensated mobile origin = 60% 21%. */
       --hero-glow-x: 58.1%;
       --hero-glow-y: 26.6%;
+      --hero-art-shift: clamp(1.5rem, 4dvh, 2.75rem);
       min-height: max(40rem, 100dvh);
     }
     .hero-scene img { object-position: center top; }
@@ -507,7 +510,7 @@
     .hero-message {
       grid-template-columns: minmax(0, 1fr);
       gap: 1.75rem;
-      inset: auto 0 2.5rem;
+      inset: clamp(12.5rem, calc(100dvh - 29rem), 23rem) 0 auto;
     }
     .hero-title { font-size: 2.85rem; line-height: 0.96; }
     .hero-lede { font-size: 1rem; }
