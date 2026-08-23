@@ -1,6 +1,13 @@
 import { newId } from "@postbag/core"
 import { and, eq, isNull, lt, or } from "drizzle-orm"
-import { events, forms, organizationSettings, submissions, type Database } from "@postbag/db"
+import {
+  deleteExpiredAnonymousSandboxes,
+  events,
+  forms,
+  organizationSettings,
+  submissions,
+  type Database,
+} from "@postbag/db"
 
 import type { Logger } from "../logger.js"
 import { limitsFor } from "../lib/plan.js"
@@ -38,7 +45,12 @@ export async function runPlanExpirySweep(db: Database, logger: Logger): Promise<
   const expired = await db
     .select()
     .from(organizationSettings)
-    .where(and(eq(organizationSettings.planSource, "complimentary"), lt(organizationSettings.planExpiresAt, now)))
+    .where(
+      and(
+        eq(organizationSettings.planSource, "complimentary"),
+        lt(organizationSettings.planExpiresAt, now),
+      ),
+    )
 
   for (const org of expired) {
     try {
@@ -53,7 +65,13 @@ export async function runPlanExpirySweep(db: Database, logger: Logger): Promise<
       await db.transaction(async (tx) => {
         await tx
           .update(organizationSettings)
-          .set({ plan: "free", planSource: "free", planNote: null, planExpiresAt: null, updatedAt: now })
+          .set({
+            plan: "free",
+            planSource: "free",
+            planNote: null,
+            planExpiresAt: null,
+            updatedAt: now,
+          })
           .where(eq(organizationSettings.organizationId, org.organizationId))
         await tx.insert(events).values({
           id: newId("ev"),
@@ -64,7 +82,10 @@ export async function runPlanExpirySweep(db: Database, logger: Logger): Promise<
         })
       })
     } catch (error) {
-      logger.warn({ err: error, organization_id: org.organizationId }, "plan expiry sweep failed for organization")
+      logger.warn(
+        { err: error, organization_id: org.organizationId },
+        "plan expiry sweep failed for organization",
+      )
     }
   }
 }
@@ -72,12 +93,19 @@ export async function runPlanExpirySweep(db: Database, logger: Logger): Promise<
 export async function runRetentionSweep(db: Database, logger: Logger): Promise<void> {
   const now = new Date()
   const settings = await db
-    .select({ organizationId: organizationSettings.organizationId, plan: organizationSettings.plan, limits: organizationSettings.limits })
+    .select({
+      organizationId: organizationSettings.organizationId,
+      plan: organizationSettings.plan,
+      limits: organizationSettings.limits,
+    })
     .from(organizationSettings)
 
   for (const organizationSetting of settings) {
     try {
-      const retentionDays = limitsFor(organizationSetting.plan, organizationSetting.limits).retention_days
+      const retentionDays = limitsFor(
+        organizationSetting.plan,
+        organizationSetting.limits,
+      ).retention_days
       const retentionCutoff = new Date(now.getTime() - retentionDays * 24 * 60 * 60_000)
       const testCutoff = new Date(now.getTime() - 24 * 60 * 60_000)
       await db
@@ -92,7 +120,20 @@ export async function runRetentionSweep(db: Database, logger: Logger): Promise<v
           ),
         )
     } catch (error) {
-      logger.warn({ err: error, organization_id: organizationSetting.organizationId }, "retention sweep failed for organization")
+      logger.warn(
+        { err: error, organization_id: organizationSetting.organizationId },
+        "retention sweep failed for organization",
+      )
     }
+  }
+}
+
+/** ADR-008 cleanup. Expiry is enforced on every operation; this only reclaims storage. */
+export async function runAnonymousSandboxCleanup(db: Database, logger: Logger): Promise<void> {
+  try {
+    const deleted = await deleteExpiredAnonymousSandboxes(db)
+    if (deleted > 0) logger.info({ deleted }, "anonymous sandbox cleanup complete")
+  } catch (error) {
+    logger.warn({ err: error }, "anonymous sandbox cleanup failed")
   }
 }

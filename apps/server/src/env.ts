@@ -31,6 +31,8 @@ const EnvSchema = z
     MAIL_FROM: z.string().default("Postbag <notify@postbag.dev>"),
     MIGRATE_ON_BOOT: BooleanFromString,
     RLS_ENFORCED: BooleanFlagDefaultFalse,
+    ANONYMOUS_QUICKSTART_ENABLED: BooleanFlagDefaultFalse,
+    ANONYMOUS_SANDBOX_GLOBAL_LIMIT: z.coerce.number().int().positive().default(1000),
     POLAR_ACCESS_TOKEN: z.string().optional(),
     POLAR_WEBHOOK_SECRET: z.string().optional(),
     POLAR_SERVER: z.enum(["production", "sandbox"]).default("production"),
@@ -74,8 +76,18 @@ const EnvSchema = z
   })
   .superRefine((data, ctx) => {
     const pairs: readonly [string, string | undefined, string, string | undefined][] = [
-      ["GOOGLE_CLIENT_ID", data.GOOGLE_CLIENT_ID, "GOOGLE_CLIENT_SECRET", data.GOOGLE_CLIENT_SECRET],
-      ["GITHUB_CLIENT_ID", data.GITHUB_CLIENT_ID, "GITHUB_CLIENT_SECRET", data.GITHUB_CLIENT_SECRET],
+      [
+        "GOOGLE_CLIENT_ID",
+        data.GOOGLE_CLIENT_ID,
+        "GOOGLE_CLIENT_SECRET",
+        data.GOOGLE_CLIENT_SECRET,
+      ],
+      [
+        "GITHUB_CLIENT_ID",
+        data.GITHUB_CLIENT_ID,
+        "GITHUB_CLIENT_SECRET",
+        data.GITHUB_CLIENT_SECRET,
+      ],
     ]
     for (const [idKey, idValue, secretKey, secretValue] of pairs) {
       const hasId = idValue !== undefined && idValue.length > 0
@@ -108,6 +120,8 @@ export type Env = {
   readonly MAIL_FROM: string
   readonly MIGRATE_ON_BOOT: boolean
   readonly RLS_ENFORCED: boolean
+  readonly ANONYMOUS_QUICKSTART_ENABLED: boolean
+  readonly ANONYMOUS_SANDBOX_GLOBAL_LIMIT: number
   readonly POLAR_ACCESS_TOKEN?: string | undefined
   readonly POLAR_WEBHOOK_SECRET?: string | undefined
   readonly POLAR_SERVER: "production" | "sandbox"

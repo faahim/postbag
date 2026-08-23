@@ -4,7 +4,7 @@
     "method": "get",
     "path": "/v1/auth/providers",
     "summary": "Which sign-in methods this instance has configured",
-    "description": "Public, unauthenticated — no API key needed. Email+password is always available. `social` lists only the OAuth providers this instance has both a client id and secret for (self-host parity: a self-hosted instance with neither configured returns an empty list). The dashboard calls this once, cached, to decide which social sign-in buttons to render.",
+    "description": "Public, unauthenticated. Email/password reports sign-in and sign-up separately because hosted Postbag keeps password sign-in for existing users while disabling new password registration. `social` lists only the OAuth providers this instance has both a client id and secret for (self-host parity: a self-hosted instance with neither configured returns an empty list). The dashboard calls this once, cached, to decide which social sign-in buttons to render.",
     "tags": [
       "discovery"
     ],
@@ -19,7 +19,32 @@
     "tags": [
       "billing"
     ],
-    "params": [],
+    "params": [
+      {
+        "name": "webhook-id",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "webhook-timestamp",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "webhook-signature",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
     "body": {
       "type": "object",
       "additionalProperties": {}
@@ -95,6 +120,83 @@
         "code"
       ]
     }
+  },
+  {
+    "operationId": "public_sandboxes_create",
+    "method": "post",
+    "path": "/v1/public/sandboxes",
+    "summary": "Create a bounded 24-hour sandbox Form without an account",
+    "description": "Requires a canonical UUIDv4 Idempotency-Key. Creates an inert sandbox Form that can accept at most five test Submissions and cannot create Destinations, Routes, Deliveries, Events or outbound traffic.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [
+      {
+        "name": "idempotency-key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "description": "Canonical lowercase UUIDv4 generated with a CSPRNG."
+        },
+        "description": "Canonical lowercase UUIDv4 generated with a CSPRNG."
+      }
+    ],
+    "body": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "origin": {
+          "type": "string",
+          "format": "uri",
+          "description": "The site origin allowed to submit, canonicalized before storage."
+        },
+        "claim_email": {
+          "type": "string",
+          "format": "email",
+          "description": "Optional verified-email binding. Include only when the user explicitly supplied it."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "operationId": "public_sandboxes_get",
+    "method": "get",
+    "path": "/v1/public/sandboxes/{id}",
+    "summary": "Read a sandbox and its bounded Submissions using the sandbox capability",
+    "tags": [
+      "discovery"
+    ],
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      },
+      {
+        "name": "authorization",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "description": "Sandbox <sandbox_token>"
+        },
+        "description": "Sandbox <sandbox_token>"
+      }
+    ],
+    "body": null
   },
   {
     "operationId": "invitations_get",
@@ -644,6 +746,38 @@
         "name"
       ]
     }
+  },
+  {
+    "operationId": "sandboxes_claim",
+    "method": "post",
+    "path": "/v1/sandboxes/{id}/claim",
+    "summary": "Claim a sandbox Form into the active organization",
+    "description": "Requires both an authenticated manage-scoped actor and the sandbox capability in Postbag-Sandbox-Token. The Form id and submit URL remain unchanged.",
+    "tags": [
+      "forms"
+    ],
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "fm_8f3kq2"
+        }
+      },
+      {
+        "name": "postbag-sandbox-token",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "description": "The sandbox token returned at creation."
+        },
+        "description": "The sandbox token returned at creation."
+      }
+    ],
+    "body": null
   },
   {
     "operationId": "projects_list",

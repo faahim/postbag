@@ -12,7 +12,12 @@ import type { ResolvedConfig } from "./config.js"
 import type { FetchLike } from "./httpClient.js"
 import { OPERATIONS } from "./operations.js"
 import { RESOURCES, RESOURCE_TEMPLATES, readResource } from "./resources.js"
-import { EXPLAIN_TOOL_NAME, buildToolCatalogue, callExplainTool, callOperationTool } from "./tools.js"
+import {
+  EXPLAIN_TOOL_NAME,
+  buildToolCatalogue,
+  callExplainTool,
+  callOperationTool,
+} from "./tools.js"
 
 export const SERVER_NAME = "postbag-mcp"
 export const SERVER_VERSION = "0.1.0"
@@ -38,8 +43,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 // eslint-disable-next-line @typescript-eslint/no-deprecated -- see the doc comment above
 export function createServer(options: CreateServerOptions): Server {
   const config: CreateServerOptions = {
-    apiKey: options.apiKey,
     apiUrl: options.apiUrl,
+    ...(options.apiKey === undefined ? {} : { apiKey: options.apiKey }),
     ...(options.fetchImpl !== undefined ? { fetchImpl: options.fetchImpl } : {}),
   }
   const { tools, index } = buildToolCatalogue(OPERATIONS)
@@ -60,13 +65,25 @@ export function createServer(options: CreateServerOptions): Server {
 
     const entry = index.get(name)
     if (entry === undefined) {
-      return { isError: true, content: [{ type: "text", text: JSON.stringify({ error: { code: "unknown_tool", message: `No such tool: ${name}` } }) }] }
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              error: { code: "unknown_tool", message: `No such tool: ${name}` },
+            }),
+          },
+        ],
+      }
     }
     return callOperationTool(config, entry, args)
   })
 
   server.setRequestHandler(ListResourcesRequestSchema, () => ({ resources: RESOURCES }))
-  server.setRequestHandler(ListResourceTemplatesRequestSchema, () => ({ resourceTemplates: RESOURCE_TEMPLATES }))
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, () => ({
+    resourceTemplates: RESOURCE_TEMPLATES,
+  }))
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     const content = await readResource(config, request.params.uri)
     return { contents: [content] }

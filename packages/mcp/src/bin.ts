@@ -6,12 +6,6 @@ import { createServer } from "./server.js"
 
 async function main(): Promise<void> {
   const resolved = resolveConfig(process.argv.slice(2), process.env)
-  if ("error" in resolved) {
-    process.stderr.write(`${resolved.error}\n`)
-    process.exitCode = 1
-    return
-  }
-
   const server = createServer(resolved)
   const transport = new StdioServerTransport()
   await server.connect(transport)

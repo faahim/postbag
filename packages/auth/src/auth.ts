@@ -93,6 +93,9 @@ export type CreateAuthOptions = {
    * config before calling in, rather than relying on that error reaching it.
    */
   readonly sendEmailOTP?: ((input: SendEmailOTPInput) => Promise<void>) | undefined
+  /** Hosted Postbag disables new password registration server-side while preserving
+   * password sign-in for existing accounts. Self-hosted instances keep it by default. */
+  readonly disableEmailPasswordSignUp?: boolean | undefined
 }
 
 function authRecordId(model: string): string {
@@ -118,7 +121,10 @@ export function createAuth(options: CreateAuthOptions) {
     secret: options.secret,
     baseURL: options.baseURL,
     trustedOrigins: [...options.trustedOrigins],
-    emailAndPassword: { enabled: true },
+    emailAndPassword: {
+      enabled: true,
+      disableSignUp: options.disableEmailPasswordSignUp ?? false,
+    },
     socialProviders: options.socialProviders,
     account: {
       accountLinking: {

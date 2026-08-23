@@ -24,7 +24,9 @@ type OpenapiDoc = {
   readonly components?: { readonly securitySchemes?: Readonly<Record<string, unknown>> }
 }
 
-function allOperations(doc: OpenapiDoc): { readonly path: string; readonly method: string; readonly op: OperationObject }[] {
+function allOperations(
+  doc: OpenapiDoc,
+): { readonly path: string; readonly method: string; readonly op: OperationObject }[] {
   const operations: { path: string; method: string; op: OperationObject }[] = []
   for (const [path, methods] of Object.entries(doc.paths)) {
     for (const [method, op] of Object.entries(methods)) {
@@ -47,7 +49,10 @@ describe("generated OpenAPI document", () => {
     expect(operations.length).toBeGreaterThanOrEqual(59)
 
     for (const { path, method, op } of operations) {
-      expect(op.operationId, `${method.toUpperCase()} ${path} is missing an operationId`).toBeDefined()
+      expect(
+        op.operationId,
+        `${method.toUpperCase()} ${path} is missing an operationId`,
+      ).toBeDefined()
       expect(op.operationId ?? "").toMatch(/^[a-z][a-z0-9_]*$/)
     }
 
@@ -75,15 +80,25 @@ describe("generated OpenAPI document", () => {
       "post /v1/auth/verify-code",
       "get /v1/invitations/{id}",
       "post /v1/billing/webhook",
+      "post /v1/public/sandboxes",
     ])
-    const v1Operations = allOperations(doc).filter(
-      ({ path, method }) => path.startsWith("/v1/") && !PUBLIC_V1_OPERATIONS.has(`${method} ${path}`),
-    )
+    const v1Operations = allOperations(doc).filter(({ path, method }) => {
+      const label = `${method} ${path}`
+      return (
+        path.startsWith("/v1/") &&
+        !PUBLIC_V1_OPERATIONS.has(label) &&
+        label !== "get /v1/public/sandboxes/{id}"
+      )
+    })
     expect(v1Operations.length).toBeGreaterThan(0)
     for (const { path, method, op } of v1Operations) {
       // No per-operation override — they inherit the document-level `security: [{ bearerAuth: [] }]`.
-      expect(op.security, `${method.toUpperCase()} ${path} should inherit the document security default`).toBeUndefined()
+      expect(
+        op.security,
+        `${method.toUpperCase()} ${path} should inherit the document security default`,
+      ).toBeUndefined()
     }
+    expect(doc.paths["/v1/public/sandboxes/{id}"]?.["get"]?.security).toEqual([{ sandboxAuth: [] }])
   })
 
   it("GET /v1/auth/providers is public (operationId auth_providers, security: [])", async () => {

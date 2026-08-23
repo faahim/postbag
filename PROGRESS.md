@@ -8,6 +8,13 @@ the rules and `docs/` for the design.
 ## Current state (update this block, don't append)
 
 - **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in *Next up*.
+- **Anonymous claimable quickstart implemented locally 2026-08-23 (ADR-008/009; production launch gated):** an agent can create a bounded
+  24-hour sandbox Form, wire and test durable receipt, then hand the owner a claim URL. Unclaimed Forms do not deliver;
+  claim transfers the setup into an organization. Marketing has approved future-state copy, but production must keep
+  the current email-code claim until the deployed create, test, expiry and claim paths pass end-to-end verification.
+  Live local Postgres proof covers idempotent creation, the exact-five concurrent cap, claim races, stable ids,
+  no retroactive Delivery, email-bound OTP claim and cleanup. Open gates: full repo checks, settled browser proof,
+  Cloudflare creation-route limit, trusted forwarded-IP verification and the production canary.
 - **Marketing/docs site:** `apps/site` (Astro 5 static, Tailwind v4, Motion), built into `apps/server/dist/site`
   and served at `/` by `apps/server/src/routes/staticSite.ts` (same image; `/app`, `/v1`, `/s`, `/health`,
   `/llms.txt`, `/openapi.json` reserved). `SITE_URL` env (default `https://postbag.dev`) sets canonical URLs;
@@ -179,7 +186,7 @@ codes are never written to the repo. Eric redeems it in Settings → Plan → "H
 sure the prompt's wrapped layout is CSS-only at first paint (300 ms screenshot showed a single clipped line).
 
 **Decisions today (all recorded above in detail):** AGPL+MIT; Polar (production org "Postbag", slug `pushkunni`);
-prices; anonymous quickstart declined; repo public; EU hosting; legal identity = Md Afiur
+prices; anonymous quickstart was declined on 2026-08-21 and superseded by ADR-008 on 2026-08-23; repo public; EU hosting; legal identity = Md Afiur
 Rahman, Dhaka 1209, hello@postbag.dev.
 
 **Still open, in priority order:** off-server backups (Cloudflare R2 in Coolify) → email verification on password
@@ -228,15 +235,17 @@ tokens in `~/Developer/smedja/.env` (Cloudflare token: DNS only; no Email Routin
    Until a password account is verified, Better Auth will not auto-link a same-email Google/GitHub sign-in
    (by design — pre-registration takeover); the sign-in page explains to use the password and connect from
    Settings. Also: resend-verification button in Settings → Profile.
-2e. **Agent onboarding** — (a)+(b) shipped (job H); (c) anonymous/claimable quickstart **declined by Fahim 2026-08-21**
-   (account-first stays; the email-code flow is the fast path). Kept for the record: (a) agent-assisted signup without a browser —
+2e. **Agent onboarding** — (a)+(b) shipped (job H); (c) anonymous/claimable quickstart **implemented locally 2026-08-23
+   under ADR-008/009; production launch gated**. Account-first with email code remains the live path until (c) passes its launch gate.
+   For the record: (a) agent-assisted signup without a browser —
    `POST /v1/auth/request-code {email}` → emailed 6-digit code (Better Auth `emailOTP` plugin) →
    `POST /v1/auth/verify-code {email, code, key_name}` creates user+org if new and returns a `pb_live_` manage key
    the agent stores in `~/.config/postbag/credentials.json`; (b) an Agent Skill in-repo (`skills/postbag/SKILL.md`,
    installable with `npx skills add faahim/postbag`, discoverable at `/.well-known/skills/`), with the landing page
-   offering "paste this to your agent"; (c) later: anonymous `POST /v1/quickstart` (no auth) that creates a 24-hour
-   sandbox form that stores but does not deliver, plus a `claim_url` that a Google/GitHub sign-in turns into a real
-   org — deliveries unlock after claim. (a)+(b) are cheap and safe; (c) needs Fahim's yes (abuse surface, retention).
+   offering "paste this to your agent"; (c) `POST /v1/public/sandboxes` (no auth) creates a 24-hour
+   sandbox Form that stores but does not deliver, plus a `claim_url` that sign-in turns into a real
+   organization — deliveries unlock after claim and Destination setup. (c) requires explicit retention, rate-limit,
+   bot-control and concurrency proof before production copy changes.
 3. Dogfood: portfolio contact form → Postbag. Then Smedja `forge` provisioning.
 4. ~~Marketing site~~ shipped (see Done). Still open: **domain cut-over to `postbag.dev`** (decided; change
    `SITE_URL` + Coolify `APP_URL` + Resend sending domain together, and add `https://postbag.dev` to
