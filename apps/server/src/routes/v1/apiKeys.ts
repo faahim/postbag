@@ -51,8 +51,14 @@ export async function mintApiKey(auth: Auth, input: MintApiKeyInput): Promise<Mi
   return created as unknown as MintedApiKey
 }
 
+export const ApiKeyNameSchema = z
+  .string()
+  .min(1)
+  .max(32)
+  .describe("A label to tell keys apart, e.g. 'CI deploy key'. Maximum 32 characters.")
+
 const ApiKeyCreateInputSchema = z.object({
-  name: z.string().min(1).optional().describe("A label to tell keys apart, e.g. 'CI deploy key'."),
+  name: ApiKeyNameSchema.optional(),
   scopes: z
     .array(ScopeSchema)
     .min(1)

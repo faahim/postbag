@@ -1201,6 +1201,8 @@ paths:
                   description: The 6-digit code from the email.
                 key_name:
                   type: string
+                  minLength: 1
+                  maxLength: 32
                   description: Defaults to "agent · <YYYY-MM-DD>".
                 scopes:
                   type: array
@@ -1814,7 +1816,9 @@ paths:
                 name:
                   type: string
                   minLength: 1
-                  description: A label to tell keys apart, e.g. 'CI deploy key'.
+                  maxLength: 32
+                  description: A label to tell keys apart, e.g. 'CI deploy key'. Maximum 32
+                    characters.
                 scopes:
                   type: array
                   items:
