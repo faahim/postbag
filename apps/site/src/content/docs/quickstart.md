@@ -1,11 +1,13 @@
 ---
 title: "Quickstart: your first form in three minutes"
-description: "Create a Postbag account, get a submit URL, point an HTML form at it, and receive the first submission by email. Works with plain HTML, fetch, React, Astro and Next.js."
+description: "Start with a claimable sandbox before signup, or create a routed Form from an account; then wire plain HTML, fetch, React, Astro or Next.js."
 order: 1
 section: Start
 ---
 
 The solo-dev test Postbag is held to: time from signup to the first email in your inbox under three minutes, meeting exactly one new noun (Form).
+
+An agent can start before signup with `postbag sandbox create`, wire and verify up to five test Submissions, then run `postbag login` and `postbag sandbox claim`. The sandbox expires after 24 hours, cannot deliver, and keeps the same Form id and submit URL when claimed. See the [agent guide](/docs/agents/) for the complete no-credential path.
 
 ## 1. Create an account and a form
 
@@ -27,7 +29,14 @@ The response contains `form.submit_url`, `embed.{html,fetch,react,astro,nextjs_a
 <form action="https://postbag.dev/s/fm_8f3kq2" method="POST">
   <label>Email<input type="email" name="email" required /></label>
   <label>Message<textarea name="message" required></textarea></label>
-  <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="position:absolute;left:-10000px" aria-hidden="true" />
+  <input
+    type="text"
+    name="_gotcha"
+    tabindex="-1"
+    autocomplete="off"
+    style="position:absolute;left:-10000px"
+    aria-hidden="true"
+  />
   <input type="hidden" name="_redirect" value="https://example.com/thanks" />
   <button type="submit">Send</button>
 </form>
