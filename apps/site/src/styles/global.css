@@ -231,6 +231,8 @@
   .btn-sm { @apply h-9 px-3.5 text-sm; }
 
   .hero-shell {
+    --hero-light-x: 61%;
+    --hero-light-y: 34%;
     position: relative;
     overflow: hidden;
     min-height: clamp(41rem, 100dvh, 50rem);
@@ -263,11 +265,12 @@
     content: "";
     position: absolute;
     z-index: 1;
-    inset: -12%;
+    inset: 0;
     pointer-events: none;
     opacity: 0;
     transform: scale(0.82);
-    background: radial-gradient(circle at 50% 34%, oklch(0.9 0.11 278 / 0.4) 0%, oklch(0.72 0.15 279 / 0.17) 24%, transparent 56%);
+    transform-origin: var(--hero-light-x) var(--hero-light-y);
+    background: radial-gradient(circle at var(--hero-light-x) var(--hero-light-y), oklch(0.9 0.11 278 / 0.4) 0%, oklch(0.72 0.15 279 / 0.17) 24%, transparent 56%);
     mix-blend-mode: screen;
   }
   .hero-scene::after {
@@ -279,20 +282,27 @@
     background: linear-gradient(to bottom, transparent 44%, oklch(0.105 0.038 272 / 0.16) 58%, oklch(0.105 0.038 272 / 0.38));
   }
   .hero-scene[data-copy-pulse] {
-    animation: hero-scene-acknowledge var(--duration-acknowledge) var(--ease-smooth-out) both;
+    animation: hero-scene-acknowledge var(--duration-acknowledge) linear both;
   }
   .hero-scene[data-copy-pulse]::before {
-    animation: hero-signal-wave var(--duration-acknowledge) var(--ease-smooth-out) both;
+    animation: hero-signal-wave var(--duration-acknowledge) linear both;
   }
   @keyframes hero-scene-acknowledge {
-    0%, 100% { filter: brightness(1) saturate(1); }
-    20% { filter: brightness(1.15) saturate(1.12); }
-    52% { filter: brightness(1.05) saturate(1.04); }
+    0%, 100% {
+      filter: brightness(1) saturate(1);
+    }
+    12% { filter: brightness(1.15) saturate(1.12); }
+    25% { filter: brightness(1.125) saturate(1.098); }
+    42% { filter: brightness(1.095) saturate(1.074); }
+    62% { filter: brightness(1.072) saturate(1.054); }
+    82% { filter: brightness(1.055) saturate(1.038); }
   }
   @keyframes hero-signal-wave {
     0% { opacity: 0; transform: scale(0.82); }
-    16% { opacity: 0.9; }
-    48% { opacity: 0.38; }
+    12% { opacity: 0.9; transform: scale(0.9); }
+    30% { opacity: 0.64; transform: scale(0.98); }
+    55% { opacity: 0.35; transform: scale(1.06); }
+    78% { opacity: 0.14; transform: scale(1.12); }
     100% { opacity: 0; transform: scale(1.16); }
   }
   .hero-message {
@@ -485,7 +495,11 @@
     .t-success-check svg path { animation: none !important; stroke-dashoffset: 0 !important; }
   }
   @media (max-width: 767px) {
-    .hero-shell { min-height: max(40rem, 100dvh); }
+    .hero-shell {
+      --hero-light-x: 60%;
+      --hero-light-y: 21%;
+      min-height: max(40rem, 100dvh);
+    }
     .hero-scene img { object-position: center top; }
     .hero-scene::after { background: linear-gradient(to bottom, transparent 40%, oklch(0.105 0.038 272 / 0.1) 51%, oklch(0.105 0.038 272 / 0.3)); }
     .hero-message {
