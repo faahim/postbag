@@ -18,7 +18,7 @@ export const TAGLINE = "A form backend that routes."
 /** The single line an agent pastes to set up a form. Shown in the hero, AgentNative and for-ai-agents. */
 export const AGENT_PROMPT = `Set up a contact form on this site with Postbag. Read ${LLMS_URL} first.`
 export const DESCRIPTION =
-  "Postbag is a form backend that routes. Point any HTML form at a Postbag endpoint; every submission is stored durably, then delivered to email, Telegram and signed webhooks by rules. Multi-tenant, self-hostable, and built for AI agents: one API key is enough to create, verify and route a form without a browser."
+  "Postbag is the open-source form backend built for agents. An agent can create, wire and test a Sandbox Form before signup; claim it to add Destinations, Routes and outbound Delivery."
 
 /**
  * The legal facts, single source of truth for /legal/*. Every legal page is generated from

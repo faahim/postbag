@@ -8,6 +8,11 @@ the rules and `docs/` for the design.
 ## Current state (update this block, don't append)
 
 - **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in *Next up*.
+- **Brand overhaul direction approved 2026-08-23; implementation started 2026-08-24:** `docs/BRAND.md` is the source
+  of truth. Core message: “Your forms have somewhere to go.” Positioning: the open-source form backend built for
+  agents. Visual direction: midnight-indigo tactile routing derived from the pocket logo; red returns to destructive
+  and rare status semantics. The routed aperture is the homepage hero direction. Marketing begins first, then the
+  quieter dashboard identity coat.
 - **Anonymous claimable quickstart live 2026-08-23 (ADR-008/009):** `ANONYMOUS_QUICKSTART_ENABLED=true`. Merge `54c4fd8`
   shipped the bounded 24-hour sandbox flow; closeout `b273d46` and API-key-name validation fix `bed1ebd` are deployed
   (`loqdcusasbxdn106nvgrsgu7`, `wqahvskwleapheboflsy0bin`, `mi1vbrf4wdgurxlgldp9hbuh`). Local Postgres, 308 tests,

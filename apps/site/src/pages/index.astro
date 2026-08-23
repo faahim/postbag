@@ -20,7 +20,7 @@ const faqs = [
   { q: "Does Postbag ever drop submissions?", a: "No. Spam, schema violations, rate-limit overflow, rejected origins and over-quota submissions are all stored with a status (received, quarantined or spam) and are visible in the inbox and the API. Data is only deleted by your action or your retention policy." },
   { q: "How is Postbag different from Formspree, Formspark or Getform?", a: "Three things: every submission is a durable row with an attempt-tracked delivery outbox; streams let many forms with different field names map onto one versioned schema and go to one partner or CRM; and the whole product is driven by one API with llms.txt, OpenAPI, a one-call quickstart and test submissions, so AI agents can set it up end to end. It also self-hosts as one container plus Postgres. See the <a href='/compare/'>comparison pages</a>." },
   { q: "Which destinations are supported?", a: "Email (via Resend, with Reply-To set from the submission), Telegram bot messages, and webhooks signed with HMAC-SHA256. Webhooks are the universal extension point; Slack and Discord are planned next." },
-  { q: "Can AI agents like Claude Code or Cursor use Postbag?", a: "Yes. An agent with only an API key can read GET /llms.txt and /openapi.json, call GET /v1/me, create a working routed form with POST /v1/quickstart, post a test submission with _test: true, and poll the resulting delivery ids to confirm it was sent. Every error carries a hint and a docs link; every create returns next steps." },
+  { q: "Can AI agents like Claude Code or Cursor use Postbag?", a: "Yes. An agent can read GET /llms.txt, create a 24-hour sandbox Form without credentials, wire its returned embed into the site, post up to five test Submissions and read them back. You authenticate only when you want to claim the same Form, keep its submit URL, and add Destinations and Routes. Every error carries a hint and a docs link; every create returns next steps." },
   { q: "Can I self-host Postbag?", a: "Yes. Postbag runs as one Docker image (api, worker or both) against one Postgres database, with a docker-compose file. The hosted product is the same image with billing turned on; no feature depends on a cloud-only service without a self-host path." },
   { q: "How much does it cost?", a: "The free plan includes 5 forms, 1,000 submissions a month, 5 destinations and 90-day retention. Pro is $15 a month ($12 billed yearly) and Team is $49 a month ($39 billed yearly); paid checkout is handled by Polar as our Merchant of Record. See <a href='/pricing/'>pricing</a> for the limits. Self-hosting is free and open source." },
 ]
@@ -40,5 +40,9 @@ const ld = [
   <Destinations />
   <SelfHost />
   <Faq items={faqs} class="mt-28 sm:mt-36" />
-  <CtaBand />
+  <CtaBand
+    title="Let your agent start without you."
+    body="It can create, wire and test a Form before you make an account. Claim it only when you want to keep it and send Submissions onward."
+    primary={{ href: "#agent-prompt", label: "Give this to your agent" }}
+  />
 </Base>

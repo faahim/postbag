@@ -47,6 +47,7 @@ const { code, lang = "text", title, class: className = "", copy = true, dense = 
       btn.querySelector(".copy-label")?.classList.add("invisible")
       const done = btn.querySelector<HTMLElement>(".copied-label")
       done?.classList.remove("hidden"); done?.classList.add("inline-flex")
+      block.dispatchEvent(new CustomEvent("postbag:codecopied", { bubbles: true }))
       timer = setTimeout(() => {
         swap?.setAttribute("data-state", "a")
         btn.querySelector(".copy-label")?.classList.remove("invisible")

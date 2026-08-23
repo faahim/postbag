@@ -2,28 +2,30 @@
 import CodeBlock from "@/components/CodeBlock.astro"
 import { API_URL, LLMS_URL, OPENAPI_URL } from "@/config"
 
-const keyFlow = `$ curl -X POST ${API_URL}/v1/auth/request-code -d '{"email":"you@example.com"}'
-{ "ok": true, "expires_in": 600, "next": "POST /v1/auth/verify-code with { email, code, key_name }" }
+const sandboxFlow = `$ curl -X POST ${API_URL}/v1/public/sandboxes \
+  -H "content-type: application/json" \
+  -H "Idempotency-Key: <uuidv4>" \
+  -d '{"name":"Contact","origin":"https://example.com"}'
 
-# a human reads the 6-digit code out of their inbox and gives it to the agent
+{ "sandbox": { "id": "fm_…", "submit_url": "${API_URL}/s/fm_…", "expires_at": "2026-08-25T09:00:00Z" },
+  "sandbox_token": "pbs_…", "embed": { "html": "<form …>" }, "next": [ … ] }
 
-$ curl -X POST ${API_URL}/v1/auth/verify-code -d '{"email":"you@example.com","code":"482913"}'
-{ "api_key": "pb_live_…", "organization": { "id": "org_…", "slug": "…", "name": "…" },
-  "user": { "email": "you@example.com", "created": true },
-  "next": [ "POST /v1/quickstart to create a routed form in one call", "GET /v1/me to see limits and what exists" ] }`
+$ curl ${API_URL}/v1/public/sandboxes/fm_… \
+  -H "Authorization: Sandbox pbs_…"
+{ "submissions": [{ "status": "received", "test": true }] }`
 
 const steps = [
-  { n: "Read", body: "The agent reads llms.txt (or just the prompt above) and calls GET /v1/me for context: organization, scopes, plan limits and what already exists." },
-  { n: "Mint a key", body: "No browser needed. A new email provisions an organization first; an existing email reuses its own. The key is shown once, so the agent stores it and moves on." },
-  { n: "Build", body: "POST /v1/quickstart creates the project, the form, an email destination and a route in one idempotent call, and returns the submit URL plus embed snippets." },
-  { n: "Verify", body: "It posts a _test submission and polls the delivery id until it reads sent, then writes postbag.json and a CLAUDE.md line into the repo so the next session finds the wiring." },
+  { n: "Read", body: "The agent reads llms.txt and learns the three anonymous calls, the fixed vocabulary and the exact limits." },
+  { n: "Create", body: "POST /v1/public/sandboxes creates a 24-hour Form and returns its stable submit URL, ready-made embeds and a one-time sandbox capability." },
+  { n: "Wire and test", body: "It puts the embed in the site, posts a test Submission and reads it back. The receipt is durable and inert: nothing is sent onward before claim." },
+  { n: "Claim when ready", body: "Only then do you authenticate. Claiming keeps the same Form id and submit URL; the agent can add Destinations and Routes and verify a new Delivery." },
 ] as const
 ---
 <section class="container-x mt-28 sm:mt-36" aria-labelledby="agents-heading" id="agents">
   <div class="max-w-2xl" data-reveal>
     <h2 id="agents-heading" class="text-3xl font-semibold text-balance sm:text-4xl">What the agent does with that prompt.</h2>
     <p class="mt-4 text-lg leading-relaxed text-muted-foreground">
-      No browser, no dashboard, no support ticket. Four calls, one human step in the middle to read a code out of an inbox.
+      No signup. No dashboard. Your agent can leave a working Form behind before you even make an account. You only step in if you want to keep it and send Submissions onward.
     </p>
   </div>
 
@@ -40,7 +42,7 @@ const steps = [
       ))}
     </ol>
     <div class="min-w-0" data-reveal style="--reveal-delay: 120ms">
-      <CodeBlock code={keyFlow} lang="bash" title="request-code → verify-code" dense />
+      <CodeBlock code={sandboxFlow} lang="bash" title="anonymous create → prove receipt" dense />
     </div>
   </div>
 

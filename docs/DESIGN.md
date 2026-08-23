@@ -6,6 +6,10 @@ interface people screenshot. That is a product requirement with the same weight 
 component system, one deliberate coat of identity, and relentless attention to
 feel. No bespoke design system.
 
+`BRAND.md` is the source of truth for positioning, voice and the tactile-routing
+visual direction. This document defines how product and marketing interfaces
+implement it.
+
 ## 1. Foundation: shadcn/ui, owned
 
 - **shadcn/ui** (Radix primitives + Tailwind), copied into `apps/web/src/components/ui`.
@@ -26,10 +30,10 @@ built:
 
 | Lever | Decision |
 |---|---|
-| **Typography** | Not Inter. Pick a humanist sans with personality for UI and a mono with character for ids, payloads and code (ids like `fm_8f3kq2` are everywhere; they should look *designed*). Tabular numerals on every count. |
-| **Colour** | Near-neutral surfaces with one warm wax-seal accent for actions and status moments. The logo has its own ink-indigo and periwinkle palette, preserving recognition on both light and dark surfaces. Light and dark both first-class; dark is not an inverted afterthought. |
+| **Typography** | Instrument Sans for UI, Bricolage Grotesque for marketing display moments, and JetBrains Mono for ids, payloads and code. Tabular numerals on every count. Do not begin the overhaul with a font migration. |
+| **Colour** | Midnight ink and ink-indigo carry marketing; periwinkle is the primary action and active-routing colour. Product surfaces stay quieter and near-neutral. Red is reserved for destructive semantics and rare status moments. Light and dark are both first-class. |
 | **Radius & density** | One radius scale, slightly tighter than shadcn default; comfortable density on the inbox, compact in tables. |
-| **Signature motif** | The primary logo is two submissions settling into a pocket. The postmark/stamp remains the recurring product motif on submission cards, delivery status and empty states. |
+| **Signature motif** | The primary logo is two Submissions settling into a pocket. Marketing uses the receiving aperture, luminous Form planes and restrained routing traces. Product UI borrows the same geometry quietly. The postmark may remain only where it communicates a real Submission or Delivery state. |
 | **Empty states** | Every list has a designed empty state that teaches the next action. The first-run Forms screen *is* the onboarding. |
 | **Iconography** | Lucide, one stroke width, never mixed sets. |
 
@@ -39,6 +43,9 @@ These are non-negotiable on every screen and are checked in review.
 
 - **Motion tokens, not ad-hoc durations.** `--duration-fast/base/slow`, `--ease-out-*`
   defined once; every transition references them. Reduced-motion respected.
+- **Composed ease-out, never toy motion.** Identity-facing movement settles quickly
+  without elastic or bounce easing. Existing bounce tokens are retired as each
+  affected surface moves into the new identity coat.
 - **Enter/exit choreography** for lists, sheets, dialogs, toasts; staggered reveals
   on the inbox; never a hard pop unless intentional.
 - **Optimistic UI** on every mutation that can be (toggle route, mark spam, retry

@@ -1,23 +1,56 @@
 ---
 import AgentPromptSwitcher from "@/components/AgentPromptSwitcher.astro"
-import { SIGNUP_URL } from "@/config"
 ---
-<section class="container-x pt-14 pb-16 sm:pt-20 lg:pt-24 lg:pb-24">
-  <div class="mx-auto max-w-[42rem] text-center" data-reveal-group="90">
-    <h1 class="display-tight text-[2.75rem] font-semibold leading-[1.02] sm:text-6xl" data-reveal>
-      A form backend that <em class="not-italic text-primary">routes</em>.
-    </h1>
-    <p class="mx-auto mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground sm:text-xl" data-reveal>
-      Paste one line into your coding agent and your site has a working, routed contact form. No dashboard, no human in the loop.
-    </p>
+<section class="hero-shell" data-hero>
+  <div class="hero-art" data-hero-asset aria-hidden="true" data-reveal>
+    <picture>
+      <source media="(max-width: 767px)" srcset="/brand/hero-system-mobile-v3.webp" width="864" height="1821" />
+      <img
+        src="/brand/hero-system-panorama-v3.webp"
+        width="1983"
+        height="793"
+        alt=""
+        fetchpriority="high"
+        loading="eager"
+        decoding="async"
+      />
+    </picture>
   </div>
 
-  <div class="mx-auto mt-10 max-w-2xl" data-reveal style="--reveal-delay: 120ms">
-    <AgentPromptSwitcher />
+  <div class="container-x hero-message" data-reveal-group="90">
+    <div class="hero-copy">
+      <p class="hero-kicker" data-reveal>Open source. Agent-native. Yours.</p>
+      <h1 class="display-tight hero-title" data-reveal>Your forms have somewhere to go.</h1>
+    </div>
+    <div class="hero-intro">
+      <p class="hero-lede" data-reveal>
+        Your agent can create, wire and test a working Form. No signup. No dashboard. Claim it when you want to keep it and send submissions onward.
+      </p>
+      <div class="hero-actions" data-reveal style="--reveal-delay: 120ms">
+        <a href="#agent-prompt" class="btn btn-primary">Give this to your agent</a>
+        <a href="/docs/self-hosting/" class="btn hero-secondary-action">Self-host Postbag</a>
+      </div>
+    </div>
   </div>
 
-  <div class="mx-auto mt-7 flex max-w-2xl flex-col items-center gap-3 text-center" data-reveal style="--reveal-delay: 180ms">
-    <a href={`${SIGNUP_URL}`} class="btn btn-secondary">Or create a form by hand</a>
-    <p class="text-xs text-muted-foreground">Submissions are stored the instant they land, never dropped, and delivered in under three minutes.</p>
+  <div class="container-x">
+    <div id="agent-prompt" class="hero-prompt" data-reveal style="--reveal-delay: 180ms">
+      <AgentPromptSwitcher class="hero-agent-prompt" />
+    </div>
   </div>
 </section>
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-hero]").forEach((hero) => {
+    const asset = hero.querySelector<HTMLElement>("[data-hero-asset]")
+    let reset: ReturnType<typeof setTimeout> | undefined
+    hero.addEventListener("postbag:codecopied", () => {
+      if (!asset) return
+      clearTimeout(reset)
+      asset.removeAttribute("data-copy-pulse")
+      void asset.offsetWidth
+      asset.setAttribute("data-copy-pulse", "")
+      reset = setTimeout(() => asset.removeAttribute("data-copy-pulse"), 2500)
+    })
+  })
+</script>
