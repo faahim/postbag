@@ -55,6 +55,14 @@ These are non-negotiable on every screen and are checked in review.
 - **Polish fundamentals:** optical alignment, font smoothing, hairline borders over
   heavy ones, layered shadows, image outlines, `tabular-nums`, focus rings that look
   intentional, hover states on everything clickable.
+- **Tactile controls on the grain.** The canvas grain is the heart of the material
+  language, and controls sit *on* it physically: buttons carry a top edge that
+  catches light, weight underneath, grain blended into the primary face, and a
+  press that visibly sinks in (`--btn-*` tokens). Toward tactile hardware, short
+  of skeuomorphism. Grain may be used creatively on other surfaces the same way.
+- **Graceful media.** Images never flash in: an inline LQIP paints instantly and
+  the real image fades + settles over it (`img.media-reveal`); cached loads
+  appear immediately.
 - **Performance is design:** skeletons over spinners, no layout shift, route-level
   code splitting, keyboard-first (⌘K command palette from day one).
 

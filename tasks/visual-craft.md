@@ -7,30 +7,30 @@ in recommended order. Line numbers are from the audit and may drift.
 
 ## 0. Fahim's directives (2026-08-25) — these outrank everything below
 
-- [ ] **Figures must be accurate or absent.** The Journey explainer
+- [x] **Figures must be accurate or absent.** The Journey explainer
   ("It lands before it travels") is inaccurate and reads as nonsense —
   redesign it so the visual literally tells the save→send story, or remove
   it. Every diagram on the site meets that bar: accurate, elegant, or gone.
-- [ ] **Code blocks are earned, not default.** Where a code block is a real
+- [x] **Code blocks are earned, not default.** Where a code block is a real
   artifact (submit snippets, the agent's API conversation) keep and polish
   it. Where it is decoration (the docker-compose block in SelfHost), replace
   the section with sleek typographic/visual design instead.
-- [ ] **No off-palette surface panels.** The "working handoff" section on
+- [x] **No off-palette surface panels.** The "working handoff" section on
   /for-ai-agents has an eyesore background. Sweep every page in both themes
   for surfaces that don't blend; audit every line/divider for intent.
-- [ ] **Graceful media.** Hero and CtaBand images pop in with a flash. Add
+- [x] **Graceful media.** Hero and CtaBand images pop in with a flash. Add
   low-res blur placeholders (LQIP) and a gentle fade + subtle scale settle
   when the real image arrives. No jitter, ever.
-- [ ] **Header motifs become world-building visuals.** The PageHeader
+- [x] **Header motifs become world-building visuals.** The PageHeader
   background mark (best seen on /for-ai-agents) is a poorly-executed icon
   stamped on the page. Recreate as a visual that melts into the surface —
   contextual, lovely, optionally with very light motion. Codex image
   generation is available for raster assets.
-- [ ] **Tactile buttons.** Plain flat fills don't honor the grain language.
+- [x] **Tactile buttons.** Plain flat fills don't honor the grain language.
   Buttons get physical elevation: layered/inner shadows, grain awareness,
   satisfying hover/press states — toward tactile hardware, short of
   skeuomorphism. Grain is the heart of the language; use it creatively.
-- [ ] **Process rule:** work in small verified batches (screenshot at
+- [x] **Process rule:** work in small verified batches (screenshot at
   1440/390, light+dark, before commit) so nothing ships below the bar.
 
 ## 1. Reads-as-broken (fix first, one short session)
@@ -39,11 +39,11 @@ in recommended order. Line numbers are from the audit and may drift.
   `.fleet-join` / `.fleet-split` (~:68-71) render as blank rectangles with a
   line at 1440px. Redraw as actual route traces (single stroked path /
   bracket without the boxed void), on-motif.
-- [ ] **`text-destructive` has no token.** `RoutingMark.astro:13` uses it but
+- [x] **`text-destructive` has no token.** `RoutingMark.astro:13` uses it but
   `global.css` defines no `--destructive` / `--color-destructive`; the
   `dead` status silently renders in inherited color. Add the token (red is
   reserved for destructive semantics per BRAND).
-- [ ] **Duplicate `.t-icon-swap` definition.** `global.css` ~:791-814 and
+- [x] **Duplicate `.t-icon-swap` definition.** `global.css` ~:791-814 and
   ~:919-933; second copy hardcodes blur/scale so `--icon-swap-*` tokens are
   dead. Keep one, tokenized.
 - [ ] **39 orphan error pages.** `pages/docs/errors/[code].astro` generated
@@ -74,30 +74,30 @@ in recommended order. Line numbers are from the audit and may drift.
   Settle 2–3 named stops.
 - [ ] **Radius literals.** `compare/[slug].astro` `1rem`/`0.25rem`,
   `pricing.astro` `99px` (vs `999px` elsewhere) — move onto the radius scale.
-- [ ] **Stagger rhythm.** `data-reveal-group` values 70/80/90ms across pages
+- [x] **Stagger rhythm.** `data-reveal-group` values 70/80/90ms across pages
   + hardcoded `${index * 50}ms` in `for-ai-agents.astro:93`. One token.
 
 ## 3. Motion unification (the "delight" lever)
 
-- [ ] **Theme toggle**: hard-pops via `hidden dark:block` (`Nav.astro:42-43`)
+- [x] **Theme toggle**: hard-pops via `hidden dark:block` (`Nav.astro:42-43`)
   — use the existing `.t-icon-swap` primitive. **Missing entirely on
   mobile** (`hidden sm:inline-flex`, drawer has no toggle) — add to drawer.
-- [ ] **FAQ accordion** (`Faq.astro`): unanimated height jump on 8 pages, no
+- [x] **FAQ accordion** (`Faq.astro`): unanimated height jump on 8 pages, no
   hover state on summary; only the `+` rotates. Animate open/close
   (grid-rows or interpolate-size), add hover, add reveal.
-- [ ] **Integration snippet tabs** hard-swap with `hidden`
+- [x] **Integration snippet tabs** hard-swap with `hidden`
   (`Integration.astro:87`) while `AgentPromptSwitcher` crossfades via
   `.panel-stack`. Use panel-stack for both.
-- [ ] **Missing transitions**: `Breadcrumbs.astro:11` (color snap),
+- [x] **Missing transitions**: `Breadcrumbs.astro:11` (color snap),
   `Footer.astro:80-84` bottom-row links (inconsistent with column links).
-- [ ] **Missing reveals**: 404, DocsLayout, LegalLayout, error pages,
+- [~] **Missing reveals** (404 + FAQ done): DocsLayout, LegalLayout, error pages,
   `Faq.astro`, `PageHeader.astro` — neighbours reveal, these pop.
-- [ ] **Retire the bounce ease** `--check-ease-bob: cubic-bezier(.34,1.35,…)`
+- [x] **Retire the bounce ease** `--check-ease-bob: cubic-bezier(.34,1.35,…)`
   (global.css ~:90) — DESIGN.md forbids overshoot on identity motion.
-- [ ] **Tokenize magic timeouts**: Hero copy reset 1800ms vs CodeBlock 1400ms
+- [x] **Tokenize magic timeouts**: Hero copy reset 1800ms vs CodeBlock 1400ms
   (same affordance, different rhythm); hero pulse `setTimeout(2500)` vs
   `--duration-acknowledge: 2400ms` (two sources of truth).
-- [ ] **`--ease-in-out` keyword** used on identity motion (copy-state swap,
+- [x] **`--ease-in-out` keyword** used on identity motion (copy-state swap,
   icon swap, panel stack) — move to `--ease-smooth-out` per DESIGN.md.
 
 ## 4. Judgment calls (decide with Fahim before building)
@@ -105,7 +105,7 @@ in recommended order. Line numbers are from the audit and may drift.
 - [ ] **Homepage scrolled nav** stays near-black over light sections while
   every interior page has a light nav. Options: adopt page theme after the
   hero, or keep ink and tune. Decide, then implement.
-- [ ] **Journey receiving slot** is a flat black ellipse in light mode
+- [x] **Journey receiving slot** is a flat black ellipse in light mode
   (`Journey.astro` `.receiving-slot`); reads as a rubber puck next to the
   hero's rendered depth. Give it the aperture treatment (gradient depth,
   faint periwinkle rim). Dark mode already reads well.
