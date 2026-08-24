@@ -85,7 +85,7 @@ the licence split.
 
 **Lede**
 
-> Your agent creates, wires and tests a working Form before you sign up. Claim it
+> Your agent can build, wire and test your form before you even sign up. Claim it
 > whenever you want.
 
 **Primary action**
@@ -102,57 +102,110 @@ confirm the copy.
 
 ### Useful supporting lines
 
-- **Agent-native:** Your agent can set up and test the Form. The dashboard is there
-  when you want it.
+These are the canonical phrasings. Reuse them verbatim where they fit, so the same
+promise never exists in three wordings.
+
+- **Agent-native:** Your agent can set up and test the form. The dashboard is
+  there when you want it.
 - **Open source:** Run it here, or run it yourself. Nothing important is held back.
 - **Cloud:** The same Postbag, without the server chores.
-- **Durability:** We save the Submission before we try to send it anywhere.
-- **Routing:** One Form or fifteen sites. Postbag keeps every Route understandable.
-- **Pricing:** Every product capability is on every plan. Plans differ by limits.
+- **Durability:** We save every message before we try to send it anywhere.
+- **Routing:** One form or fifteen sites — everything lands in one tidy place.
+- **Pricing:** Every plan gets the whole product. Plans differ by room, not
+  features.
 
 ### Homepage narrative
 
-1. The emotional promise and agent handoff.
-2. One submit URL and a stored test Submission.
-3. The agent creates, wires, and proves a sandbox Form.
-4. The owner claims it; the agent adds a Destination and Route.
-5. Save first, deliver second, retry with a record.
-6. One Form grows into shared Schemas, Routes, and many projects.
-7. Cloud and self-hosting are two doors into the same product.
+Value first, mechanism deferred. Each section answers a reader's question:
+
+1. The promise, and who does the work: your forms have somewhere to go, and your
+   agent can take it from here.
+2. "Will it fit my site?" — one URL, whatever your site already uses, with a live
+   form to try.
+3. "Can anything get lost?" — saved the moment it arrives; sending comes second.
+4. "What does the agent actually do?" — builds, wires, proves; you claim.
+5. "What if I have lots of forms?" — fifteen sites, one tidy place.
+6. "Why should I trust that?" — the promises are real rules, shown as an
+   artifact, framed so nobody has to read them.
+7. "Where does it go?" — your inbox, Telegram, anything with a URL.
+8. "Is it really mine?" — cloud and self-hosting are two doors into the same
+   product.
 
 ## Voice
 
-Postbag sounds like Fahim explaining a tool he cares about to another developer at
-the same desk. Keep the warmth and plain honesty. Leave the social-media shorthand,
-emoji, slang, and self-conscious quirks out of product copy.
+Postbag sounds like Fahim explaining a tool he cares about to a friend at the same
+desk. Warm, plain, a little playful, never impressed with itself. The reader might
+be a developer, a vibe coder, or neither — the words have to work for all three.
+Leave the social-media shorthand, emoji, slang, and self-conscious quirks out.
 
-### Calibration
+There are **two registers**. Know which one you are writing in before you type.
 
-- Warm: 8/10
-- Casual: 7/10
-- Formal: 3/10
-- Humorous: 2/10
-- Technically precise: 9/10
+### The marketing register
 
-### Rules
+Homepage, features, use cases, pricing, about, compare, CTAs, FAQ, empty states,
+404 — anywhere a person is deciding whether they like us.
 
-- Lead with what happens for the user, then explain the mechanism.
-- Prefer short sentences and concrete verbs: save, route, test, retry, run, inspect.
-- Put facts before adjectives.
-- Keep Postbag's fixed nouns exact: Form, Submission, Stream, Schema, Mapping,
-  Destination, Route, Delivery, and Drift.
-- Use light humour only when it releases tension. Never joke about security,
-  billing, data loss, or blocked work.
-- Use **I** only when Fahim is genuinely speaking, such as About or a founder note.
-  Never invent a team.
-- Machine docs speak literally to agents. Marketing speaks to people. Both stay
-  bluff-free.
+- **Talk about what the reader gets, never about how Postbag works inside.** The
+  machinery is the agent's business; deferring it to the agent *is* the product
+  promise. If humans must understand the internals to want Postbag, the page has
+  failed.
+- Calibration: warm 8/10 · casual 7/10 · humorous 4/10 · technical 2/10 ·
+  **concrete 9/10**. Plain is not vague — trust claims need specifics ("if your
+  email is down all weekend, nothing is lost; it's all still here on Monday"),
+  just never internals.
+- **Ordinary words:** form, message, inbox, send, save, claim, keep. The fixed
+  product nouns (Submission, Stream, Schema, Mapping, Route, Delivery, Drift)
+  belong to the product register and do not appear on marketing pages. "Form" is
+  an ordinary word here — lowercase.
+- **Blocklist on marketing pages:** schema, mapping, stream, outbox, worker,
+  idempotency, constraint, versioned, transaction, payload, HMAC, Postgres,
+  database. If a sentence needs one, the sentence belongs in the docs.
+- **Humor is dry, kind, and brief.** The reference joke: "This form is a Postbag
+  form. Of course it is." Never near data loss, security, or billing. Never wacky.
+- **Showing the machine as an artifact is welcome** — a real API response, a real
+  compose file, a real database rule, framed so the reader knows they never have
+  to read it ("this is what your agent sees; you never have to"). *Explaining*
+  the machine in prose is not.
+- **Tell one small story per surface.** The strongest warmth is a reader
+  recognising their own Saturday, not a joke. Each major surface gets at most
+  one micro-story — a person, a moment, a near-miss, a quiet save. The
+  reference story (homepage, Journey section): *"Someone fills in your form at
+  2am on a Saturday. Your email is mid-outage. On Monday the message is in
+  your inbox like nothing happened."* Everything around the story stays
+  declarative; two stories on one page cancel each other out.
+- **Subtraction budgets.** A page earns trust by saying each thing once: lede
+  ≤ 20 words (the page's one story may run longer), one supporting paragraph
+  per section, footnote items only when they add a fact the section has not
+  already stated, FAQ answers ≤ 40 words. If a sentence restates what a
+  neighbouring section already said, cut it — repetition across sections is
+  verbosity too.
+- **The read-aloud test**, before anything ships: would you say this sentence,
+  out loud, to a friend who asked what Postbag is? If not, rewrite it.
+
+### The product register
+
+Docs, quickstart, API reference, dashboard, error messages, /for-ai-agents, and
+agent-facing files (llms.txt, OpenAPI, the skill).
+
+- Technically precise: 9/10. The fixed vocabulary is law here: Form, Submission,
+  Stream, Schema, Mapping, Destination, Route, Delivery, Drift — capitalized,
+  one word per concept, no synonyms.
+- Still human: short sentences, concrete verbs (save, route, test, retry, run,
+  inspect), facts before adjectives.
+- Machine docs speak literally to agents. Both registers stay bluff-free.
+
+### Rules for both
+
+- Lead with what happens for the reader; the mechanism comes second, if at all.
+- Use **I** only when Fahim is genuinely speaking, such as About or a founder
+  note. "We" may refer to Postbag-the-service; never invent a team.
+- Never joke about security, billing, data loss, or blocked work.
 
 Avoid:
 
 `seamless`, `powerful`, `robust`, `leverage`, `supercharge`,
 `production-ready`, `enterprise-grade`, `AI-powered`, `effortless`,
-`revolutionary`, `magic`
+`revolutionary`, `magic`, `just works`
 
 ### Rewrite examples
 
@@ -170,8 +223,18 @@ Instead of:
 
 Write:
 
-> We save the Submission before we try to send it anywhere. If Delivery fails, the
-> Submission stays put and every attempt remains on the record.
+> We save every message before we try to send it anywhere. If sending fails, the
+> message stays put — and we keep trying.
+
+Instead of:
+
+> A Stream gives Forms one versioned output Schema. Mappings settle their
+> different field names before Routes send the shared shape onward.
+
+Write:
+
+> Forms on fifteen sites? Postbag lines them all up — mismatched field names and
+> all — so everything arrives in one tidy place. Your agent does the lining up.
 
 Instead of:
 
@@ -261,7 +324,9 @@ production consumers.
 2. Is the product claim supported by the current API and deployment?
 3. Does it use the settled palette, type, shape, and motion tokens?
 4. Does it work at desktop, tablet, mobile, keyboard, and reduced motion?
-5. Does every visible string use the fixed vocabulary and sound like a person?
+5. Is it in the right register — ordinary words on marketing surfaces, fixed
+   vocabulary on product surfaces — and does every sentence pass the read-aloud
+   test?
 6. Does it still feel like Postbag with the logo removed?
 
 If the last answer is no, the surface is relying on decoration instead of identity.

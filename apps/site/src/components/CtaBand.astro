@@ -4,8 +4,8 @@ import { Check, Copy } from "@lucide/astro"
 interface PrimaryAction { href?: string; label: string; copyText?: string }
 interface Props { title?: string; body?: string; primary?: PrimaryAction; secondary?: { href: string; label: string } }
 const {
-  title = "Give the Form job to your agent.",
-  body = "It can create, wire and test a working Form before you sign up. Claim it when you want to keep it and add a Destination and Route.",
+  title = "Give the form job to your agent.",
+  body = "It can build, wire and test the form before you even sign up. Claim it when it's worth keeping.",
   primary = { href: SIGNUP_URL, label: "Create a form" },
   secondary = { href: "/docs/quickstart/", label: "Read the quickstart" },
 } = Astro.props

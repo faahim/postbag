@@ -18,7 +18,7 @@ Postbag-Event: submission.received
 <section class="container-x mt-28 sm:mt-40" aria-labelledby="destinations-heading" id="destinations">
   <div class="max-w-3xl" data-reveal>
     <h2 id="destinations-heading" class="text-4xl font-semibold sm:text-6xl">Send it somewhere useful.</h2>
-    <p class="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">A Destination is reusable. A Route connects it to a Form or Stream. Your agent can test the Destination before trusting it with real Delivery.</p>
+    <p class="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">Your inbox, Telegram, your CRM — set up once, used by every form. Always testable before it matters.</p>
   </div>
 
   <div class="destination-rail mt-12">
@@ -39,14 +39,14 @@ Postbag-Event: submission.received
   <div class="mt-12 grid gap-8 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(0,1.35fr)] lg:gap-16">
     <div class="lg:pt-8" data-reveal>
       <h3 class="text-3xl font-semibold">Webhooks reach everything else.</h3>
-      <p class="mt-4 text-[17px] leading-relaxed text-muted-foreground">Every request carries a timestamped HMAC signature and Delivery id. A 2xx response is sent. A 410 disables the Destination. Other responses retry with a record.</p>
+      <p class="mt-4 text-[17px] leading-relaxed text-muted-foreground">Every webhook is signed, so your endpoint knows it's us. If your server naps, we keep knocking — every attempt on the record.</p>
       <div class="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-        <a href="/features/destinations/" class="font-medium text-primary underline-offset-4 hover:underline">Destination details</a>
+        <a href="/features/destinations/" class="font-medium text-primary underline-offset-4 hover:underline">More about destinations</a>
         <a href="/docs/webhooks/" class="font-medium text-primary underline-offset-4 hover:underline">Verify a signature</a>
       </div>
     </div>
     <div class="min-w-0" data-reveal style="--reveal-delay: var(--duration-quick)">
-      <CodeBlock code={webhook} lang="http" title="signed webhook Delivery" dense />
+      <CodeBlock code={webhook} lang="http" title="a signed webhook, delivered" dense />
     </div>
   </div>
 </section>

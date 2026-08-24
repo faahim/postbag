@@ -20,18 +20,18 @@ $ curl ${API_URL}/v1/public/sandboxes/fm_… \\
   "submissions": [{ "id": "sb_…", "received_at": "…" }] }`
 
 const steps = [
-  { title: "Create", body: "The response shows the sandbox capability once. The agent keeps it and can reuse it to verify receipt until claim or expiry." },
-  { title: "Wire", body: "The Form already has its permanent id and stable submit URL. The agent places the returned embed in your site." },
-  { title: "Prove", body: "Up to five test Submissions can be stored and read back for 24 hours. Nothing goes to a Destination yet." },
-  { title: "Claim", body: "Sign in only when you want to keep it. Claiming preserves the Form id and submit URL." },
-  { title: "Route", body: "Add a Destination and Route, then send a new test to verify a real Delivery. Earlier sandbox tests stay inert." },
+  { title: "Create", body: "Your agent asks Postbag for a form and gets one. No account, no API key, no waiting on you." },
+  { title: "Wire", body: "The form has its permanent address from day one. The agent wires it into your site." },
+  { title: "Prove", body: "It sends a few test messages and reads them back. You get proof, not promises." },
+  { title: "Claim", body: "Like what you see? Sign in and claim it. Same form, same address — now it's yours." },
+  { title: "Route", body: "Tell it where messages should go — your inbox, Telegram, wherever — and you're live." },
 ] as const
 ---
 <section class="agent-native-wrap mt-28 sm:mt-40" aria-labelledby="agents-heading" id="agents">
   <div class="container-x py-20 sm:py-28">
     <div class="max-w-3xl" data-reveal>
       <h2 id="agents-heading" class="text-4xl font-semibold sm:text-6xl">The agent can finish before you sign up.</h2>
-      <p class="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">It creates a working Form, wires the stable submit URL and proves Postbag stored a test. You step in when there is something worth keeping.</p>
+      <p class="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">It builds the form, wires it in, and proves messages arrive. You show up at the end to say "keep it."</p>
     </div>
 
     <div class="mt-14 grid gap-12 lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:gap-20">
@@ -48,7 +48,7 @@ const steps = [
       </ol>
       <div class="min-w-0" data-reveal style="--reveal-delay: var(--duration-quick)">
         <CodeBlock code={sandboxFlow} lang="bash" title="create, then prove receipt" dense />
-        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">The capability is shown only in the creation response. It is not single-use for status reads; it remains valid until the Form is claimed, expires or is blocked.</p>
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">This is the whole setup, exactly as your agent sees it. The nice part: you never have to read it.</p>
       </div>
     </div>
 

@@ -9,19 +9,19 @@ const crumbs = [ { name: "Home", href: "/" }, { name: "Pricing", href: "/pricing
 const pro = PLANS.find((p) => p.id === "pro")!
 const team = PLANS.find((p) => p.id === "team")!
 const faqs = [
-  { q: "Is Postbag free?", a: "Yes. Free includes 5 Forms, 1,000 Submissions a month, 5 Destinations and 90-day retention. It also includes Streams, Schemas, signed webhooks and the full agent surface." },
-  { q: "What happens over the Submission limit?", a: "Postbag still stores the Submission and marks it over quota. Delivery pauses until the plan allows it. Nothing already accepted is dropped. Test Submissions do not count." },
-  { q: "Do paid plans unlock product features?", a: "No. Hosted plans differ by limits. Team also includes seats, the audit log and compliance paperwork because those only make sense for a hosted Organization." },
-  { q: `Why is Pro $${pro.monthly} a month?`, a: "You are paying for the hosted operation: delivery, retries, retention, backups and less infrastructure to manage. The routing product itself is available on every plan and in the open-source repository." },
-  { q: "Who handles payment and invoices?", a: "Polar is the Merchant of Record. Polar is the seller, calculates applicable tax and issues the invoice." },
-  { q: "What does self-hosting cost?", a: "Postbag does not charge a licence fee for self-hosting. The service, dashboard and site are AGPL-3.0, while the published SDK, CLI and MCP server are MIT. You provide the infrastructure and run the same core product yourself." },
+  { q: "Is Postbag free?", a: "Yes. Free includes 5 forms, 1,000 messages a month and 90 days of history — and everything else the product does, agents included. It's a smaller room, not a smaller product." },
+  { q: "What happens over the message limit?", a: "We still keep the message, marked as over quota. Sending just waits until there's room again. Nothing already received is ever dropped — and test messages don't count against you." },
+  { q: "Do paid plans unlock product features?", a: "No — that's a promise, not a coincidence. Plans differ by room. Team adds seats, an audit log and compliance paperwork, because those only make sense when we're the ones hosting." },
+  { q: `Why is Pro $${pro.monthly} a month?`, a: "You're paying for the running of it: sending, retries, history, backups, and one less thing on your plate. The product itself is on every plan — and in the open-source repository." },
+  { q: "Who handles payment and invoices?", a: "Polar, as the Merchant of Record. They're the seller on the receipt, they work out the tax, and they issue the invoice." },
+  { q: "What does self-hosting cost?", a: "Nothing from us, ever — no licence fee, no strings. The server is AGPL-3.0 and the SDK, CLI and MCP server are MIT. You bring the machine; the product is the same one we run." },
 ]
 const fmt = (n: number) => n.toLocaleString("en-US")
-const description = `Postbag pricing: Free with 5 Forms and 1,000 Submissions a month, Pro at $${pro.monthly}/month, Team at $${team.monthly}/month, with the full product on every plan.`
+const description = `Postbag pricing: Free with 5 forms and 1,000 messages a month, Pro at $${pro.monthly}/month, Team at $${team.monthly}/month — the whole product on every plan.`
 const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postbag pricing", description }), breadcrumbLd(crumbs), faqLd(faqs) ]
 ---
 <Base title="Pricing" description={description} canonical="/pricing/" ld={ld}>
-  <PageHeader eyebrow="Hosted or yours" title="Pay for room, not permission." lede="Every hosted plan gets the whole product. Higher plans raise limits. Self-hosting gives you the same core capabilities on infrastructure you control." crumbs={crumbs} />
+  <PageHeader eyebrow="Hosted or yours" title="Pay for room, not permission." lede="Every plan gets the whole product — bigger plans just get more room. Rather run it yourself? Free, forever." crumbs={crumbs} />
 
   <section class="container-x pricing-shell" data-pricing aria-labelledby="plans-heading">
     <div class="pricing-control" data-reveal>
@@ -34,12 +34,12 @@ const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postb
         <article class:list={["plan-row", { featured: plan.id === "pro" }]} data-reveal style={`--reveal-delay: calc(var(--duration-quick) * ${index * 0.42})`} data-plan-card={plan.id === "free" ? undefined : ""} data-monthly={plan.monthly} data-yearly={plan.yearly} data-yearly-total={plan.yearly * 12}>
           <header><div><p class="plan-index">0{index + 1} · cloud</p><h3>{plan.name}</h3></div>{plan.id === "pro" && <span class="plan-note">A comfortable default</span>}</header>
           <div class="price"><p>$<span data-price>{plan.monthly}</span></p><span>/ month</span><small data-price-detail={plan.id === "free" ? undefined : ""}>{plan.monthly === 0 ? "No card needed." : "Billed monthly."}</small></div>
-          <dl><div><dt>Forms</dt><dd>{fmt(plan.forms)}</dd></div><div><dt>Submissions / month</dt><dd>{fmt(plan.submissions)}</dd></div><div><dt>Destinations</dt><dd>{fmt(plan.destinations)}</dd></div><div><dt>Retention</dt><dd>{plan.retention} days</dd></div><div><dt>Seats, audit log, DPA</dt><dd>{plan.id === "team" ? "Included" : "Not included"}</dd></div></dl>
+          <dl><div><dt>Forms</dt><dd>{fmt(plan.forms)}</dd></div><div><dt>Messages / month</dt><dd>{fmt(plan.submissions)}</dd></div><div><dt>Destinations</dt><dd>{fmt(plan.destinations)}</dd></div><div><dt>Retention</dt><dd>{plan.retention} days</dd></div><div><dt>Seats, audit log, DPA</dt><dd>{plan.id === "team" ? "Included" : "Not included"}</dd></div></dl>
           <div class="plan-action">{plan.id === "free" ? <a href={SIGNUP_URL} class="btn btn-secondary">Start free</a> : <a href={`${APP_URL}/settings?plan=${plan.id}&interval=month&checkout=1`} data-checkout data-checkout-base={`${APP_URL}/settings`} data-plan={plan.id} class="btn btn-primary">Choose {plan.name}</a>}</div>
         </article>
       ))}
     </div>
-    <p class="included">Every plan includes unlimited Projects, Streams and Routes; email, Telegram and signed webhook Destinations; Schemas, Drift and inference; the full API, agent clients and dashboard. Prices are in USD. Applicable tax is added at checkout.</p>
+    <p class="included">Every plan includes the whole product: unlimited projects and routing, email, Telegram and signed webhooks, drift alerts, the full API, the agent clients and the dashboard. Prices are in USD; applicable tax is added at checkout.</p>
   </section>
 
   <section class="container-x self-host" aria-labelledby="self-host-heading" data-reveal>
@@ -47,7 +47,7 @@ const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postb
     <div class="self-host-copy"><p class="section-label">The other first-class path</p><h2 id="self-host-heading">Run the same product yourself.</h2><p>No licence fee and no reduced community edition. Bring a container and Postgres. You own operation, upgrades, backups and delivery configuration.</p><dl><div><dt>Product limits</dt><dd>Effectively unlimited</dd></div><div><dt>Retention</dt><dd>Your policy</dd></div><div><dt>Licence</dt><dd>AGPL-3.0 server, MIT clients</dd></div></dl><div class="self-actions"><a href="/docs/self-hosting/" class="btn btn-primary">Self-host guide</a><a href={GITHUB_URL} class="btn btn-secondary" rel="noopener">Source on GitHub</a></div></div>
   </section>
   <Faq items={faqs} class="mt-20" title="Pricing questions" />
-  <CtaBand title="Start with the room you need." body="The Form, routing model and agent surface stay the same as you grow." />
+  <CtaBand title="Start with the room you need." body="Nothing changes as you grow — same form, same product, just a bigger room." />
 </Base>
 
 <style>

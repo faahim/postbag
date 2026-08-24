@@ -18,7 +18,7 @@ export const TAGLINE = "Your forms have somewhere to go."
 /** The single line an agent pastes to set up a form. Shown in the hero, AgentNative and for-ai-agents. */
 export const AGENT_PROMPT = "Install the Postbag skill with `npx skills add faahim/postbag --skill postbag`, then use it to set up and test a working contact form for this site."
 export const DESCRIPTION =
-  "Postbag is the open-source form backend built for agents. Create, wire and test a Form before signup, then claim it to add Destinations, Routes and outbound Delivery."
+  "Postbag is the open-source form backend built for agents. Your agent builds, wires and tests your form before you sign up. Every message is saved first, then sent to your inbox, Telegram or webhooks."
 
 /**
  * The legal facts, single source of truth for /legal/*. Every legal page is generated from
@@ -99,13 +99,13 @@ export const DESTINATIONS = [
   {
     id: "email",
     name: "Email",
-    blurb: "Sent through Resend with Reply-To set from the submission, so replying just works.",
+    blurb: "Lands in your inbox, and hitting Reply goes straight to the person who wrote to you.",
   },
-  { id: "telegram", name: "Telegram", blurb: "A bot message to any chat, rendered from a template." },
+  { id: "telegram", name: "Telegram", blurb: "A message in your chat the moment something arrives. Lovely for the phone-first life." },
   {
     id: "webhook",
     name: "Signed webhook",
-    blurb: "JSON POST with an HMAC-SHA256 signature, timestamp and delivery id. The universal extension point.",
+    blurb: "For everything else: a signed nudge to any URL you own. Your CRM, your Slack bot, your weekend project.",
   },
 ] as const
 

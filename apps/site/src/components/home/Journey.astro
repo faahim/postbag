@@ -1,22 +1,22 @@
 ---
-import { EXAMPLE, RETRY } from "@/config"
+import { EXAMPLE } from "@/config"
 
 const stages = [
-  { title: "Received", body: "Postbag checks the request and stores every accepted outcome with a status. Spam is a label, not a bin.", state: "HTTP 200" },
-  { title: "Saved first", body: "One transaction writes the Submission, plans a Delivery for each matching Route and records the event.", state: "committed" },
-  { title: "Routed second", body: "Only the worker talks to email, Telegram or webhooks. A provider outage cannot erase the Submission.", state: "worker awake" },
-  { title: "Kept on record", body: `Failures retry with ${RETRY.formula}. Payloads, attempts and provider responses stay inspectable.`, state: "attempt 2 sent" },
+  { title: "Received", body: "The 2am message is kept the instant it lands. Even spam gets a label, not a trapdoor.", state: "HTTP 200" },
+  { title: "Saved first", body: "Saved means saved — before we so much as think about emailing anyone.", state: "committed" },
+  { title: "Routed second", body: "Sending comes second. A bad email day just means waiting, never vanishing.", state: "worker awake" },
+  { title: "Kept on record", body: "Failed sends retry, again and again, with every attempt on the record. No mysteries.", state: "attempt 2 sent" },
 ] as const
 ---
 <section class="container-x mt-28 sm:mt-40" aria-labelledby="journey-heading" id="journey" data-journey>
   <div class="mx-auto max-w-3xl text-center" data-reveal>
     <h2 id="journey-heading" class="text-4xl font-semibold sm:text-5xl">It lands before it travels.</h2>
-    <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">The database makes it correct. Events make it fast. Delivery can wait; your Submission does not have to.</p>
+    <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">Someone fills in your form at 2am on a Saturday. Your email is mid-outage. On Monday the message is in your inbox like nothing happened — because it was saved the moment it arrived.</p>
   </div>
 
   <div class="mt-14 grid gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(19rem,0.72fr)] lg:gap-20">
     <div class="min-w-0 lg:sticky lg:top-24 lg:self-start" data-reveal>
-      <figure class="journey-receipt overflow-hidden rounded-2xl bg-surface" aria-label="A Submission being saved and routed through the durable outbox">
+      <figure class="journey-receipt overflow-hidden rounded-2xl bg-surface" aria-label="A message being saved first, then sent onward">
         <figcaption class="flex min-h-12 items-center justify-between gap-4 px-5 font-mono text-xs text-muted-foreground">
           <span>Submission <span class="text-foreground">{EXAMPLE.submission}</span></span>
           <span class="journey-state text-primary" data-journey-state>incoming</span>
@@ -34,7 +34,7 @@ const stages = [
             <span class="route-thread" aria-hidden="true"></span>
             <div class="journey-node" data-node="delivery">
               <span class="text-muted-foreground">Delivery</span>
-              <strong class="mt-1 block font-medium text-foreground" data-delivery-status>waiting for Route</strong>
+              <strong class="mt-1 block font-medium text-foreground" data-delivery-status>waiting for route</strong>
             </div>
           </div>
           <div class="mt-4 grid gap-2 font-mono text-[11px] text-muted-foreground sm:grid-cols-3">
@@ -91,7 +91,7 @@ const stages = [
   import { inView } from "motion"
   const journey = document.querySelector<HTMLElement>("[data-journey]")
   if (journey) {
-    const labels = ["incoming", "stored", "Delivery pending", "attempt 2 sent"]
+    const labels = ["incoming", "stored", "delivery pending", "attempt 2 sent"]
     const delivery = journey.querySelector<HTMLElement>("[data-delivery-status]")
     const state = journey.querySelector<HTMLElement>("[data-journey-state]")
     const setStage = (value: number) => {

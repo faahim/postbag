@@ -48,7 +48,7 @@ export const COMPETITORS: Competitor[] = [
     sources: [ { label: "formspree.io/plans", href: "https://formspree.io/plans" }, { label: "Verify webhook signatures", href: "https://help.formspree.io/articles/advanced-features/verify-webhook-signatures" }, { label: "The Formspree CLI", href: "https://help.formspree.io/hc/en-us/articles/360053819114-The-Formspree-CLI" } ],
     title: "Postbag vs Formspree: a routing form backend vs the original form-to-email service",
     description: "Postbag compared with Formspree for developers choosing a form backend: free tiers, API access, signed webhooks, spam protection, self-hosting, schema validation, multi-site routing, and support for AI agents.",
-    lede: "Formspree is the best-known form backend and a fine default for one site and one inbox. Postbag is for when submissions need to be stored durably, routed by rules, or set up by an agent without a browser.",
+    lede: "Formspree is the best-known form backend, and a fine default for one site and one inbox. Postbag is for when messages must survive, follow rules, or be set up by an agent without a browser.",
     summary: "Both accept HTML form posts and send email. Formspree's API and webhooks are paid-tier features and its source is closed; Postbag exposes every object through one API from the free tier, signs every webhook, keeps every submission as a row with an attempt-tracked outbox, adds streams for many-sites-to-one-partner routing, and self-hosts as one container.",
     rows: [
       { label: "Free tier", postbag: PB.free, them: "50 submissions/month, unlimited forms, 30-day history; API and uploads not on free (Formspree plans page)" },
@@ -80,7 +80,7 @@ export const COMPETITORS: Competitor[] = [
     sources: [ { label: "formspark.io/pricing", href: "https://formspark.io/pricing/" }, { label: "API reference", href: "https://documentation.formspark.io/api/reference.html" }, { label: "Webhooks (unsigned)", href: "https://documentation.formspark.io/integration/webhooks.html" } ],
     title: "Postbag vs Formspark: signed routing vs a simple one-time-payment form endpoint",
     description: "Postbag compared with Formspark: pricing model, full API, webhook signing, spam protection, self-hosting, schema versioning, multi-site streams and agent support.",
-    lede: "Formspark is a clean, cheap form-to-email endpoint with a one-time price. Postbag trades the flat price for a durable outbox, signed webhooks, routing and self-hosting.",
+    lede: "Formspark is a clean, cheap form-to-email endpoint with a one-time price. Postbag trades the flat price for saved-first delivery, signed webhooks, routing and self-hosting.",
     summary: "Formspark has a real form-CRUD API and excellent spam options, and its webhooks are explicitly unsigned. Postbag signs every webhook, records every delivery attempt, routes many forms into one schema, and runs as one container you can host yourself.",
     rows: [
       { label: "Free tier", postbag: PB.free, them: "250 submissions, 10 forms (Formspark pricing)" },
@@ -112,7 +112,7 @@ export const COMPETITORS: Competitor[] = [
     sources: [ { label: "forminit.com/pricing", href: "https://forminit.com/pricing/" }, { label: "Why Forminit (rename, Jan 2026)", href: "https://forminit.com/docs/why-forminit/" }, { label: "forminit.com/llms.txt", href: "https://forminit.com/llms.txt" } ],
     title: "Postbag vs Getform (Forminit): headless form backend vs a routing form backend",
     description: "Postbag compared with Getform, renamed Forminit in January 2026: free tier, REST API, webhooks, typed validation, spam protection, uploads, self-hosting, multi-site routing and support for AI agents and AI-built frontends.",
-    lede: "Getform rebranded to Forminit in January 2026 and positions itself for AI-built frontends (Lovable, Bolt, v0, Cursor). Postbag is built for the agents themselves: the whole product is one API an agent can drive, and every submission is a durable, routed row.",
+    lede: "Getform rebranded to Forminit in January 2026 and positions itself for AI-built frontends (Lovable, Bolt, v0, Cursor). Postbag is built for the agents themselves: the whole product is one API an agent can drive, and every submission is saved before it goes anywhere.",
     summary: "Forminit is a polished headless endpoint with typed server-side field validation and an llms.txt. Postbag adds versioned schemas with drift detection, streams that map many forms onto one contract, signed webhooks with a retryable outbox, and self-hosting.",
     rows: [
       { label: "Free tier", postbag: PB.free, them: "100 submissions/month, 1 form (Forminit pricing)" },

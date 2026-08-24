@@ -8,11 +8,11 @@ const routes = ["partner webhook", "daily ops email", "CRM webhook"] as const
 ---
 <section class="container-x mt-28 sm:mt-40" aria-labelledby="operator-heading" id="streams">
   <div class="grid items-end gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]" data-reveal>
-    <h2 id="operator-heading" class="max-w-3xl text-4xl font-semibold sm:text-6xl">One Form is simple. Fifteen can stay that way.</h2>
-    <p class="max-w-xl text-lg leading-relaxed text-muted-foreground">A Stream gives Forms one versioned output Schema. Mappings settle their different field names before Routes send the shared shape onward.</p>
+    <h2 id="operator-heading" class="max-w-3xl text-4xl font-semibold sm:text-6xl">One form is simple. Fifteen can stay that way.</h2>
+    <p class="max-w-xl text-lg leading-relaxed text-muted-foreground">Fifteen sites, each naming its fields a little differently. Postbag lines them up, so everything arrives in one tidy place.</p>
   </div>
 
-  <figure class="fleet-map mt-14" aria-label="Several Forms mapped into one Stream, then sent through three Routes" data-reveal>
+  <figure class="fleet-map mt-14" aria-label="Several forms arriving in one shared place, then sent onward three ways" data-reveal>
     <div class="fleet-sources">
       {forms.map((form) => (
         <div class="fleet-form">
@@ -37,7 +37,7 @@ const routes = ["partner webhook", "daily ops email", "CRM webhook"] as const
         <div><dt class="text-muted-foreground">phone</dt><dd>string</dd></div>
         <div><dt class="text-muted-foreground">site</dt><dd>constant</dd></div>
       </dl>
-      <p class="mt-5 text-sm leading-relaxed text-muted-foreground">A missing Mapping is rejected when the Form is attached, not discovered during Delivery.</p>
+      <p class="mt-5 text-sm leading-relaxed text-muted-foreground">If a form doesn't fit, Postbag says so up front — not three weeks later, in production, at night.</p>
     </div>
 
     <div class="fleet-split" aria-hidden="true"><span></span></div>
@@ -53,8 +53,8 @@ const routes = ["partner webhook", "daily ops email", "CRM webhook"] as const
   </figure>
 
   <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-start" data-reveal>
-    <p class="text-[15px] leading-relaxed text-muted-foreground">Schema versions are immutable. Publishing v4 keeps v3 on the record and revalidates every source Mapping.</p>
-    <p class="text-[15px] leading-relaxed text-muted-foreground">A Route can be instant or digest, scoped by time window and configured to exclude spam or quarantined Submissions.</p>
+    <p class="text-[15px] leading-relaxed text-muted-foreground">Change the shape whenever you need. Older records keep their old shape — nothing breaks quietly behind your back.</p>
+    <p class="text-[15px] leading-relaxed text-muted-foreground">Get things the moment they arrive, or as one tidy daily digest. Spam never tags along.</p>
     <a href="/features/routing/" class="text-[15px] font-medium text-primary underline-offset-4 hover:underline">Explore routing</a>
   </div>
 </section>

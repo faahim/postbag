@@ -6,22 +6,22 @@ import ContactForm from "@/components/ContactForm.astro"
 import { AUTHOR, GITHUB_URL, SITE_CONTACT_FORM_ID, SITE_URL } from "@/config"
 import { breadcrumbLd, webPageLd } from "@/lib/seo"
 const crumbs = [ { name: "Home", href: "/" }, { name: "About", href: "/about/" } ]
-const description = "Why Postbag exists: a dependable, open-source form backend built for agents, shaped by a live lead-routing system that could not lose a Submission."
+const description = "Why Postbag exists: a dependable, open-source form backend built for agents, shaped by a live lead-routing business where losing a single message was never an option."
 const ld = [ webPageLd({ url: `${SITE_URL}/about/`, name: "About Postbag", description }), breadcrumbLd(crumbs), { "@type": "AboutPage", url: `${SITE_URL}/about/`, mainEntity: { "@id": `${SITE_URL}/#organization` } } ]
 const principles = [
-  ["Save first", "A Submission becomes a database row before Postbag tries to deliver it anywhere."],
-  ["One contract", "The dashboard, API, SDK, CLI and MCP server all operate the same product."],
-  ["Yours to run", "Postbag Cloud and self-hosting use the same open-source code and core capabilities."],
+  ["Save first", "Every message is safely on the record before Postbag tries to send it anywhere."],
+  ["One front door", "The dashboard, the CLI and your agent all use the same public API. No side doors."],
+  ["Yours to run", "Postbag Cloud and self-hosting are the same open-source product. Nothing held back."],
 ]
 ---
 <Base title="About" description={description} canonical="/about/" ld={ld}>
-  <PageHeader eyebrow="Why Postbag" title="Forms deserve a dependable place to land." lede="Postbag grew out of a live system routing leads from many small websites to one business. Losing a Submission was never an acceptable failure mode. It still is not." crumbs={crumbs} />
+  <PageHeader eyebrow="Why Postbag" title="Forms deserve a dependable place to land." lede="Postbag grew out of a real system routing leads from many small websites to one business. Losing a message was never an acceptable way to fail. It still isn't." crumbs={crumbs} />
   <section class="container-x origin-grid" aria-labelledby="origin-heading">
     <div class="origin-copy" data-reveal>
       <p class="section-label">The origin</p>
       <h2 id="origin-heading">The first version had a very ordinary job.</h2>
-      <p>Receive forms from a growing set of websites, keep every lead safe, and send each one to the right place. The sites did not all collect the same fields. The Destination could have a bad day. The person building the next site might be an agent.</p>
-      <p>That ordinary job exposed the product: a durable place between a Form and everything that happens after it.</p>
+      <p>Receive forms from a growing set of websites, keep every lead safe, and send each one to the right place. The sites did not all collect the same fields. The inbox on the other end could have a bad day. The person building the next site might be an agent.</p>
+      <p>That ordinary job exposed the product: a dependable place between a form and everything that happens after it.</p>
     </div>
     <div class="origin-scene" aria-label="Many Forms settling into one receiving surface" data-reveal style="--reveal-delay: var(--duration-quick)">
       <span class="form-plane plane-one"></span><span class="form-plane plane-two"></span><span class="form-plane plane-three"></span>
@@ -33,7 +33,7 @@ const principles = [
     <div class="principle-intro" data-reveal>
       <p class="section-label">What stayed</p>
       <h2 id="principles-heading">The useful constraints became the principles.</h2>
-      <p>No dramatic reinvention. Just the rules that kept the original system understandable when more sites, people and Destinations arrived.</p>
+      <p>No dramatic reinvention. Just the rules that kept the original system understandable as more sites, people and inboxes arrived.</p>
     </div>
     <ol class="principle-list">
       {principles.map(([title, body], index) => (
@@ -44,19 +44,19 @@ const principles = [
   <section class="container-x maker" aria-labelledby="maker-heading">
     <div data-reveal><p class="section-label">Who</p><h2 id="maker-heading">Built by one developer, in the open.</h2></div>
     <div class="maker-note" data-reveal style="--reveal-delay: var(--duration-micro)">
-      <p>Postbag is built by <a href={AUTHOR.url}>{AUTHOR.name}</a>, an independent developer who runs small business websites and the systems behind them. The repository is public, the server and product are AGPL-3.0, and the SDK, CLI and MCP server are MIT.</p>
+      <p>Hi — I'm <a href={AUTHOR.url}>{AUTHOR.name}</a>. I run small business websites and the systems behind them, and Postbag is the piece I kept wishing existed. The repository is public, the server and product are AGPL-3.0, and the SDK, CLI and MCP server are MIT.</p>
       <a class="source-link" href={GITHUB_URL} rel="noopener">Read the source <span aria-hidden="true">↗</span></a>
     </div>
   </section>
   <section class="container-x contact-grid" id="contact" aria-labelledby="contact-heading">
     <div class="contact-copy" data-reveal>
-      <p class="section-label">Contact</p><h2 id="contact-heading">A real Form, routed by Postbag.</h2>
-      <p>Questions about the product, self-hosting or security are welcome. This form posts to Postbag and routes to Fahim's inbox.</p>
+      <p class="section-label">Contact</p><h2 id="contact-heading">A real form, routed by Postbag.</h2>
+      <p>Questions about the product, self-hosting or security are all welcome. This form posts to Postbag and lands in my inbox — I read everything.</p>
       <p class="privacy-note" id="privacy">This site sets no tracking cookies. Postbag stores the data and delivery metadata needed to route your message. Read the <a href="/legal/privacy/">privacy policy</a>, <a href="/legal/terms/">terms</a>, <a href="/legal/dpa/">DPA</a> and <a href="/legal/subprocessors/">sub-processors list</a>.</p>
     </div>
     <div class="contact-surface" data-reveal style="--reveal-delay: var(--duration-quick)"><ContactForm formId={SITE_CONTACT_FORM_ID} /></div>
   </section>
-  <CtaBand title="Give your forms somewhere to go." body="Your agent can create and test a working Form before you sign up. Claim it when you are ready." />
+  <CtaBand title="Give your forms somewhere to go." body="Your agent can build and test the form before you even sign up. Claim it when you're ready." />
 </Base>
 <style>
   .section-label{font-family:var(--font-mono);font-size:.72rem;font-weight:650;letter-spacing:.12em;text-transform:uppercase;color:var(--primary)}

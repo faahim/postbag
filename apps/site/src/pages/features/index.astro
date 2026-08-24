@@ -10,17 +10,17 @@ import RoutingMark from "@/components/RoutingMark.astro"
 
 const crumbs = [ { name: "Home", href: "/" }, { name: "Features", href: "/features/" } ]
 const title = "Postbag features: routing, durable delivery, destinations, schemas, spam protection, self-hosting"
-const description = "What Postbag does: a submit URL for any HTML Form, durable storage with an attempt-tracked outbox, routing with Streams and Mappings, email/Telegram/webhook Destinations, versioned Schemas with Drift detection, layered spam protection, and one-container self-hosting."
+const description = "What Postbag does: one URL for any form, every message saved before it's sent, routing to email, Telegram and webhooks, drift alerts when a site changes, quiet spam protection, and one-container self-hosting."
 const ld = [ webPageLd({ url: `${SITE_URL}/features/`, name: title, description }), breadcrumbLd(crumbs) ]
 ---
 <Base title="Features" description={description} canonical="/features/" ld={ld} ogImage="/og/features.png">
-  <PageHeader title="One calm place to receive. A clear route onward." lede="Postbag starts with a Form that works. It grows into durable delivery, precise routing and ownership only when you need those things." crumbs={crumbs} />
+  <PageHeader title="One calm place to receive. A clear route onward." lede="It starts as a form that simply works. The rest is there the day you want it — and invisible until then." crumbs={crumbs} />
 
   <section class="container-x feature-atlas" aria-labelledby="feature-atlas-heading">
     <div class="feature-atlas-intro" data-reveal>
       <p class="text-sm font-medium text-primary">The receiving path</p>
       <h2 id="feature-atlas-heading">Each part does one job. Together, they make forms easy to leave alone.</h2>
-      <p>Start with a Form. Postbag keeps each Submission on the record, then lets you route it to the places that need to know.</p>
+      <p>Start with a form. Postbag keeps every message on the record, then sends it to the places that need to know.</p>
     </div>
 
     <ol class="feature-route" data-reveal-group="70">
@@ -43,7 +43,7 @@ const ld = [ webPageLd({ url: `${SITE_URL}/features/`, name: title, description 
     <div class="product-window-copy" data-reveal>
       <p class="text-sm font-medium text-primary">When you want to look</p>
       <h2 id="dashboard-heading">The dashboard is another way into the same product.</h2>
-      <p>Forms, a live inbox, Destinations, Routes, Streams, Deliveries, events and API keys. Everything it does goes through the same <code>/v1</code> an agent uses. Nothing useful is locked behind the screen.</p>
+      <p>Your forms, a live inbox, everywhere things go, and a record of every send. It all runs through the same API your agent uses — nothing useful is locked behind the screen.</p>
       <a class="inline-link" href="/for-ai-agents/">See how agents work with Postbag <ArrowUpRight size={16} stroke-width={1.7} aria-hidden="true" /></a>
     </div>
     <figure class="product-window-scene" data-reveal aria-label="The dashboard and API meet at the same durable Form record">
@@ -70,9 +70,9 @@ const ld = [ webPageLd({ url: `${SITE_URL}/features/`, name: title, description 
   <section class="container-x feature-definition" aria-labelledby="backend-heading">
     <div data-reveal>
       <p class="text-sm font-medium text-primary">The useful definition</p>
-      <h2 id="backend-heading">A form backend receives a Form so your site does not need its own server.</h2>
+      <h2 id="backend-heading">A form backend is where your form's messages go, so your site doesn't need its own server.</h2>
     </div>
-    <p data-reveal>Postbag adds the part that matters once the first site becomes a few sites: it can group Forms into a Stream, map their fields onto one versioned Schema, and route that shape to several Destinations. Every Submission remains a durable row while it travels.</p>
+    <p data-reveal>Postbag adds the part that matters once one site becomes a few: it can gather many forms into one tidy feed and send it wherever it needs to go. And every message stays safely on the record the whole way through.</p>
   </section>
 
   <CtaBand />
