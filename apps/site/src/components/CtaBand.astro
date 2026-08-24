@@ -11,8 +11,12 @@ const {
 } = Astro.props
 ---
 <section class="container-x mt-24">
-  <div class="relative overflow-hidden rounded-2xl bg-brand-ink px-6 py-14 text-brand-form shadow-xl sm:px-12 sm:py-16" data-reveal>
-    <img src="/brand/social-routing-field-v1.webp" alt="" width="1800" height="945" loading="lazy" class="pointer-events-none absolute inset-0 size-full object-cover opacity-80" />
+  <div
+    class="relative overflow-hidden rounded-2xl bg-brand-ink px-6 py-14 text-brand-form shadow-xl sm:px-12 sm:py-16"
+    style={`background-image: url("data:image/webp;base64,UklGRk4AAABXRUJQVlA4IEIAAABQAwCdASocAA8APulep00pJSOiMAgBIB0JZQABNDer20LQAAD++n7rZ5543m4M73u6VcMaWfd8G1XzFWdTmTAAAAA="); background-size: cover; background-position: center;`}
+    data-reveal
+  >
+    <img src="/brand/social-routing-field-v1.webp" alt="" width="1800" height="945" loading="lazy" class="media-reveal pointer-events-none absolute inset-0 size-full object-cover" style="--media-opacity: 0.8" />
     <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-brand-ink via-brand-ink/90 to-brand-ink/20" aria-hidden="true"></div>
     <div class="relative max-w-[40rem]">
       <h2 class="text-3xl font-semibold text-brand-form sm:text-4xl">{title}</h2>

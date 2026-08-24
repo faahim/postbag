@@ -121,6 +121,26 @@ const graph = { "@context": "https://schema.org", "@graph": [organizationLd(), w
         document.documentElement.classList.add("reveal-ready")
       })()
     </script>
+    <script is:inline>
+      // Graceful media: already-cached images appear instantly (transition suppressed);
+      // network loads fade + settle in via the img.media-reveal transition in global.css.
+      ;(function () {
+        var imgs = document.querySelectorAll("img.media-reveal")
+        for (var i = 0; i < imgs.length; i++) {
+          ;(function (img) {
+            if (img.complete && img.naturalWidth > 0) {
+              img.style.transition = "none"
+              img.setAttribute("data-loaded", "")
+              requestAnimationFrame(function () { img.style.transition = "" })
+            } else {
+              var mark = function () { img.setAttribute("data-loaded", "") }
+              img.addEventListener("load", mark, { once: true })
+              img.addEventListener("error", mark, { once: true })
+            }
+          })(imgs[i])
+        }
+      })()
+    </script>
     <script>
       import "@/scripts/reveal"
     </script>

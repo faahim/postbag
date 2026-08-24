@@ -5,6 +5,34 @@ Source: full design audit of `apps/site` (2026-08-24), verified against
 `99aeeb9`, `79cd758`); this file is the remaining pixels-and-motion work,
 in recommended order. Line numbers are from the audit and may drift.
 
+## 0. Fahim's directives (2026-08-25) — these outrank everything below
+
+- [ ] **Figures must be accurate or absent.** The Journey explainer
+  ("It lands before it travels") is inaccurate and reads as nonsense —
+  redesign it so the visual literally tells the save→send story, or remove
+  it. Every diagram on the site meets that bar: accurate, elegant, or gone.
+- [ ] **Code blocks are earned, not default.** Where a code block is a real
+  artifact (submit snippets, the agent's API conversation) keep and polish
+  it. Where it is decoration (the docker-compose block in SelfHost), replace
+  the section with sleek typographic/visual design instead.
+- [ ] **No off-palette surface panels.** The "working handoff" section on
+  /for-ai-agents has an eyesore background. Sweep every page in both themes
+  for surfaces that don't blend; audit every line/divider for intent.
+- [ ] **Graceful media.** Hero and CtaBand images pop in with a flash. Add
+  low-res blur placeholders (LQIP) and a gentle fade + subtle scale settle
+  when the real image arrives. No jitter, ever.
+- [ ] **Header motifs become world-building visuals.** The PageHeader
+  background mark (best seen on /for-ai-agents) is a poorly-executed icon
+  stamped on the page. Recreate as a visual that melts into the surface —
+  contextual, lovely, optionally with very light motion. Codex image
+  generation is available for raster assets.
+- [ ] **Tactile buttons.** Plain flat fills don't honor the grain language.
+  Buttons get physical elevation: layered/inner shadows, grain awareness,
+  satisfying hover/press states — toward tactile hardware, short of
+  skeuomorphism. Grain is the heart of the language; use it creatively.
+- [ ] **Process rule:** work in small verified batches (screenshot at
+  1440/390, light+dark, before commit) so nothing ships below the bar.
+
 ## 1. Reads-as-broken (fix first, one short session)
 
 - [ ] **Fleet-map connectors look like empty cards.** `Operator.astro` —

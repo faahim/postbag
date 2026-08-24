@@ -7,6 +7,7 @@ import { Check, Copy } from "@lucide/astro"
     <picture>
       <source media="(max-width: 767px)" srcset="/brand/hero-receiving-pocket-mobile-v5.webp" width="941" height="1672" />
       <img
+        class="media-reveal"
         src="/brand/hero-receiving-pocket-desktop-v5.webp"
         width="1672"
         height="941"
@@ -18,7 +19,7 @@ import { Check, Copy } from "@lucide/astro"
     </picture>
   </div>
 
-  <div class="container-x hero-message" data-reveal-group="90">
+  <div class="container-x hero-message" data-reveal-group="80">
     <div class="hero-copy">
       <p class="hero-kicker" data-reveal>Open source. Agent-native. Yours.</p>
       <h1 class="display-tight hero-title" data-reveal>Your forms have somewhere to go.</h1>
@@ -56,6 +57,13 @@ import { Check, Copy } from "@lucide/astro"
 
 <script>
   const heroAsset = document.querySelector<HTMLElement>("[data-hero-asset]")
+  const rootStyle = getComputedStyle(document.documentElement)
+  const ms = (name: string, fallback: number) => {
+    const raw = Number.parseFloat(rootStyle.getPropertyValue(name))
+    return Number.isFinite(raw) ? raw : fallback
+  }
+  const copiedHold = ms("--duration-copied-hold", 1600)
+  const acknowledge = ms("--duration-acknowledge", 2400)
   let pulseReset: ReturnType<typeof setTimeout> | undefined
 
   async function copyText(text: string) {
@@ -97,7 +105,7 @@ import { Check, Copy } from "@lucide/astro"
       if (heroAsset) {
         void heroAsset.offsetWidth
         heroAsset.setAttribute("data-copy-pulse", "")
-        pulseReset = setTimeout(() => heroAsset.removeAttribute("data-copy-pulse"), 2500)
+        pulseReset = setTimeout(() => heroAsset.removeAttribute("data-copy-pulse"), acknowledge + 100)
       }
       clearTimeout(labelReset)
       labelReset = setTimeout(() => {
@@ -105,7 +113,7 @@ import { Check, Copy } from "@lucide/astro"
         button.removeAttribute("data-copied")
         button.disabled = false
         if (announcement) announcement.textContent = ""
-      }, 1800)
+      }, copiedHold)
     })
   })
 </script>

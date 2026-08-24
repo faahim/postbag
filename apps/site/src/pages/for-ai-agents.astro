@@ -90,7 +90,7 @@ const ld = [ webPageLd({ url: `${SITE_URL}/for-ai-agents/`, name: title, descrip
 
   <section class="container-x properties" aria-labelledby="properties-heading">
     <div data-reveal><p class="section-label">Not an AI add-on</p><h2 id="properties-heading">Agent-native is a product property.</h2></div>
-    <dl>{agentProperties.map(([term, detail], index) => <div data-reveal style={`--reveal-delay: ${index * 50}ms`}><dt>{term}</dt><dd>{detail}</dd></div>)}</dl>
+    <dl>{agentProperties.map(([term, detail], index) => <div data-reveal style={`--reveal-delay: calc(var(--duration-stagger) * ${index})`}><dt>{term}</dt><dd>{detail}</dd></div>)}</dl>
   </section>
 
   <section class="container-x repo-memory" aria-labelledby="memory-heading">
