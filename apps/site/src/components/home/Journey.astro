@@ -1,4 +1,5 @@
 ---
+import { Check } from "@lucide/astro"
 import { EXAMPLE } from "@/config"
 
 const stages = [
@@ -16,32 +17,38 @@ const stages = [
 
   <div class="mt-14 grid gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(19rem,0.72fr)] lg:gap-20">
     <div class="min-w-0 lg:sticky lg:top-24 lg:self-start" data-reveal>
-      <figure class="journey-receipt overflow-hidden rounded-2xl bg-surface" aria-label="A message being saved first, then sent onward">
+      <figure class="journey-receipt overflow-hidden rounded-2xl bg-surface" aria-label="A message arriving at 2am, saved first, then delivered on the second attempt">
         <figcaption class="flex min-h-12 items-center justify-between gap-4 px-5 font-mono text-xs text-muted-foreground">
-          <span>Submission <span class="text-foreground">{EXAMPLE.submission}</span></span>
+          <span>Message <span class="text-foreground">{EXAMPLE.submission}</span></span>
           <span class="journey-state text-primary" data-journey-state>incoming</span>
         </figcaption>
         <div class="p-5 sm:p-7">
           <div class="arrival-track" aria-hidden="true">
             <span class="form-plane"><i></i><i></i><i></i></span>
-            <span class="receiving-slot"></span>
+            <span class="receiving-slot"><i class="slot-lip"></i></span>
           </div>
-          <div class="mt-7 grid gap-4 font-mono text-xs sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-            <div class="journey-node" data-node="submission">
-              <span class="text-muted-foreground">Submission</span>
-              <strong class="mt-1 block font-medium text-foreground">status: received</strong>
-            </div>
-            <span class="route-thread" aria-hidden="true"></span>
-            <div class="journey-node" data-node="delivery">
-              <span class="text-muted-foreground">Delivery</span>
-              <strong class="mt-1 block font-medium text-foreground" data-delivery-status>waiting for route</strong>
-            </div>
-          </div>
-          <div class="mt-4 grid gap-2 font-mono text-[11px] text-muted-foreground sm:grid-cols-3">
-            <span class="record-line" data-record="one">unique (form_id, idempotency_key)</span>
-            <span class="record-line" data-record="two">unique (submission_id, route_id)</span>
-            <span class="record-line" data-record="three">provider response retained</span>
-          </div>
+          <ol class="journey-ledger font-mono text-xs" aria-hidden="true">
+            <li class="ledger-row" data-row="saved">
+              <span class="ledger-mark"></span>
+              <span class="ledger-text text-foreground">saved to the record</span>
+              <span class="ledger-time">02:04:31</span>
+            </li>
+            <li class="ledger-row" data-row="route">
+              <span class="ledger-mark ledger-mark-route"></span>
+              <span class="ledger-text">route · email → your inbox</span>
+              <span class="ledger-time">instant</span>
+            </li>
+            <li class="ledger-row" data-row="attempt-one">
+              <span class="ledger-mark ledger-mark-warn"></span>
+              <span class="ledger-text">attempt 1 · mailbox didn't answer</span>
+              <span class="ledger-time">02:04:33</span>
+            </li>
+            <li class="ledger-row" data-row="attempt-two">
+              <span class="ledger-mark ledger-mark-ok"><Check size={11} stroke-width={3} /></span>
+              <span class="ledger-text text-foreground">attempt 2 · delivered</span>
+              <span class="ledger-time">02:11:08</span>
+            </li>
+          </ol>
         </div>
       </figure>
       <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -64,43 +71,157 @@ const stages = [
 
 <style>
   .journey-receipt { box-shadow: var(--shadow-xl), inset 0 0 0 1px var(--border); }
-  .arrival-track { position: relative; display: grid; place-items: center; min-height: 12rem; overflow: hidden; border-radius: calc(var(--radius) + 8px); background: var(--surface-2); }
-  .arrival-track::before { content: ""; position: absolute; inset: 0; opacity: .55; background: radial-gradient(circle at 50% 76%, color-mix(in oklch, var(--primary) 28%, transparent), transparent 38%); }
-  .form-plane { position: relative; width: 7rem; height: 4.8rem; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-lg), inset 0 0 0 1px var(--border-strong); transform: translateY(-2.1rem) rotate(-4deg); transition-property: transform, opacity; transition-duration: var(--duration-slow); transition-timing-function: var(--ease-smooth-out); }
+
+  /* The arrival scene: a form plane settling into a receiving aperture. */
+  .arrival-track {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 11rem;
+    overflow: hidden;
+    border-radius: calc(var(--radius) + 8px);
+    background:
+      radial-gradient(120% 90% at 50% 100%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 55%),
+      linear-gradient(to bottom, var(--surface-2), color-mix(in oklch, var(--surface-2) 86%, var(--primary)));
+  }
+  .form-plane {
+    position: relative;
+    z-index: 1;
+    width: 7rem;
+    height: 4.6rem;
+    border-radius: var(--radius);
+    background: linear-gradient(160deg, var(--surface), color-mix(in oklch, var(--surface) 92%, var(--primary)));
+    box-shadow: var(--shadow-lg), inset 0 0 0 1px var(--border-strong);
+    transform: translateY(-2.4rem) rotate(-4deg);
+    transition-property: transform;
+    transition-duration: var(--duration-slow);
+    transition-timing-function: var(--ease-smooth-out);
+  }
   .form-plane i { display: block; width: 62%; height: 2px; margin: 1rem 1.25rem -0.55rem; border-radius: 999px; background: var(--border-strong); }
-  .receiving-slot { position: absolute; bottom: 2.2rem; width: min(78%, 21rem); height: 2.7rem; border-radius: 50%; background: var(--foreground); box-shadow: 0 -1px 0 var(--border-strong), 0 18px 30px color-mix(in oklch, var(--primary) 22%, transparent); transform: scaleY(.4); }
-  .journey-node { min-height: 4.5rem; padding: 1rem; border-radius: var(--radius); background: var(--background); box-shadow: inset 0 0 0 1px var(--border); transition-property: opacity, transform, box-shadow; transition-duration: var(--duration-medium); transition-timing-function: var(--ease-smooth-out); }
-  .route-thread { width: 3rem; height: 1px; background: var(--border-strong); transition-property: background-color, transform; transition-duration: var(--duration-medium); transition-timing-function: var(--ease-smooth-out); }
-  .record-line { opacity: .38; transition-property: opacity; transition-duration: var(--duration-medium); transition-timing-function: var(--ease-smooth-out); }
-  [data-journey][data-stage="1"] .form-plane { transform: translateY(-.7rem) rotate(-2deg); }
-  [data-journey][data-stage="2"] .form-plane,
-  [data-journey][data-stage="3"] .form-plane,
-  [data-journey][data-stage="4"] .form-plane { transform: translateY(1.1rem) rotate(0deg) scale(.92); }
-  [data-journey][data-stage="2"] [data-record="one"],
-  [data-journey][data-stage="3"] [data-record="one"],
-  [data-journey][data-stage="4"] .record-line { opacity: 1; }
-  [data-journey][data-stage="3"] .route-thread,
-  [data-journey][data-stage="4"] .route-thread { background: var(--primary); transform: scaleX(1.15); }
-  [data-journey][data-stage="3"] [data-node="delivery"],
-  [data-journey][data-stage="4"] [data-node="delivery"] { box-shadow: inset 0 0 0 1px var(--primary), var(--shadow-md); }
-  @media (max-width: 639px) { .route-thread { width: 1px; height: 2rem; margin: -1rem auto; } }
-  @media (prefers-reduced-motion: reduce) { .form-plane, .journey-node, .route-thread, .record-line { transition: none; } }
+
+  /* The aperture: an opening with real depth — dark interior, light on the front lip,
+     a faint periwinkle glow along the inner top edge (the hero pocket, quietly). */
+  .receiving-slot {
+    position: absolute;
+    bottom: 1.9rem;
+    z-index: 0;
+    width: min(72%, 19rem);
+    height: 2.9rem;
+    border-radius: 999px;
+    background:
+      radial-gradient(130% 200% at 50% -30%, oklch(0.42 0.09 276) 0%, oklch(0.2 0.06 273) 42%, oklch(0.12 0.045 272) 78%);
+    box-shadow:
+      inset 0 3px 7px oklch(0.05 0.03 272 / 0.55),
+      inset 0 1px 0 color-mix(in oklch, var(--brand-periwinkle) 55%, transparent),
+      0 16px 30px color-mix(in oklch, var(--primary) 22%, transparent);
+  }
+  .slot-lip {
+    position: absolute;
+    right: -6%;
+    bottom: -1.3rem;
+    left: -6%;
+    z-index: 2;
+    display: block;
+    height: 2.5rem;
+    border-radius: 999px;
+    background: linear-gradient(to bottom, color-mix(in oklch, var(--surface-2) 86%, var(--primary)), var(--surface-2));
+    box-shadow:
+      0 -1px 0 color-mix(in oklch, var(--border-strong) 85%, transparent),
+      0 -6px 12px oklch(0.1 0.04 272 / 0.12);
+  }
+  [data-journey][data-stage] .form-plane { transform: translateY(1.7rem) rotate(0deg) scale(0.94); }
+  [data-journey]:not([data-stage]) .form-plane { animation: plane-drift 4200ms var(--ease-in-out) infinite alternate; }
+  @keyframes plane-drift {
+    from { transform: translateY(-2.4rem) rotate(-4deg); }
+    to { transform: translateY(-2rem) rotate(-2.6deg); }
+  }
+
+  /* The delivery ledger: rows keep their space and stamp in per stage — no layout shift. */
+  .journey-ledger { display: grid; gap: 0.35rem; margin-top: 1.5rem; }
+  .ledger-row {
+    display: grid;
+    grid-template-columns: 1.1rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 2.1rem;
+    padding: 0 0.75rem;
+    border-radius: var(--radius-sm);
+    background: var(--background);
+    box-shadow: inset 0 0 0 1px var(--border);
+    color: var(--muted-foreground);
+    /* Rest state: a faint, unreadable ghost — the ledger's shape is visible, its
+       entries are not yet written. Rows stamp to full when their stage arrives. */
+    opacity: 0.22;
+    transform: translateY(6px);
+    filter: blur(3px);
+    transition-property: opacity, transform, filter;
+    transition-duration: var(--duration-medium);
+    transition-timing-function: var(--ease-smooth-out);
+  }
+  .ledger-time { font-size: 0.68rem; opacity: 0.75; font-variant-numeric: tabular-nums; }
+  .ledger-mark {
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-left: 0.1rem;
+    border-radius: 999px;
+    background: var(--primary);
+    box-shadow: 0 0 0 0.22rem var(--accent);
+  }
+  .ledger-mark-route {
+    width: 1rem;
+    height: 1px;
+    margin-left: 0;
+    border-radius: 0;
+    background: var(--primary);
+    box-shadow: none;
+  }
+  .ledger-mark-warn { background: var(--warning); box-shadow: 0 0 0 0.22rem color-mix(in oklch, var(--warning) 18%, transparent); }
+  .ledger-mark-ok {
+    display: grid;
+    place-items: center;
+    width: 1rem;
+    height: 1rem;
+    margin-left: -0.1rem;
+    color: var(--primary-foreground);
+    background: var(--success);
+    box-shadow: 0 0 0 0.22rem color-mix(in oklch, var(--success) 18%, transparent);
+  }
+  [data-journey][data-stage="2"] [data-row="saved"],
+  [data-journey][data-stage="3"] [data-row="saved"],
+  [data-journey][data-stage="4"] [data-row="saved"],
+  [data-journey][data-stage="3"] [data-row="route"],
+  [data-journey][data-stage="4"] [data-row="route"],
+  [data-journey][data-stage="3"] [data-row="attempt-one"],
+  [data-journey][data-stage="4"] [data-row="attempt-one"],
+  [data-journey][data-stage="4"] [data-row="attempt-two"] {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  [data-journey][data-stage="3"] [data-row="attempt-one"] { transition-delay: var(--duration-quick); }
+  [data-journey][data-stage="4"] [data-row="attempt-two"] { transition-delay: var(--duration-quick); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .form-plane, .ledger-row { transition: none; animation: none !important; }
+    [data-journey]:not([data-stage]) .form-plane { transform: translateY(0.9rem) rotate(0deg) scale(0.95); }
+  }
 </style>
 
 <script>
   import { inView } from "motion"
   const journey = document.querySelector<HTMLElement>("[data-journey]")
   if (journey) {
-    const labels = ["incoming", "stored", "delivery pending", "attempt 2 sent"]
-    const delivery = journey.querySelector<HTMLElement>("[data-delivery-status]")
+    const labels = ["received", "saved", "waiting to retry", "delivered"]
     const state = journey.querySelector<HTMLElement>("[data-journey-state]")
     const setStage = (value: number) => {
       journey.dataset.stage = String(value)
       if (state) state.textContent = labels[value - 1] ?? labels[0]!
-      if (delivery) delivery.textContent = value < 3 ? "waiting for worker" : value === 3 ? "retry scheduled" : "sent on attempt 2"
     }
     const media = window.matchMedia("(min-width: 1024px)")
-    setStage(media.matches ? 1 : 4)
-    if (media.matches) journey.querySelectorAll<HTMLElement>("[data-stage]").forEach((stage) => inView(stage, () => setStage(Number(stage.dataset.stage)), { margin: "-42% 0px -42% 0px" }))
+    if (media.matches) {
+      journey.querySelectorAll<HTMLElement>("[data-stage]").forEach((stage) => inView(stage, () => setStage(Number(stage.dataset.stage)), { margin: "-42% 0px -42% 0px" }))
+    } else {
+      setStage(4)
+    }
   }
 </script>
