@@ -1,6 +1,6 @@
 ---
 import { LOGIN_URL, SIGNUP_URL } from "@/config"
-import { ArrowUpRight, LogIn, Menu, X } from "@lucide/astro"
+import { ArrowUpRight, LogIn, Menu, Moon, Sun, X } from "@lucide/astro"
 const links = [
   { href: "/features/", label: "Features" },
   { href: "/for-ai-agents/", label: "For AI agents" },
@@ -38,9 +38,11 @@ const overlaysHero = current === "/"
       ))}
     </ul>
     <div class="flex items-center gap-2">
-      <button type="button" id="theme-toggle" class="btn btn-ghost hidden h-10 w-10 px-0 sm:inline-flex" aria-label="Toggle dark mode" title="Toggle theme">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="hidden dark:block" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"/></svg>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="dark:hidden" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+      <button type="button" data-theme-toggle class="btn btn-ghost hidden h-10 w-10 px-0 sm:inline-flex" aria-label="Toggle dark mode" title="Toggle theme">
+        <span class="t-icon-swap" data-theme-swap data-state="a" aria-hidden="true">
+          <Moon size={18} stroke-width={1.75} class="t-icon" data-icon="a" />
+          <Sun size={18} stroke-width={1.75} class="t-icon" data-icon="b" />
+        </span>
       </button>
       <a href={LOGIN_URL} class="btn btn-ghost btn-sm hidden sm:inline-flex">Sign in</a>
       <a href={SIGNUP_URL} class="btn btn-primary btn-sm">Create a form</a>
@@ -70,20 +72,36 @@ const overlaysHero = current === "/"
       </nav>
       <div class="mobile-nav-footer">
         <p>Open source. Agent-native. Yours.</p>
-        <a href={LOGIN_URL} class="mobile-nav-sign-in">
-          <LogIn size={17} stroke-width={1.8} aria-hidden="true" />
-          <span>Sign in</span>
-        </a>
+        <div class="flex items-center gap-2">
+          <button type="button" data-theme-toggle class="mobile-nav-sign-in justify-center !px-0 w-11" aria-label="Toggle dark mode" title="Toggle theme">
+            <span class="t-icon-swap" data-theme-swap data-state="a" aria-hidden="true">
+              <Moon size={17} stroke-width={1.8} class="t-icon" data-icon="a" />
+              <Sun size={17} stroke-width={1.8} class="t-icon" data-icon="b" />
+            </span>
+          </button>
+          <a href={LOGIN_URL} class="mobile-nav-sign-in">
+            <LogIn size={17} stroke-width={1.8} aria-hidden="true" />
+            <span>Sign in</span>
+          </a>
+        </div>
       </div>
     </div>
   </div>
 </header>
 <script>
-  const toggle = document.getElementById("theme-toggle")
-  toggle?.addEventListener("click", () => {
-    const dark = document.documentElement.classList.toggle("dark")
-    try { localStorage.setItem("postbag-site-theme", dark ? "dark" : "light") } catch {}
-  })
+  const themeSwaps = document.querySelectorAll<HTMLElement>("[data-theme-swap]")
+  const syncThemeSwaps = () => {
+    const dark = document.documentElement.classList.contains("dark")
+    themeSwaps.forEach((swap) => swap.setAttribute("data-state", dark ? "b" : "a"))
+  }
+  syncThemeSwaps()
+  document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]").forEach((button) =>
+    button.addEventListener("click", () => {
+      const dark = document.documentElement.classList.toggle("dark")
+      try { localStorage.setItem("postbag-site-theme", dark ? "dark" : "light") } catch {}
+      syncThemeSwaps()
+    }),
+  )
   const navToggle = document.getElementById("nav-toggle")
   const mobile = document.getElementById("mobile-nav")
   const header = document.querySelector<HTMLElement>("[data-hero-overlay]")
