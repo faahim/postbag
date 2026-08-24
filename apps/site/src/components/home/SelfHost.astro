@@ -1,26 +1,5 @@
 ---
-import CodeBlock from "@/components/CodeBlock.astro"
 import { GITHUB_URL } from "@/config"
-
-const compose = `services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: postbag
-      POSTGRES_USER: postbag
-      POSTGRES_PASSWORD: change-me
-    volumes: [ "postbag-postgres:/var/lib/postgresql/data" ]
-  postbag:
-    build: .
-    depends_on: [ db ]
-    environment:
-      DATABASE_URL: postgres://postbag:change-me@db:5432/postbag
-      APP_URL: https://forms.example.com
-      BETTER_AUTH_SECRET: change-me-too
-      POSTBAG_ROLE: all
-      MIGRATE_ON_BOOT: "true"
-    ports: [ "3000:3000" ]
-volumes: { postbag-postgres: {} }`
 ---
 <section class="ownership-wrap mt-28 sm:mt-40" aria-labelledby="selfhost-heading" id="self-host">
   <div class="container-x py-20 sm:py-28">
@@ -29,40 +8,152 @@ volumes: { postbag-postgres: {} }`
       <p class="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">Two doors into the same product — truly the same, not a generous demo. Cloud just means the server chores are ours.</p>
     </div>
 
-    <div class="mt-14 grid gap-10 lg:grid-cols-[minmax(16rem,0.72fr)_minmax(0,1.28fr)] lg:gap-20">
-      <div class="grid gap-10" data-reveal>
-        <article class="ownership-path">
-          <p class="font-mono text-xs font-semibold text-primary">Postbag Cloud</p>
-          <h3 class="mt-3 text-2xl font-semibold">We keep it running.</h3>
-          <p class="mt-3 text-[15px] leading-relaxed text-muted-foreground">Hosting, upgrades, backups, email plumbing — handled. Every plan gets the whole product; you pay for room, not features.</p>
-          <a href="/pricing/" class="mt-5 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline">See Cloud pricing</a>
-        </article>
-        <article class="ownership-path">
-          <p class="font-mono text-xs font-semibold text-primary">Self-host</p>
-          <h3 class="mt-3 text-2xl font-semibold">You keep the keys.</h3>
-          <p class="mt-3 text-[15px] leading-relaxed text-muted-foreground">One container, one database, everything included. There is no smaller "community edition" — this is the edition.</p>
-          <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <a href="/docs/self-hosting/" class="font-medium text-primary underline-offset-4 hover:underline">Self-host guide</a>
-            <a href={GITHUB_URL} class="font-medium text-primary underline-offset-4 hover:underline">Read the source</a>
-          </div>
-        </article>
+    <div class="door-field mt-16" data-reveal>
+      <span class="door-thread" aria-hidden="true"></span>
+
+      <article class="door">
+        <div class="door-scene" aria-hidden="true"><span class="door-aperture"></span></div>
+        <p class="door-address">postbag.dev</p>
+        <h3 class="mt-2 text-2xl font-semibold">We keep it running.</h3>
+        <p class="door-body">Hosting, upgrades, backups, email plumbing — handled. Every plan gets the whole product; you pay for room, not features.</p>
+        <div class="door-actions">
+          <a href="/pricing/" class="font-medium text-primary underline-offset-4 hover:underline">See Cloud pricing</a>
+        </div>
+      </article>
+
+      <div class="door-keystone" aria-hidden="true">
+        <span class="door-keystone-chip"><img src="/logo-mark-455264e.svg" alt="" width="30" height="30" loading="lazy" /></span>
+        <span class="door-keystone-label">same product</span>
       </div>
 
-      <div class="min-w-0" data-reveal style="--reveal-delay: var(--duration-quick)">
-        <CodeBlock code={compose} lang="yaml" title="docker-compose.yml" dense />
-        <dl class="mt-6 grid gap-5 sm:grid-cols-3">
-          <div><dt class="font-mono text-xs text-primary">One image</dt><dd class="mt-2 text-sm leading-relaxed text-muted-foreground">Run the API, worker or both.</dd></div>
-          <div><dt class="font-mono text-xs text-primary">One database</dt><dd class="mt-2 text-sm leading-relaxed text-muted-foreground">Postgres is the only stateful dependency.</dd></div>
-          <div><dt class="font-mono text-xs text-primary">Open source</dt><dd class="mt-2 text-sm leading-relaxed text-muted-foreground">AGPL service. MIT SDK, CLI and MCP server.</dd></div>
-        </dl>
-      </div>
+      <article class="door">
+        <div class="door-scene" aria-hidden="true"><span class="door-aperture"></span></div>
+        <p class="door-address">your-server.example</p>
+        <h3 class="mt-2 text-2xl font-semibold">You keep the keys.</h3>
+        <p class="door-body">One container, one database, everything included. There is no smaller "community edition" — this is the edition.</p>
+        <div class="door-actions">
+          <a href="/docs/self-hosting/" class="font-medium text-primary underline-offset-4 hover:underline">Self-host guide</a>
+          <a href={GITHUB_URL} class="font-medium text-primary underline-offset-4 hover:underline" rel="noopener">Read the source</a>
+        </div>
+      </article>
     </div>
+
+    <dl class="door-facts" data-reveal>
+      <div><dt>One container</dt><dd>Run the whole thing, or split API and sender.</dd></div>
+      <div><dt>One database</dt><dd>Postgres is the only other moving part.</dd></div>
+      <div><dt>Open source</dt><dd>AGPL service. MIT SDK, CLI and MCP server.</dd></div>
+    </dl>
   </div>
 </section>
 
 <style>
   .ownership-wrap { position: relative; overflow: hidden; background: var(--surface-2); box-shadow: inset 0 1px 0 var(--border); }
   .ownership-wrap::after { content: ""; position: absolute; right: -10rem; bottom: -16rem; width: 34rem; height: 34rem; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, color-mix(in oklch, var(--primary) 20%, transparent), transparent 66%); }
-  .ownership-path { padding-bottom: 2rem; border-bottom: 1px solid var(--border-strong); }
-  .ownership-path:last-child { padding-bottom: 0; border-bottom: 0; }
+
+  .door-field {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: clamp(1.25rem, 3vw, 2.5rem);
+    align-items: stretch;
+  }
+  /* One route thread passes behind both doors — visible in the gaps, so the same
+     line enters one door and leaves the other. */
+  .door-thread {
+    position: absolute;
+    top: 5.4rem;
+    right: -1.5rem;
+    left: -1.5rem;
+    z-index: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--primary) 12%, var(--primary) 88%, transparent);
+    opacity: 0.65;
+  }
+  .door {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1.75rem 1.75rem 2rem;
+    border-radius: calc(var(--radius) + 12px);
+    background: var(--surface);
+    box-shadow: var(--shadow-lg), inset 0 0 0 1px var(--border);
+    transition-property: box-shadow, transform;
+    transition-duration: var(--duration-fast);
+    transition-timing-function: var(--ease-smooth-out);
+  }
+  .door:hover { transform: translateY(-3px); box-shadow: var(--shadow-xl), inset 0 0 0 1px var(--border); }
+  .door-scene {
+    display: grid;
+    place-items: center;
+    height: 6.25rem;
+    margin: -0.5rem -0.5rem 1.25rem;
+    border-radius: calc(var(--radius) + 8px);
+    background:
+      radial-gradient(120% 100% at 50% 100%, color-mix(in oklch, var(--primary) 13%, transparent), transparent 58%),
+      linear-gradient(to bottom, var(--surface-2), color-mix(in oklch, var(--surface-2) 88%, var(--primary)));
+  }
+  .door-aperture {
+    width: min(64%, 11.5rem);
+    height: 2.1rem;
+    border-radius: 999px;
+    background: radial-gradient(130% 200% at 50% -30%, oklch(0.42 0.09 276) 0%, oklch(0.2 0.06 273) 42%, oklch(0.12 0.045 272) 78%);
+    box-shadow:
+      inset 0 2px 6px oklch(0.05 0.03 272 / 0.55),
+      inset 0 1px 0 color-mix(in oklch, var(--brand-periwinkle) 55%, transparent),
+      0 12px 22px color-mix(in oklch, var(--primary) 20%, transparent);
+  }
+  .door-address {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--primary);
+  }
+  .door-body { margin-top: 0.75rem; color: var(--muted-foreground); font-size: 15px; line-height: 1.65; }
+  .door-actions { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin-top: auto; padding-top: 1.25rem; font-size: 0.875rem; }
+
+  .door-keystone {
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 0.6rem;
+    padding: 0 0.25rem;
+  }
+  .door-keystone-chip {
+    display: grid;
+    place-items: center;
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: var(--shadow-md), inset 0 0 0 1px var(--border-strong);
+  }
+  .door-keystone-label {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .door-facts {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 3rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--border-strong);
+  }
+  .door-facts dt { font-family: var(--font-mono); font-size: 0.74rem; color: var(--primary); }
+  .door-facts dd { margin-top: 0.4rem; color: var(--muted-foreground); font-size: 0.9rem; line-height: 1.55; }
+
+  @media (min-width: 640px) { .door-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 767px) {
+    .door-field { grid-template-columns: minmax(0, 1fr); }
+    .door-thread { display: none; }
+    .door-keystone { grid-auto-flow: column; justify-content: center; padding: 0.25rem 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .door, .door:hover { transform: none; transition: none; }
+  }
 </style>
