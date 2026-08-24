@@ -5,12 +5,14 @@ import { API_URL, EXAMPLE } from "@/config"
 const url = `${API_URL}/s/${EXAMPLE.form}`
 const demoFormId = (import.meta.env.PUBLIC_DEMO_FORM_ID as string | undefined) ?? "fm_73c74vjq6z24"
 const demoSubmitUrl = demoFormId ? `${API_URL}/s/${demoFormId}` : undefined
+/* Snippets are kept to near-equal line counts on purpose: the panel-stack reserves
+   the tallest panel's height, so uneven snippets leave a void under short ones. */
 const tabs = [
   { id: "html", label: "HTML", lang: "html", code: `<form action="${url}" method="POST">\n  <label>Email<input type="email" name="email" required /></label>\n  <label>Message<textarea name="message" required></textarea></label>\n  <button type="submit">Send</button>\n</form>` },
-  { id: "fetch", label: "fetch", lang: "js", code: `await fetch("${url}", {\n  method: "POST",\n  headers: { "Content-Type": "application/json" },\n  body: JSON.stringify(data),\n})` },
-  { id: "react", label: "React", lang: "jsx", code: `async function handleSubmit(event) {\n  event.preventDefault()\n  await fetch("${url}", { method: "POST", body: new FormData(event.currentTarget) })\n}\n\nexport function ContactForm() {\n  return (\n    <form onSubmit={handleSubmit}>\n      <input type="email" name="email" required />\n      <textarea name="message" required />\n      <button type="submit">Send</button>\n    </form>\n  )\n}` },
-  { id: "next", label: "Next.js", lang: "ts", code: `"use server"\n\nexport async function submitForm(formData: FormData) {\n  await fetch("${url}", { method: "POST", body: formData })\n}` },
-  { id: "curl", label: "curl", lang: "bash", code: `curl -X POST ${url} \\\n  -H "Content-Type: application/json" \\\n  -d '{"email":"you@example.com","message":"Hello","_test":true}'\n\n# {"ok":true,"submission_id":"${EXAMPLE.submission}",\n#  "status":"received","deliveries":[]}` },
+  { id: "fetch", label: "fetch", lang: "js", code: `await fetch("${url}", {\n  method: "POST",\n  headers: { "Content-Type": "application/json" },\n  body: JSON.stringify(data),\n})\n// → { ok: true, submission_id: "${EXAMPLE.submission}", status: "received" }` },
+  { id: "react", label: "React", lang: "jsx", code: `export function ContactForm() {\n  async function submit(event) {\n    event.preventDefault()\n    await fetch("${url}", { method: "POST", body: new FormData(event.currentTarget) })\n  }\n  return <form onSubmit={submit}>{/* email, message, send */}</form>\n}` },
+  { id: "next", label: "Next.js", lang: "ts", code: `"use server"\n\nexport async function submitForm(formData: FormData) {\n  await fetch("${url}", { method: "POST", body: formData })\n}\n// works as a form action — no client JavaScript needed` },
+  { id: "curl", label: "curl", lang: "bash", code: `curl -X POST ${url} \\\n  -H "Content-Type: application/json" \\\n  -d '{"email":"you@example.com","message":"Hello","_test":true}'\n\n# {"ok":true,"submission_id":"${EXAMPLE.submission}","status":"received"}` },
 ] as const
 ---
 <section class="hero-follow-on container-x pt-20 sm:pt-28" aria-labelledby="integration-heading" id="demo">
@@ -20,8 +22,8 @@ const tabs = [
     <p class="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">Point your form at one URL, done — whatever your site speaks. We never say "got it" until we have.</p>
   </div>
 
-  <div class="mt-12 grid items-start gap-8 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:gap-14">
-    <div class="min-w-0 lg:pt-10" data-reveal>
+  <div class="mt-12 grid items-start gap-10 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:gap-14">
+    <div class="min-w-0" data-reveal>
       {demoSubmitUrl ? (
         <form id="demo-form" class="receipt-form overflow-hidden rounded-2xl bg-surface" action={demoSubmitUrl} method="POST" novalidate>
           <div class="flex min-h-12 items-center justify-between gap-4 px-5 font-mono text-[12px] text-muted-foreground">
@@ -89,7 +91,7 @@ const tabs = [
           </div>
         ))}
       </div>
-      <dl class="mt-7 grid gap-5 sm:grid-cols-3">
+      <dl class="mt-5 grid gap-5 border-t border-border pt-5 sm:grid-cols-3">
         <div><dt class="font-mono text-xs text-primary">HTML</dt><dd class="mt-2 text-sm leading-relaxed text-muted-foreground">Plain forms work exactly as they are.</dd></div>
         <div><dt class="font-mono text-xs text-primary">JSON</dt><dd class="mt-2 text-sm leading-relaxed text-muted-foreground">fetch gets a receipt back, with an id to prove it.</dd></div>
         <div><dt class="font-mono text-xs text-primary">Redirect</dt><dd class="mt-2 text-sm leading-relaxed text-muted-foreground">No JavaScript? Visitors land right back on your page.</dd></div>
@@ -118,11 +120,9 @@ const tabs = [
       transparent 82%
     );
   }
-  .integration-intro { padding-left: clamp(0rem, 7vw, 5rem); }
   .receipt-form { box-shadow: var(--shadow-xl), inset 0 0 0 1px var(--border); }
   .receipt-result { border-top: 1px solid var(--border); background: var(--surface-2); }
   .receipt-plane { width: 2.75rem; height: 3.4rem; border-radius: var(--radius); background: var(--surface); box-shadow: 0 10px 26px color-mix(in oklch, var(--primary) 16%, transparent), inset 0 0 0 1px var(--border-strong); transform: rotate(-5deg); }
-  @media (max-width: 767px) { .integration-intro { padding-left: 0; } }
 </style>
 
 <script>

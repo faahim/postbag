@@ -1,6 +1,6 @@
 ---
 import { LOGIN_URL, SIGNUP_URL } from "@/config"
-import { ArrowUpRight, LogIn, Menu, Moon, Sun, X } from "@lucide/astro"
+import { ArrowUpRight, LogIn, Menu, X } from "@lucide/astro"
 const links = [
   { href: "/features/", label: "Features" },
   { href: "/for-ai-agents/", label: "For AI agents" },
@@ -38,12 +38,6 @@ const overlaysHero = current === "/"
       ))}
     </ul>
     <div class="flex items-center gap-2">
-      <button type="button" data-theme-toggle class="btn btn-ghost hidden h-10 w-10 px-0 sm:inline-flex" aria-label="Toggle dark mode" title="Toggle theme">
-        <span class="t-icon-swap" data-theme-swap data-state="a" aria-hidden="true">
-          <Moon size={18} stroke-width={1.75} class="t-icon" data-icon="a" />
-          <Sun size={18} stroke-width={1.75} class="t-icon" data-icon="b" />
-        </span>
-      </button>
       <a href={LOGIN_URL} class="btn btn-ghost btn-sm hidden sm:inline-flex">Sign in</a>
       <a href={SIGNUP_URL} class="btn btn-primary btn-sm">Create a form</a>
       <button type="button" id="nav-toggle" class="mobile-nav-toggle btn btn-ghost h-10 w-10 px-0 lg:hidden" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
@@ -72,36 +66,15 @@ const overlaysHero = current === "/"
       </nav>
       <div class="mobile-nav-footer">
         <p>Open source. Agent-native. Yours.</p>
-        <div class="flex items-center gap-2">
-          <button type="button" data-theme-toggle class="mobile-nav-sign-in justify-center !px-0 w-11" aria-label="Toggle dark mode" title="Toggle theme">
-            <span class="t-icon-swap" data-theme-swap data-state="a" aria-hidden="true">
-              <Moon size={17} stroke-width={1.8} class="t-icon" data-icon="a" />
-              <Sun size={17} stroke-width={1.8} class="t-icon" data-icon="b" />
-            </span>
-          </button>
-          <a href={LOGIN_URL} class="mobile-nav-sign-in">
-            <LogIn size={17} stroke-width={1.8} aria-hidden="true" />
-            <span>Sign in</span>
-          </a>
-        </div>
+        <a href={LOGIN_URL} class="mobile-nav-sign-in">
+          <LogIn size={17} stroke-width={1.8} aria-hidden="true" />
+          <span>Sign in</span>
+        </a>
       </div>
     </div>
   </div>
 </header>
 <script>
-  const themeSwaps = document.querySelectorAll<HTMLElement>("[data-theme-swap]")
-  const syncThemeSwaps = () => {
-    const dark = document.documentElement.classList.contains("dark")
-    themeSwaps.forEach((swap) => swap.setAttribute("data-state", dark ? "b" : "a"))
-  }
-  syncThemeSwaps()
-  document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]").forEach((button) =>
-    button.addEventListener("click", () => {
-      const dark = document.documentElement.classList.toggle("dark")
-      try { localStorage.setItem("postbag-site-theme", dark ? "dark" : "light") } catch {}
-      syncThemeSwaps()
-    }),
-  )
   const navToggle = document.getElementById("nav-toggle")
   const mobile = document.getElementById("mobile-nav")
   const header = document.querySelector<HTMLElement>("[data-hero-overlay]")

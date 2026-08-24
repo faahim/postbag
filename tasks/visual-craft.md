@@ -7,6 +7,11 @@ in recommended order. Line numbers are from the audit and may drift.
 
 ## 0. Fahim's directives (2026-08-25) — these outrank everything below
 
+- [x] **Dark-first.** The site ships committed to the midnight look; the
+  theme toggle is removed and light tokens are parked in CSS. Optimize dark
+  only. (Second directive, same day: fixed the white invariant ledger, the
+  washed AgentNative band, and the Integration section's structure/void.)
+
 - [x] **Figures must be accurate or absent.** The Journey explainer
   ("It lands before it travels") is inaccurate and reads as nonsense —
   redesign it so the visual literally tells the save→send story, or remove
@@ -35,7 +40,7 @@ in recommended order. Line numbers are from the audit and may drift.
 
 ## 1. Reads-as-broken (fix first, one short session)
 
-- [ ] **Fleet-map connectors look like empty cards.** `Operator.astro` —
+- [x] **Fleet-map connectors look like empty cards.** `Operator.astro` —
   `.fleet-join` / `.fleet-split` (~:68-71) render as blank rectangles with a
   line at 1440px. Redraw as actual route traces (single stroked path /
   bracket without the boxed void), on-motif.
@@ -102,9 +107,9 @@ in recommended order. Line numbers are from the audit and may drift.
 
 ## 4. Judgment calls (decide with Fahim before building)
 
-- [ ] **Homepage scrolled nav** stays near-black over light sections while
-  every interior page has a light nav. Options: adopt page theme after the
-  hero, or keep ink and tune. Decide, then implement.
+- [x] **Homepage scrolled nav** — resolved by the dark-first decision
+  (2026-08-25): the site commits to the midnight look, light tokens parked,
+  so the nav and page share one ink material everywhere.
 - [x] **Journey receiving slot** is a flat black ellipse in light mode
   (`Journey.astro` `.receiving-slot`); reads as a rubber puck next to the
   hero's rendered depth. Give it the aperture treatment (gradient depth,
