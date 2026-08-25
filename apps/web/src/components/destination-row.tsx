@@ -89,7 +89,7 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-lg border border-border/70 bg-card px-4 py-3 shadow-xs",
+        "flex flex-col gap-2 rounded-xl border border-border/70 bg-card px-5 py-4 shadow-xs",
         "transition-[transform,box-shadow] duration-(--duration-quick) ease-(--ease-smooth-out)",
         "hover:-translate-y-px hover:shadow-md",
       )}
@@ -102,17 +102,17 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
             </TooltipTrigger>
             <TooltipContent side="top">{health.label}</TooltipContent>
           </Tooltip>
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-            {typeMeta !== undefined && <typeMeta.icon className="size-4" />}
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            {typeMeta !== undefined && <typeMeta.icon className="size-[18px]" />}
           </div>
-          <div className="flex min-w-0 flex-col">
+          <div className="flex min-w-0 flex-col gap-0.5">
             <div className="flex items-center gap-2">
-              <span className="truncate text-sm font-medium">{destination.name}</span>
+              <span className="truncate text-[15px] font-medium">{destination.name}</span>
               <Badge variant="muted" className="shrink-0">
                 {typeMeta?.label ?? destination.type}
               </Badge>
             </div>
-            <span className="truncate text-xs text-muted-foreground" title={summary}>
+            <span className="truncate text-sm text-muted-foreground" title={summary}>
               {summary}
             </span>
           </div>

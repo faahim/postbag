@@ -77,13 +77,17 @@ function StreamDetailRoute() {
   const tab: StreamTab = chosenTab ?? (fresh ? "sources" : "delivered")
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <Link to="/streams" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-3.5" /> Streams
+    <div className="page-enter flex flex-col gap-8">
+      <div className="flex flex-col gap-4">
+        <Link
+          to="/streams"
+          className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-(--duration-quick) hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5 transition-transform duration-(--duration-quick) ease-(--ease-smooth-out) group-hover:-translate-x-0.5" />{" "}
+          Streams
         </Link>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h1 className="text-xl font-semibold">{streamData.name}</h1>
+          <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight">{streamData.name}</h1>
           <span className="font-mono text-xs text-muted-foreground">{streamData.id}</span>
         </div>
         {(

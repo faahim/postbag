@@ -4,6 +4,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { ConnectedAccountsCard } from "@/components/connected-accounts-card"
+import { PageHeader } from "@/components/page-header"
 import { PlanCard } from "@/components/plan-card"
 import { SettingsNav } from "@/components/settings-nav"
 import { Button } from "@/components/ui/button"
@@ -44,11 +45,8 @@ function SettingsRoute() {
   }
 
   return (
-    <div className="flex max-w-lg flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Settings</h1>
-        <p className="text-sm text-muted-foreground">Workspace name, plan and timezone.</p>
-      </div>
+    <div className="page-enter flex max-w-xl flex-col gap-8">
+      <PageHeader title="Settings" description="Workspace name, plan and timezone." />
 
       <SettingsNav />
 

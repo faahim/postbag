@@ -1,9 +1,11 @@
+import type { CSSProperties } from "react"
+
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { EmptyState } from "@/components/empty-state"
 import { RoutingMark, type RoutingMarkStatus } from "@/components/routing-mark"
-import { formatRelativeTime, splitPrefixedId } from "@/lib/format"
+import { cn } from "@/lib/utils"
+import { formatRelativeTime } from "@/lib/format"
 import { quarantineReasonDetail } from "@/lib/quarantine"
 
 export type SubmissionRow = {
@@ -16,12 +18,6 @@ export type SubmissionRow = {
   readonly received_at: string
 }
 
-const STATUS_VARIANT = {
-  received: "success",
-  quarantined: "warning",
-  spam: "destructive",
-} as const
-
 // A Submission's status uses the same compact receiving/routing language as a Delivery.
 const STATUS_MARK: Record<SubmissionRow["status"], RoutingMarkStatus> = {
   received: "sent",
@@ -29,11 +25,33 @@ const STATUS_MARK: Record<SubmissionRow["status"], RoutingMarkStatus> = {
   spam: "dead",
 }
 
-function preview(data: Readonly<Record<string, unknown>>): string {
-  const entries = Object.entries(data).filter(([key]) => !key.startsWith("_"))
+const STATUS_APERTURE: Record<SubmissionRow["status"], string> = {
+  received: "bg-accent/50",
+  quarantined: "bg-warning/15",
+  spam: "bg-destructive/10",
+}
+
+/** The keys most likely to say who a Submission is from, in order of preference. */
+const HEADLINE_KEYS = ["name", "full_name", "contact", "attendee", "company", "email", "subject", "title"] as const
+
+export function headline(data: Readonly<Record<string, unknown>>): string | null {
+  for (const key of HEADLINE_KEYS) {
+    const value = data[key]
+    if (typeof value === "string" && value.trim() !== "") return value
+  }
+  for (const [key, value] of Object.entries(data)) {
+    if (!key.startsWith("_") && typeof value === "string" && value.trim() !== "") return value
+  }
+  return null
+}
+
+function preview(data: Readonly<Record<string, unknown>>, skip: string | null): string {
+  const entries = Object.entries(data).filter(
+    ([key, value]) => !key.startsWith("_") && String(value).trim() !== "" && String(value) !== skip,
+  )
   if (entries.length === 0) return "—"
   return entries
-    .slice(0, 3)
+    .slice(0, 4)
     .map(([key, value]) => `${key}: ${String(value)}`)
     .join(" · ")
 }
@@ -42,83 +60,93 @@ export function SubmissionsTable({
   rows,
   isLoading,
   onOpen,
-  showFormId = false,
-  emptyTitle = "No submissions yet",
-  emptyDescription = "Once your form receives a submission, it shows up here instantly.",
+  formNames,
+  emptyTitle = "Nothing has landed yet",
+  emptyDescription = "The moment a Submission arrives, it settles here — saved before it goes anywhere else.",
+  emptyAction,
+  emptyBrandMark = false,
 }: {
   readonly rows: readonly SubmissionRow[]
   readonly isLoading: boolean
   readonly onOpen: (id: string) => void
-  readonly showFormId?: boolean
+  /** Map of form id → Form name; when present each row names its Form. */
+  readonly formNames?: Readonly<Record<string, string>>
   readonly emptyTitle?: string
   readonly emptyDescription?: string
+  readonly emptyAction?: React.ReactNode
+  readonly emptyBrandMark?: boolean
 }) {
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2.5">
         {Array.from({ length: 5 }, (_, i) => (
-          <Skeleton key={i} className="h-11 w-full" />
+          <Skeleton key={i} className="h-[4.25rem] w-full rounded-xl" />
         ))}
       </div>
     )
   }
 
   if (rows.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />
+    return (
+      <EmptyState
+        title={emptyTitle}
+        description={emptyDescription}
+        action={emptyAction}
+        brandMark={emptyBrandMark}
+      />
+    )
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>ID</TableHead>
-          <TableHead>Status</TableHead>
-          {showFormId && <TableHead>Form</TableHead>}
-          <TableHead>Fields</TableHead>
-          <TableHead className="text-right">Received</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+    <div className="list-surface">
+      <ul className="divide-y divide-border/60">
         {rows.map((row, i) => {
-          const idParts = splitPrefixedId(row.id)
+          const head = headline(row.data)
+          const formName = formNames?.[row.form_id]
           return (
-            <TableRow
-              key={row.id}
-              onClick={() => {
-                onOpen(row.id)
-              }}
-              className="cursor-pointer animate-in fade-in-0 slide-in-from-bottom-0.5"
-              style={{ animationDelay: `${Math.min(i, 8) * 30}ms`, animationDuration: "var(--duration-fast)" }}
-            >
-              <TableCell>
-                <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
-                  <span className="opacity-60">{idParts.prefix}</span>
-                  {idParts.rest.slice(0, 8)}
-                </span>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col items-start gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <Badge variant={STATUS_VARIANT[row.status]} className="gap-1">
-                      <RoutingMark status={STATUS_MARK[row.status]} size={12} />
-                      {row.status}
-                    </Badge>
-                    {row.test && <Badge variant="muted">test</Badge>}
-                  </div>
-                  {row.status === "quarantined" && (
-                    <span className="text-xs text-warning-foreground">{quarantineReasonDetail(row.quarantine_reason).label}</span>
+            <li key={row.id} className="row-enter" style={{ "--row-index": i } as CSSProperties}>
+              <button
+                type="button"
+                onClick={() => {
+                  onOpen(row.id)
+                }}
+                className={cn(
+                  "group flex w-full items-center gap-4 px-5 py-4 text-left",
+                  "transition-colors duration-(--duration-quick) ease-(--ease-smooth-out) hover:bg-muted/40",
+                  "outline-none focus-visible:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex size-10 shrink-0 items-center justify-center rounded-lg shadow-inner",
+                    STATUS_APERTURE[row.status],
                   )}
-                </div>
-              </TableCell>
-              {showFormId && <TableCell className="font-mono text-xs text-muted-foreground">{row.form_id}</TableCell>}
-              <TableCell className="max-w-md text-sm text-foreground">
-                <span className="fade-truncate block">{preview(row.data)}</span>
-              </TableCell>
-              <TableCell className="text-right text-xs text-muted-foreground tabular-nums">{formatRelativeTime(row.received_at)}</TableCell>
-            </TableRow>
+                  aria-hidden="true"
+                >
+                  <RoutingMark status={STATUS_MARK[row.status]} size={22} />
+                </span>
+
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-[15px] font-medium text-foreground">{head ?? "Empty submission"}</span>
+                    {row.status === "spam" && <Badge variant="destructive">spam</Badge>}
+                    {row.status === "quarantined" && (
+                      <Badge variant="warning">{quarantineReasonDetail(row.quarantine_reason).label}</Badge>
+                    )}
+                    {row.test && <Badge variant="muted">test</Badge>}
+                  </span>
+                  <span className="fade-truncate block text-sm text-muted-foreground">{preview(row.data, head)}</span>
+                </span>
+
+                <span className="flex shrink-0 flex-col items-end gap-1 text-right">
+                  <span className="text-sm text-muted-foreground tabular-nums">{formatRelativeTime(row.received_at)}</span>
+                  {formName !== undefined && <span className="text-xs text-muted-foreground/70">{formName}</span>}
+                </span>
+              </button>
+            </li>
           )
         })}
-      </TableBody>
-    </Table>
+      </ul>
+    </div>
   )
 }

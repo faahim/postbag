@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { useCreateForm } from "@/lib/queries/forms"
 
 const createFormSchema = z.object({
-  name: z.string().min(1, "Name your form."),
+  name: z.string().min(1, "Name your Form."),
   origin: z.union([z.url(), z.literal("")]).optional(),
 })
 type CreateFormValues = z.infer<typeof createFormSchema>
@@ -39,7 +39,7 @@ export function CreateFormDialog({ open, onOpenChange }: { readonly open: boolea
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New form</DialogTitle>
+          <DialogTitle>New Form</DialogTitle>
           <DialogDescription>Gets a live endpoint immediately — wire up delivery after.</DialogDescription>
         </DialogHeader>
         <form
@@ -62,7 +62,7 @@ export function CreateFormDialog({ open, onOpenChange }: { readonly open: boolea
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating…" : "Create form"}
+              {isSubmitting ? "Creating…" : "Create Form"}
             </Button>
           </DialogFooter>
         </form>

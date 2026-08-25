@@ -11,7 +11,7 @@ export function AppShell({ children }: { readonly children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
         <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-5xl px-4 py-8 md:px-8">{children}</div>
+          <div className="mx-auto w-full max-w-6xl px-5 py-10 md:px-10 lg:py-12">{children}</div>
         </main>
       </div>
       <CommandPalette />

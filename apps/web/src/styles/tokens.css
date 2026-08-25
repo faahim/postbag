@@ -50,6 +50,26 @@
   --input: oklch(0.88 0.025 274);
   --ring: oklch(0.47 0.16 279 / 0.5);
 
+  /* ---- tactile controls (docs/DESIGN.md §3) ------------------------------
+     The site's button material, carried into the product: light catches the
+     top edge, weight sits under the bottom, and a press physically sinks. */
+  --primary-hover: oklch(0.43 0.155 279);
+  --btn-top-light: oklch(1 0 0 / 0.22);
+  --btn-bottom-shade: oklch(0.2 0.08 275 / 0.42);
+  --btn-drop: 0 1px 2px oklch(0.16 0.05 272 / 0.22), 0 3px 9px oklch(0.2 0.07 274 / 0.16);
+  --btn-drop-hover: 0 2px 3px oklch(0.16 0.05 272 / 0.24), 0 5px 14px oklch(0.2 0.07 274 / 0.2);
+  --btn-press-inset: inset 0 2px 3px oklch(0.12 0.05 272 / 0.35), inset 0 -1px 0 oklch(1 0 0 / 0.08);
+  --btn-press-drop: 0 1px 2px oklch(0.16 0.05 272 / 0.14);
+  --btn-raised-face: linear-gradient(to bottom, oklch(1 0 0 / 0.5), oklch(1 0 0 / 0) 55%);
+  --btn-raised-shadow:
+    0 0 0 1px var(--input) inset, inset 0 1.5px 0 oklch(1 0 0 / 0.6), 0 1px 2px oklch(0.2 0.035 272 / 0.08),
+    0 2px 6px oklch(0.2 0.035 272 / 0.06);
+  --btn-raised-shadow-hover:
+    0 0 0 1px var(--input) inset, inset 0 1.5px 0 oklch(1 0 0 / 0.5), 0 2px 3px oklch(0.2 0.035 272 / 0.09),
+    0 4px 10px oklch(0.2 0.035 272 / 0.08);
+  --btn-raised-press: 0 0 0 1px var(--input) inset, inset 0 2px 3px oklch(0.2 0.035 272 / 0.14);
+  --btn-grain-opacity: 0.5;
+
   /* ---- material canvas -------------------------------------------------- */
   --canvas-grain-image: url("/brand/interface-grain-v1.webp");
   --canvas-grain-size: 40rem;
@@ -289,6 +309,22 @@
   --border: oklch(0.34 0.052 274 / 0.7);
   --input: oklch(0.34 0.052 274);
   --ring: oklch(0.78 0.13 278 / 0.55);
+
+  --primary-hover: oklch(0.82 0.125 278);
+  --btn-top-light: oklch(1 0 0 / 0.32);
+  --btn-bottom-shade: oklch(0.14 0.05 273 / 0.5);
+  --btn-drop: 0 1px 2px oklch(0 0 0 / 0.35), 0 3px 9px oklch(0 0 0 / 0.3);
+  --btn-drop-hover: 0 2px 3px oklch(0 0 0 / 0.38), 0 5px 14px oklch(0 0 0 / 0.34);
+  --btn-press-inset: inset 0 2px 3px oklch(0.1 0.04 272 / 0.5), inset 0 -1px 0 oklch(1 0 0 / 0.1);
+  --btn-press-drop: 0 1px 2px oklch(0 0 0 / 0.25);
+  --btn-raised-face: linear-gradient(to bottom, oklch(1 0 0 / 0.06), oklch(1 0 0 / 0) 55%);
+  --btn-raised-shadow:
+    0 0 0 1px var(--input) inset, inset 0 1px 0 oklch(1 0 0 / 0.1), 0 1px 2px oklch(0 0 0 / 0.3),
+    0 2px 6px oklch(0 0 0 / 0.24);
+  --btn-raised-shadow-hover:
+    0 0 0 1px var(--input) inset, inset 0 1px 0 oklch(1 0 0 / 0.12), 0 2px 3px oklch(0 0 0 / 0.32),
+    0 4px 10px oklch(0 0 0 / 0.26);
+  --btn-raised-press: 0 0 0 1px var(--input) inset, inset 0 2px 3px oklch(0 0 0 / 0.4);
   --canvas-grain-opacity: 0.095;
   --canvas-grain-blend: screen;
 

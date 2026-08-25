@@ -1,11 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { MoreHorizontal, Plus } from "lucide-react"
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { PageHeader } from "@/components/page-header"
 import { StreamExplainer } from "@/components/stream-explainer"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -30,25 +31,24 @@ function StreamsIndexRoute() {
   const [renaming, setRenaming] = useState<Stream | undefined>(undefined)
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Streams</h1>
-          <p className="text-sm text-muted-foreground">Collect several forms into one shape, and send them on together.</p>
-        </div>
-        <Button
-          onClick={() => {
-            setOpen(true)
-          }}
-          className="gap-1.5"
-        >
-          <Plus className="size-4" />
-          New Stream
-        </Button>
-      </div>
+    <div className="page-enter flex flex-col gap-8">
+      <PageHeader
+        title="Streams"
+        description="Collect several Forms into one shape, and send them on together."
+        actions={
+          <Button
+            onClick={() => {
+              setOpen(true)
+            }}
+          >
+            <Plus />
+            New Stream
+          </Button>
+        }
+      />
 
       {streams.isLoading ? (
-        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-40 w-full rounded-xl" />
       ) : streams.data === undefined || streams.data.length === 0 ? (
         <StreamExplainer
           title="Many forms in. One tidy shape out."
@@ -67,42 +67,44 @@ function StreamsIndexRoute() {
           aside="Only one Form? You don't need a Stream yet — route it straight from its own page. Streams earn their keep once two or more Forms should land in the same place."
         />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="text-right">Sources</TableHead>
-              <TableHead className="text-right">Routes</TableHead>
-              <TableHead className="text-right">Submissions (30d)</TableHead>
-              <TableHead className="w-12">
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {streams.data.map((s) => (
-              <TableRow key={s.id}>
-                <TableCell className="font-medium">
-                  <Link to="/streams/$streamId" params={{ streamId: s.id }} className="hover:underline">
-                    {s.name}
-                  </Link>
-                  <span className="ml-2 font-mono text-xs text-muted-foreground">{s.id}</span>
-                </TableCell>
-                <TableCell className="text-right tabular-nums">{formatCount(s.counts.sources)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatCount(s.counts.routes)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatCount(s.counts.submissions_30d)}</TableCell>
-                <TableCell className="text-right">
-                  <StreamRowMenu
-                    stream={s}
-                    onRename={() => {
-                      setRenaming(s)
-                    }}
-                  />
-                </TableCell>
+        <div className="list-surface">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Stream</TableHead>
+                <TableHead className="text-right">Sources</TableHead>
+                <TableHead className="text-right">Routes</TableHead>
+                <TableHead className="text-right">Submissions (30d)</TableHead>
+                <TableHead className="w-12">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {streams.data.map((s, i) => (
+                <TableRow key={s.id} className="row-enter" style={{ "--row-index": i } as CSSProperties}>
+                  <TableCell>
+                    <Link to="/streams/$streamId" params={{ streamId: s.id }} className="flex flex-col gap-1 outline-none">
+                      <span className="text-[15px] font-medium">{s.name}</span>
+                      <span className="font-mono text-xs text-muted-foreground">{s.id}</span>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-right text-[15px] tabular-nums">{formatCount(s.counts.sources)}</TableCell>
+                  <TableCell className="text-right text-[15px] tabular-nums">{formatCount(s.counts.routes)}</TableCell>
+                  <TableCell className="text-right text-[15px] tabular-nums">{formatCount(s.counts.submissions_30d)}</TableCell>
+                  <TableCell className="text-right">
+                    <StreamRowMenu
+                      stream={s}
+                      onRename={() => {
+                        setRenaming(s)
+                      }}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       <CreateStreamDialog open={open} onOpenChange={setOpen} />

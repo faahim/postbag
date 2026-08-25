@@ -4,6 +4,7 @@ import { ArrowRight, Inbox, Terminal } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
+import { BrandMark } from "@/components/brand-mark"
 import { CopyButton } from "@/components/copy-button"
 import { EmbedSnippetTabs } from "@/components/embed-snippets"
 import { Button } from "@/components/ui/button"
@@ -43,10 +44,11 @@ function FirstRunRoute() {
 
   if (quickstart.data === undefined) {
     return (
-      <div className="mx-auto flex max-w-xl flex-col gap-8 py-6 md:py-10">
+      <div className="page-enter mx-auto flex max-w-xl flex-col gap-8 py-6 md:py-10">
         <div className="flex flex-col items-start gap-4">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-xs">
-            <Inbox className="size-5" />
+          <div className="relative w-fit" data-brand-trigger>
+            <div aria-hidden className="absolute inset-x-4 bottom-1 h-5 rounded-full bg-primary/20 blur-xl" />
+            <BrandMark ambient className="relative size-20" />
           </div>
           <h1 className="text-4xl leading-[1.05] font-semibold tracking-tight text-balance md:text-5xl">
             Give your first Form somewhere to go
@@ -128,10 +130,11 @@ function QuickstartResult({
   const hasReceived = first !== undefined
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-8 py-6 md:py-10">
+    <div className="page-enter mx-auto flex max-w-3xl flex-col gap-8 py-6 md:py-10">
       <div className="flex max-w-xl flex-col items-start gap-3">
-        <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-xs">
-          <Inbox className="size-5" />
+        <div className="relative w-fit" data-brand-trigger>
+          <div aria-hidden className="absolute inset-x-4 bottom-1 h-5 rounded-full bg-primary/20 blur-xl" />
+          <BrandMark className="relative size-20" />
         </div>
         <h1 className="text-4xl leading-[1.05] font-semibold tracking-tight text-balance md:text-5xl">
           Your Form is ready

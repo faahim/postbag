@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { EmptyState } from "@/components/empty-state"
+import { PageHeader } from "@/components/page-header"
 import { SettingsNav } from "@/components/settings-nav"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -59,11 +60,8 @@ function MembersRoute() {
   const alone = (members.data?.length ?? 0) <= 1 && (invitations.data?.length ?? 0) === 0
 
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Settings</h1>
-        <p className="text-sm text-muted-foreground">Who has access to this workspace, and what they can do.</p>
-      </div>
+    <div className="page-enter flex max-w-2xl flex-col gap-8">
+      <PageHeader title="Settings" description="Who has access to this workspace, and what they can do." />
 
       <SettingsNav />
 

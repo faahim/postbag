@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { EmptyState } from "@/components/empty-state"
+import { PageHeader } from "@/components/page-header"
 import { RoutingMark, type RoutingMarkStatus } from "@/components/routing-mark"
 import { EventsNav } from "@/components/events-nav"
 import { Badge } from "@/components/ui/badge"
@@ -48,11 +49,8 @@ function EventWebhooksRoute() {
   const [adding, setAdding] = useState(false)
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Events</h1>
-        <p className="text-sm text-muted-foreground">Everything that happened, most recent first.</p>
-      </div>
+    <div className="page-enter flex max-w-3xl flex-col gap-8">
+      <PageHeader title="Events" description="Everything that happened in this workspace, most recent first." />
 
       <EventsNav />
 

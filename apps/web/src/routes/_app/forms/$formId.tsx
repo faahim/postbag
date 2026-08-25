@@ -4,6 +4,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { CopyButton } from "@/components/copy-button"
 import { EmbedSnippetTabs } from "@/components/embed-snippets"
 import { RoutesList } from "@/components/routes-list"
 import { SubmissionDrawer } from "@/components/submission-drawer"
@@ -58,16 +59,25 @@ function FormDetailRoute() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <Link to="/forms" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-3.5" /> Forms
+    <div className="page-enter flex flex-col gap-8">
+      <div className="flex flex-col gap-4">
+        <Link
+          to="/forms"
+          className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-(--duration-quick) hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5 transition-transform duration-(--duration-quick) ease-(--ease-smooth-out) group-hover:-translate-x-0.5" />{" "}
+          Forms
         </Link>
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold">{form.data.name}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight">{form.data.name}</h1>
           <Badge variant={form.data.status === "active" ? "success" : "muted"}>{form.data.status}</Badge>
         </div>
-        <p className="font-mono text-xs text-muted-foreground">{form.data.submit_url}</p>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <code className="rounded-md bg-muted px-2.5 py-1.5 font-mono text-xs text-muted-foreground">
+            {form.data.submit_url}
+          </code>
+          <CopyButton value={form.data.submit_url} label="Copy URL" />
+        </div>
       </div>
 
       <Tabs
@@ -176,7 +186,7 @@ function FieldsTab({ formId }: { readonly formId: string }) {
           ) : (
             <ul className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
               {Object.entries(properties).map(([name, def]) => (
-                <li key={name} className="flex items-center justify-between px-3 py-2 text-sm">
+                <li key={name} className="flex items-center justify-between px-4 py-3 text-sm">
                   <span className="font-mono">{name}</span>
                   <span className="flex items-center gap-2 text-xs text-muted-foreground">
                     {(def as { type?: string }).type ?? "any"}
@@ -200,7 +210,7 @@ function FieldsTab({ formId }: { readonly formId: string }) {
                   const fieldCount = Object.keys((v.json_schema as { properties?: Record<string, unknown> }).properties ?? {}).length
                   const current = v.version === schema.data?.version
                   return (
-                    <li key={v.version ?? v.created_at} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                    <li key={v.version ?? v.created_at} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="font-mono text-xs tabular-nums">v{v.version}</span>
                         {current && <Badge variant="outline">current</Badge>}

@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { RotateCw } from "lucide-react"
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { toast } from "sonner"
 
 import { DeliveryStatusBadge } from "@/components/delivery-status"
 import { EmptyState } from "@/components/empty-state"
+import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -31,11 +32,8 @@ function DeliveriesRoute() {
   const open = deliveries.data?.data.find((d) => d.id === openId)
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Deliveries</h1>
-        <p className="text-sm text-muted-foreground">The outbox — every attempt to send a submission somewhere.</p>
-      </div>
+    <div className="page-enter flex flex-col gap-8">
+      <PageHeader title="Deliveries" description="Every attempt to send a Submission somewhere, tries and retries included." />
 
       <div className="flex flex-wrap items-center gap-2">
         <Select value={status ?? "all"} onValueChange={(v) => { setStatus(v === "all" ? undefined : v) }}>
@@ -68,10 +66,18 @@ function DeliveriesRoute() {
       </div>
 
       {deliveries.isLoading ? (
-        <Skeleton className="h-64 w-full" />
+        <div className="flex flex-col gap-2.5">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-xl" />
+          ))}
+        </div>
       ) : deliveries.data === undefined || deliveries.data.data.length === 0 ? (
-        <EmptyState title="No deliveries yet" description="Deliveries appear here the moment a route matches a submission." />
+        <EmptyState
+          title="No Deliveries yet"
+          description="The moment a Route matches a Submission, the attempt shows up here — and keeps showing up until it lands."
+        />
       ) : (
+        <div className="list-surface">
         <Table>
           <TableHeader>
             <TableRow>
@@ -83,10 +89,11 @@ function DeliveriesRoute() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {deliveries.data.data.map((delivery) => (
+            {deliveries.data.data.map((delivery, i) => (
               <TableRow
                 key={delivery.id}
-                className="cursor-pointer"
+                className="row-enter cursor-pointer"
+                style={{ "--row-index": i } as CSSProperties}
                 onClick={() => {
                   setOpenId(delivery.id)
                 }}
@@ -94,9 +101,16 @@ function DeliveriesRoute() {
                 <TableCell>
                   <DeliveryStatusBadge status={delivery.status as RoutingMarkStatus} />
                 </TableCell>
-                <TableCell className="text-sm">{destinationById.get(delivery.destination_id)?.name ?? delivery.destination_id}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[15px] font-medium">
+                      {destinationById.get(delivery.destination_id)?.name ?? delivery.destination_id}
+                    </span>
+                    <span className="font-mono text-xs text-muted-foreground">{delivery.destination_id}</span>
+                  </div>
+                </TableCell>
                 <TableCell className="tabular-nums text-sm text-muted-foreground">{delivery.attempts}</TableCell>
-                <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
+                <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
                   {delivery.sent_at !== null ? formatRelativeTime(delivery.sent_at) : formatRelativeTime(delivery.created_at)}
                 </TableCell>
                 <TableCell className="text-right">
@@ -122,14 +136,24 @@ function DeliveriesRoute() {
             ))}
           </TableBody>
         </Table>
+        </div>
       )}
 
       <Dialog open={openId !== null} onOpenChange={(o) => { if (!o) setOpenId(null) }}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle className="font-mono text-base">{open?.id}</DialogTitle>
-            <DialogDescription>
-              {open !== undefined && `${open.attempts} attempt${open.attempts === 1 ? "" : "s"} · created ${formatDateTime(open.created_at)}`}
+            <DialogTitle className="text-lg tracking-tight">
+              {open !== undefined
+                ? `Delivery to ${destinationById.get(open.destination_id)?.name ?? open.destination_id}`
+                : "Delivery"}
+            </DialogTitle>
+            <DialogDescription className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              {open !== undefined && (
+                <>
+                  <span className="font-mono text-xs">{open.id}</span>
+                  <span>{`${open.attempts.toString()} attempt${open.attempts === 1 ? "" : "s"} · created ${formatDateTime(open.created_at)}`}</span>
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           {open !== undefined && (

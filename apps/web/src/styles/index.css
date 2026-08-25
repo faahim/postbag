@@ -117,6 +117,122 @@
 }
 
 @layer components {
+  /* Tactile controls on the grain (docs/DESIGN.md §3): the primary face carries
+     the canvas grain and a top edge that catches light; pressing sinks in. */
+  .btn-tactile {
+    background-color: var(--primary);
+    background-image: var(--canvas-grain-image), linear-gradient(to bottom, oklch(1 0 0 / 0.12), oklch(1 0 0 / 0) 58%);
+    background-size: 9rem auto, 100% 100%;
+    background-blend-mode: soft-light, normal;
+    box-shadow:
+      inset 0 1px 0 var(--btn-top-light),
+      inset 0 -1.5px 0 var(--btn-bottom-shade),
+      var(--btn-drop);
+  }
+  .btn-tactile:hover {
+    background-color: var(--primary-hover);
+    box-shadow:
+      inset 0 1px 0 var(--btn-top-light),
+      inset 0 -1.5px 0 var(--btn-bottom-shade),
+      var(--btn-drop-hover);
+  }
+  .btn-tactile:active {
+    box-shadow: var(--btn-press-inset), var(--btn-press-drop);
+  }
+
+  /* The raised neutral face: sits just above the surface, presses just below it. */
+  .btn-raised {
+    background-color: var(--card);
+    background-image: var(--btn-raised-face);
+    box-shadow: var(--btn-raised-shadow);
+  }
+  .btn-raised:hover {
+    background-color: var(--secondary);
+    box-shadow: var(--btn-raised-shadow-hover);
+  }
+  .btn-raised:active {
+    box-shadow: var(--btn-raised-press);
+  }
+
+  /* Enter choreography: route content rises in as a few semantic chunks, not one
+     container. Put .page-enter on the route root; direct children stagger. */
+  .page-enter > * {
+    animation: page-rise var(--duration-very-slow) var(--ease-smooth-out) backwards;
+  }
+  .page-enter > *:nth-child(2) {
+    animation-delay: calc(var(--duration-stagger) * 1);
+  }
+  .page-enter > *:nth-child(3) {
+    animation-delay: calc(var(--duration-stagger) * 2);
+  }
+  .page-enter > *:nth-child(4) {
+    animation-delay: calc(var(--duration-stagger) * 3);
+  }
+  .page-enter > *:nth-child(n + 5) {
+    animation-delay: calc(var(--duration-stagger) * 4);
+  }
+  @keyframes page-rise {
+    from {
+      opacity: 0;
+      transform: translateY(var(--distance-base));
+      filter: blur(var(--blur-small));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  /* List rows settle in with the same rhythm, driven per-row by --row-index. */
+  .row-enter {
+    animation: page-rise var(--duration-slow) var(--ease-smooth-out) backwards;
+    animation-delay: calc(var(--duration-stagger) * min(var(--row-index, 0), 8));
+  }
+
+  /* Lists sit on a quiet plane above the grain: hairline edge, soft lift. */
+  .list-surface {
+    overflow: hidden;
+    border-radius: calc(var(--radius) + 4px);
+    background: var(--card);
+    box-shadow:
+      0 0 0 1px var(--border),
+      var(--shadow-sm);
+  }
+
+  /* Sidebar: the active pill slides between items (tabs-sliding, vertical).
+     --nav-active-index is set by the component; -1 hides the pill. */
+  .nav-rail {
+    position: relative;
+  }
+  .nav-rail-pill {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 2.5rem;
+    border-radius: calc(var(--radius) + 2px);
+    background: var(--accent);
+    opacity: 1;
+    transform: translateY(calc(var(--nav-active-index) * 2.75rem));
+    transition:
+      transform var(--tabs-dur) var(--tabs-ease),
+      opacity var(--duration-quick) var(--ease-smooth-out);
+    pointer-events: none;
+  }
+  .nav-rail[data-no-active="true"] .nav-rail-pill {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-enter > *,
+    .row-enter {
+      animation: none !important;
+    }
+    .nav-rail-pill {
+      transition: none !important;
+    }
+  }
+
   .brand-ink-canvas {
     isolation: isolate;
     background-color: var(--background);

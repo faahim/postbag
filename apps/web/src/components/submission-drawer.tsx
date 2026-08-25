@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
+import { headline } from "@/components/submissions-table"
 import { formatDateTime, formatRelativeTime, splitPrefixedId } from "@/lib/format"
 import { quarantineReasonDetail } from "@/lib/quarantine"
 import { toastApiError } from "@/lib/api"
@@ -37,21 +38,21 @@ export function SubmissionDrawer({
 }) {
   const { data: submission, isLoading } = useSubmission(submissionId ?? undefined)
   const idParts = submission !== undefined ? splitPrefixedId(submission.id) : null
+  const head = submission !== undefined ? headline(submission.data) : null
 
   return (
     <Sheet open={submissionId !== null} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2 font-mono text-base">
+          <SheetTitle className="text-lg tracking-tight text-balance">{head ?? "Submission"}</SheetTitle>
+          <SheetDescription className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             {idParts !== null && (
-              <>
-                <span className="text-muted-foreground">{idParts.prefix}</span>
+              <span className="font-mono text-xs">
+                <span className="opacity-60">{idParts.prefix}</span>
                 {idParts.rest}
-              </>
+              </span>
             )}
-          </SheetTitle>
-          <SheetDescription>
-            {submission !== undefined ? `Received ${formatDateTime(submission.received_at)}` : "Loading submission…"}
+            <span>{submission !== undefined ? `Received ${formatDateTime(submission.received_at)}` : "Loading Submission…"}</span>
           </SheetDescription>
         </SheetHeader>
 
@@ -145,9 +146,9 @@ function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: 
             <p className="px-3 py-3 text-sm text-muted-foreground">No fields.</p>
           ) : (
             Object.entries(submission.data).map(([key, value]) => (
-              <div key={key} className="flex flex-col gap-0.5 px-3 py-2.5">
+              <div key={key} className="flex flex-col gap-1 px-4 py-3">
                 <dt className="font-mono text-xs text-muted-foreground">{key}</dt>
-                <dd className="text-sm break-words text-foreground">{String(value)}</dd>
+                <dd className="text-[15px] leading-relaxed break-words text-foreground">{String(value)}</dd>
               </div>
             ))
           )}
