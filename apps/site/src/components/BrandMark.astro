@@ -182,6 +182,7 @@ const { class: className } = Astro.props
       <rect x="308" y="266" width="380" height="382" rx="39" fill="url(#pbm-rearCardBase)"/>
       <rect x="308" y="266" width="380" height="382" rx="39" fill="url(#pbm-rearCardTopLight)"/>
       <rect x="308" y="266" width="380" height="382" rx="39" fill="url(#pbm-rearCardLavender)"/>
+      <rect class="pbm-card-edge" x="308" y="266" width="380" height="382" rx="39"/>
     </g>
 
     <g class="pbm-card pbm-card-front" filter="url(#pbm-cardShadow)">
@@ -189,6 +190,7 @@ const { class: className } = Astro.props
       <path d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z" fill="url(#pbm-frontCardLight)"/>
       <path d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z" fill="url(#pbm-frontCardLavender)"/>
       <path d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z" fill="url(#pbm-frontCardLeftShade)"/>
+      <path class="pbm-card-edge" d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z"/>
     </g>
 
     <g class="pbm-pocket">
@@ -213,10 +215,23 @@ const { class: className } = Astro.props
 <style is:global>
   .brand-mark {
     display: block;
-    --brand-lift-front: 52px;
-    --brand-tilt-front: -2.6deg;
-    --brand-lift-back: 34px;
-    --brand-tilt-back: 1.8deg;
+    /* the back card overshoots the viewBox top mid-spring; let it breathe */
+    overflow: visible;
+    --brand-lift-front: 77px;
+    --brand-tilt-front: -8deg;
+    --brand-lift-back: 103px;
+    --brand-tilt-back: 3.4deg;
+    --brand-stagger: 80ms;
+    /* constant-width seam so the two cards stay two cards at 28px */
+    --brand-edge: rgba(39, 52, 137, 0.4);
+    --brand-edge-w: 1px;
+  }
+
+  .brand-mark .pbm-card-edge {
+    fill: none;
+    stroke: var(--brand-edge);
+    stroke-width: var(--brand-edge-w);
+    vector-effect: non-scaling-stroke;
   }
 
   .brand-mark .pbm-card,
@@ -241,17 +256,17 @@ const { class: className } = Astro.props
     :where([data-brand-trigger]:hover, [data-brand-trigger]:focus-visible) .brand-mark .pbm-card-back {
       transform: translateY(calc(var(--brand-lift-back) * -1)) rotate(var(--brand-tilt-back));
       transition: transform var(--duration-brand-lift) var(--ease-brand-spring)
-        calc(var(--duration-micro) + var(--duration-stagger));
+        calc(var(--duration-micro) + var(--brand-stagger));
     }
 
     :where([data-brand-trigger]:hover, [data-brand-trigger]:focus-visible) .brand-mark .pbm-shell,
     :where([data-brand-trigger]:hover, [data-brand-trigger]:focus-visible) .brand-mark .pbm-pocket {
-      animation: pbm-bag-dip var(--duration-slow) var(--ease-smooth-out);
+      animation: pbm-bag-dip var(--duration-brand-dip) var(--ease-smooth-out);
     }
   }
 
   @keyframes pbm-bag-dip {
     0%, 100% { transform: none; }
-    35% { transform: scaleX(1.014) scaleY(0.972); }
+    35% { transform: scaleX(1.034) scaleY(0.932); }
   }
 </style>
