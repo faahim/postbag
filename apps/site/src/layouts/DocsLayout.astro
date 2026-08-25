@@ -21,12 +21,6 @@ const { title, description, slug, published, modified, headings = [], markdownAl
 const path = slug === "index" ? "/docs/" : `/docs/${slug}/`
 const all = (await getCollection("docs")).sort((a, b) => a.data.order - b.data.order)
 const sections = ["Start", "Reference", "Guides", "Operate"] as const
-const sectionDescriptions = {
-  Start: "Get a Form receiving Submissions.",
-  Reference: "Work from the exact contract.",
-  Guides: "Wire agents and integrations.",
-  Operate: "Run Postbag with confidence.",
-} as const
 const crumbs = slug === "index"
   ? [{ name: "Home", href: "/" }, { name: "Docs", href: "/docs/" }]
   : [{ name: "Home", href: "/" }, { name: "Docs", href: "/docs/" }, { name: title, href: path }]
@@ -39,10 +33,11 @@ const docHref = (id: string) => id === "index" ? "/docs/" : `/docs/${id}/`
 const shortTitle = (value: string) => value.split(":")[0]
 const currentDocId = slug.startsWith("errors/") ? "errors" : slug
 const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+const hasAfter = Astro.slots.has("after")
 ---
 <Base title={slug === "index" ? "Documentation" : title} description={description} canonical={path} ld={ld} ogType="article" ogImage="/og/docs.png" markdownAlternate={markdownAlternate ? `${path}index.md` : undefined} published={published} modified={modified}>
   <div class="docs-reading-progress" aria-hidden="true"><span data-docs-progress></span></div>
-  <div class="docs-frame container-x">
+  <div class:list={["docs-frame container-x", hasAfter && "docs-frame-has-band"]}>
     <div class="docs-mobile-nav lg:hidden">
       <details class="docs-disclosure">
         <summary>
@@ -72,7 +67,7 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
         <div class="docs-nav-groups">
           {sections.map((section) => (
             <div class="docs-nav-group">
-              <div class="docs-nav-heading"><p>{section}</p><span>{sectionDescriptions[section]}</span></div>
+              <p>{section}</p>
               <ul>{all.filter((doc) => doc.data.section === section).map((doc) => <li><a href={docHref(doc.id)} aria-current={doc.id === currentDocId ? "page" : undefined}><span>{shortTitle(doc.data.title)}</span></a></li>)}</ul>
             </div>
           ))}
@@ -82,7 +77,6 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
       <article class="docs-article">
         <header class="docs-header">
           <Breadcrumbs crumbs={crumbs} class="mb-6" />
-          <img class="docs-header-mark" src="/logo-mark-455264e.svg" alt="" width="180" height="180" aria-hidden="true" />
           <h1>{title}</h1>
           <p class="docs-description">{description}</p>
           <div class="docs-meta">
@@ -106,7 +100,6 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
             {next && <a href={docHref(next.id)} rel="next" class="docs-pagination-next"><span><small>Next</small><strong>{shortTitle(next.data.title)}</strong></span><ArrowRight size={17} stroke-width={1.75} aria-hidden="true" /></a>}
           </nav>
         )}
-        <slot name="after" />
       </article>
 
       <aside class="docs-toc">
@@ -114,6 +107,7 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
       </aside>
     </div>
   </div>
+  <slot name="after" />
 </Base>
 
 <script is:inline>
@@ -128,7 +122,7 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
       const start = article.offsetTop - 96
       const distance = Math.max(article.offsetHeight - window.innerHeight + 96, 1)
       const value = Math.min(1, Math.max(0, (window.scrollY - start) / distance))
-      progress.style.transform = `scaleX(${value})`
+      progress.style.width = `${value * 100}%`
     }
 
     const requestProgress = () => {
@@ -196,9 +190,10 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
 </script>
 
 <style>
-  .docs-reading-progress { position: fixed; z-index: 50; top: 4rem; right: 0; left: 0; height: 1px; pointer-events: none; background: color-mix(in oklch, var(--border) 55%, transparent); }
-  .docs-reading-progress span { display: block; width: 100%; height: 100%; transform: scaleX(0); transform-origin: left; background: var(--primary); }
+  .docs-reading-progress { position: fixed; z-index: 50; top: calc(4rem + 1px); right: 0; left: 0; height: 3px; pointer-events: none; }
+  .docs-reading-progress span { display: block; width: 0; height: 100%; border-radius: 0 999px 999px 0; background: linear-gradient(to right, color-mix(in oklch, var(--primary) 80%, transparent), color-mix(in oklch, var(--primary) 70%, var(--foreground))); }
   .docs-frame { max-width: 82rem; padding-top: 1.25rem; padding-bottom: 5rem; }
+  .docs-frame-has-band { padding-bottom: 1.5rem; }
   .docs-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
   .docs-sidebar, .docs-toc { display: none; }
   .docs-mobile-nav { position: sticky; z-index: 10; top: 4.5rem; margin-bottom: 2rem; }
@@ -214,20 +209,16 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
   .docs-disclosure-chevron { flex: none; transition-property: transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
   details[open] > summary .docs-disclosure-chevron { transform: rotate(180deg); }
   .docs-disclosure-panel { display: grid; max-height: min(65dvh, 34rem); gap: 1.4rem; overflow-y: auto; padding: 0.4rem 0.8rem 1rem; box-shadow: 0 1px 0 var(--border) inset; }
-  .docs-nav-groups { display: grid; gap: 1.75rem; }
-  .docs-nav-group > p, .docs-nav-heading > p, .docs-toc nav > p { color: var(--foreground); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.055em; text-transform: uppercase; }
-  .docs-nav-heading > span { display: block; margin-top: 0.18rem; color: var(--muted-foreground); font-size: 0.73rem; line-height: 1.35; }
-  .docs-nav-group ul { display: grid; gap: 0.15rem; margin-top: 0.45rem; }
-  .docs-nav-group a { position: relative; display: flex; min-height: 2.4rem; align-items: center; border-radius: var(--radius-md); padding: 0.45rem 0.65rem 0.45rem 1rem; color: var(--muted-foreground); font-size: 0.86rem; line-height: 1.35; transition-property: color, background-color, box-shadow; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
-  .docs-nav-group a::before { position: absolute; left: 0.1rem; width: 0.28rem; height: 0.28rem; border-radius: 50%; background: currentColor; opacity: 0.25; content: ""; transition-property: opacity, box-shadow, transform; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
+  .docs-nav-groups { display: grid; gap: 1.9rem; }
+  .docs-nav-group > p, .docs-toc nav > p { color: var(--foreground); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.055em; text-transform: uppercase; }
+  .docs-nav-group ul { display: grid; gap: 0.15rem; margin-top: 0.5rem; }
+  .docs-nav-group a { display: flex; min-height: 2.5rem; align-items: center; border-radius: var(--radius-md); padding: 0.45rem 0.65rem; color: var(--muted-foreground); font-size: 0.86rem; line-height: 1.35; transition-property: color, background-color; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
   .docs-nav-group a:hover { color: var(--foreground); background: color-mix(in oklch, var(--surface-2) 58%, transparent); }
-  .docs-nav-group a[aria-current="page"] { color: var(--foreground); background: color-mix(in oklch, var(--accent) 72%, transparent); box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 18%, transparent) inset; font-weight: 620; }
-  .docs-nav-group a[aria-current="page"]::before { opacity: 1; box-shadow: 0 0 0 0.28rem color-mix(in oklch, var(--primary) 13%, transparent); transform: scale(1.12); }
-  .docs-header { position: relative; isolation: isolate; overflow: hidden; padding: 0.25rem 0 2.6rem; box-shadow: 0 -1px 0 var(--border) inset; }
+  .docs-nav-group a[aria-current="page"] { color: var(--foreground); background: color-mix(in oklch, var(--accent) 72%, transparent); font-weight: 620; }
+  .docs-header { position: relative; padding: 0.25rem 0 2.6rem; box-shadow: 0 -1px 0 var(--border) inset; }
   .docs-header::after { position: absolute; bottom: -1px; left: 0; width: clamp(4.5rem, 17vw, 7rem); height: 2px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: var(--primary); content: ""; }
-  .docs-header-mark { position: absolute; z-index: -1; top: 1.4rem; right: -1.5rem; width: clamp(8rem, 22vw, 11.5rem); height: auto; opacity: 0.07; filter: grayscale(1) brightness(1.8); transform: rotate(-5deg); }
-  .docs-header h1 { max-width: 19ch; font-size: clamp(2.35rem, 8vw, 3.85rem); font-weight: 610; line-height: 0.98; letter-spacing: -0.038em; }
-  .docs-description { max-width: 43rem; margin-top: 1.2rem; color: var(--muted-foreground); font-size: clamp(1.05rem, 2vw, 1.18rem); line-height: 1.6; }
+  .docs-header h1 { max-width: 19ch; font-size: clamp(2.35rem, 8vw, 3.85rem); font-weight: 610; line-height: 0.98; letter-spacing: -0.038em; text-wrap: balance; }
+  .docs-description { max-width: 43rem; margin-top: 1.2rem; color: var(--muted-foreground); font-size: clamp(1.05rem, 2vw, 1.18rem); line-height: 1.6; text-wrap: pretty; }
   .docs-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem 1rem; margin-top: 1.25rem; color: var(--muted-foreground); font-family: var(--font-mono); font-size: 0.7rem; }
   .docs-meta a { display: inline-flex; min-height: 2.5rem; align-items: center; gap: 0.35rem; color: var(--foreground); text-decoration-line: underline; text-decoration-color: transparent; text-underline-offset: 3px; transition-property: color, text-decoration-color; transition-duration: var(--duration-quick); }
   .docs-meta a:hover { color: var(--primary); text-decoration-color: currentColor; }
@@ -252,24 +243,35 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
   @media (min-width: 40rem) { .docs-pagination { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
   @media (min-width: 64rem) {
     .docs-frame { padding-top: 3rem; padding-bottom: 7rem; }
+    .docs-frame-has-band { padding-bottom: 2rem; }
     .docs-grid { grid-template-columns: 14rem minmax(0, 1fr) 12rem; align-items: start; gap: clamp(2.25rem, 3.4vw, 3.5rem); }
-    .docs-sidebar, .docs-toc { position: sticky; top: 6.5rem; display: block; max-height: calc(100dvh - 8rem); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+    .docs-sidebar, .docs-toc { position: sticky; top: 6.5rem; display: block; max-height: calc(100dvh - 7.5rem); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+    .docs-sidebar { padding-bottom: 2.75rem; mask-image: linear-gradient(to bottom, black calc(100% - 2.5rem), transparent); }
     .docs-sidebar-home { display: flex; align-items: center; gap: 0.7rem; padding: 0 0.35rem 1.15rem; box-shadow: 0 -1px 0 var(--border) inset; }
     .docs-sidebar-mark { display: grid; width: 2.35rem; height: 2.35rem; flex: none; place-items: center; color: var(--primary); }
     .docs-sidebar-home > span:last-child { display: grid; min-width: 0; }
     .docs-sidebar-home strong { font-size: 0.83rem; font-weight: 680; }
     .docs-sidebar-home small { color: var(--muted-foreground); font-size: 0.67rem; }
-    .docs-nav-groups { position: relative; margin-top: 1.65rem; padding-left: 0.35rem; }
-    .docs-nav-groups::before { position: absolute; top: 0.15rem; bottom: 0.35rem; left: 0.47rem; width: 1px; background: linear-gradient(to bottom, var(--border-strong), var(--border), transparent); content: ""; }
+    .docs-nav-groups { margin-top: 1.65rem; }
+    .docs-nav-group ul { gap: 0; box-shadow: 1px 0 0 var(--border) inset; }
+    .docs-nav-group a { position: relative; min-height: 2.35rem; border-radius: 0; padding: 0.4rem 0.5rem 0.4rem 0.95rem; }
+    .docs-nav-group a::before { position: absolute; top: 50%; left: 0; width: 2px; height: 1.15rem; border-radius: 999px; background: var(--primary); box-shadow: 0 0 10px color-mix(in oklch, var(--primary) 60%, transparent); content: ""; opacity: 0; transform: translateY(-50%) scaleY(0.4); transition-property: opacity, transform; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
+    .docs-nav-group a:hover { background: none; }
+    .docs-nav-group a:hover::before { opacity: 0.4; transform: translateY(-50%) scaleY(0.75); }
+    .docs-nav-group a[aria-current="page"] { background: none; color: var(--primary); }
+    .docs-nav-group a[aria-current="page"]::before { opacity: 1; transform: translateY(-50%) scaleY(1); }
     .docs-article { min-width: 0; max-width: 50rem; }
     .docs-toc nav > p { margin-bottom: 0.75rem; }
     .docs-toc ol { display: grid; gap: 0.1rem; box-shadow: 1px 0 0 var(--border) inset; }
-    .docs-toc a { display: block; padding: 0.38rem 0 0.38rem 0.9rem; color: var(--muted-foreground); font-size: 0.79rem; line-height: 1.4; transition-property: color, box-shadow, transform; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
-    .docs-toc a:hover, .docs-toc a[aria-current="location"] { color: var(--foreground); box-shadow: 1px 0 0 var(--primary) inset; transform: translateX(1px); }
+    .docs-toc a { position: relative; display: block; padding: 0.38rem 0 0.38rem 0.9rem; color: var(--muted-foreground); font-size: 0.79rem; line-height: 1.4; transition-property: color; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
+    .docs-toc a::before { position: absolute; top: 50%; left: 0; width: 2px; height: 1rem; border-radius: 999px; background: var(--primary); box-shadow: 0 0 10px color-mix(in oklch, var(--primary) 60%, transparent); content: ""; opacity: 0; transform: translateY(-50%) scaleY(0.4); transition-property: opacity, transform; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
+    .docs-toc a:hover { color: var(--foreground); }
+    .docs-toc a:hover::before { opacity: 0.4; transform: translateY(-50%) scaleY(0.75); }
     .docs-toc a[aria-current="location"] { color: var(--primary); }
+    .docs-toc a[aria-current="location"]::before { opacity: 1; transform: translateY(-50%) scaleY(1); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .docs-disclosure-chevron, .docs-nav-group a, .docs-meta a, .docs-pagination a, .docs-toc a { transition: none; }
+    .docs-disclosure-chevron, .docs-nav-group a, .docs-nav-group a::before, .docs-meta a, .docs-pagination a, .docs-toc a, .docs-toc a::before { transition: none; }
     .docs-pagination a:hover, .docs-pagination a:active { transform: none; }
     .docs-reading-progress { display: none; }
   }
