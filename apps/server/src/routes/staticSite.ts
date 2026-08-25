@@ -92,8 +92,7 @@ function cacheControl(path: string): string {
   return PAGE_CACHE
 }
 
-export function registerSiteStatic(app: Hono<AppEnv>, appUrl: string): boolean {
-  const siteDir = resolveSiteDir()
+export function registerSiteStatic(app: Hono<AppEnv>, appUrl: string, siteDir = resolveSiteDir()): boolean {
   if (siteDir === null) return false
 
   const notFoundHtml = existsSync(join(siteDir, "404.html")) ? readFileSync(join(siteDir, "404.html"), "utf8") : null

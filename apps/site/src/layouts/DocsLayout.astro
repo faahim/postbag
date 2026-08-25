@@ -1,8 +1,9 @@
 ---
-import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, FileText } from "@lucide/astro"
+import { ArrowLeft, ArrowRight, ChevronDown, FileText } from "@lucide/astro"
 import { getCollection } from "astro:content"
 import Base from "@/layouts/Base.astro"
 import Breadcrumbs from "@/components/Breadcrumbs.astro"
+import RoutingMark from "@/components/RoutingMark.astro"
 import { articleLd, breadcrumbLd } from "@/lib/seo"
 import { SITE_URL } from "@/config"
 
@@ -13,9 +14,10 @@ interface Props {
   published: string
   modified: string
   headings?: { depth: number; slug: string; text: string }[]
+  markdownAlternate?: boolean
 }
 
-const { title, description, slug, published, modified, headings = [] } = Astro.props
+const { title, description, slug, published, modified, headings = [], markdownAlternate = true } = Astro.props
 const path = slug === "index" ? "/docs/" : `/docs/${slug}/`
 const all = (await getCollection("docs")).sort((a, b) => a.data.order - b.data.order)
 const sections = ["Start", "Reference", "Guides", "Operate"] as const
@@ -35,15 +37,17 @@ const previous = currentIndex > 0 ? all[currentIndex - 1] : undefined
 const next = currentIndex >= 0 && currentIndex < all.length - 1 ? all[currentIndex + 1] : undefined
 const docHref = (id: string) => id === "index" ? "/docs/" : `/docs/${id}/`
 const shortTitle = (value: string) => value.split(":")[0]
+const currentDocId = slug.startsWith("errors/") ? "errors" : slug
 const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
 ---
-<Base title={slug === "index" ? "Documentation" : title} description={description} canonical={path} ld={ld} ogType="article" ogImage="/og/docs.png" markdownAlternate={`${path}index.md`} published={published} modified={modified}>
+<Base title={slug === "index" ? "Documentation" : title} description={description} canonical={path} ld={ld} ogType="article" ogImage="/og/docs.png" markdownAlternate={markdownAlternate ? `${path}index.md` : undefined} published={published} modified={modified}>
+  <div class="docs-reading-progress" aria-hidden="true"><span data-docs-progress></span></div>
   <div class="docs-frame container-x">
     <div class="docs-mobile-nav lg:hidden">
       <details class="docs-disclosure">
         <summary>
           <span class="docs-summary-label">
-            <BookOpen size={17} stroke-width={1.75} aria-hidden="true" />
+            <span class="docs-summary-mark" aria-hidden="true"><RoutingMark size={19} title="Documentation" /></span>
             <span><span class="docs-summary-kicker">Documentation</span><span class="docs-summary-current">{shortTitle(title)}</span></span>
           </span>
           <ChevronDown class="docs-disclosure-chevron" size={18} stroke-width={1.75} aria-hidden="true" />
@@ -52,7 +56,7 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
           {sections.map((section) => (
             <div class="docs-nav-group">
               <p>{section}</p>
-              <ul>{all.filter((doc) => doc.data.section === section).map((doc) => <li><a href={docHref(doc.id)} aria-current={doc.id === slug ? "page" : undefined}>{shortTitle(doc.data.title)}</a></li>)}</ul>
+              <ul>{all.filter((doc) => doc.data.section === section).map((doc) => <li><a href={docHref(doc.id)} aria-current={doc.id === currentDocId ? "page" : undefined}><span>{shortTitle(doc.data.title)}</span></a></li>)}</ul>
             </div>
           ))}
         </div>
@@ -62,14 +66,14 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
     <div class="docs-grid">
       <nav aria-label="Documentation" class="docs-sidebar">
         <a href="/docs/" class="docs-sidebar-home" aria-current={slug === "index" ? "page" : undefined}>
-          <span class="docs-sidebar-mark"><BookOpen size={18} stroke-width={1.75} aria-hidden="true" /></span>
+          <span class="docs-sidebar-mark" aria-hidden="true"><RoutingMark size={22} title="Postbag documentation" /></span>
           <span><strong>Postbag docs</strong><small>Start, build, operate</small></span>
         </a>
         <div class="docs-nav-groups">
           {sections.map((section) => (
             <div class="docs-nav-group">
               <div class="docs-nav-heading"><p>{section}</p><span>{sectionDescriptions[section]}</span></div>
-              <ul>{all.filter((doc) => doc.data.section === section).map((doc) => <li><a href={docHref(doc.id)} aria-current={doc.id === slug ? "page" : undefined}>{shortTitle(doc.data.title)}</a></li>)}</ul>
+              <ul>{all.filter((doc) => doc.data.section === section).map((doc) => <li><a href={docHref(doc.id)} aria-current={doc.id === currentDocId ? "page" : undefined}><span>{shortTitle(doc.data.title)}</span></a></li>)}</ul>
             </div>
           ))}
         </div>
@@ -78,12 +82,12 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
       <article class="docs-article">
         <header class="docs-header">
           <Breadcrumbs crumbs={crumbs} class="mb-6" />
-          <p class="docs-kicker">Postbag documentation</p>
+          <img class="docs-header-mark" src="/logo-mark-455264e.svg" alt="" width="180" height="180" aria-hidden="true" />
           <h1>{title}</h1>
           <p class="docs-description">{description}</p>
           <div class="docs-meta">
             <span>Updated <time datetime={modified}>{updated}</time></span>
-            <a href={`${path}index.md`}><FileText size={14} stroke-width={1.75} aria-hidden="true" />Markdown</a>
+            {markdownAlternate && <a href={`${path}index.md`}><FileText size={14} stroke-width={1.75} aria-hidden="true" />Read as Markdown</a>}
           </div>
         </header>
 
@@ -112,17 +116,98 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
   </div>
 </Base>
 
+<script is:inline>
+  ;(() => {
+    const article = document.querySelector(".docs-article")
+    const progress = document.querySelector("[data-docs-progress]")
+    let ticking = false
+
+    const updateProgress = () => {
+      ticking = false
+      if (!(article instanceof HTMLElement) || !(progress instanceof HTMLElement)) return
+      const start = article.offsetTop - 96
+      const distance = Math.max(article.offsetHeight - window.innerHeight + 96, 1)
+      const value = Math.min(1, Math.max(0, (window.scrollY - start) / distance))
+      progress.style.transform = `scaleX(${value})`
+    }
+
+    const requestProgress = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(updateProgress)
+    }
+
+    updateProgress()
+    addEventListener("scroll", requestProgress, { passive: true })
+    addEventListener("resize", requestProgress, { passive: true })
+
+    const tocLinks = [...document.querySelectorAll(".docs-toc a")]
+    const headings = tocLinks
+      .map((link) => document.getElementById(decodeURIComponent(link.getAttribute("href")?.slice(1) ?? "")))
+      .filter((heading) => heading instanceof HTMLElement)
+
+    if (headings.length > 0) {
+      const markCurrent = (id) => {
+        tocLinks.forEach((link) => {
+          if (link.getAttribute("href") === `#${id}`) link.setAttribute("aria-current", "location")
+          else link.removeAttribute("aria-current")
+        })
+      }
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+        if (visible[0]?.target.id) markCurrent(visible[0].target.id)
+      }, { rootMargin: "-18% 0px -68%", threshold: 0 })
+      headings.forEach((heading) => observer.observe(heading))
+    }
+
+    document.querySelectorAll(".docs-prose pre:not(.code-panel pre)").forEach((pre) => {
+      if (!(pre instanceof HTMLElement) || pre.parentElement?.classList.contains("docs-code-frame")) return
+      const frame = document.createElement("div")
+      frame.className = "docs-code-frame"
+      pre.before(frame)
+      frame.append(pre)
+
+      const toolbar = document.createElement("div")
+      toolbar.className = "docs-code-toolbar"
+      const language = document.createElement("span")
+      language.textContent = pre.dataset.language || "text"
+      const copy = document.createElement("button")
+      copy.type = "button"
+      copy.className = "docs-code-copy"
+      copy.textContent = "Copy"
+      copy.setAttribute("aria-label", `Copy ${language.textContent} code`)
+      toolbar.append(language, copy)
+      frame.prepend(toolbar)
+
+      let timer
+      copy.addEventListener("click", async () => {
+        const code = pre.querySelector("code")?.textContent ?? pre.textContent ?? ""
+        try { await navigator.clipboard.writeText(code) } catch { return }
+        clearTimeout(timer)
+        copy.textContent = "Copied"
+        copy.dataset.copied = ""
+        timer = setTimeout(() => {
+          copy.textContent = "Copy"
+          delete copy.dataset.copied
+        }, 1600)
+      })
+    })
+  })()
+</script>
+
 <style>
-  .docs-frame { padding-top: 2rem; padding-bottom: 5rem; }
+  .docs-reading-progress { position: fixed; z-index: 50; top: 4rem; right: 0; left: 0; height: 1px; pointer-events: none; background: color-mix(in oklch, var(--border) 55%, transparent); }
+  .docs-reading-progress span { display: block; width: 100%; height: 100%; transform: scaleX(0); transform-origin: left; background: var(--primary); }
+  .docs-frame { max-width: 82rem; padding-top: 1.25rem; padding-bottom: 5rem; }
   .docs-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
   .docs-sidebar, .docs-toc { display: none; }
   .docs-mobile-nav { position: sticky; z-index: 10; top: 4.5rem; margin-bottom: 2rem; }
-  .docs-disclosure, .docs-page-outline { border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-md); }
+  .docs-disclosure, .docs-page-outline { border-radius: var(--radius-lg); background: color-mix(in oklch, var(--surface) 92%, transparent); box-shadow: var(--shadow-md), inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent); }
   .docs-disclosure summary, .docs-page-outline summary { display: flex; min-height: 3rem; cursor: pointer; list-style: none; align-items: center; justify-content: space-between; gap: 1rem; border-radius: inherit; }
   .docs-disclosure summary { padding: 0.65rem 0.8rem; }
   .docs-disclosure summary::-webkit-details-marker, .docs-page-outline summary::-webkit-details-marker { display: none; }
   .docs-summary-label { display: flex; min-width: 0; align-items: center; gap: 0.7rem; }
-  .docs-summary-label > svg { flex: none; color: var(--primary); }
+  .docs-summary-mark { display: grid; flex: none; place-items: center; color: var(--primary); }
   .docs-summary-label > span { display: grid; min-width: 0; }
   .docs-summary-kicker { color: var(--muted-foreground); font-size: 0.69rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
   .docs-summary-current { overflow: hidden; color: var(--foreground); font-size: 0.9rem; font-weight: 620; text-overflow: ellipsis; white-space: nowrap; }
@@ -133,25 +218,27 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
   .docs-nav-group > p, .docs-nav-heading > p, .docs-toc nav > p { color: var(--foreground); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.055em; text-transform: uppercase; }
   .docs-nav-heading > span { display: block; margin-top: 0.18rem; color: var(--muted-foreground); font-size: 0.73rem; line-height: 1.35; }
   .docs-nav-group ul { display: grid; gap: 0.15rem; margin-top: 0.45rem; }
-  .docs-nav-group a { display: flex; min-height: 2.35rem; align-items: center; border-radius: var(--radius-md); padding: 0.45rem 0.65rem; color: var(--muted-foreground); font-size: 0.86rem; line-height: 1.35; transition-property: color, background-color, box-shadow; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
-  .docs-nav-group a:hover { color: var(--foreground); background: var(--surface-2); }
-  .docs-nav-group a[aria-current="page"] { color: var(--accent-foreground); background: var(--accent); box-shadow: 3px 0 0 var(--primary) inset; font-weight: 620; }
-  .docs-header { position: relative; padding-bottom: 2.3rem; box-shadow: 0 -1px 0 var(--border) inset; }
-  .docs-header::after { position: absolute; right: 0; bottom: -1px; width: clamp(4rem, 18vw, 8rem); height: 3px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: var(--primary); content: ""; }
-  .docs-kicker { margin-bottom: 0.85rem; color: var(--primary); font-family: var(--font-mono); font-size: 0.72rem; font-weight: 650; letter-spacing: 0.075em; text-transform: uppercase; }
-  .docs-header h1 { max-width: 18ch; font-size: clamp(2.35rem, 8vw, 3.5rem); font-weight: 620; line-height: 1; letter-spacing: -0.035em; }
+  .docs-nav-group a { position: relative; display: flex; min-height: 2.4rem; align-items: center; border-radius: var(--radius-md); padding: 0.45rem 0.65rem 0.45rem 1rem; color: var(--muted-foreground); font-size: 0.86rem; line-height: 1.35; transition-property: color, background-color, box-shadow; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
+  .docs-nav-group a::before { position: absolute; left: 0.1rem; width: 0.28rem; height: 0.28rem; border-radius: 50%; background: currentColor; opacity: 0.25; content: ""; transition-property: opacity, box-shadow, transform; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
+  .docs-nav-group a:hover { color: var(--foreground); background: color-mix(in oklch, var(--surface-2) 58%, transparent); }
+  .docs-nav-group a[aria-current="page"] { color: var(--foreground); background: color-mix(in oklch, var(--accent) 72%, transparent); box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 18%, transparent) inset; font-weight: 620; }
+  .docs-nav-group a[aria-current="page"]::before { opacity: 1; box-shadow: 0 0 0 0.28rem color-mix(in oklch, var(--primary) 13%, transparent); transform: scale(1.12); }
+  .docs-header { position: relative; isolation: isolate; overflow: hidden; padding: 0.25rem 0 2.6rem; box-shadow: 0 -1px 0 var(--border) inset; }
+  .docs-header::after { position: absolute; bottom: -1px; left: 0; width: clamp(4.5rem, 17vw, 7rem); height: 2px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: var(--primary); content: ""; }
+  .docs-header-mark { position: absolute; z-index: -1; top: 1.4rem; right: -1.5rem; width: clamp(8rem, 22vw, 11.5rem); height: auto; opacity: 0.07; filter: grayscale(1) brightness(1.8); transform: rotate(-5deg); }
+  .docs-header h1 { max-width: 19ch; font-size: clamp(2.35rem, 8vw, 3.85rem); font-weight: 610; line-height: 0.98; letter-spacing: -0.038em; }
   .docs-description { max-width: 43rem; margin-top: 1.2rem; color: var(--muted-foreground); font-size: clamp(1.05rem, 2vw, 1.18rem); line-height: 1.6; }
-  .docs-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem 1rem; margin-top: 1rem; color: var(--muted-foreground); font-size: 0.76rem; }
+  .docs-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem 1rem; margin-top: 1.25rem; color: var(--muted-foreground); font-family: var(--font-mono); font-size: 0.7rem; }
   .docs-meta a { display: inline-flex; min-height: 2.5rem; align-items: center; gap: 0.35rem; color: var(--foreground); text-decoration-line: underline; text-decoration-color: transparent; text-underline-offset: 3px; transition-property: color, text-decoration-color; transition-duration: var(--duration-quick); }
   .docs-meta a:hover { color: var(--primary); text-decoration-color: currentColor; }
   .docs-page-outline { margin-top: 1.5rem; box-shadow: 0 0 0 1px var(--border) inset; }
   .docs-page-outline summary { padding: 0 0.9rem; color: var(--foreground); font-size: 0.84rem; font-weight: 650; }
   .docs-page-outline ol { display: grid; gap: 0.4rem; padding: 0 0.9rem 0.9rem; }
   .docs-page-outline a { color: var(--muted-foreground); font-size: 0.83rem; }
-  .docs-prose { margin-top: 2.5rem; }
+  .docs-prose { max-width: 44rem; margin-top: 3rem; }
   .docs-pagination { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; margin-top: 4rem; padding-top: 1rem; box-shadow: 0 1px 0 var(--border) inset; }
-  .docs-pagination a { display: flex; min-height: 4.5rem; align-items: center; gap: 0.75rem; border-radius: var(--radius-lg); padding: 0.8rem 0.9rem; background: var(--surface); box-shadow: 0 0 0 1px var(--border) inset; transition-property: color, background-color, box-shadow, transform; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
-  .docs-pagination a:hover { color: var(--primary); background: var(--surface-2); box-shadow: 0 0 0 1px var(--border-strong) inset; transform: translateY(-1px); }
+  .docs-pagination a { display: flex; min-height: 4.75rem; align-items: center; gap: 0.75rem; border-radius: var(--radius-lg); padding: 0.8rem 0.9rem; background: color-mix(in oklch, var(--surface) 72%, transparent); box-shadow: 0 0 0 1px var(--border) inset, inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent); transition-property: color, background-color, box-shadow, transform; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
+  .docs-pagination a:hover { color: var(--primary); background: var(--surface); box-shadow: 0 0 0 1px var(--border-strong) inset, var(--shadow-sm); transform: translateY(-1px); }
   .docs-pagination a:active { transform: scale(var(--scale-press)); }
   .docs-pagination a > svg { flex: none; }
   .docs-pagination a > span { display: grid; min-width: 0; }
@@ -159,25 +246,31 @@ const updated = new Date(modified).toLocaleDateString("en-GB", { day: "numeric",
   .docs-pagination strong { overflow: hidden; font-size: 0.9rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
   .docs-pagination-next { justify-content: flex-end; text-align: right; }
 
+  @media (max-width: 39.99rem) {
+    .docs-header :global(nav[aria-label="Breadcrumb"] li:nth-child(3):last-child) { display: none; }
+  }
   @media (min-width: 40rem) { .docs-pagination { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
   @media (min-width: 64rem) {
     .docs-frame { padding-top: 3rem; padding-bottom: 7rem; }
-    .docs-grid { grid-template-columns: 13.5rem minmax(0, 1fr) 11.5rem; align-items: start; gap: clamp(2.5rem, 4vw, 4rem); }
+    .docs-grid { grid-template-columns: 14rem minmax(0, 1fr) 12rem; align-items: start; gap: clamp(2.25rem, 3.4vw, 3.5rem); }
     .docs-sidebar, .docs-toc { position: sticky; top: 6.5rem; display: block; max-height: calc(100dvh - 8rem); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
-    .docs-sidebar-home { display: flex; align-items: center; gap: 0.65rem; border-radius: var(--radius-lg); padding: 0.55rem; background: var(--surface); box-shadow: var(--shadow-sm); }
-    .docs-sidebar-mark { display: grid; width: 2.25rem; height: 2.25rem; flex: none; place-items: center; border-radius: var(--radius-md); color: var(--accent-foreground); background: var(--accent); }
+    .docs-sidebar-home { display: flex; align-items: center; gap: 0.7rem; padding: 0 0.35rem 1.15rem; box-shadow: 0 -1px 0 var(--border) inset; }
+    .docs-sidebar-mark { display: grid; width: 2.35rem; height: 2.35rem; flex: none; place-items: center; color: var(--primary); }
     .docs-sidebar-home > span:last-child { display: grid; min-width: 0; }
     .docs-sidebar-home strong { font-size: 0.83rem; font-weight: 680; }
     .docs-sidebar-home small { color: var(--muted-foreground); font-size: 0.67rem; }
-    .docs-nav-groups { margin-top: 2rem; }
-    .docs-article { min-width: 0; max-width: 47rem; }
+    .docs-nav-groups { position: relative; margin-top: 1.65rem; padding-left: 0.35rem; }
+    .docs-nav-groups::before { position: absolute; top: 0.15rem; bottom: 0.35rem; left: 0.47rem; width: 1px; background: linear-gradient(to bottom, var(--border-strong), var(--border), transparent); content: ""; }
+    .docs-article { min-width: 0; max-width: 50rem; }
     .docs-toc nav > p { margin-bottom: 0.75rem; }
     .docs-toc ol { display: grid; gap: 0.1rem; box-shadow: 1px 0 0 var(--border) inset; }
-    .docs-toc a { display: block; padding: 0.33rem 0 0.33rem 0.85rem; color: var(--muted-foreground); font-size: 0.79rem; line-height: 1.4; transition-property: color, box-shadow; transition-duration: var(--duration-quick); }
-    .docs-toc a:hover { color: var(--foreground); box-shadow: 2px 0 0 var(--primary) inset; }
+    .docs-toc a { display: block; padding: 0.38rem 0 0.38rem 0.9rem; color: var(--muted-foreground); font-size: 0.79rem; line-height: 1.4; transition-property: color, box-shadow, transform; transition-duration: var(--duration-quick); transition-timing-function: var(--ease-smooth-out); }
+    .docs-toc a:hover, .docs-toc a[aria-current="location"] { color: var(--foreground); box-shadow: 1px 0 0 var(--primary) inset; transform: translateX(1px); }
+    .docs-toc a[aria-current="location"] { color: var(--primary); }
   }
   @media (prefers-reduced-motion: reduce) {
     .docs-disclosure-chevron, .docs-nav-group a, .docs-meta a, .docs-pagination a, .docs-toc a { transition: none; }
     .docs-pagination a:hover, .docs-pagination a:active { transform: none; }
+    .docs-reading-progress { display: none; }
   }
 </style>

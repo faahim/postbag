@@ -12,7 +12,11 @@ the rules and `docs/` for the design.
   receiving-pocket hero now leads one coherent midnight-indigo/periwinkle identity across the complete homepage,
   public page family, documentation shell, auth, first-run, empty/status states, manifests and social previews. The old
   red circular check/postmark family is replaced by the receiving/routing mark; ordinary interface checks remain
-  ordinary. A shared static material grain now carries through the marketing, docs, auth and dashboard canvases while
+  ordinary. The documentation family received its final editorial polish on 2026-08-25: routing-aware navigation,
+  live page context, copyable language-labelled code, improved reading typography and responsive API error pages now
+  share one shell. File-like `index.md` twins also resolve consistently in Astro preview and the production static server,
+  with direct-link and content-negotiation regression coverage. A shared static material grain now carries through the
+  marketing, docs, auth and dashboard canvases while
   inputs, code, payloads, tables and other working planes remain clear. Public claims were reconciled to the live
   anonymous sandbox/claim contract, public GitHub repository and
   published npm clients. Static gates, 164 tests, production builds and settled browser checks at desktop/tablet/mobile

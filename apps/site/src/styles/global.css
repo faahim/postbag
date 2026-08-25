@@ -440,7 +440,7 @@
     font-size: clamp(1.65rem, 8vw, 2.25rem);
     font-weight: 520;
     letter-spacing: -0.035em;
-    transition-property: color, border-color, padding-left;
+    transition-property: color, border-color, transform;
     transition-duration: var(--duration-quick);
     transition-timing-function: var(--ease-smooth-out);
   }
@@ -457,7 +457,7 @@
   .mobile-nav-links a[aria-current="page"] {
     color: oklch(1 0 0);
     border-color: oklch(0.78 0.13 278 / 0.48);
-    padding-left: 0.35rem;
+    transform: translateX(0.35rem);
   }
   .mobile-nav-links a:hover svg,
   .mobile-nav-links a:focus-visible svg,
@@ -986,36 +986,174 @@
   }
 
   .prose-pb {
-    @apply text-[17px] leading-[1.65] text-foreground;
+    color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
+    font-size: 17px;
+    line-height: 1.72;
   }
-  .prose-pb > * + * { margin-top: 1.1em; }
-  .prose-pb h2 { @apply mt-12 mb-4 text-[1.75rem] leading-tight font-semibold; scroll-margin-top: 6rem; }
-  .prose-pb h3 { @apply mt-9 mb-3 text-[1.25rem] leading-snug font-semibold; scroll-margin-top: 6rem; }
-  .prose-pb h4 { @apply mt-6 mb-2 text-base font-semibold; }
-  .prose-pb a { @apply text-primary underline decoration-primary/30 underline-offset-[3px]; transition: text-decoration-color var(--duration-quick); }
-  .prose-pb a:hover { text-decoration-color: var(--primary); }
-  .prose-pb ul { @apply list-disc pl-6; }
-  .prose-pb ol { @apply list-decimal pl-6; }
-  .prose-pb li + li { margin-top: 0.35em; }
+  .prose-pb > * + * {
+    margin-top: 1.15em;
+  }
+  .prose-pb h2 {
+    @apply mt-14 mb-4 text-[1.9rem] leading-[1.12] font-semibold text-foreground;
+    scroll-margin-top: 6rem;
+  }
+  .prose-pb h3 {
+    @apply mt-10 mb-3 text-[1.3rem] leading-snug font-semibold text-foreground;
+    scroll-margin-top: 6rem;
+  }
+  .prose-pb h4 {
+    @apply mt-7 mb-2 text-base font-semibold text-foreground;
+  }
+  .prose-pb a {
+    @apply text-primary underline decoration-primary/30 underline-offset-[3px];
+    transition: text-decoration-color var(--duration-quick);
+  }
+  .prose-pb a:hover {
+    text-decoration-color: var(--primary);
+  }
+  .prose-pb ul {
+    @apply list-disc pl-6;
+  }
+  .prose-pb ol {
+    @apply list-decimal pl-6;
+  }
+  .prose-pb li::marker {
+    color: color-mix(in oklch, var(--primary) 76%, var(--muted-foreground));
+  }
+  .prose-pb li + li {
+    margin-top: 0.35em;
+  }
   .prose-pb code:not(pre code) {
-    @apply rounded-sm bg-surface-2 px-1.5 py-0.5 font-mono text-[0.86em] text-foreground;
+    @apply rounded-sm px-1.5 py-0.5 font-mono text-[0.84em] text-foreground;
+    background: color-mix(in oklch, var(--surface-2) 78%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in oklch, var(--border) 78%, transparent) inset;
   }
   .prose-pb pre {
-    @apply overflow-x-auto rounded-lg p-4 text-[13.5px] leading-relaxed;
-    box-shadow: 0 0 0 1px var(--border) inset;
-    background: var(--surface) !important;
+    @apply m-0 overflow-x-auto rounded-none p-4 text-[13.5px] leading-relaxed;
+    background: transparent !important;
   }
-  .prose-pb pre code { background: transparent; padding: 0; }
-  .prose-pb .code-panel pre { box-shadow: none; padding: 0; border-radius: 0; background: transparent !important; }
-  .prose-pb .code-panel { margin-top: 1.1em; }
-  .prose-pb table { @apply w-full border-collapse text-[15px]; }
-  .prose-pb th { @apply border-b border-border-strong px-3 py-2 text-left font-semibold; }
-  .prose-pb td { @apply border-b px-3 py-2 align-top; }
-  .prose-pb .table-wrap { @apply -mx-1 overflow-x-auto px-1; }
-  .prose-pb blockquote { @apply border-l-2 border-primary/50 pl-4 text-muted-foreground; }
-  .prose-pb hr { @apply my-10 border-border; }
-  .prose-pb strong { @apply font-semibold; }
+  .prose-pb pre code {
+    background: transparent;
+    padding: 0;
+  }
+  .prose-pb .code-panel pre {
+    box-shadow: none;
+    padding: 0;
+    border-radius: 0;
+    background: transparent !important;
+  }
+  .prose-pb .code-panel {
+    margin-top: 1.25em;
+  }
+  .prose-pb table {
+    @apply w-full border-separate border-spacing-0 text-[15px];
+  }
+  .prose-pb th {
+    @apply border-b border-border-strong bg-surface-2/60 px-3 py-2.5 text-left font-semibold text-foreground;
+  }
+  .prose-pb th:first-child {
+    border-top-left-radius: var(--radius-md);
+  }
+  .prose-pb th:last-child {
+    border-top-right-radius: var(--radius-md);
+  }
+  .prose-pb td {
+    @apply border-b px-3 py-2.5 align-top;
+  }
+  .prose-pb tr:last-child td:first-child {
+    border-bottom-left-radius: var(--radius-md);
+  }
+  .prose-pb tr:last-child td:last-child {
+    border-bottom-right-radius: var(--radius-md);
+  }
+  .prose-pb .table-wrap {
+    @apply -mx-1 overflow-x-auto px-1 pb-1;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  .prose-pb blockquote {
+    margin-inline: 0;
+    border-left: 1px solid var(--primary);
+    padding: 0.15rem 0 0.15rem 1.15rem;
+    color: var(--muted-foreground);
+  }
+  .prose-pb hr {
+    @apply my-10 border-border;
+  }
+  .prose-pb strong {
+    @apply font-semibold text-foreground;
+  }
 
+  .docs-code-frame {
+    overflow: hidden;
+    margin-top: 1.35em;
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklch, var(--surface) 88%, var(--background));
+    box-shadow:
+      0 0 0 1px var(--border) inset,
+      var(--shadow-md);
+  }
+  .docs-code-toolbar {
+    display: flex;
+    min-height: 2.6rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0 0.55rem 0 1rem;
+    color: var(--muted-foreground);
+    box-shadow: 0 -1px 0 var(--border) inset;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+  }
+  .docs-code-copy {
+    min-width: 3.75rem;
+    min-height: 2.25rem;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    color: var(--muted-foreground);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 620;
+    letter-spacing: normal;
+    text-transform: none;
+    transition-property: color, background-color, transform;
+    transition-duration: var(--duration-quick);
+    transition-timing-function: var(--ease-smooth-out);
+  }
+  .docs-code-copy:hover {
+    color: var(--foreground);
+    background: var(--surface-2);
+  }
+  .docs-code-copy:active {
+    transform: scale(var(--scale-press));
+  }
+  .docs-code-copy[data-copied] {
+    color: var(--success);
+  }
+  .docs-code-frame pre:focus-visible {
+    outline-offset: -3px;
+  }
+
+  @media (max-width: 39.99rem) {
+    .docs-code-frame {
+      margin-right: -0.25rem;
+      margin-left: -0.25rem;
+    }
+    .docs-code-frame pre {
+      padding: 1rem;
+      font-size: 12.5px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .docs-code-copy {
+      transition: none;
+    }
+    .docs-code-copy:active {
+      transform: none;
+    }
+  }
   .card { @apply rounded-xl bg-surface; box-shadow: 0 0 0 1px var(--border) inset; }
   .hairline { box-shadow: 0 0 0 1px var(--border) inset; }
   .code-panel {
