@@ -49,14 +49,14 @@ export function RoutesList({ subject }: { readonly subject: RouteSubject }) {
       {routes.data === undefined || routes.data.data.length === 0 ? (
         <EmptyState
           title="Nothing sends anywhere yet"
-          description="Add a route to deliver submissions to a destination."
+          description="Add a Route to deliver Submissions to a Destination."
           action={
             <Button
               onClick={() => {
                 setAddOpen(true)
               }}
             >
-              Send to a destination
+              Send to a Destination
             </Button>
           }
         />
@@ -65,10 +65,10 @@ export function RoutesList({ subject }: { readonly subject: RouteSubject }) {
           {routes.data.data.map((route) => {
             const destination = destinationById.get(route.destination_id)
             return (
-              <div key={route.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/70 px-4 py-3">
-                <div className="flex min-w-0 flex-col gap-0.5">
+              <div key={route.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-5 py-4 shadow-xs">
+                <div className="flex min-w-0 flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium">{destination?.name ?? route.destination_id}</span>
+                    <span className="truncate text-[15px] font-medium">{destination?.name ?? route.destination_id}</span>
                     <Badge variant="muted" className="shrink-0">
                       {describeMode(route.mode as { readonly type: string; readonly cron?: string; readonly timezone?: string })}
                     </Badge>
@@ -78,7 +78,7 @@ export function RoutesList({ subject }: { readonly subject: RouteSubject }) {
                       </Badge>
                     )}
                   </div>
-                  <span className="truncate text-xs text-muted-foreground">
+                  <span className="truncate text-sm text-muted-foreground">
                     {destination === undefined ? "destination" : `${destination.type} · ${describeDestination(destination)}`}
                   </span>
                 </div>
@@ -126,7 +126,7 @@ export function RoutesList({ subject }: { readonly subject: RouteSubject }) {
               setAddOpen(true)
             }}
           >
-            Add route
+            Add Route
           </Button>
         </div>
       )}

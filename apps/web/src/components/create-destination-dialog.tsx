@@ -12,7 +12,7 @@ export function CreateDestinationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New destination</DialogTitle>
+          <DialogTitle>New Destination</DialogTitle>
           <DialogDescription>Somewhere submissions can be sent.</DialogDescription>
         </DialogHeader>
         <DestinationForm

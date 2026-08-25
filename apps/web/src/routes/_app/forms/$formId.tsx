@@ -180,7 +180,7 @@ function FieldsTab({ formId }: { readonly formId: string }) {
           <h3 className="mb-3 text-sm font-medium text-muted-foreground">Current fields</h3>
           {Object.keys(properties).length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No declared schema yet — this form accepts anything (observe mode). Fields appear here once you publish a
+              No declared schema yet — this Form accepts anything (observe mode). Fields appear here once you publish a
               schema.
             </p>
           ) : (
@@ -288,7 +288,7 @@ function SettingsTab({
   }
 
   async function deleteForm() {
-    if (!window.confirm("Delete this form permanently? Submissions are kept, but the endpoint stops accepting new ones.")) return
+    if (!window.confirm("Delete this Form permanently? Its Submissions are kept, but the URL stops accepting new ones.")) return
     await api.DELETE("/v1/forms/{formId}", { params: { path: { formId } } })
     toast.success("Form deleted.")
     await navigate({ to: "/forms" })
@@ -300,8 +300,8 @@ function SettingsTab({
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label>Pause this form</Label>
-              <p className="text-xs text-muted-foreground">Paused forms store submissions but never deliver them.</p>
+              <Label>Pause this Form</Label>
+              <p className="text-xs text-muted-foreground">A paused Form stores every Submission but never delivers one.</p>
             </div>
             <Switch
               checked={status === "paused"}
@@ -337,10 +337,10 @@ function SettingsTab({
         <CardContent className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-medium text-destructive">Danger zone</h3>
-            <p className="text-xs text-muted-foreground">Deletes the form and stops it from accepting submissions.</p>
+            <p className="text-xs text-muted-foreground">Deletes the Form and stops it from accepting Submissions.</p>
           </div>
           <Button variant="destructive" onClick={() => void deleteForm()}>
-            Delete form
+            Delete Form
           </Button>
         </CardContent>
       </Card>

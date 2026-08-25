@@ -29,7 +29,7 @@ export function CreateOrganizationDialog({
       toast.success(`Switched to ${created.name}.`)
       close(false)
     } catch {
-      toast.error("Couldn't create the organization — try again.")
+      toast.error("Couldn't create the workspace — try again.")
     }
   }
 
@@ -37,7 +37,7 @@ export function CreateOrganizationDialog({
     <Dialog open={open} onOpenChange={close}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New organization</DialogTitle>
+          <DialogTitle>New workspace</DialogTitle>
           <DialogDescription>You'll be its owner. You can invite others once it's created.</DialogDescription>
         </DialogHeader>
         <form
@@ -61,7 +61,7 @@ export function CreateOrganizationDialog({
           </div>
           <DialogFooter>
             <Button type="submit" disabled={createOrganization.isPending || name.trim().length === 0}>
-              {createOrganization.isPending ? "Creating…" : "Create organization"}
+              {createOrganization.isPending ? "Creating…" : "Create workspace"}
             </Button>
           </DialogFooter>
         </form>

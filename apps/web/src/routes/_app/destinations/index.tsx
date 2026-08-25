@@ -74,8 +74,8 @@ function DestinationsRoute() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>New destination</SheetTitle>
-            <SheetDescription>Pick a type and fill in where submissions should go.</SheetDescription>
+            <SheetTitle>New Destination</SheetTitle>
+            <SheetDescription>Pick a type and fill in where Submissions should go.</SheetDescription>
           </SheetHeader>
           <div className="px-6 pb-6">
             <DestinationForm

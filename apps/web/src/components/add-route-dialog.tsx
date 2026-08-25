@@ -135,10 +135,10 @@ export function AddRouteDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Send to a destination</DialogTitle>
+          <DialogTitle>Send to a Destination</DialogTitle>
           <DialogDescription>
             {"formId" in subject
-              ? "Deliver every submission on this form directly."
+              ? "Deliver every Submission on this Form directly."
               : "Deliver everything this Stream collects."}
           </DialogDescription>
         </DialogHeader>
@@ -158,7 +158,7 @@ export function AddRouteDialog({
               <>
                 <Select value={selected ?? ""} onValueChange={setSelected}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose a destination" />
+                    <SelectValue placeholder="Choose a Destination" />
                   </SelectTrigger>
                   <SelectContent>
                     {destinations.data.map((d) => (

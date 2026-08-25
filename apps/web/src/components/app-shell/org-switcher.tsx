@@ -79,7 +79,7 @@ export function OrgSwitcher() {
             }}
           >
             <Plus />
-            Create organization
+            New workspace
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
