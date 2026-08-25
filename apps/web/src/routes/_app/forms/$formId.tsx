@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { AlertTriangle, ArrowLeft, Sparkles } from "lucide-react"
+import { AlertTriangle, ArrowLeft, Plus, Sparkles, X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -12,13 +12,16 @@ import { SubmissionsTable } from "@/components/submissions-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { api } from "@/lib/api"
+import { api, toastApiError } from "@/lib/api"
 import { formatRelativeTime } from "@/lib/format"
 import {
   useForm,
@@ -170,31 +173,24 @@ function FieldsTab({ formId }: { readonly formId: string }) {
     toast.success("Schema published.")
   }
 
-  const properties = (schema.data?.json_schema as { properties?: Record<string, unknown>; required?: string[] } | undefined)?.properties ?? {}
-  const required = (schema.data?.json_schema as { properties?: Record<string, unknown>; required?: string[] } | undefined)?.required ?? []
-
   return (
     <div className="flex flex-col gap-6">
       <Card>
-        <CardContent>
-          <h3 className="mb-3 text-sm font-medium text-muted-foreground">Current fields</h3>
-          {Object.keys(properties).length === 0 ? (
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-sm font-medium">Fields</h3>
             <p className="text-sm text-muted-foreground">
-              No declared schema yet — this Form accepts anything (observe mode). Fields appear here once you publish a
-              schema.
+              {schema.data === undefined
+                ? "No declared schema yet — this Form accepts anything (observe mode). Add fields and publish to declare its shape."
+                : "Edit and publish — a new immutable version each time; older Submissions keep the shape they arrived with."}
             </p>
-          ) : (
-            <ul className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
-              {Object.entries(properties).map(([name, def]) => (
-                <li key={name} className="flex items-center justify-between px-4 py-3 text-sm">
-                  <span className="font-mono">{name}</span>
-                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {(def as { type?: string }).type ?? "any"}
-                    {required.includes(name) && <Badge variant="outline">required</Badge>}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          </div>
+          {!schema.isLoading && (
+            <FormFieldsEditor
+              key={schema.data?.version ?? 0}
+              schema={schema.data as FieldsSchema | undefined}
+              publish={publish}
+            />
           )}
         </CardContent>
       </Card>
@@ -254,6 +250,190 @@ function FieldsTab({ formId }: { readonly formId: string }) {
   )
 }
 
+type FieldType = "string" | "number" | "boolean" | "other"
+type FieldsSchema = {
+  readonly version?: number
+  readonly json_schema: unknown
+}
+type FieldRow = {
+  readonly name: string
+  readonly type: FieldType
+  readonly required: boolean
+  /** The property as published, so untouched fields round-trip byte-for-byte. */
+  readonly original?: Readonly<Record<string, unknown>>
+}
+
+const FIELD_TYPE_LABEL: Record<FieldType, string> = {
+  string: "Text",
+  number: "Number",
+  boolean: "Yes / no",
+  other: "As published",
+}
+
+const FIELD_NAME = /^[A-Za-z_][A-Za-z0-9_.-]*$/u
+
+function fieldTypeOf(property: Readonly<Record<string, unknown>> | undefined): FieldType {
+  const type = property?.["type"]
+  if (type === "string" || type === "number" || type === "boolean") return type
+  if (type === "integer") return "number"
+  return "other"
+}
+
+function fieldsFromFormSchema(schema: FieldsSchema | undefined): FieldRow[] {
+  const json = schema?.json_schema as { properties?: Record<string, Record<string, unknown>>; required?: string[] } | undefined
+  const required = new Set(json?.required ?? [])
+  return Object.entries(json?.properties ?? {}).map(([name, property]) => ({
+    name,
+    type: fieldTypeOf(property),
+    required: required.has(name),
+    original: property,
+  }))
+}
+
+function buildFormSchema(fields: readonly FieldRow[], previous: Readonly<Record<string, unknown>> | undefined): Record<string, unknown> {
+  const properties = Object.fromEntries(
+    fields.map((field) => {
+      const keepOriginal = field.original !== undefined && (field.type === "other" || fieldTypeOf(field.original) === field.type)
+      return [field.name, keepOriginal ? field.original : { type: field.type }]
+    }),
+  )
+  return {
+    $schema: previous?.["$schema"] ?? "https://json-schema.org/draft/2020-12/schema",
+    type: "object",
+    properties,
+    required: fields.filter((f) => f.required).map((f) => f.name),
+    additionalProperties: previous?.["additionalProperties"] ?? true,
+  }
+}
+
+/** The Form's declared fields as an editable list — publishing always creates the
+ * next immutable version (Golden rule 5), never edits one in place. */
+function FormFieldsEditor({
+  schema,
+  publish,
+}: {
+  readonly schema: FieldsSchema | undefined
+  readonly publish: ReturnType<typeof usePublishFormSchema>
+}) {
+  const previous = schema?.json_schema as Readonly<Record<string, unknown>> | undefined
+  const [fields, setFields] = useState<FieldRow[]>(() => fieldsFromFormSchema(schema))
+  const [newName, setNewName] = useState("")
+  const [nameError, setNameError] = useState<string | undefined>(undefined)
+
+  const draft = buildFormSchema(fields, previous)
+  const dirty =
+    schema === undefined ? fields.length > 0 : JSON.stringify(draft) !== JSON.stringify(buildFormSchema(fieldsFromFormSchema(schema), previous))
+  const nextVersion = (schema?.version ?? 0) + 1
+
+  function addField(event: { preventDefault: () => void }) {
+    event.preventDefault()
+    const name = newName.trim()
+    if (name.length === 0) return
+    if (!FIELD_NAME.test(name)) {
+      setNameError("Letters, numbers, _ . - only, starting with a letter.")
+      return
+    }
+    if (fields.some((f) => f.name === name)) {
+      setNameError("That field is already declared.")
+      return
+    }
+    setFields((current) => [...current, { name, type: "string", required: false }])
+    setNewName("")
+    setNameError(undefined)
+  }
+
+  async function publishFields() {
+    try {
+      await publish.mutateAsync({ json_schema: draft, changelog: `Version ${nextVersion.toString()} — edited in the dashboard.` })
+      toast.success(`Version ${nextVersion.toString()} published.`)
+    } catch (error) {
+      toastApiError(error, "Couldn't publish the fields — try again.")
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {fields.length > 0 && (
+        <ul className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
+          {fields.map((field) => (
+            <li key={field.name} className="flex items-center gap-3 px-4 py-2.5">
+              <span className="min-w-0 flex-1 truncate font-mono text-sm">{field.name}</span>
+              <Select
+                value={field.type}
+                onValueChange={(value) => {
+                  setFields((current) => current.map((f) => (f.name === field.name ? { ...f, type: value as FieldType } : f)))
+                }}
+              >
+                <SelectTrigger className="h-8 w-36 text-xs" aria-label={`Type of ${field.name}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(FIELD_TYPE_LABEL) as FieldType[])
+                    .filter((t) => t !== "other" || field.original !== undefined)
+                    .map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {FIELD_TYPE_LABEL[t]}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Checkbox
+                  checked={field.required}
+                  onCheckedChange={(checked) => {
+                    setFields((current) => current.map((f) => (f.name === field.name ? { ...f, required: checked === true } : f)))
+                  }}
+                  aria-label={`${field.name} required`}
+                />
+                required
+              </label>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground"
+                aria-label={`Remove ${field.name}`}
+                onClick={() => {
+                  setFields((current) => current.filter((f) => f.name !== field.name))
+                }}
+              >
+                <X className="size-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form onSubmit={addField} className="flex items-start gap-2">
+        <div className="flex flex-1 flex-col gap-1">
+          <Input
+            value={newName}
+            onChange={(e) => {
+              setNewName(e.target.value)
+              setNameError(undefined)
+            }}
+            placeholder="Add a field, e.g. email"
+            aria-label="New field name"
+            aria-invalid={nameError !== undefined}
+          />
+          {nameError !== undefined && <p className="text-xs text-destructive">{nameError}</p>}
+        </div>
+        <Button type="submit" variant="outline" disabled={newName.trim().length === 0}>
+          <Plus /> Add field
+        </Button>
+      </form>
+
+      {dirty && (
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-accent/40 px-4 py-3">
+          <p className="text-sm text-accent-foreground">Unpublished changes — Submissions are checked against the published version only.</p>
+          <Button size="sm" onClick={() => void publishFields()} disabled={publish.isPending}>
+            {publish.isPending ? "Publishing…" : `Publish v${nextVersion.toString()}`}
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SettingsTab({
   formId,
   settings,
@@ -265,6 +445,7 @@ function SettingsTab({
 }) {
   const navigate = useNavigate()
   const updateForm = useUpdateForm(formId)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [origins, setOrigins] = useState(
     Array.isArray(settings["allowed_origins"]) ? (settings["allowed_origins"] as string[]).join(", ") : "",
   )
@@ -288,7 +469,6 @@ function SettingsTab({
   }
 
   async function deleteForm() {
-    if (!window.confirm("Delete this Form permanently? Its Submissions are kept, but the URL stops accepting new ones.")) return
     await api.DELETE("/v1/forms/{formId}", { params: { path: { formId } } })
     toast.success("Form deleted.")
     await navigate({ to: "/forms" })
@@ -339,11 +519,25 @@ function SettingsTab({
             <h3 className="text-sm font-medium text-destructive">Danger zone</h3>
             <p className="text-xs text-muted-foreground">Deletes the Form and stops it from accepting Submissions.</p>
           </div>
-          <Button variant="destructive" onClick={() => void deleteForm()}>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              setConfirmDelete(true)
+            }}
+          >
             Delete Form
           </Button>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete this Form?"
+        description="Its Submissions are kept in the record, but the URL stops accepting new ones — anything your site posts here afterwards is turned away."
+        confirmLabel="Delete Form"
+        onConfirm={() => void deleteForm()}
+      />
     </div>
   )
 }

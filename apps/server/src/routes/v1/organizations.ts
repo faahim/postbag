@@ -8,12 +8,15 @@ import type { Auth } from "../../authSetup.js"
 import type { Env } from "../../env.js"
 import { forwardAuthCookies } from "../../lib/authCookies.js"
 import { assertSessionActor, type AppEnv } from "../../lib/scope.js"
+import { requireRole } from "../../lib/orgs.js"
 import {
   CreateOrganizationInputSchema,
   errorResponses,
   OrganizationSummarySchema,
   SetActiveOrganizationInputSchema,
   SetActiveOrganizationResponseSchema,
+  UpdateOrganizationSettingsInputSchema,
+  UpdateOrganizationSettingsResponseSchema,
 } from "../../schemas.js"
 
 // Job L §1/§3 — active-organization switching and creating a new organization from the
@@ -53,6 +56,32 @@ const createOrganizationRoute = createRoute({
     ...errorResponses,
   },
 })
+
+const updateOrganizationSettingsRoute = createRoute({
+  method: "patch",
+  path: "/v1/organizations/active",
+  operationId: "organizations_update_active",
+  tags: ["discovery"],
+  summary: "Update the active organization's settings",
+  description:
+    "Owner or admin (a manage-scoped API key counts as admin). Today that is the timezone — the " +
+    "IANA zone digest Routes follow when they don't carry one of their own. Changing it does not " +
+    "reschedule digests already queued for the current period.",
+  request: { body: { content: { "application/json": { schema: UpdateOrganizationSettingsInputSchema } } } },
+  responses: {
+    200: { description: "ok", content: { "application/json": { schema: UpdateOrganizationSettingsResponseSchema } } },
+    ...errorResponses,
+  },
+})
+
+function isValidTimezone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: timezone })
+    return true
+  } catch {
+    return false
+  }
+}
 
 function slugify(value: string): string {
   const base = value
@@ -105,6 +134,32 @@ export function registerOrganizationRoutes(app: OpenAPIHono<AppEnv>, auth: Auth,
     const body: z.infer<typeof SetActiveOrganizationResponseSchema> = {
       organization: { id: org.id, slug: org.slug, name: org.name },
     }
+    return c.json(body, 200)
+  })
+
+  app.openapi(updateOrganizationSettingsRoute, async (c) => {
+    const scope = c.var.scope
+    await requireRole(db, scope, ["owner", "admin"])
+    const { timezone } = c.req.valid("json")
+
+    if (!isValidTimezone(timezone)) {
+      throw new PostbagError("validation_failed", "Not a recognized IANA timezone.", {
+        field: "timezone",
+        example: "Europe/Stockholm",
+      })
+    }
+
+    const updated = await db
+      .update(organizationSettings)
+      .set({ timezone })
+      .where(eq(organizationSettings.organizationId, scope.organizationId))
+      .returning({ timezone: organizationSettings.timezone })
+    if (updated.length === 0) {
+      // Settings rows exist for every provisioned org; self-heal if one is missing.
+      await db.insert(organizationSettings).values({ organizationId: scope.organizationId, plan: "free", planSource: "free", timezone, limits: {} })
+    }
+
+    const body: z.infer<typeof UpdateOrganizationSettingsResponseSchema> = { timezone }
     return c.json(body, 200)
   })
 

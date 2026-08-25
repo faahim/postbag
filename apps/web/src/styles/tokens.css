@@ -304,7 +304,9 @@
   --success-foreground: oklch(0.15 0.02 152);
 
   --warning: oklch(0.75 0.14 82);
-  --warning-foreground: oklch(0.2 0.03 82);
+  /* Text/icon amber for dark surfaces — never sits on solid --warning, so it must
+     read against the dark background and the translucent warning washes. */
+  --warning-foreground: oklch(0.87 0.1 84);
 
   --border: oklch(0.34 0.052 274 / 0.7);
   --input: oklch(0.34 0.052 274);

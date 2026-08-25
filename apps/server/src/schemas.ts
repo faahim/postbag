@@ -418,6 +418,17 @@ export const CreateOrganizationInputSchema = z.object({
   slug: z.string().min(1).optional(),
 })
 
+export const UpdateOrganizationSettingsInputSchema = z.object({
+  timezone: z
+    .string()
+    .min(1)
+    .describe("IANA timezone, e.g. Europe/Stockholm. Digest Routes without a timezone of their own follow it."),
+})
+
+export const UpdateOrganizationSettingsResponseSchema = z.object({
+  timezone: z.string(),
+})
+
 export const errorResponses = {
   400: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
   401: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },

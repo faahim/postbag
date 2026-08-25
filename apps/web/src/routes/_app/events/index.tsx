@@ -2,8 +2,6 @@ import { createFileRoute } from "@tanstack/react-router"
 import type { CSSProperties } from "react"
 
 import { EmptyState } from "@/components/empty-state"
-import { EventsNav } from "@/components/events-nav"
-import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatDateTime } from "@/lib/format"
@@ -24,11 +22,7 @@ function EventsRoute() {
   const events = useEvents()
 
   return (
-    <div className="page-enter flex flex-col gap-8">
-      <PageHeader title="Events" description="Everything that happened in this workspace, most recent first." />
-
-      <EventsNav />
-
+    <div className="flex flex-col gap-8">
       {events.isLoading ? (
         <div className="flex flex-col gap-2.5">
           {Array.from({ length: 6 }, (_, i) => (

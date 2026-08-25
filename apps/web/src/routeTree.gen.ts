@@ -14,7 +14,9 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as ClaimRouteImport } from './routes/claim'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as AppEventsRouteImport } from './routes/_app/events'
 import { Route as AppFirstRunRouteImport } from './routes/_app/first-run'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as InvitationsIdRouteImport } from './routes/invitations.$id'
 import { Route as AppApiKeysIndexRouteImport } from './routes/_app/api-keys/index'
 import { Route as AppBagsIndexRouteImport } from './routes/_app/bags/index'
@@ -55,9 +57,19 @@ const SignUpRoute = SignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppEventsRoute = AppEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFirstRunRoute = AppFirstRunRouteImport.update({
   id: '/first-run',
   path: '/first-run',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const InvitationsIdRoute = InvitationsIdRouteImport.update({
@@ -91,14 +103,14 @@ const AppDestinationsIndexRoute = AppDestinationsIndexRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const AppEventsIndexRoute = AppEventsIndexRouteImport.update({
-  id: '/events/',
-  path: '/events/',
-  getParentRoute: () => AppRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppEventsRoute,
 } as any)
 const AppEventsWebhooksRoute = AppEventsWebhooksRouteImport.update({
-  id: '/events/webhooks',
-  path: '/events/webhooks',
-  getParentRoute: () => AppRoute,
+  id: '/webhooks',
+  path: '/webhooks',
+  getParentRoute: () => AppEventsRoute,
 } as any)
 const AppFormsIndexRoute = AppFormsIndexRouteImport.update({
   id: '/forms/',
@@ -116,14 +128,14 @@ const AppInboxIndexRoute = AppInboxIndexRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
-  getParentRoute: () => AppRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSettingsRoute,
 } as any)
 const AppSettingsMembersRoute = AppSettingsMembersRouteImport.update({
-  id: '/settings/members',
-  path: '/settings/members',
-  getParentRoute: () => AppRoute,
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AppSettingsRoute,
 } as any)
 const AppStreamsIndexRoute = AppStreamsIndexRouteImport.update({
   id: '/streams/',
@@ -141,7 +153,9 @@ export interface FileRoutesByFullPath {
   '/claim': typeof ClaimRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/events': typeof AppEventsRouteWithChildren
   '/first-run': typeof AppFirstRunRoute
+  '/settings': typeof AppSettingsRouteWithChildren
   '/invitations/$id': typeof InvitationsIdRoute
   '/bags/$bagId': typeof AppBagsBagIdRoute
   '/events/webhooks': typeof AppEventsWebhooksRoute
@@ -187,7 +201,9 @@ export interface FileRoutesById {
   '/claim': typeof ClaimRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/_app/events': typeof AppEventsRouteWithChildren
   '/_app/first-run': typeof AppFirstRunRoute
+  '/_app/settings': typeof AppSettingsRouteWithChildren
   '/invitations/$id': typeof InvitationsIdRoute
   '/_app/bags/$bagId': typeof AppBagsBagIdRoute
   '/_app/events/webhooks': typeof AppEventsWebhooksRoute
@@ -211,7 +227,9 @@ export interface FileRouteTypes {
     | '/claim'
     | '/sign-in'
     | '/sign-up'
+    | '/events'
     | '/first-run'
+    | '/settings'
     | '/invitations/$id'
     | '/bags/$bagId'
     | '/events/webhooks'
@@ -256,7 +274,9 @@ export interface FileRouteTypes {
     | '/claim'
     | '/sign-in'
     | '/sign-up'
+    | '/_app/events'
     | '/_app/first-run'
+    | '/_app/settings'
     | '/invitations/$id'
     | '/_app/bags/$bagId'
     | '/_app/events/webhooks'
@@ -320,11 +340,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignUpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/events': {
+      id: '/_app/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof AppEventsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/first-run': {
       id: '/_app/first-run'
       path: '/first-run'
       fullPath: '/first-run'
       preLoaderRoute: typeof AppFirstRunRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/invitations/$id': {
@@ -371,17 +405,17 @@ declare module '@tanstack/react-router' {
     }
     '/_app/events/': {
       id: '/_app/events/'
-      path: '/events'
+      path: '/'
       fullPath: '/events/'
       preLoaderRoute: typeof AppEventsIndexRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppEventsRoute
     }
     '/_app/events/webhooks': {
       id: '/_app/events/webhooks'
-      path: '/events/webhooks'
+      path: '/webhooks'
       fullPath: '/events/webhooks'
       preLoaderRoute: typeof AppEventsWebhooksRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppEventsRoute
     }
     '/_app/forms/': {
       id: '/_app/forms/'
@@ -406,17 +440,17 @@ declare module '@tanstack/react-router' {
     }
     '/_app/settings/': {
       id: '/_app/settings/'
-      path: '/settings'
+      path: '/'
       fullPath: '/settings/'
       preLoaderRoute: typeof AppSettingsIndexRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppSettingsRoute
     }
     '/_app/settings/members': {
       id: '/_app/settings/members'
-      path: '/settings/members'
+      path: '/members'
       fullPath: '/settings/members'
       preLoaderRoute: typeof AppSettingsMembersRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppSettingsRoute
     }
     '/_app/streams/': {
       id: '/_app/streams/'
@@ -435,39 +469,63 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AppRouteChildren {
-  AppFirstRunRoute: typeof AppFirstRunRoute
-  AppBagsBagIdRoute: typeof AppBagsBagIdRoute
+interface AppEventsRouteChildren {
   AppEventsWebhooksRoute: typeof AppEventsWebhooksRoute
-  AppFormsFormIdRoute: typeof AppFormsFormIdRoute
+  AppEventsIndexRoute: typeof AppEventsIndexRoute
+}
+
+const AppEventsRouteChildren: AppEventsRouteChildren = {
+  AppEventsWebhooksRoute: AppEventsWebhooksRoute,
+  AppEventsIndexRoute: AppEventsIndexRoute,
+}
+
+const AppEventsRouteWithChildren = AppEventsRoute._addFileChildren(
+  AppEventsRouteChildren,
+)
+
+interface AppSettingsRouteChildren {
   AppSettingsMembersRoute: typeof AppSettingsMembersRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
+}
+
+const AppSettingsRouteChildren: AppSettingsRouteChildren = {
+  AppSettingsMembersRoute: AppSettingsMembersRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
+}
+
+const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
+  AppSettingsRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppEventsRoute: typeof AppEventsRouteWithChildren
+  AppFirstRunRoute: typeof AppFirstRunRoute
+  AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppBagsBagIdRoute: typeof AppBagsBagIdRoute
+  AppFormsFormIdRoute: typeof AppFormsFormIdRoute
   AppStreamsStreamIdRoute: typeof AppStreamsStreamIdRoute
   AppApiKeysIndexRoute: typeof AppApiKeysIndexRoute
   AppBagsIndexRoute: typeof AppBagsIndexRoute
   AppDeliveriesIndexRoute: typeof AppDeliveriesIndexRoute
   AppDestinationsIndexRoute: typeof AppDestinationsIndexRoute
-  AppEventsIndexRoute: typeof AppEventsIndexRoute
   AppFormsIndexRoute: typeof AppFormsIndexRoute
   AppInboxIndexRoute: typeof AppInboxIndexRoute
-  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
   AppStreamsIndexRoute: typeof AppStreamsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppEventsRoute: AppEventsRouteWithChildren,
   AppFirstRunRoute: AppFirstRunRoute,
+  AppSettingsRoute: AppSettingsRouteWithChildren,
   AppBagsBagIdRoute: AppBagsBagIdRoute,
-  AppEventsWebhooksRoute: AppEventsWebhooksRoute,
   AppFormsFormIdRoute: AppFormsFormIdRoute,
-  AppSettingsMembersRoute: AppSettingsMembersRoute,
   AppStreamsStreamIdRoute: AppStreamsStreamIdRoute,
   AppApiKeysIndexRoute: AppApiKeysIndexRoute,
   AppBagsIndexRoute: AppBagsIndexRoute,
   AppDeliveriesIndexRoute: AppDeliveriesIndexRoute,
   AppDestinationsIndexRoute: AppDestinationsIndexRoute,
-  AppEventsIndexRoute: AppEventsIndexRoute,
   AppFormsIndexRoute: AppFormsIndexRoute,
   AppInboxIndexRoute: AppInboxIndexRoute,
-  AppSettingsIndexRoute: AppSettingsIndexRoute,
   AppStreamsIndexRoute: AppStreamsIndexRoute,
 }
 

@@ -17,15 +17,99 @@ export type RouteSubject = { readonly formId: string } | { readonly streamId: st
 type Cadence = "instant" | "daily" | "weekly"
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const
 
+export type CadenceState = { readonly cadence: Cadence; readonly time: string; readonly weekday: number }
+export const DEFAULT_CADENCE: CadenceState = { cadence: "instant", time: "08:00", weekday: 1 }
+
 /** The dashboard offers the digest subset the worker supports (core `digestPeriodKey`): a fixed
  * minute and hour, every day or on one weekday. Anything fancier is an API/CLI job. */
-function modeFor(cadence: Cadence, time: string, weekday: number, timezone: string) {
-  if (cadence === "instant") return { type: "instant" as const }
-  const [h, m] = time.split(":")
+export function modeFor(state: CadenceState, timezone: string) {
+  if (state.cadence === "instant") return { type: "instant" as const }
+  const [h, m] = state.time.split(":")
   const hour = Number(h)
   const minute = Number(m)
-  const cron = `${Number.isInteger(minute) ? minute : 0} ${Number.isInteger(hour) ? hour : 8} * * ${cadence === "weekly" ? weekday : "*"}`
+  const cron = `${Number.isInteger(minute) ? minute : 0} ${Number.isInteger(hour) ? hour : 8} * * ${state.cadence === "weekly" ? state.weekday : "*"}`
   return { type: "digest" as const, cron, timezone }
+}
+
+/** The reverse read, so an existing Route's mode opens in the same controls it was made with. */
+export function cadenceStateFromMode(mode: { readonly type: string; readonly cron?: string }): CadenceState {
+  if (mode.type !== "digest" || mode.cron === undefined) return DEFAULT_CADENCE
+  const [minute = "0", hour = "8", , , dow = "*"] = mode.cron.trim().split(/\s+/u)
+  const time = `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`
+  if (dow === "*") return { cadence: "daily", time, weekday: 1 }
+  const weekday = Number(dow)
+  return { cadence: "weekly", time, weekday: Number.isInteger(weekday) ? weekday : 1 }
+}
+
+/** Cadence controls shared by "add a Route" and "edit this Route's delivery". */
+export function CadencePicker({
+  value,
+  onChange,
+  timezone,
+}: {
+  readonly value: CadenceState
+  readonly onChange: (next: CadenceState) => void
+  readonly timezone: string
+}) {
+  return (
+    <div className="flex flex-col gap-2.5 rounded-xl border border-border/70 bg-muted/30 p-4">
+      <Label className="text-xs text-muted-foreground">Deliver</Label>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          value={value.cadence}
+          onValueChange={(v) => {
+            onChange({ ...value, cadence: v as Cadence })
+          }}
+        >
+          <SelectTrigger className="h-9 w-56" aria-label="Delivery cadence">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="instant">Each Submission, instantly</SelectItem>
+            <SelectItem value="daily">Daily digest</SelectItem>
+            <SelectItem value="weekly">Weekly digest</SelectItem>
+          </SelectContent>
+        </Select>
+        {value.cadence === "weekly" && (
+          <Select
+            value={String(value.weekday)}
+            onValueChange={(v) => {
+              onChange({ ...value, weekday: Number(v) })
+            }}
+          >
+            <SelectTrigger className="h-9 w-36" aria-label="Weekday">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {WEEKDAYS.map((day, i) => (
+                <SelectItem key={day} value={String(i)}>
+                  {day}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {value.cadence !== "instant" && (
+          <>
+            <span className="text-xs text-muted-foreground">at</span>
+            <Input
+              type="time"
+              value={value.time}
+              onChange={(e) => {
+                onChange({ ...value, time: e.target.value })
+              }}
+              className="h-9 w-28"
+              aria-label="Digest time"
+            />
+            <span className="text-xs text-muted-foreground">{timezone}</span>
+          </>
+        )}
+      </div>
+      {value.cadence !== "instant" && (
+        <p className="text-xs text-muted-foreground">One message covering the whole period — nothing is sent for an empty period.</p>
+      )}
+    </div>
+  )
 }
 
 export function AddRouteDialog({
@@ -42,9 +126,7 @@ export function AddRouteDialog({
   const me = useMe()
   const [selected, setSelected] = useState<string | undefined>(undefined)
   const [creatingNew, setCreatingNew] = useState(false)
-  const [cadence, setCadence] = useState<Cadence>("instant")
-  const [time, setTime] = useState("08:00")
-  const [weekday, setWeekday] = useState(1)
+  const [cadence, setCadence] = useState<CadenceState>(DEFAULT_CADENCE)
   const timezone = me.data?.organization.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
 
   async function addRoute(destinationId: string) {
@@ -52,10 +134,13 @@ export function AddRouteDialog({
       await createRoute.mutateAsync({
         destination_id: destinationId,
         ...("formId" in subject ? { form_id: subject.formId } : { stream_id: subject.streamId }),
-        mode: modeFor(cadence, time, weekday, timezone),
+        mode: modeFor(cadence, timezone),
       })
-      toast.success(cadence === "instant" ? "Route added." : "Digest route added.", {
-        description: cadence === "instant" ? undefined : `One message per ${cadence === "daily" ? "day" : "week"} at ${time} (${timezone}); quiet periods send nothing.`,
+      toast.success(cadence.cadence === "instant" ? "Route added." : "Digest route added.", {
+        description:
+          cadence.cadence === "instant"
+            ? undefined
+            : `One message per ${cadence.cadence === "daily" ? "day" : "week"} at ${cadence.time} (${timezone}); quiet periods send nothing.`,
       })
       setSelected(undefined)
       setCreatingNew(false)
@@ -65,65 +150,7 @@ export function AddRouteDialog({
     }
   }
 
-  const cadencePicker = (
-    <div className="flex flex-col gap-2 rounded-lg border border-border/70 p-3">
-      <Label className="text-xs text-muted-foreground">Deliver</Label>
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={cadence}
-          onValueChange={(v) => {
-            setCadence(v as Cadence)
-          }}
-        >
-          <SelectTrigger className="h-8 w-44" aria-label="Delivery cadence">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="instant">Each submission, instantly</SelectItem>
-            <SelectItem value="daily">Daily digest</SelectItem>
-            <SelectItem value="weekly">Weekly digest</SelectItem>
-          </SelectContent>
-        </Select>
-        {cadence === "weekly" && (
-          <Select
-            value={String(weekday)}
-            onValueChange={(v) => {
-              setWeekday(Number(v))
-            }}
-          >
-            <SelectTrigger className="h-8 w-36" aria-label="Weekday">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {WEEKDAYS.map((day, i) => (
-                <SelectItem key={day} value={String(i)}>
-                  {day}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        {cadence !== "instant" && (
-          <>
-            <span className="text-xs text-muted-foreground">at</span>
-            <Input
-              type="time"
-              value={time}
-              onChange={(e) => {
-                setTime(e.target.value)
-              }}
-              className="h-8 w-28"
-              aria-label="Digest time"
-            />
-            <span className="text-xs text-muted-foreground">{timezone}</span>
-          </>
-        )}
-      </div>
-      {cadence !== "instant" && (
-        <p className="text-xs text-muted-foreground">One message covering the whole period — nothing is sent for an empty period.</p>
-      )}
-    </div>
-  )
+  const cadencePicker = <CadencePicker value={cadence} onChange={setCadence} timezone={timezone} />
 
   return (
     <Dialog
@@ -178,7 +205,7 @@ export function AddRouteDialog({
                 </Button>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">No destinations yet — create one below.</p>
+              <p className="text-sm text-muted-foreground">No Destinations yet — create one below.</p>
             )}
             <Button
               variant="outline"
@@ -186,7 +213,7 @@ export function AddRouteDialog({
                 setCreatingNew(true)
               }}
             >
-              Create a new destination
+              Create a new Destination
             </Button>
           </div>
         )}

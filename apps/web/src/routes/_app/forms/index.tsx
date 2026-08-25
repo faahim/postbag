@@ -51,7 +51,6 @@ function FormsIndexRoute() {
         </div>
       ) : forms.data === undefined || forms.data.data.length === 0 ? (
         <EmptyState
-          status="pending"
           title="Your first Form starts here"
           description="A Form is a URL your site posts to. Create one and the URL works right away — your site can start posting before the kettle boils."
           action={

@@ -77,7 +77,7 @@ function DestinationsRoute() {
             <SheetTitle>New Destination</SheetTitle>
             <SheetDescription>Pick a type and fill in where Submissions should go.</SheetDescription>
           </SheetHeader>
-          <div className="px-6 pb-6">
+          <div className="overflow-y-auto px-6 py-6">
             <DestinationForm
               onSaved={() => {
                 setOpen(false)

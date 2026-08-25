@@ -153,7 +153,7 @@ export function DestinationForm({
         onSaved({ id: updated.id, name: updated.name })
       }
     } catch (error) {
-      toastApiError(error, mode === "create" ? "Couldn't create the destination — try again." : "Couldn't save the destination — try again.")
+      toastApiError(error, mode === "create" ? "Couldn't create the Destination — try again." : "Couldn't save the Destination — try again.")
     }
   })
 
@@ -164,32 +164,40 @@ export function DestinationForm({
       onSubmit={(e) => {
         void onSubmit(e)
       }}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-5"
       noValidate
     >
       {mode === "create" ? (
-        <div className="grid grid-cols-5 gap-1.5">
-          {DESTINATION_TYPES.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => {
-                setType(t.value)
-                reset()
-              }}
-              className={cn(
-                "flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors duration-(--duration-quick)",
-                type === t.value ? "border-primary/40 bg-accent text-accent-foreground" : "border-border text-muted-foreground hover:bg-muted",
-              )}
-            >
-              <t.icon className="size-4" />
-              {t.label}
-            </button>
-          ))}
+        <div className="flex flex-col gap-2">
+          <Label>Where it lands</Label>
+          <div className="grid grid-cols-5 gap-2">
+            {DESTINATION_TYPES.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                aria-pressed={type === t.value}
+                onClick={() => {
+                  setType(t.value)
+                  reset()
+                }}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 rounded-lg px-2 py-3 text-xs font-medium",
+                  "transition-[background-color,color,box-shadow,transform] duration-(--duration-quick) ease-(--ease-smooth-out)",
+                  "outline-none focus-visible:ring-[3px] focus-visible:ring-ring active:scale-[0.96]",
+                  type === t.value
+                    ? "bg-accent text-accent-foreground shadow-[inset_0_0_0_1px_var(--ring)]"
+                    : "text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:bg-muted/70 hover:text-foreground",
+                )}
+              >
+                <t.icon className="size-[18px]" />
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       ) : (
         typeMeta !== undefined && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2.5 rounded-lg bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground">
             <typeMeta.icon className="size-4" />
             <span>
               {typeMeta.label} · <span className="font-mono text-xs">{destination?.id}</span>
@@ -271,8 +279,8 @@ export function DestinationForm({
         </div>
       )}
 
-      <Button type="submit" disabled={isSubmitting} className="mt-1">
-        {isSubmitting ? (mode === "create" ? "Creating…" : "Saving…") : (submitLabel ?? (mode === "create" ? "Create destination" : "Save changes"))}
+      <Button type="submit" disabled={isSubmitting} className="mt-2">
+        {isSubmitting ? (mode === "create" ? "Creating…" : "Saving…") : (submitLabel ?? (mode === "create" ? "Create Destination" : "Save changes"))}
       </Button>
     </form>
   )

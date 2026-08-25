@@ -2068,6 +2068,77 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/organizations/active:
+    patch:
+      operationId: organizations_update_active
+      tags:
+        - discovery
+      summary: Update the active organization's settings
+      description: Owner or admin (a manage-scoped API key counts as admin). Today
+        that is the timezone — the IANA zone digest Routes follow when they
+        don't carry one of their own. Changing it does not reschedule digests
+        already queued for the current period.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                timezone:
+                  type: string
+                  minLength: 1
+                  description: IANA timezone, e.g. Europe/Stockholm. Digest Routes without a
+                    timezone of their own follow it.
+              required:
+                - timezone
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timezone:
+                    type: string
+                required:
+                  - timezone
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /v1/organizations:
     post:
       operationId: organizations_create

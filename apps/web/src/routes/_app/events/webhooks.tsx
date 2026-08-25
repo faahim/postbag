@@ -7,12 +7,11 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { EmptyState } from "@/components/empty-state"
-import { PageHeader } from "@/components/page-header"
 import { RoutingMark, type RoutingMarkStatus } from "@/components/routing-mark"
-import { EventsNav } from "@/components/events-nav"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -49,11 +48,7 @@ function EventWebhooksRoute() {
   const [adding, setAdding] = useState(false)
 
   return (
-    <div className="page-enter flex max-w-3xl flex-col gap-8">
-      <PageHeader title="Events" description="Everything that happened in this workspace, most recent first." />
-
-      <EventsNav />
-
+    <div className="flex max-w-3xl flex-col gap-8">
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-sm font-medium">Event webhooks</h2>
@@ -249,6 +244,7 @@ function WebhookRow({ hook }: { readonly hook: SystemWebhook }) {
   const update = useUpdateSystemWebhook()
   const remove = useDeleteSystemWebhook()
   const [open, setOpen] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
   const health = HEALTH[hook.health ?? "unknown"]
   const enabled = hook.enabled ?? true
 
@@ -261,7 +257,6 @@ function WebhookRow({ hook }: { readonly hook: SystemWebhook }) {
   }
 
   async function del() {
-    if (!window.confirm(`Remove the webhook for ${display}? It stops receiving events immediately; past deliveries are kept in the log.`)) return
     try {
       await remove.mutateAsync(hook.id)
       toast.success("Webhook removed.")
@@ -319,11 +314,28 @@ function WebhookRow({ hook }: { readonly hook: SystemWebhook }) {
             Deliveries
             <ChevronDown className={cn("size-3.5 transition-transform duration-(--duration-quick)", open && "rotate-180")} />
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Remove webhook" onClick={() => void del()} disabled={remove.isPending}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Remove webhook"
+            onClick={() => {
+              setConfirmRemove(true)
+            }}
+            disabled={remove.isPending}
+          >
             <Trash2 className="size-4 text-muted-foreground" />
           </Button>
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title={`Remove the webhook for ${display}?`}
+        description="It stops receiving events immediately. Past deliveries are kept in the log."
+        confirmLabel="Remove webhook"
+        pending={remove.isPending}
+        onConfirm={() => void del()}
+      />
       {open && <DeliveriesPanel webhookId={hook.id} />}
     </div>
   )

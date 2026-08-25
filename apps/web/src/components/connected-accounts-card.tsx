@@ -39,7 +39,6 @@ export function ConnectedAccountsCard() {
           </div>
         ) : social.length === 0 ? (
           <EmptyState
-            status="pending"
             title="No social sign-in on this instance"
             description="This Postbag hasn't configured Google or GitHub — sign in with your email and password."
           />

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { PageHeader } from "@/components/page-header"
 import { StreamExplainer } from "@/components/stream-explainer"
 import { Button } from "@/components/ui/button"
@@ -169,11 +170,9 @@ function CreateStreamDialog({ open, onOpenChange }: { readonly open: boolean; re
 function StreamRowMenu({ stream, onRename }: { readonly stream: Stream; readonly onRename: () => void }) {
   const navigate = useNavigate()
   const deleteStream = useDeleteStream()
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   async function remove() {
-    const routes = stream.counts.routes
-    const detail = routes > 0 ? ` Its ${routes} ${routes === 1 ? "route stops" : "routes stop"} delivering.` : ""
-    if (!window.confirm(`Delete “${stream.name}”? The Forms in it and their Submissions are kept; only the Stream goes.${detail}`)) return
     try {
       await deleteStream.mutateAsync(stream.id)
       toast.success(`${stream.name} deleted.`)
@@ -182,22 +181,41 @@ function StreamRowMenu({ stream, onRename }: { readonly stream: Stream; readonly
     }
   }
 
+  const routes = stream.counts.routes
+  const routesDetail = routes > 0 ? ` Its ${routes.toString()} ${routes === 1 ? "Route stops" : "Routes stop"} delivering.` : ""
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" aria-label={`Actions for ${stream.name}`}>
-          <MoreHorizontal className="size-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => void navigate({ to: "/streams/$streamId", params: { streamId: stream.id } })}>Open</DropdownMenuItem>
-        <DropdownMenuItem onSelect={onRename}>Rename</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={() => void remove()}>
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" aria-label={`Actions for ${stream.name}`}>
+            <MoreHorizontal className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={() => void navigate({ to: "/streams/$streamId", params: { streamId: stream.id } })}>Open</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onRename}>Rename</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => {
+              setConfirmDelete(true)
+            }}
+          >
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={`Delete “${stream.name}”?`}
+        description={`The Forms in it and their Submissions are kept; only the Stream goes.${routesDetail}`}
+        confirmLabel="Delete Stream"
+        pending={deleteStream.isPending}
+        onConfirm={() => void remove()}
+      />
+    </>
   )
 }
 

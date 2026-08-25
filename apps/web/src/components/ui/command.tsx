@@ -32,10 +32,24 @@ function CommandDialog({
     <Dialog {...props}>
       <DialogTitle className="sr-only">{title}</DialogTitle>
       <DialogDescription className="sr-only">{description}</DialogDescription>
-      <DialogContent className="overflow-hidden p-0 shadow-xl" showCloseButton={false}>
-        <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:size-4 [&_[cmdk-input]]:h-11 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-2.5 [&_[cmdk-item]_svg]:size-4">
+      <DialogContent
+        className="top-[18%] translate-y-0 gap-0 overflow-hidden p-0 shadow-xl sm:max-w-xl"
+        showCloseButton={false}
+      >
+        <Command className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:size-4 [&_[cmdk-input]]:h-13 [&_[cmdk-item]]:gap-2.5 [&_[cmdk-item]]:rounded-lg [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-2.5 [&_[cmdk-item]_svg]:size-4">
           {children}
         </Command>
+        <div className="flex items-center gap-4 border-t border-border/60 bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <kbd className="rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10px]">↑↓</kbd> navigate
+          </span>
+          <span className="flex items-center gap-1.5">
+            <kbd className="rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10px]">↵</kbd> open
+          </span>
+          <span className="flex items-center gap-1.5">
+            <kbd className="rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10px]">esc</kbd> close
+          </span>
+        </div>
       </DialogContent>
     </Dialog>
   )
@@ -48,7 +62,7 @@ function CommandInput({ className, ...props }: ComponentProps<typeof CommandPrim
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(
-          "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-13 w-full rounded-md bg-transparent py-3 text-[15px] outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
         {...props}
@@ -61,7 +75,7 @@ function CommandList({ className, ...props }: ComponentProps<typeof CommandPrimi
   return (
     <CommandPrimitive.List
       data-slot="command-list"
-      className={cn("max-h-80 scroll-py-1 overflow-x-hidden overflow-y-auto", className)}
+      className={cn("max-h-96 scroll-py-2 overflow-x-hidden overflow-y-auto py-1", className)}
       {...props}
     />
   )

@@ -6,6 +6,7 @@ import { DeliveryStatusBadge } from "@/components/delivery-status"
 import { RoutingMark, type RoutingMarkStatus } from "@/components/routing-mark"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -56,7 +57,7 @@ export function SubmissionDrawer({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
+        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-6">
           {isLoading || submission === undefined ? (
             <div className="flex flex-col gap-3">
               <Skeleton className="h-5 w-32" />
@@ -80,13 +81,14 @@ export function SubmissionDrawer({
 function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: SubmissionDetail; readonly onDeleted: () => void }) {
   const updateStatus = useUpdateSubmissionStatus()
   const deleteSubmission = useDeleteSubmission()
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const deliveries: readonly Delivery[] = submission.deliveries ?? []
 
   async function remove() {
-    if (!window.confirm("Delete this submission permanently? This is the one thing Postbag never does on its own — it can't be undone.")) return
     try {
       await deleteSubmission.mutateAsync(submission.id)
       toast.success("Submission deleted.")
+      setConfirmDelete(false)
       onDeleted()
     } catch (error) {
       toastApiError(error, "Couldn't delete the submission — try again.")
@@ -193,8 +195,26 @@ function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: 
 
       <Separator />
 
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete this Submission?"
+        description="It disappears from the record permanently. Deleting is the one thing Postbag never does on its own — and it can't be undone."
+        confirmLabel="Delete Submission"
+        pending={deleteSubmission.isPending}
+        onConfirm={() => void remove()}
+      />
+
       <div className="flex items-center justify-between gap-2">
-        <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-destructive" onClick={() => void remove()} disabled={deleteSubmission.isPending}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 text-muted-foreground hover:text-destructive"
+          onClick={() => {
+            setConfirmDelete(true)
+          }}
+          disabled={deleteSubmission.isPending}
+        >
           <Trash2 className="size-3.5" /> Delete
         </Button>
         <div className="flex flex-wrap justify-end gap-2">

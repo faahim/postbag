@@ -6,6 +6,7 @@ import { DESTINATION_TYPES, DestinationForm } from "@/components/destination-for
 import { SuccessMark } from "@/components/success-mark"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { toastApiError } from "@/lib/api"
@@ -57,6 +58,7 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
   const deleteDestination = useDeleteDestination()
   const [result, setResult] = useState<{ readonly ok: boolean; readonly detail: string } | null>(null)
   const [editing, setEditing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const typeMeta = DESTINATION_TYPES.find((t) => t.value === destination.type)
   const health = HEALTH[destination.health]
   const summary = describeDestination(destination)
@@ -77,7 +79,6 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
   }
 
   async function remove() {
-    if (!window.confirm(`Delete “${destination.name}”? Routes that send here stop working until you point them somewhere else.`)) return
     try {
       await deleteDestination.mutateAsync(destination.id)
       toast.success(`${destination.name} deleted.`)
@@ -133,9 +134,26 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
             <Pencil className="size-3.5" />
             Edit
           </Button>
-          <Button variant="ghost" size="icon" aria-label={`Delete ${destination.name}`} onClick={() => void remove()} disabled={deleteDestination.isPending}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Delete ${destination.name}`}
+            onClick={() => {
+              setConfirmDelete(true)
+            }}
+            disabled={deleteDestination.isPending}
+          >
             <Trash2 className="size-4 text-muted-foreground" />
           </Button>
+          <ConfirmDialog
+            open={confirmDelete}
+            onOpenChange={setConfirmDelete}
+            title={`Delete “${destination.name}”?`}
+            description="Routes that send here stop delivering until you point them somewhere else. Submissions already saved are untouched."
+            confirmLabel="Delete Destination"
+            pending={deleteDestination.isPending}
+            onConfirm={() => void remove()}
+          />
         </div>
       </div>
       {result !== null && (
@@ -150,7 +168,7 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
             <SheetTitle>Edit destination</SheetTitle>
             <SheetDescription>Changes apply to every route that sends here.</SheetDescription>
           </SheetHeader>
-          <div className="px-6 pb-6">
+          <div className="overflow-y-auto px-6 py-6">
             {editing && (
               <DestinationForm
                 destination={destination}

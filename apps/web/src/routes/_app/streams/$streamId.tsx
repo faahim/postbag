@@ -11,6 +11,7 @@ import { ShapeEditor } from "@/components/shape-editor"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -212,6 +213,7 @@ function SettingsTab({ streamId, name, routeCount }: { readonly streamId: string
   const updateStream = useUpdateStream(streamId)
   const deleteStream = useDeleteStream()
   const [draftName, setDraftName] = useState(name)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const trimmed = draftName.trim()
 
   async function rename() {
@@ -225,8 +227,6 @@ function SettingsTab({ streamId, name, routeCount }: { readonly streamId: string
   }
 
   async function remove() {
-    const detail = routeCount > 0 ? ` Its ${routeCount} ${routeCount === 1 ? "route stops" : "routes stop"} delivering.` : ""
-    if (!window.confirm(`Delete “${name}”? The Forms in it and their Submissions are kept; only the Stream goes.${detail}`)) return
     try {
       await deleteStream.mutateAsync(streamId)
       toast.success(`${name} deleted.`)
@@ -270,7 +270,24 @@ function SettingsTab({ streamId, name, routeCount }: { readonly streamId: string
               Deletes the Stream and its Routes. The Forms in it and every Submission they received are kept.
             </p>
           </div>
-          <Button variant="destructive" onClick={() => void remove()} disabled={deleteStream.isPending}>
+          <ConfirmDialog
+            open={confirmDelete}
+            onOpenChange={setConfirmDelete}
+            title={`Delete “${name}”?`}
+            description={`The Forms in it and their Submissions are kept; only the Stream goes.${
+              routeCount > 0 ? ` Its ${routeCount.toString()} ${routeCount === 1 ? "Route stops" : "Routes stop"} delivering.` : ""
+            }`}
+            confirmLabel="Delete Stream"
+            pending={deleteStream.isPending}
+            onConfirm={() => void remove()}
+          />
+          <Button
+            variant="destructive"
+            onClick={() => {
+              setConfirmDelete(true)
+            }}
+            disabled={deleteStream.isPending}
+          >
             Delete Stream
           </Button>
         </CardContent>

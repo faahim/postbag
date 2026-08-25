@@ -159,17 +159,17 @@ function DeliveriesRoute() {
           {open !== undefined && (
             <div className="flex flex-col gap-4">
               <DeliveryStatusBadge status={open.status as RoutingMarkStatus} />
-              {open.last_error !== null && <p className="text-sm text-destructive">{open.last_error}</p>}
-              <div className="flex flex-col gap-1">
+              {open.last_error !== null && <p className="text-sm break-words text-destructive">{open.last_error}</p>}
+              <div className="flex min-w-0 flex-col gap-1.5">
                 <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Payload</h3>
-                <pre className="max-h-64 overflow-auto rounded-lg border border-border/70 bg-muted/50 p-3 font-mono text-xs">
+                <pre className="max-h-64 overflow-y-auto rounded-lg border border-border/70 bg-muted/50 p-3.5 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all">
                   <code>{JSON.stringify(open.payload, null, 2)}</code>
                 </pre>
               </div>
               {open.last_response !== undefined && (
-                <div className="flex flex-col gap-1">
+                <div className="flex min-w-0 flex-col gap-1.5">
                   <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Last response</h3>
-                  <pre className="max-h-40 overflow-auto rounded-lg border border-border/70 bg-muted/50 p-3 font-mono text-xs">
+                  <pre className="max-h-40 overflow-y-auto rounded-lg border border-border/70 bg-muted/50 p-3.5 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all">
                     <code>{JSON.stringify(open.last_response, null, 2)}</code>
                   </pre>
                 </div>
