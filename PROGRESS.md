@@ -184,6 +184,19 @@ the rules and `docs/` for the design.
   are complimentary, so checkout is intentionally hidden there; successful checkout creation is
   covered by the live-DB integration suite, not by a real production charge.
 
+- [x] **Dashboard design sweep (2026-08-26, branch `codex/brand-overhaul`):** the "design session on the dashboard"
+  from Next-up item 0 — the brand overhaul finally reaches the product's core. Tactile buttons (the site's grain-face
+  `--btn-*` material ported to both dashboard themes; primary + outline variants), spacious two-line tables on
+  `.list-surface` planes, an Inbox that reads like an inbox (headline-first letter rows via `headline()`, status
+  apertures, Form names instead of ids), a shared `PageHeader`, larger type throughout, enter choreography
+  (`page-enter` / `row-enter` staggers), sliding active pills in the sidebar nav and Tabs (transitions-dev
+  tabs-sliding on Radix), warm product-register empty states everywhere, and the large ambient `BrandMark`
+  greeting the empty Inbox and first-run (also committed: the animated BrandMark migration into web + site footer,
+  `8808331`). Fixed-vocabulary copy pass over dialogs/confirms/palette; PlanCard header de-echoed; workspace wording
+  unified. Verified in the browser light + dark with seeded local data (3 Forms, 10 Submissions, retrying
+  Deliveries); typecheck 0, eslint 0, 12/12 web tests, build ok. Local dev DB now holds seed data and a spare
+  empty "Design QA" workspace for empty-state review.
+
 ## Handoff (2026-08-21 ~22:50 UTC — session ended near a usage limit; resume from here)
 
 **Committed and live:** everything above plus job J (agent-first hero, switcher, pricing cards, first-paint reveal fix —
@@ -224,7 +237,7 @@ tokens in `~/Developer/smedja/.env` (Cloudflare token: DNS only; no Email Routin
 
 ## Next up (in order)
 
-0. Design session with Fahim on the dashboard (see Job E verdict). Screenshots: session scratchpad `web-shots/` (before) and `web-shots-v2/` (after).
+0. ~~Design session with Fahim on the dashboard~~ **done 2026-08-26** (see "Dashboard design sweep" above; awaiting Fahim's review on `codex/brand-overhaul`).
 1. Wire RLS into the request path (`RLS_ENFORCED=true`: per-request transaction with `SET LOCAL ROLE postbag_app` + `set_config('app.org_id')`); then flip the default on. Sync `api/openapi.yaml` with the generated doc (new: `/v1/forms/{id}/schema/infer`, `/v1/webhooks/{id}/deliveries`, `SchemaVersion.inferred`).
 2. ~~CLI + MCP~~ **published 2026-08-21.** npm: `postbag@0.1.0`, `@postbag/sdk@0.1.0`, `@postbag/mcp@0.1.1` — first
    versions by Fahim with 2FA, then **trusted publishing (OIDC)** configured per package (`npm trust github … --file
