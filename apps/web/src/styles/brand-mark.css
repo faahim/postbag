@@ -1,0 +1,119 @@
+/* Animated Postbag mark — twin of the styles in apps/site BrandMark.astro.
+   Hover/focus a [data-brand-trigger] ancestor for the nudge; `.brand-mark-ambient`
+   runs the interval loop: the letters plunge fully into the bag, and two fresh
+   ones immediately relay in from above, settling where the old ones sat. */
+
+.brand-mark {
+  display: block;
+  /* the back card overshoots the viewBox top mid-spring; let it breathe */
+  overflow: visible;
+  --brand-lift-front: 77px;
+  --brand-tilt-front: -8deg;
+  --brand-lift-back: 103px;
+  --brand-tilt-back: 3.4deg;
+  --brand-stagger: 80ms;
+  /* constant-width seam so the two cards stay two cards at 24px */
+  --brand-edge: rgba(39, 52, 137, 0.4);
+  --brand-edge-w: 1px;
+}
+
+.brand-mark .pbm-card-edge {
+  fill: none;
+  stroke: var(--brand-edge);
+  stroke-width: var(--brand-edge-w);
+  vector-effect: non-scaling-stroke;
+}
+
+.brand-mark .pbm-card,
+.brand-mark .pbm-shell,
+.brand-mark .pbm-pocket {
+  transform-box: view-box;
+  transition: transform var(--duration-medium) var(--ease-smooth-out);
+}
+
+/* pivots sit low, inside the pocket, so the cards read as held — not floating */
+.brand-mark .pbm-card-front { transform-origin: 390px 494px; }
+.brand-mark .pbm-card-back { transform-origin: 334px 434px; }
+.brand-mark .pbm-shell,
+.brand-mark .pbm-pocket { transform-origin: 349.5px 630px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  :where([data-brand-trigger]:hover, [data-brand-trigger]:focus-visible) .brand-mark .pbm-card-front {
+    transform: translateY(calc(var(--brand-lift-front) * -1)) rotate(var(--brand-tilt-front));
+    transition: transform var(--duration-brand-lift) var(--ease-brand-spring) var(--duration-micro);
+  }
+
+  :where([data-brand-trigger]:hover, [data-brand-trigger]:focus-visible) .brand-mark .pbm-card-back {
+    transform: translateY(calc(var(--brand-lift-back) * -1)) rotate(var(--brand-tilt-back));
+    transition: transform var(--duration-brand-lift) var(--ease-brand-spring)
+      calc(var(--duration-micro) + var(--brand-stagger));
+  }
+
+  :where([data-brand-trigger]:hover, [data-brand-trigger]:focus-visible) .brand-mark .pbm-shell,
+  :where([data-brand-trigger]:hover, [data-brand-trigger]:focus-visible) .brand-mark .pbm-pocket {
+    animation: pbm-bag-dip var(--duration-brand-dip) var(--ease-smooth-out);
+  }
+
+  /* ambient loop: a 3.95s cycle run as a relay — each card's replacement starts
+     falling the moment its predecessor is swallowed. The action fills the first
+     ~37% (~1.45s, the same absolute speeds as the original 6.75s tuning) and the
+     remaining ~63% is the 2.5s quiet hold between runs — to change the pace,
+     scale the keyframe percentages, not just the cycle, or the motion speeds up too */
+  .brand-mark-ambient .pbm-card-front {
+    animation: pbm-front-dive var(--brand-cycle, 3.95s) linear var(--brand-cycle-delay, 2.4s) infinite;
+  }
+  .brand-mark-ambient .pbm-card-back {
+    animation: pbm-back-dive var(--brand-cycle, 3.95s) linear var(--brand-cycle-delay, 2.4s) infinite;
+  }
+  .brand-mark-ambient .pbm-shell,
+  .brand-mark-ambient .pbm-pocket {
+    animation: pbm-bag-absorb var(--brand-cycle, 3.95s) linear var(--brand-cycle-delay, 2.4s) infinite;
+  }
+}
+
+@keyframes pbm-bag-dip {
+  0%, 100% { transform: none; }
+  35% { transform: scaleX(1.034) scaleY(0.932); }
+}
+
+/* travel is sized so each card's top clears the pocket lip's lowest dip (y≈556):
+   250px sinks the front card (top y=321) fully, 315px the taller back card (y=266).
+   The pbm-cardWindow clip (bottom y=770) keeps that travel from ever poking out
+   below the pocket. The mid-cycle jump happens while both cards are swallowed. */
+/* the respawn: while the card is hidden under the pocket its opacity drops to 0,
+   so the position jump back above the bag happens with the card fully invisible —
+   a display frame sampled mid-jump renders nothing (with opacity 1 through the
+   jump, ~every 4th cycle painted a one-frame half-transparent ghost mid-air).
+   It then fades in over ~190ms of the fall, already moving, so it reads as
+   entering from above rather than popping in. */
+@keyframes pbm-front-dive {
+  0%, 5.1% { transform: none; opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.36); }
+  17.1% { transform: translateY(250px) rotate(2.5deg); animation-timing-function: linear; }
+  17.6% { opacity: 1; }
+  18.8% { transform: translateY(250px) rotate(2.5deg); opacity: 0; }
+  18.89% { transform: translateY(-235px) rotate(-3deg); opacity: 0; animation-timing-function: cubic-bezier(0.33, 0.12, 0.72, 0.5); }
+  23.2% { opacity: 1; }
+  27.7% { transform: translateY(12px) rotate(0.6deg); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  31.1%, 100% { transform: none; opacity: 1; }
+}
+
+@keyframes pbm-back-dive {
+  0%, 7.2% { transform: none; opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.36); }
+  19.1% { transform: translateY(315px) rotate(-2deg); animation-timing-function: linear; }
+  19.7% { opacity: 1; }
+  20.8% { transform: translateY(315px) rotate(-2deg); opacity: 0; }
+  20.93% { transform: translateY(-265px) rotate(2deg); opacity: 0; animation-timing-function: cubic-bezier(0.33, 0.12, 0.72, 0.5); }
+  25.3% { opacity: 1; }
+  29.7% { transform: translateY(14px) rotate(-0.7deg); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  33.2%, 100% { transform: none; opacity: 1; }
+}
+
+@keyframes pbm-bag-absorb {
+  0%, 13.7% { transform: none; animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
+  19.7% { transform: scaleX(1.045) scaleY(0.925); animation-timing-function: ease-out; }
+  23.6% { transform: scaleX(1.006) scaleY(0.988); animation-timing-function: ease-in-out; }
+  25.6% { transform: none; animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
+  /* the catch — a softer dip as the fresh cards land */
+  29% { transform: scaleX(1.02) scaleY(0.964); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  36.7%, 100% { transform: none; }
+}

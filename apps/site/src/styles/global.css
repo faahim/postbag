@@ -544,7 +544,7 @@
     background: oklch(0.76 0.12 278 / 0.18);
     filter: blur(42px);
   }
-  .mobile-nav-ambient img {
+  .mobile-nav-ambient :is(img, .brand-mark) {
     position: relative;
     width: 100%;
     height: auto;

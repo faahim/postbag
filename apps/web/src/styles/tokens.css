@@ -90,6 +90,15 @@
   --ease-in-out: ease-in-out;
   --ease-out: ease-out;
   --ease-linear: linear;
+  /* brand mark — damped spring (ζ=0.50, one ~16% overshoot), hand-tuned on
+     the motion bench; a deliberate brand-mark exception to the no-bounce rule */
+  --duration-brand-lift: 530ms;
+  --duration-brand-dip: 380ms;
+  --ease-brand-spring: linear(
+    0, 0.292 4.5%, 0.769 9.1%, 1.078 13.6%, 1.163 18.2%, 1.115 22.7%, 1.037 27.3%,
+    0.987 31.8%, 0.973 36.4%, 0.981 40.9%, 0.994 45.5%, 1.002 50%, 1.004 54.5%,
+    1.003 59.1%, 1.001 63.6%, 1 68.2%, 0.999 72.7%, 1
+  );
   --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
   --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
 

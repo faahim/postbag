@@ -3,6 +3,7 @@
 @import "@fontsource-variable/instrument-sans";
 @import "@fontsource-variable/jetbrains-mono";
 @import "./tokens.css";
+@import "./brand-mark.css";
 
 /* Tailwind's `dark:` variant follows our explicit data-theme attribute
    (resolved from system/light/dark in main.tsx), not prefers-color-scheme —

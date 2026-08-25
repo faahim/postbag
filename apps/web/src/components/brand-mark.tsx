@@ -1,23 +1,19 @@
----
+import { useId } from "react"
+
+import { cn } from "@/lib/utils"
+
 /**
- * Inline, animated Postbag mark. Static copies live at /logo-mark-c27b566.svg;
- * this component must stay geometry-identical to them (same source artwork),
+ * Inline, animated Postbag mark — the React twin of apps/site's BrandMark.astro.
+ * Keep the artwork in both byte-identical to /logo-mark-c27b566.svg's source,
  * plus two animation-only deviations: the pbm-cardWindow clip around the two
  * cards (so a diving card can never poke out below the pocket), and the back
  * shell extended to y=570 (the static art ends it at 520, leaving a see-through
  * gap under the lip's centre dip that only shows once the cards fully vanish).
- * Hover/focus any ancestor with `data-brand-trigger` and the bag takes a nudge:
- * the pocket dips, the two letters rise out with a damped-spring settle.
- * Pass `ambient` for the interval loop: every few seconds the letters vanish
- * into the bag, and two fresh ones drop in from above to take their place.
- *
- * Several instances can share a page, so every SVG id gets a per-instance
- * prefix — gradients and filters must never resolve into a sibling mark.
+ * Hover/focus any ancestor with `data-brand-trigger` for the nudge; pass
+ * `ambient` for the interval loop (letters vanish into the bag, two fresh
+ * ones drop in from above). Styles live in src/styles/brand-mark.css.
  */
-interface Props { class?: string; ambient?: boolean }
-const { class: className, ambient = false } = Astro.props
-const MARK = `
-  <defs>
+const MARK = `  <defs>
     <linearGradient id="pbm-rearCardBase" x1="494" y1="266" x2="500" y2="625" gradientUnits="userSpaceOnUse">
       <stop stop-color="#F1F0FB"/>
       <stop offset="0.35" stop-color="#F0F0FD"/>
@@ -222,126 +218,19 @@ const MARK = `
     <path d="M237 436C240 453 250 464 266 469C289 475 331 469 359 473C382 476 397 488 411 507L434 540C442 551 453 555 467 556C498 558 533 558 564 555C578 553 589 547 598 537L627 500C644 479 666 472 691 472C713 472 734 475 752 467C769 460 780 448 783 431C788 442 790 457 790 474V715C790 782 736 836 669 836H358C291 836 237 782 237 715V436Z" stroke="url(#pbm-outerStroke)" stroke-width="5" stroke-linejoin="round"/>
     <path d="M309 373H294C268 373 243 394 238 419C236 427 236 433 237 436C240 453 250 464 266 469C289 475 331 469 359 473C382 476 397 488 411 507L434 540C442 551 453 555 467 556C498 558 533 558 564 555C578 553 589 547 598 537L627 500C644 479 666 472 691 472C713 472 734 475 752 467C769 460 780 448 783 431C787 409 775 387 754 378" stroke="url(#pbm-lipStroke)" stroke-width="3.5" stroke-linecap="butt" stroke-linejoin="round"/>
     </g>
-  </g>
-`
-const uid = "pbm" + Math.random().toString(36).slice(2, 8)
-const artwork = MARK.replaceAll('id="pbm-', `id="${uid}-`).replaceAll("url(#pbm-", `url(#${uid}-`)
----
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="164 206 700 700" fill="none" class:list={["brand-mark", ambient && "brand-mark-ambient", className]} aria-hidden="true" set:html={artwork}></svg>
+  </g>`
 
-<style is:global>
-  .brand-mark {
-    display: block;
-    /* the back card overshoots the viewBox top mid-spring; let it breathe */
-    overflow: visible;
-    --brand-lift-front: 77px;
-    --brand-tilt-front: -8deg;
-    --brand-lift-back: 103px;
-    --brand-tilt-back: 3.4deg;
-    --brand-stagger: 80ms;
-    /* constant-width seam so the two cards stay two cards at 28px */
-    --brand-edge: rgba(39, 52, 137, 0.4);
-    --brand-edge-w: 1px;
-  }
-
-  .brand-mark .pbm-card-edge {
-    fill: none;
-    stroke: var(--brand-edge);
-    stroke-width: var(--brand-edge-w);
-    vector-effect: non-scaling-stroke;
-  }
-
-  .brand-mark .pbm-card,
-  .brand-mark .pbm-shell,
-  .brand-mark .pbm-pocket {
-    transform-box: view-box;
-    transition: transform var(--duration-medium) var(--ease-smooth-out);
-  }
-
-  /* pivots sit low, inside the pocket, so the cards read as held — not floating */
-  .brand-mark .pbm-card-front { transform-origin: 390px 494px; }
-  .brand-mark .pbm-card-back { transform-origin: 334px 434px; }
-  .brand-mark .pbm-shell,
-  .brand-mark .pbm-pocket { transform-origin: 349.5px 630px; }
-
-  @media (prefers-reduced-motion: no-preference) {
-    :where([data-brand-trigger]:hover, [data-brand-trigger]:focus-visible) .brand-mark .pbm-card-front {
-      transform: translateY(calc(var(--brand-lift-front) * -1)) rotate(var(--brand-tilt-front));
-      transition: transform var(--duration-brand-lift) var(--ease-brand-spring) var(--duration-micro);
-    }
-
-    :where([data-brand-trigger]:hover, [data-brand-trigger]:focus-visible) .brand-mark .pbm-card-back {
-      transform: translateY(calc(var(--brand-lift-back) * -1)) rotate(var(--brand-tilt-back));
-      transition: transform var(--duration-brand-lift) var(--ease-brand-spring)
-        calc(var(--duration-micro) + var(--brand-stagger));
-    }
-
-    :where([data-brand-trigger]:hover, [data-brand-trigger]:focus-visible) .brand-mark .pbm-shell,
-    :where([data-brand-trigger]:hover, [data-brand-trigger]:focus-visible) .brand-mark .pbm-pocket {
-      animation: pbm-bag-dip var(--duration-brand-dip) var(--ease-smooth-out);
-    }
-
-    /* ambient loop: a 3.95s cycle run as a relay — each card's replacement starts
-       falling the moment its predecessor is swallowed. The action fills the first
-       ~37% (~1.45s, the same absolute speeds as the original 6.75s tuning) and the
-       remaining ~63% is the 2.5s quiet hold between runs — to change the pace,
-       scale the keyframe percentages, not just the cycle, or the motion speeds up too */
-    .brand-mark-ambient .pbm-card-front {
-      animation: pbm-front-dive var(--brand-cycle, 3.95s) linear var(--brand-cycle-delay, 2.4s) infinite;
-    }
-    .brand-mark-ambient .pbm-card-back {
-      animation: pbm-back-dive var(--brand-cycle, 3.95s) linear var(--brand-cycle-delay, 2.4s) infinite;
-    }
-    .brand-mark-ambient .pbm-shell,
-    .brand-mark-ambient .pbm-pocket {
-      animation: pbm-bag-absorb var(--brand-cycle, 3.95s) linear var(--brand-cycle-delay, 2.4s) infinite;
-    }
-  }
-
-  @keyframes pbm-bag-dip {
-    0%, 100% { transform: none; }
-    35% { transform: scaleX(1.034) scaleY(0.932); }
-  }
-
-  /* travel is sized so each card's top clears the pocket lip's lowest dip (y≈556):
-     250px sinks the front card (top y=321) fully, 315px the taller back card (y=266).
-     The pbm-cardWindow clip (bottom y=770) keeps that travel from ever poking out
-     below the pocket. The mid-cycle jump happens while both cards are swallowed. */
-  /* the respawn: while the card is hidden under the pocket its opacity drops to 0,
-     so the position jump back above the bag happens with the card fully invisible —
-     a display frame sampled mid-jump renders nothing (with opacity 1 through the
-     jump, ~every 4th cycle painted a one-frame half-transparent ghost mid-air).
-     It then fades in over ~190ms of the fall, already moving, so it reads as
-     entering from above rather than popping in. */
-  @keyframes pbm-front-dive {
-    0%, 5.1% { transform: none; opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.36); }
-    17.1% { transform: translateY(250px) rotate(2.5deg); animation-timing-function: linear; }
-    17.6% { opacity: 1; }
-    18.8% { transform: translateY(250px) rotate(2.5deg); opacity: 0; }
-    18.89% { transform: translateY(-235px) rotate(-3deg); opacity: 0; animation-timing-function: cubic-bezier(0.33, 0.12, 0.72, 0.5); }
-    23.2% { opacity: 1; }
-    27.7% { transform: translateY(12px) rotate(0.6deg); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
-    31.1%, 100% { transform: none; opacity: 1; }
-  }
-
-  @keyframes pbm-back-dive {
-    0%, 7.2% { transform: none; opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.36); }
-    19.1% { transform: translateY(315px) rotate(-2deg); animation-timing-function: linear; }
-    19.7% { opacity: 1; }
-    20.8% { transform: translateY(315px) rotate(-2deg); opacity: 0; }
-    20.93% { transform: translateY(-265px) rotate(2deg); opacity: 0; animation-timing-function: cubic-bezier(0.33, 0.12, 0.72, 0.5); }
-    25.3% { opacity: 1; }
-    29.7% { transform: translateY(14px) rotate(-0.7deg); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
-    33.2%, 100% { transform: none; opacity: 1; }
-  }
-
-  @keyframes pbm-bag-absorb {
-    0%, 13.7% { transform: none; animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
-    19.7% { transform: scaleX(1.045) scaleY(0.925); animation-timing-function: ease-out; }
-    23.6% { transform: scaleX(1.006) scaleY(0.988); animation-timing-function: ease-in-out; }
-    25.6% { transform: none; animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
-    /* the catch — a softer dip as the fresh cards land */
-    29% { transform: scaleX(1.02) scaleY(0.964); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
-    36.7%, 100% { transform: none; }
-  }
-</style>
+export function BrandMark({ className, ambient = false }: { readonly className?: string; readonly ambient?: boolean }) {
+  const uid = "pbm" + useId().replace(/[^a-zA-Z0-9]/g, "")
+  return (
+    <svg
+      viewBox="164 206 700 700"
+      fill="none"
+      aria-hidden="true"
+      className={cn("brand-mark", ambient && "brand-mark-ambient", className)}
+      dangerouslySetInnerHTML={{
+        __html: MARK.replaceAll('id="pbm-', `id="${uid}-`).replaceAll("url(#pbm-", `url(#${uid}-`),
+      }}
+    />
+  )
+}
