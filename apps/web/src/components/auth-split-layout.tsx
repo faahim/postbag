@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-const logoSrc = `${import.meta.env.BASE_URL}logo-mark-455264e.svg`
+const logoSrc = `${import.meta.env.BASE_URL}logo-mark-c27b566.svg`
 
 export function AuthSplitLayout({ children }: { readonly children: ReactNode }) {
   return (

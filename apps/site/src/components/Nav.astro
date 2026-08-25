@@ -1,5 +1,6 @@
 ---
 import { LOGIN_URL, SIGNUP_URL } from "@/config"
+import BrandMark from "@/components/BrandMark.astro"
 import { ArrowUpRight, LogIn, Menu, X } from "@lucide/astro"
 const links = [
   { href: "/features/", label: "Features" },
@@ -22,8 +23,8 @@ const overlaysHero = current === "/"
   data-hero-overlay={overlaysHero ? "" : undefined}
 >
   <nav class="container-x flex h-16 items-center justify-between gap-6" aria-label="Primary">
-    <a href="/" class="flex items-center gap-2.5 font-display text-[19px] font-semibold tracking-tight" aria-label="Postbag home">
-      <img src="/logo-mark-455264e.svg" alt="" width="28" height="28" class="size-7 shrink-0" />
+    <a href="/" class="flex items-center gap-2.5 font-display text-[19px] font-semibold tracking-tight" aria-label="Postbag home" data-brand-trigger>
+      <BrandMark class="size-7 shrink-0" />
       Postbag
     </a>
     <ul class="hidden items-center gap-1 lg:flex">
@@ -48,7 +49,7 @@ const overlaysHero = current === "/"
   </nav>
   <div id="mobile-nav" class="mobile-nav-drawer lg:hidden" data-state="closed" aria-hidden="true" aria-label="Menu" role="dialog" aria-modal="true" tabindex="-1" inert>
     <div class="mobile-nav-ambient" aria-hidden="true">
-      <img src="/logo-mark-455264e.svg" alt="" width="440" height="440" />
+      <img src="/logo-mark-c27b566.svg" alt="" width="440" height="440" />
     </div>
     <div class="container-x mobile-nav-content">
       <nav aria-label="Mobile navigation">

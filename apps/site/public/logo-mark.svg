@@ -1,44 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="126 120 772 772" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="164 206 700 700" fill="none">
   <defs>
     <linearGradient id="background" x1="507.736" y1="1025.952" x2="515.764" y2="-2.452" gradientUnits="userSpaceOnUse">
       <stop stop-color="#060921"/>
       <stop offset="1" stop-color="#2C3495"/>
     </linearGradient>
 
-    <linearGradient id="rearCardBase" x1="494" y1="201" x2="500" y2="560" gradientUnits="userSpaceOnUse">
+    <linearGradient id="rearCardBase" x1="494" y1="266" x2="500" y2="625" gradientUnits="userSpaceOnUse">
       <stop stop-color="#F1F0FB"/>
       <stop offset="0.35" stop-color="#F0F0FD"/>
       <stop offset="0.72" stop-color="#E1E4FD"/>
       <stop offset="1" stop-color="#C8CDFB"/>
     </linearGradient>
-    <radialGradient id="rearCardTopLight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(350 222) rotate(38) scale(314 255)">
+    <radialGradient id="rearCardTopLight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(350 287) rotate(38) scale(314 255)">
       <stop stop-color="#FFFFFF" stop-opacity="0.34"/>
       <stop offset="0.48" stop-color="#FFFFFF" stop-opacity="0.1"/>
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="rearCardLavender" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(610 444) rotate(152) scale(320 230)">
+    <radialGradient id="rearCardLavender" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(610 509) rotate(152) scale(320 230)">
       <stop stop-color="#C9CEFA" stop-opacity="0.46"/>
       <stop offset="0.58" stop-color="#D9DDFB" stop-opacity="0.18"/>
       <stop offset="1" stop-color="#D9DDFB" stop-opacity="0"/>
     </radialGradient>
 
-    <linearGradient id="frontCardBase" x1="421" y1="274" x2="652" y2="541" gradientUnits="userSpaceOnUse">
+    <linearGradient id="frontCardBase" x1="421" y1="339" x2="652" y2="606" gradientUnits="userSpaceOnUse">
       <stop stop-color="#F7F6FC"/>
       <stop offset="0.45" stop-color="#E9EBFC"/>
       <stop offset="1" stop-color="#C5C9FC"/>
     </linearGradient>
-    <radialGradient id="frontCardLight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(408 306) rotate(39) scale(358 300)">
+    <radialGradient id="frontCardLight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(408 371) rotate(39) scale(358 300)">
       <stop stop-color="#FFFFFF" stop-opacity="0.52"/>
       <stop offset="0.32" stop-color="#FFFFFF" stop-opacity="0.14"/>
       <stop offset="0.78" stop-color="#FFFFFF" stop-opacity="0"/>
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="frontCardLavender" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(574 482) rotate(97) scale(185 285)">
+    <radialGradient id="frontCardLavender" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(574 547) rotate(97) scale(185 285)">
       <stop stop-color="#D2D6FC" stop-opacity="0.58"/>
       <stop offset="0.66" stop-color="#DEE1FD" stop-opacity="0.16"/>
       <stop offset="1" stop-color="#DEE1FD" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="frontCardLeftShade" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(366 457) rotate(18) scale(150 220)">
+    <radialGradient id="frontCardLeftShade" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(366 522) rotate(18) scale(150 220)">
       <stop stop-color="#AEB8F4" stop-opacity="0.25"/>
       <stop offset="0.55" stop-color="#C2C9F8" stop-opacity="0.1"/>
       <stop offset="1" stop-color="#C2C9F8" stop-opacity="0"/>
@@ -148,7 +148,7 @@
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
-    <filter id="cardShadow" x="240" y="150" width="590" height="510" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+    <filter id="cardShadow" x="240" y="215" width="590" height="510" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
       <feDropShadow dx="0" dy="11" stdDeviation="17" flood-color="#273489" flood-opacity="0.2"/>
     </filter>
     <filter id="edgeBloom" x="190" y="345" width="660" height="550" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
@@ -172,16 +172,16 @@
       <rect x="630" y="350" width="170" height="230" fill="url(#shellRightLight)"/>
     </g>
     <g filter="url(#cardShadow)">
-      <rect x="308" y="201" width="380" height="382" rx="39" fill="url(#rearCardBase)"/>
-      <rect x="308" y="201" width="380" height="382" rx="39" fill="url(#rearCardTopLight)"/>
-      <rect x="308" y="201" width="380" height="382" rx="39" fill="url(#rearCardLavender)"/>
+      <rect x="308" y="266" width="380" height="382" rx="39" fill="url(#rearCardBase)"/>
+      <rect x="308" y="266" width="380" height="382" rx="39" fill="url(#rearCardTopLight)"/>
+      <rect x="308" y="266" width="380" height="382" rx="39" fill="url(#rearCardLavender)"/>
     </g>
 
     <g filter="url(#cardShadow)">
-      <path d="M405 289L716 256C739 254 758 272 758 296L746 650H350L363 334C364 311 382 292 405 289Z" fill="url(#frontCardBase)"/>
-      <path d="M405 289L716 256C739 254 758 272 758 296L746 650H350L363 334C364 311 382 292 405 289Z" fill="url(#frontCardLight)"/>
-      <path d="M405 289L716 256C739 254 758 272 758 296L746 650H350L363 334C364 311 382 292 405 289Z" fill="url(#frontCardLavender)"/>
-      <path d="M405 289L716 256C739 254 758 272 758 296L746 650H350L363 334C364 311 382 292 405 289Z" fill="url(#frontCardLeftShade)"/>
+      <path d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z" fill="url(#frontCardBase)"/>
+      <path d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z" fill="url(#frontCardLight)"/>
+      <path d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z" fill="url(#frontCardLavender)"/>
+      <path d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z" fill="url(#frontCardLeftShade)"/>
     </g>
 
     <path d="M237 436C240 453 250 464 266 469C289 475 331 469 359 473C382 476 397 488 411 507L434 540C442 551 453 555 467 556C498 558 533 558 564 555C578 553 589 547 598 537L627 500C644 479 666 472 691 472C713 472 734 475 752 467C769 460 780 448 783 431C788 442 790 457 790 474V715C790 782 736 836 669 836H358C291 836 237 782 237 715V436Z" fill="url(#pocketBase)"/>

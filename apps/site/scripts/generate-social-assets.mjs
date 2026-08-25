@@ -17,7 +17,7 @@ const output = path.join(site, "public/og")
 const assets = {
   background: path.join(root, "assets/brand/final-source/social-routing-field-v1.png"),
   grain: path.join(site, "public/brand/interface-grain-v1.webp"),
-  logo: path.join(site, "public/logo-mark-455264e.svg"),
+  logo: path.join(site, "public/logo-mark-c27b566.svg"),
   bricolage: path.join(
     site,
     "node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-standard-normal.woff2",
