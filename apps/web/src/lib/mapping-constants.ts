@@ -12,6 +12,9 @@ export type EditableMappingRule = {
 export type ParsedConstant =
   | { readonly ok: true; readonly value: unknown }
   | { readonly ok: false; readonly message: string }
+type MappingValueValidation =
+  | { readonly valid: true }
+  | { readonly valid: false; readonly schemaError: boolean; readonly message: string }
 
 const mappingSchemaContextKey = "__postbag_mapping_stream_schema"
 
@@ -77,6 +80,25 @@ function validationSchema(
   return schema
 }
 
+function validateMappingValue(
+  value: unknown,
+  property: JsonSchemaProperty,
+  rootSchema: JsonSchemaRoot | undefined,
+  propertyName: string | undefined,
+): MappingValueValidation {
+  try {
+    const result = validateAgainstSchema(value, validationSchema(property, rootSchema, propertyName))
+    if (result.valid) return { valid: true }
+    return {
+      valid: false,
+      schemaError: false,
+      message: result.problems[0]?.message ?? "Enter a value allowed by this field's Schema.",
+    }
+  } catch {
+    return { valid: false, schemaError: true, message: "This field's Schema could not be resolved." }
+  }
+}
+
 export function parseMappingConstant(
   raw: string,
   property: JsonSchemaProperty | undefined,
@@ -87,6 +109,13 @@ export function parseMappingConstant(
   const types = (Array.isArray(declared) ? declared : [declared]).filter(
     (value): value is string => typeof value === "string",
   )
+
+  if (types.length === 0 && property !== undefined) {
+    const rawValidation = validateMappingValue(raw, property, rootSchema, propertyName)
+    if (rawValidation.valid) return { ok: true, value: raw }
+    if (rawValidation.schemaError) return { ok: false, message: rawValidation.message }
+  }
+
   let parsed: unknown
   if (types.length === 1 && types[0] === "string") {
     parsed = raw
@@ -104,16 +133,8 @@ export function parseMappingConstant(
   }
 
   if (property !== undefined) {
-    let result
-    try {
-      result = validateAgainstSchema(parsed, validationSchema(property, rootSchema, propertyName))
-    } catch {
-      return { ok: false, message: "This field's Schema could not be resolved." }
-    }
-    if (!result.valid) {
-      const first = result.problems[0]
-      return { ok: false, message: first?.message ?? "Enter a value allowed by this field's Schema." }
-    }
+    const validation = validateMappingValue(parsed, property, rootSchema, propertyName)
+    if (!validation.valid) return { ok: false, message: validation.message }
   }
   return { ok: true, value: parsed }
 }

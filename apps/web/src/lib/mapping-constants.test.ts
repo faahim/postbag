@@ -40,6 +40,30 @@ describe("mapping constants", () => {
     expect(parseMappingConstant("pending", root.properties.status, root, "status").ok).toBe(false)
   })
 
+  it("keeps referenced string constants literal before trying JSON coercion", () => {
+    const root = {
+      $defs: {
+        text: { type: "string" },
+        count: { type: "integer" },
+        enabled: { type: "boolean" },
+      },
+      type: "object",
+      properties: {
+        leading: { $ref: "#/$defs/text" },
+        wordTrue: { $ref: "#/$defs/text" },
+        wordNull: { $ref: "#/$defs/text" },
+        count: { $ref: "#/$defs/count" },
+        enabled: { $ref: "#/$defs/enabled" },
+      },
+    }
+
+    expect(parseMappingConstant("001", root.properties.leading, root, "leading")).toEqual({ ok: true, value: "001" })
+    expect(parseMappingConstant("true", root.properties.wordTrue, root, "wordTrue")).toEqual({ ok: true, value: "true" })
+    expect(parseMappingConstant("null", root.properties.wordNull, root, "wordNull")).toEqual({ ok: true, value: "null" })
+    expect(parseMappingConstant("42", root.properties.count, root, "count")).toEqual({ ok: true, value: 42 })
+    expect(parseMappingConstant("false", root.properties.enabled, root, "enabled")).toEqual({ ok: true, value: false })
+  })
+
   it("resolves root-property references while validating only the selected field", () => {
     const root = {
       $id: "https://example.test/original-stream-schema",
