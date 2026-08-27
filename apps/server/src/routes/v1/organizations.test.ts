@@ -13,6 +13,20 @@ import {
   type SeededUser,
   type TestHarness,
 } from "../../testUtils.js"
+import { defaultOrganizationPlan } from "./organizations.js"
+
+describe("default organization plan", () => {
+  it("keeps missing settings on self-hosted instances out of hosted retention", () => {
+    expect(defaultOrganizationPlan({ POLAR_ACCESS_TOKEN: undefined })).toEqual({
+      plan: "selfhost",
+      planSource: "selfhost",
+    })
+    expect(defaultOrganizationPlan({ POLAR_ACCESS_TOKEN: "polar_test" })).toEqual({
+      plan: "free",
+      planSource: "free",
+    })
+  })
+})
 
 // Job L §1/§3 — GET /v1/me `organizations`, POST /v1/me/active-organization, and
 // POST /v1/organizations. All three are session concepts: an API key resolves to exactly

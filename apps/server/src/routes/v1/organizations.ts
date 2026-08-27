@@ -104,6 +104,13 @@ function slugify(value: string): string {
   return base.length === 0 ? "workspace" : base.slice(0, 40)
 }
 
+export function defaultOrganizationPlan(
+  env: Pick<Env, "POLAR_ACCESS_TOKEN">,
+): { readonly plan: "free" | "selfhost"; readonly planSource: "free" | "selfhost" } {
+  const plan = env.POLAR_ACCESS_TOKEN === undefined ? "selfhost" : "free"
+  return { plan, planSource: plan }
+}
+
 type SetActiveOrganizationWithHeaders = (input: {
   readonly headers: Headers
   readonly body: { readonly organizationId: string }
@@ -185,8 +192,7 @@ export function registerOrganizationRoutes(
         .insert(organizationSettings)
         .values({
           organizationId: scope.organizationId,
-          plan: "free",
-          planSource: "free",
+          ...defaultOrganizationPlan(env),
           timezone,
           limits: {},
         })
@@ -217,11 +223,9 @@ export function registerOrganizationRoutes(
     // Same shape provisionPersonalOrganization gives every signup: default settings + a
     // "Default" project (Principle 2 — the concept must not exist for the user yet).
     await db.transaction(async (tx) => {
-      const selfHosted = env.POLAR_ACCESS_TOKEN === undefined
       await tx.insert(organizationSettings).values({
         organizationId: org.id,
-        plan: selfHosted ? "selfhost" : "free",
-        planSource: selfHosted ? "selfhost" : "free",
+        ...defaultOrganizationPlan(env),
         timezone: "UTC",
         limits: {},
       })
