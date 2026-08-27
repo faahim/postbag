@@ -73,7 +73,7 @@ export function MappingEditor({
       setMapping((m) => Object.fromEntries(Object.entries(m).filter(([key]) => key !== field)))
     } else if (value === CONST) {
       const raw = constDrafts[field] ?? initialMappingConstant(streamProperties[field])
-      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema)
+      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema, field)
       setConstDrafts((drafts) => ({ ...drafts, [field]: raw }))
       setMapping((m) => ({
         ...m,
@@ -96,7 +96,7 @@ export function MappingEditor({
     streamFields.flatMap((field) => {
       if (mapping[field]?.const === undefined) return []
       const raw = constDrafts[field] ?? formatMappingConstant(mapping[field].const)
-      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema)
+      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema, field)
       return parsed.ok ? [] : [[field, parsed.message]]
     }),
   )
@@ -150,7 +150,7 @@ export function MappingEditor({
                     value={constDraft}
                     onChange={(e) => {
                       const raw = e.target.value
-                      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema)
+                      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema, field)
                       setConstDrafts((d) => ({ ...d, [field]: raw }))
                       setMapping((m) => ({ ...m, [field]: mappingRuleWithConstant(m[field], parsed.ok ? parsed.value : raw) }))
                     }}

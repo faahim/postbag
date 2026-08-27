@@ -649,7 +649,7 @@ function AttachFormPanel({
       setMapping((m) => Object.fromEntries(Object.entries(m).filter(([key]) => key !== field)))
     } else if (value === CONST) {
       const raw = initialMappingConstant(streamProperties[field])
-      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema)
+      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema, field)
       setConstDrafts((drafts) => ({ ...drafts, [field]: raw }))
       setMapping((m) => ({ ...m, [field]: mappingRuleWithConstant(m[field], parsed.ok ? parsed.value : raw) }))
     } else {
@@ -696,7 +696,7 @@ function AttachFormPanel({
     streamFields.flatMap((field) => {
       if (mapping[field]?.const === undefined) return []
       const raw = constDrafts[field] ?? formatMappingConstant(mapping[field].const)
-      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema)
+      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema, field)
       return parsed.ok ? [] : [[field, parsed.message]]
     }),
   )
@@ -773,7 +773,7 @@ function AttachFormPanel({
                           value={constDrafts[field] ?? formatMappingConstant(rule?.const)}
                           onChange={(e) => {
                             const raw = e.target.value
-                            const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema)
+                            const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema, field)
                             setConstDrafts((drafts) => ({ ...drafts, [field]: raw }))
                             setMapping((m) => ({ ...m, [field]: mappingRuleWithConstant(m[field], parsed.ok ? parsed.value : raw) }))
                           }}

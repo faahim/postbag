@@ -36,8 +36,33 @@ describe("mapping constants", () => {
       type: "object",
       properties: { status: { $ref: "#/$defs/status" } },
     }
-    expect(parseMappingConstant("open", { $ref: "#/$defs/status" }, root)).toEqual({ ok: true, value: "open" })
-    expect(parseMappingConstant("pending", { $ref: "#/$defs/status" }, root).ok).toBe(false)
+    expect(parseMappingConstant("open", root.properties.status, root, "status")).toEqual({ ok: true, value: "open" })
+    expect(parseMappingConstant("pending", root.properties.status, root, "status").ok).toBe(false)
+  })
+
+  it("resolves root-property references while validating only the selected field", () => {
+    const root = {
+      $id: "https://example.test/original-stream-schema",
+      type: "object",
+      required: ["base", "unrelated"],
+      properties: {
+        base: { type: "integer", minimum: 1 },
+        alias: { $ref: "#/properties/base" },
+        unrelated: { type: "string" },
+      },
+    }
+
+    expect(parseMappingConstant("2", root.properties.alias, root, "alias")).toEqual({ ok: true, value: 2 })
+    expect(parseMappingConstant("0", root.properties.alias, root, "alias").ok).toBe(false)
+  })
+
+  it("returns a validation result when a local reference cannot resolve", () => {
+    const root = { type: "object", properties: { alias: { $ref: "#/properties/missing" } } }
+
+    expect(parseMappingConstant("value", root.properties.alias, root, "alias")).toEqual({
+      ok: false,
+      message: "This field's Schema could not be resolved.",
+    })
   })
 
   it("parses structured and union values before validating referenced constraints", () => {

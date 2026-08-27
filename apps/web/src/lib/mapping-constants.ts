@@ -13,6 +13,8 @@ export type ParsedConstant =
   | { readonly ok: true; readonly value: unknown }
   | { readonly ok: false; readonly message: string }
 
+const mappingSchemaContextKey = "__postbag_mapping_stream_schema"
+
 function matchesType(value: unknown, type: string): boolean {
   if (type === "null") return value === null
   if (type === "array") return Array.isArray(value)
@@ -21,7 +23,41 @@ function matchesType(value: unknown, type: string): boolean {
   return typeof value === type
 }
 
-function validationSchema(property: JsonSchemaProperty, root: JsonSchemaRoot | undefined): JsonSchemaRoot {
+function escapeJsonPointerSegment(segment: string): string {
+  return segment.replaceAll("~", "~0").replaceAll("/", "~1")
+}
+
+function rebaseLocalReferences(value: unknown, prefix: string): unknown {
+  if (Array.isArray(value)) return value.map((item) => rebaseLocalReferences(item, prefix))
+  if (typeof value !== "object" || value === null) return value
+
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([key, nested]) => {
+      // The copied root is an internal subschema, so its original resource identifier must
+      // not change where its local references start resolving.
+      if (key === "$id") return []
+      if ((key === "$ref" || key === "$dynamicRef") && typeof nested === "string") {
+        if (nested === "#") return [[key, prefix]]
+        if (nested.startsWith("#/")) return [[key, `${prefix}${nested.slice(1)}`]]
+      }
+      return [[key, rebaseLocalReferences(nested, prefix)]]
+    }),
+  )
+}
+
+function validationSchema(
+  property: JsonSchemaProperty,
+  root: JsonSchemaRoot | undefined,
+  propertyName: string | undefined,
+): JsonSchemaRoot {
+  if (root !== undefined && propertyName !== undefined) {
+    const prefix = `#/$defs/${mappingSchemaContextKey}`
+    return {
+      $defs: { [mappingSchemaContextKey]: rebaseLocalReferences(root, prefix) },
+      $ref: `${prefix}/properties/${escapeJsonPointerSegment(propertyName)}`,
+    }
+  }
+
   const schema: Record<string, unknown> = { ...property }
   for (const key of ["$schema", "$defs", "definitions"] as const) {
     if (root?.[key] !== undefined) schema[key] = root[key]
@@ -33,6 +69,7 @@ export function parseMappingConstant(
   raw: string,
   property: JsonSchemaProperty | undefined,
   rootSchema?: JsonSchemaRoot,
+  propertyName?: string,
 ): ParsedConstant {
   const declared = property?.["type"]
   const types = (Array.isArray(declared) ? declared : [declared]).filter(
@@ -55,7 +92,12 @@ export function parseMappingConstant(
   }
 
   if (property !== undefined) {
-    const result = validateAgainstSchema(parsed, validationSchema(property, rootSchema))
+    let result
+    try {
+      result = validateAgainstSchema(parsed, validationSchema(property, rootSchema, propertyName))
+    } catch {
+      return { ok: false, message: "This field's Schema could not be resolved." }
+    }
     if (!result.valid) {
       const first = result.problems[0]
       return { ok: false, message: first?.message ?? "Enter a value allowed by this field's Schema." }
