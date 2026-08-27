@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { isCadenceComplete, modeFor } from "@/lib/cadence"
+import { isCadenceComplete, isCadenceReady, modeFor } from "@/lib/cadence"
 
 describe("digest cadence validation", () => {
   it("accepts instant delivery without a time", () => {
@@ -21,5 +21,11 @@ describe("digest cadence validation", () => {
       cron: "5 8 * * 1",
       timezone: "UTC",
     })
+  })
+
+  it("waits for the workspace timezone before enabling a digest", () => {
+    expect(isCadenceReady({ cadence: "daily", time: "08:00", weekday: 1 }, undefined)).toBe(false)
+    expect(isCadenceReady({ cadence: "daily", time: "08:00", weekday: 1 }, "Europe/Stockholm")).toBe(true)
+    expect(isCadenceReady({ cadence: "instant", time: "", weekday: 1 }, undefined)).toBe(true)
   })
 })

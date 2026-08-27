@@ -10,6 +10,10 @@ export function isCadenceComplete(state: CadenceState): boolean {
   return state.cadence !== "weekly" || (Number.isInteger(state.weekday) && state.weekday >= 0 && state.weekday <= 6)
 }
 
+export function isCadenceReady(state: CadenceState, timezone: string | undefined): boolean {
+  return isCadenceComplete(state) && (state.cadence === "instant" || timezone !== undefined)
+}
+
 /** The dashboard offers the digest subset the worker supports (core `digestPeriodKey`): a fixed
  * minute and hour, every day or on one weekday. Anything fancier is an API/CLI job. */
 export function modeFor(state: CadenceState, timezone: string) {

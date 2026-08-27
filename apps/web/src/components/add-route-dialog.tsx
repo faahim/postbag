@@ -11,6 +11,7 @@ import { toastApiError } from "@/lib/api"
 import {
   DEFAULT_CADENCE,
   isCadenceComplete,
+  isCadenceReady,
   modeFor,
   type Cadence,
   type CadenceState,
@@ -117,19 +118,21 @@ export function AddRouteDialog({
   const [selected, setSelected] = useState<string | undefined>(undefined)
   const [creatingNew, setCreatingNew] = useState(false)
   const [cadence, setCadence] = useState<CadenceState>(DEFAULT_CADENCE)
-  const timezone = me.data?.organization.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+  const timezone = me.data?.organization.timezone
+  const timezoneLabel = timezone ?? (me.isError ? "Workspace timezone unavailable" : "Loading workspace timezone…")
   const cadenceComplete = isCadenceComplete(cadence)
+  const cadenceReady = isCadenceReady(cadence, timezone)
 
   async function addRoute(destinationId: string) {
-    if (!cadenceComplete) {
-      toast.error("Choose a complete delivery time.")
+    if (!cadenceReady) {
+      toast.error(cadenceComplete ? "Wait for the workspace timezone, then try again." : "Choose a complete delivery time.")
       return
     }
     try {
       await createRoute.mutateAsync({
         destination_id: destinationId,
         ...("formId" in subject ? { form_id: subject.formId } : { stream_id: subject.streamId }),
-        mode: modeFor(cadence, timezone),
+        mode: modeFor(cadence, timezone ?? "UTC"),
       })
       toast.success(cadence.cadence === "instant" ? "Route added." : "Digest route added.", {
         description:
@@ -145,7 +148,7 @@ export function AddRouteDialog({
     }
   }
 
-  const cadencePicker = <CadencePicker value={cadence} onChange={setCadence} timezone={timezone} />
+  const cadencePicker = <CadencePicker value={cadence} onChange={setCadence} timezone={timezoneLabel} />
 
   return (
     <Dialog
@@ -171,6 +174,13 @@ export function AddRouteDialog({
 
         {cadencePicker}
 
+        {cadence.cadence !== "instant" && me.isError && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+            <p role="alert" className="text-xs text-destructive">Couldn't read the workspace timezone, so this digest hasn't been scheduled.</p>
+            <Button type="button" variant="outline" size="sm" onClick={() => { void me.refetch() }}>Try again</Button>
+          </div>
+        )}
+
         {creatingNew ? (
           <DestinationForm
             submitLabel="Create and send to"
@@ -195,7 +205,7 @@ export function AddRouteDialog({
                   </SelectContent>
                 </Select>
                 <Button
-                  disabled={selected === undefined || !cadenceComplete || createRoute.isPending}
+                  disabled={selected === undefined || !cadenceReady || createRoute.isPending}
                   onClick={() => {
                     if (selected !== undefined) void addRoute(selected)
                   }}
@@ -208,7 +218,7 @@ export function AddRouteDialog({
             )}
             <Button
               variant="outline"
-              disabled={!cadenceComplete}
+              disabled={!cadenceReady}
               onClick={() => {
                 setCreatingNew(true)
               }}

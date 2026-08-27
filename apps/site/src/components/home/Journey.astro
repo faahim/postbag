@@ -6,7 +6,7 @@ const stages = [
   { title: "Received", body: "The 2am message is kept the instant it lands. Even spam gets a label, not a trapdoor.", state: "HTTP 200" },
   { title: "Saved first", body: "Saved means saved — before we so much as think about emailing anyone.", state: "committed" },
   { title: "Routed second", body: "Sending comes second. A bad email day just means waiting, never vanishing.", state: "worker awake" },
-  { title: "Kept on record", body: "Failed sends retry, again and again, with every attempt on the record. No mysteries.", state: "attempt 2 sent" },
+  { title: "Kept on record", body: "Failed sends retry, again and again. The Delivery keeps its retry count and latest outcome.", state: "attempt 2 sent" },
 ] as const
 ---
 <section class="container-x mt-28 sm:mt-40" aria-labelledby="journey-heading" id="journey" data-journey>

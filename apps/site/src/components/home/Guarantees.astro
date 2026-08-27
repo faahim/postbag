@@ -1,8 +1,8 @@
 ---
 const invariants = [
-  { sql: "unique (form_id, idempotency_key)", meaning: "An impatient double-click cannot create a duplicate." },
-  { sql: "unique (submission_id, route_id)", meaning: "You never get the same email twice." },
-  { sql: "unique (route_id, period_key)", meaning: "One daily digest means exactly one, even on our busiest day." },
+  { sql: "unique (form_id, idempotency_key)", meaning: "Reusing an idempotency key cannot create a duplicate Submission." },
+  { sql: "unique (submission_id, route_id)", meaning: "Each Route gets one Delivery record per Submission." },
+  { sql: "unique (route_id, period_key)", meaning: "Each Route gets one digest record per period." },
   { sql: "unique (form_id, version)", meaning: "Old records are never quietly rewritten." },
   { sql: "organization_id not null", meaning: "Your data belongs to you, and the rules know it." },
 ] as const
@@ -18,7 +18,7 @@ const invariants = [
     <div class="grid content-start gap-8" data-reveal>
       <div>
         <h3 class="text-xl font-semibold">Never lose a message</h3>
-        <p class="mt-2 text-[15px] leading-relaxed text-muted-foreground">Spam, rate limits, odd traffic — everything that arrives is kept, with a label. Deleting is a thing only you can do.</p>
+        <p class="mt-2 text-[15px] leading-relaxed text-muted-foreground">Spam, rate limits, odd traffic — everything that arrives is kept, with a label, until you delete it or its retention window ends.</p>
       </div>
       <div>
         <h3 class="text-xl font-semibold">No side doors</h3>
@@ -39,7 +39,7 @@ const invariants = [
           </li>
         ))}
       </ol>
-      <p class="mt-4 text-sm leading-relaxed text-muted-foreground">The left column is real rules from inside Postbag, word for word. You don't need to read them — it's enough that they exist.</p>
+      <p class="mt-4 text-sm leading-relaxed text-muted-foreground">Each line pairs a real database constraint with the practical promise it can actually keep.</p>
     </div>
   </div>
 </section>

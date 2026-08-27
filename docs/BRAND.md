@@ -48,7 +48,7 @@ Use these layers in order. Most surfaces need one or two, not all four.
 1. **Belonging:** Your forms have somewhere to go.
 2. **Agency:** Your agent can set up and manage the full Form workflow.
 3. **Ownership:** Use Postbag Cloud or self-host the same open-source product.
-4. **Trust:** Postbag saves first, then routes. Every attempt stays on the record.
+4. **Trust:** Postbag saves first, then routes. Each Delivery keeps its retry count and latest outcome.
 
 Routing across many projects is the expansion story. Explain it after the single
 Form promise is clear.

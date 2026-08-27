@@ -51,8 +51,8 @@ export const FEATURES: Feature[] = [
       { h: "Nothing gets quietly binned", p: ["Spam, a message from the wrong site, or a busy form all get a clear label and stay visible. Your inbox stays calm by default, but the record is yours to review."] },
       { h: "Sending is patient", p: ["If an inbox or service is down, Postbag keeps trying with longer pauses. When it comes back, the original message is ready to go. If it does not, the stuck send is clear and easy to try again."] },
       { h: "Small promises with useful consequences", list: [
-        "A double-click does not create two messages.",
-        "Every attempt to reach a destination stays on one sending record.",
+        "A reused idempotency key does not create two messages.",
+        "Each destination keeps one sending record with its retry count and latest outcome.",
         "A daily note is planned once, with any retries kept on the same record.",
         "An old message keeps the meaning it had when it arrived.",
         "Your messages stay separate from everyone else’s.",
@@ -62,7 +62,7 @@ export const FEATURES: Feature[] = [
     faqs: [
       { q: "What happens when a message looks like spam?", a: "It is kept and labelled, but it does not disturb your inbox by default. You can review it later." },
       { q: "What if my receiving service is down?", a: "The message stays in Postbag while we keep trying. When the service is back, it can continue from where it left off." },
-      { q: "Can a receiving service see a message twice?", a: "Postbag keeps one sending record for each place and shows every retry. A receiving service may see a repeat if it accepts a send but loses its reply." },
+      { q: "Can a receiving service see a message twice?", a: "Postbag keeps one sending record for each place, including its retry count and latest outcome. A receiving service may see a repeat if it accepts a send but loses its reply." },
       { q: "Do I need extra queue software?", a: "No. Postbag comes with the moving parts it needs. The self-host guide explains the small setup when you want to run it yourself." },
     ],
     related: [ { href: "/docs/architecture/", label: "How it holds up" }, { href: "/features/spam-protection/", label: "Spam protection" }, { href: "/features/destinations/", label: "Where messages can go" } ],

@@ -33,7 +33,7 @@ function DeliveriesRoute() {
 
   return (
     <div className="page-enter flex flex-col gap-8">
-      <PageHeader title="Deliveries" description="Every attempt to send a Submission somewhere, tries and retries included." />
+      <PageHeader title="Deliveries" description="Every send, with its retry count and latest outcome." />
 
       <div className="flex flex-wrap items-center gap-2">
         <Select value={status ?? "all"} onValueChange={(v) => { setStatus(v === "all" ? undefined : v) }}>
