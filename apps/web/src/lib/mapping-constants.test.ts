@@ -102,10 +102,39 @@ describe("mapping constants", () => {
     expect(parseMappingConstant("2", root.properties.nested, root, "nested").ok).toBe(false)
   })
 
+  it("resolves same-bundle absolute references from a child resource to its Stream Schema", () => {
+    const root = {
+      $id: "https://example.test/stream",
+      $defs: { base: { type: "string", minLength: 3 } },
+      type: "object",
+      properties: {
+        child: {
+          $id: "https://example.test/child",
+          $ref: "https://example.test/stream#/$defs/base",
+        },
+      },
+    }
+
+    expect(parseMappingConstant("ready", root.properties.child, root, "child")).toEqual({ ok: true, value: "ready" })
+    expect(parseMappingConstant("no", root.properties.child, root, "child").ok).toBe(false)
+  })
+
   it("returns a validation result when a local reference cannot resolve", () => {
     const root = { type: "object", properties: { alias: { $ref: "#/properties/missing" } } }
 
     expect(parseMappingConstant("value", root.properties.alias, root, "alias")).toEqual({
+      ok: false,
+      message: "This field's Schema could not be resolved.",
+    })
+  })
+
+  it("keeps unrelated remote references invalid", () => {
+    const root = {
+      type: "object",
+      properties: { remote: { $ref: "https://other.example.test/schema#/$defs/value" } },
+    }
+
+    expect(parseMappingConstant("value", root.properties.remote, root, "remote")).toEqual({
       ok: false,
       message: "This field's Schema could not be resolved.",
     })

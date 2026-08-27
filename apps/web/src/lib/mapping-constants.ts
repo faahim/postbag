@@ -34,24 +34,108 @@ function escapeJsonPointerSegment(segment: string): string {
   return segment.replaceAll("~", "~0").replaceAll("/", "~1")
 }
 
-function rebaseLocalReferences(value: unknown, prefix: string, isRoot = true): unknown {
-  if (Array.isArray(value)) return value.map((item) => rebaseLocalReferences(item, prefix, false))
+type SchemaResource = { readonly id?: string; readonly pointer: string }
+type SchemaResourceMap = {
+  readonly pointers: ReadonlyMap<string, string>
+  readonly anchors: ReadonlyMap<string, string>
+}
+
+function resourceKey(resource: SchemaResource): string {
+  return resource.id ?? resource.pointer
+}
+
+function splitReference(reference: string): { readonly id: string; readonly fragment: string } {
+  const fragmentStart = reference.indexOf("#")
+  if (fragmentStart === -1) return { id: reference, fragment: "" }
+  return { id: reference.slice(0, fragmentStart), fragment: reference.slice(fragmentStart) }
+}
+
+function resolveResourceId(id: string, base: string | undefined): string {
+  const resourceId = splitReference(id).id
+  if (base === undefined) return resourceId
+  try {
+    return new URL(resourceId, base).href
+  } catch {
+    return resourceId
+  }
+}
+
+function nextResource(value: Record<string, unknown>, pointer: string, parent: SchemaResource): SchemaResource {
+  const declaredId = value["$id"]
+  if (typeof declaredId !== "string") return parent
+  return { id: resolveResourceId(declaredId, parent.id), pointer }
+}
+
+function collectSchemaResources(
+  value: unknown,
+  pointer: string,
+  parent: SchemaResource,
+  pointers: Map<string, string>,
+  anchors: Map<string, string>,
+): void {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      collectSchemaResources(item, `${pointer}/${index}`, parent, pointers, anchors)
+    })
+    return
+  }
+  if (!isRecord(value)) return
+
+  const resource = nextResource(value, pointer, parent)
+  if (resource.id !== undefined) pointers.set(resource.id, resource.pointer)
+  for (const key of ["$anchor", "$dynamicAnchor"] as const) {
+    const anchor = value[key]
+    if (typeof anchor === "string") anchors.set(`${resourceKey(resource)}#${anchor}`, pointer)
+  }
+
+  for (const [key, nested] of Object.entries(value)) {
+    collectSchemaResources(nested, `${pointer}/${escapeJsonPointerSegment(key)}`, resource, pointers, anchors)
+  }
+}
+
+function referencePointer(
+  reference: string,
+  current: SchemaResource,
+  resources: SchemaResourceMap,
+): string {
+  const { id, fragment } = splitReference(reference)
+  const targetId = id === "" ? current.id : resolveResourceId(id, current.id)
+  const pointer = targetId === undefined ? current.pointer : resources.pointers.get(targetId)
+  if (pointer === undefined) return reference
+  if (fragment === "" || fragment === "#") return pointer
+  if (fragment.startsWith("#/")) return `${pointer}${fragment.slice(1)}`
+  return resources.anchors.get(`${targetId ?? resourceKey(current)}${fragment}`) ?? reference
+}
+
+function rewriteBundledReferences(
+  value: unknown,
+  pointer: string,
+  parent: SchemaResource,
+  resources: SchemaResourceMap,
+): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item, index) => rewriteBundledReferences(item, `${pointer}/${index}`, parent, resources))
+  }
   if (!isRecord(value)) return value
 
-  if (!isRoot && typeof value["$id"] === "string") return value
-
+  const resource = nextResource(value, pointer, parent)
   return Object.fromEntries(
     Object.entries(value).flatMap(([key, nested]) => {
-      // The copied root is an internal subschema, so its original resource identifier must
-      // not change where its local references start resolving.
-      if (isRoot && key === "$id") return []
+      if (key === "$id") return []
       if ((key === "$ref" || key === "$dynamicRef") && typeof nested === "string") {
-        if (nested === "#") return [[key, prefix]]
-        if (nested.startsWith("#/")) return [[key, `${prefix}${nested.slice(1)}`]]
+        return [[key, referencePointer(nested, resource, resources)]]
       }
-      return [[key, rebaseLocalReferences(nested, prefix, false)]]
+      return [[key, rewriteBundledReferences(nested, `${pointer}/${escapeJsonPointerSegment(key)}`, resource, resources)]]
     }),
   )
+}
+
+function bundledSchema(root: JsonSchemaRoot, prefix: string): unknown {
+  const pointers = new Map<string, string>()
+  const anchors = new Map<string, string>()
+  const rootResource: SchemaResource = { pointer: prefix }
+  collectSchemaResources(root, prefix, rootResource, pointers, anchors)
+  return rewriteBundledReferences(root, prefix, rootResource, { pointers, anchors })
 }
 
 function validationSchema(
@@ -59,16 +143,10 @@ function validationSchema(
   root: JsonSchemaRoot | undefined,
   propertyName: string | undefined,
 ): JsonSchemaRoot {
-  // A property with its own identifier is already a complete Schema resource. Validate
-  // that resource directly so its `#…` references keep their original local boundary.
-  if (typeof property["$id"] === "string") {
-    return Object.fromEntries(Object.entries(property).filter(([key]) => key !== "$id"))
-  }
-
   if (root !== undefined && propertyName !== undefined) {
     const prefix = `#/$defs/${mappingSchemaContextKey}`
     return {
-      $defs: { [mappingSchemaContextKey]: rebaseLocalReferences(root, prefix) },
+      $defs: { [mappingSchemaContextKey]: bundledSchema(root, prefix) },
       $ref: `${prefix}/properties/${escapeJsonPointerSegment(propertyName)}`,
     }
   }
