@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -85,7 +84,6 @@ function TimezoneField({
 
 function SettingsRoute() {
   const search = Route.useSearch()
-  const queryClient = useQueryClient()
   const me = useMe()
   const [name, setName] = useState<string | undefined>(undefined)
   const [timezone, setTimezone] = useState<string | undefined>(undefined)
@@ -99,26 +97,64 @@ function SettingsRoute() {
 
   async function save() {
     if (me.data === undefined) return
+    const organizationId = me.data.organization.id
     setSaving(true)
-    try {
-      if (currentName !== savedName) {
-        await authClient.organization.update({
-          organizationId: me.data.organization.id,
-          data: { name: currentName },
+    const nameChanged = currentName !== savedName
+    const timezoneChanged = currentTimezone !== savedTimezone
+
+    const [nameResult, timezoneResult] = await Promise.allSettled([
+      nameChanged
+        ? (async () => {
+            const result = await authClient.organization.update({
+              organizationId,
+              data: { name: currentName },
+            })
+            if (result.error !== null) throw new Error(result.error.message ?? "Couldn't update the workspace name.")
+          })()
+        : Promise.resolve(),
+      timezoneChanged
+        ? (async () => {
+            unwrap(await api.PATCH("/v1/organizations/active", { body: { timezone: currentTimezone } }))
+          })()
+        : Promise.resolve(),
+    ])
+
+    const nameSaved = nameResult.status === "fulfilled"
+    const timezoneSaved = timezoneResult.status === "fulfilled"
+    const successfulChanges = Number(nameChanged && nameSaved) + Number(timezoneChanged && timezoneSaved)
+    const failedChanges = Number(nameChanged && !nameSaved) + Number(timezoneChanged && !timezoneSaved)
+    const refreshed = await me.refetch()
+
+    if (refreshed.isSuccess) {
+      if (nameSaved) setName(undefined)
+      if (timezoneSaved) setTimezone(undefined)
+    }
+
+    if (failedChanges === 0) {
+      if (refreshed.isSuccess) {
+        toast.success("Workspace updated.")
+      } else {
+        toast.warning("Workspace updated, but this view couldn't refresh.", {
+          description: "Reload to see the saved values.",
         })
       }
-      if (currentTimezone !== savedTimezone) {
-        unwrap(await api.PATCH("/v1/organizations/active", { body: { timezone: currentTimezone } }))
-      }
-      await queryClient.invalidateQueries({ queryKey: ["me"] })
-      setName(undefined)
-      setTimezone(undefined)
-      toast.success("Workspace updated.")
-    } catch {
-      toast.error("Couldn't save — try again.")
-    } finally {
-      setSaving(false)
+    } else if (successfulChanges > 0) {
+      toast.warning("Workspace partly updated.", {
+        description: nameChanged && nameSaved
+          ? "The name was saved, but the timezone was not. Try the timezone again."
+          : "The timezone was saved, but the name was not. Try the name again.",
+      })
+    } else {
+      toast.error(
+        nameChanged && timezoneChanged
+          ? "Couldn't save either change — try again."
+          : nameChanged
+            ? "Couldn't save the workspace name — try again."
+            : "Couldn't save the timezone — try again.",
+      )
     }
+
+    setSaving(false)
   }
 
   return (
