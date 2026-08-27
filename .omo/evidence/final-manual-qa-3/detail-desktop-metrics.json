@@ -1,0 +1,409 @@
+[
+  {
+    "articleWidth": 740,
+    "asideWidth": 740,
+    "badHeadings": [
+      {
+        "height": 20,
+        "text": "Product",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Build",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Explore",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "For agents",
+        "width": 135
+      }
+    ],
+    "h1": [
+      "Routing: every message where it belongs"
+    ],
+    "innerWidth": 1440,
+    "links": 0,
+    "mainWidth": 1440,
+    "overflow": false,
+    "path": "/features/routing/",
+    "scrollHeight": 4663,
+    "scrollWidth": 1440,
+    "title": "Routing: every message where it belongs | Postbag"
+  },
+  {
+    "articleWidth": 740,
+    "asideWidth": 740,
+    "badHeadings": [
+      {
+        "height": 20,
+        "text": "Product",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Build",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Explore",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "For agents",
+        "width": 135
+      }
+    ],
+    "h1": [
+      "Never lose a submission: saved first, sent second"
+    ],
+    "innerWidth": 1440,
+    "links": 0,
+    "mainWidth": 1440,
+    "overflow": false,
+    "path": "/features/never-lose-a-submission/",
+    "scrollHeight": 4747,
+    "scrollWidth": 1440,
+    "title": "Never lose a submission: saved first, sent second | Postbag"
+  },
+  {
+    "articleWidth": 740,
+    "asideWidth": 740,
+    "badHeadings": [
+      {
+        "height": 20,
+        "text": "Product",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Build",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Explore",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "For agents",
+        "width": 135
+      }
+    ],
+    "h1": [
+      "Destinations: email, Telegram and signed webhooks"
+    ],
+    "innerWidth": 1440,
+    "links": 0,
+    "mainWidth": 1440,
+    "overflow": false,
+    "path": "/features/destinations/",
+    "scrollHeight": 4216,
+    "scrollWidth": 1440,
+    "title": "Destinations: email, Telegram and signed webhooks | Postbag"
+  },
+  {
+    "articleWidth": 740,
+    "asideWidth": 740,
+    "badHeadings": [
+      {
+        "height": 20,
+        "text": "Product",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Build",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Explore",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "For agents",
+        "width": 135
+      }
+    ],
+    "h1": [
+      "Schemas and drift: know what your forms actually send"
+    ],
+    "innerWidth": 1440,
+    "links": 0,
+    "mainWidth": 1440,
+    "overflow": false,
+    "path": "/features/schemas-and-drift/",
+    "scrollHeight": 4068,
+    "scrollWidth": 1440,
+    "title": "Schemas and drift: know what your forms actually send | Postbag"
+  },
+  {
+    "articleWidth": 740,
+    "asideWidth": 740,
+    "badHeadings": [
+      {
+        "height": 20,
+        "text": "Product",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Build",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Explore",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "For agents",
+        "width": 135
+      }
+    ],
+    "h1": [
+      "Spam protection that stores, flags and never deletes"
+    ],
+    "innerWidth": 1440,
+    "links": 0,
+    "mainWidth": 1440,
+    "overflow": false,
+    "path": "/features/spam-protection/",
+    "scrollHeight": 3853,
+    "scrollWidth": 1440,
+    "title": "Spam protection that stores, flags and never deletes | Postbag"
+  },
+  {
+    "articleWidth": 740,
+    "asideWidth": 740,
+    "badHeadings": [
+      {
+        "height": 20,
+        "text": "Product",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Build",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Explore",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "For agents",
+        "width": 135
+      }
+    ],
+    "h1": [
+      "Self-hosting Postbag: one container, one Postgres"
+    ],
+    "innerWidth": 1440,
+    "links": 0,
+    "mainWidth": 1440,
+    "overflow": false,
+    "path": "/features/self-hosting/",
+    "scrollHeight": 3856,
+    "scrollWidth": 1440,
+    "title": "Self-hosting Postbag: one container, one Postgres"
+  },
+  {
+    "articleWidth": 740,
+    "asideWidth": 272,
+    "badHeadings": [
+      {
+        "height": 20,
+        "text": "Product",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Build",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Explore",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "For agents",
+        "width": 135
+      }
+    ],
+    "h1": [
+      "Contact form backend for any website: one URL, one email, three minutes"
+    ],
+    "innerWidth": 1440,
+    "links": 0,
+    "mainWidth": 1440,
+    "overflow": false,
+    "path": "/use-cases/contact-form/",
+    "scrollHeight": 3081,
+    "scrollWidth": 1440,
+    "title": "Contact form backend for any website: one URL, one email, three minutes | Postbag"
+  },
+  {
+    "articleWidth": 740,
+    "asideWidth": 272,
+    "badHeadings": [
+      {
+        "height": 20,
+        "text": "Product",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Build",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Explore",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "For agents",
+        "width": 135
+      }
+    ],
+    "h1": [
+      "Form backend for agencies: many client sites, one inbox per client, one contract per partner"
+    ],
+    "innerWidth": 1440,
+    "links": 0,
+    "mainWidth": 1440,
+    "overflow": false,
+    "path": "/use-cases/agencies/",
+    "scrollHeight": 3453,
+    "scrollWidth": 1440,
+    "title": "Form backend for agencies: many client sites, one inbox per client, one contract per partner | Postbag"
+  },
+  {
+    "articleWidth": 740,
+    "asideWidth": 272,
+    "badHeadings": [
+      {
+        "height": 20,
+        "text": "Product",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Build",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Explore",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "For agents",
+        "width": 135
+      }
+    ],
+    "h1": [
+      "Lead routing: send form leads to your CRM, a partner and your team, with rules"
+    ],
+    "innerWidth": 1440,
+    "links": 0,
+    "mainWidth": 1440,
+    "overflow": false,
+    "path": "/use-cases/lead-routing/",
+    "scrollHeight": 3255,
+    "scrollWidth": 1440,
+    "title": "Lead routing: send form leads to your CRM, a partner and your team, with rules | Postbag"
+  },
+  {
+    "articleWidth": 740,
+    "asideWidth": 272,
+    "badHeadings": [
+      {
+        "height": 20,
+        "text": "Product",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Build",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Explore",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "For agents",
+        "width": 135
+      }
+    ],
+    "h1": [
+      "AI-built websites: leave a working form behind before signup"
+    ],
+    "innerWidth": 1440,
+    "links": 0,
+    "mainWidth": 1440,
+    "overflow": false,
+    "path": "/use-cases/ai-built-websites/",
+    "scrollHeight": 3913,
+    "scrollWidth": 1440,
+    "title": "AI-built websites: leave a working form behind before signup | Postbag"
+  },
+  {
+    "articleWidth": 740,
+    "asideWidth": 272,
+    "badHeadings": [
+      {
+        "height": 20,
+        "text": "Product",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Build",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "Explore",
+        "width": 135
+      },
+      {
+        "height": 20,
+        "text": "For agents",
+        "width": 135
+      }
+    ],
+    "h1": [
+      "Forms for static sites: Astro, Next.js, Hugo, Eleventy, plain HTML"
+    ],
+    "innerWidth": 1440,
+    "links": 0,
+    "mainWidth": 1440,
+    "overflow": false,
+    "path": "/use-cases/static-sites/",
+    "scrollHeight": 2976,
+    "scrollWidth": 1440,
+    "title": "Forms for static sites: Astro, Next.js, Hugo, Eleventy, plain HTML | Postbag"
+  }
+]
