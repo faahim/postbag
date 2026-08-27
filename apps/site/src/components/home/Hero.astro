@@ -56,14 +56,12 @@ import { Check, Copy } from "@lucide/astro"
 </section>
 
 <script>
+  import { readCssDurationMs } from "@/scripts/css-duration"
+
   const heroAsset = document.querySelector<HTMLElement>("[data-hero-asset]")
   const rootStyle = getComputedStyle(document.documentElement)
-  const ms = (name: string, fallback: number) => {
-    const raw = Number.parseFloat(rootStyle.getPropertyValue(name))
-    return Number.isFinite(raw) ? raw : fallback
-  }
-  const copiedHold = ms("--duration-copied-hold", 1600)
-  const acknowledge = ms("--duration-acknowledge", 2400)
+  const copiedHold = readCssDurationMs(rootStyle, "--duration-copied-hold", 1600)
+  const acknowledge = readCssDurationMs(rootStyle, "--duration-acknowledge", 2400)
   let pulseReset: ReturnType<typeof setTimeout> | undefined
 
   async function copyText(text: string) {
