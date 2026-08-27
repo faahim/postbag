@@ -19,7 +19,7 @@ Postbag-Signature: t=1724200000,v1=5f1c…e9a2
 { "id": "dl_a91x02", "type": "submission.received", "schema_version": 3,
   "stream": { "id": "st_…", "slug": "vending-leads" } | null,
   "form":   { "id": "fm_…", "slug": "kontorsautomat-contact" },
-  "data":   { …mapped payload… }, "extras": { … }, "meta": { … } }
+  "data":   { …mapped payload… }, "meta": { … } }
 ```
 
 `Postbag-Event` is `submission.received` for instant routes and `digest.ready` for digest routes (one payload per period containing the period's submissions).

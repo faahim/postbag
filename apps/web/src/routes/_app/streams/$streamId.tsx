@@ -26,6 +26,7 @@ import {
   mappingRuleWithConstant,
   parseMappingConstant,
   type JsonSchemaProperty,
+  type JsonSchemaRoot,
 } from "@/lib/mapping-constants"
 import { useAllForms } from "@/lib/queries/forms"
 import { useFormSubmissions } from "@/lib/queries/submissions"
@@ -81,10 +82,11 @@ function StreamDetailRoute() {
 
   const streamData = stream.data
   const schema = streamData.schema
-  const schemaProps = schema?.json_schema as { properties?: Record<string, JsonSchemaProperty>; required?: string[] } | undefined
-  const streamProperties = schemaProps?.properties ?? {}
+  const streamJsonSchema = (schema?.json_schema ?? {}) as JsonSchemaRoot
+  const schemaProps = streamJsonSchema as { properties?: Record<string, JsonSchemaProperty>; required?: string[] }
+  const streamProperties = schemaProps.properties ?? {}
   const streamFields = Object.keys(streamProperties)
-  const requiredFields = schemaProps?.required ?? []
+  const requiredFields = schemaProps.required ?? []
   const sources = (streamData.sources ?? []) as unknown as readonly Source[]
   const routeCount = streamData.routes?.length ?? streamData.counts.routes
   const allForms: readonly FormRef[] = forms.data ?? []
@@ -144,7 +146,7 @@ function StreamDetailRoute() {
                   body={
                     schema === undefined
                       ? "The fields every Delivery from this Stream will carry. Attaching the first Form fills this in automatically — or set the fields yourself here."
-                      : "Every Delivery from this Stream carries exactly these fields, whichever Form the Submission came from. Fields a Form doesn't provide arrive empty; anything extra a Form sends is kept under “extras”."
+                      : "Every Delivery from this Stream carries exactly these mapped fields, whichever Form the Submission came from. Unmapped Form fields remain safely stored on the original Submission."
                   }
                 />
                 <ShapeEditor key={schema?.version ?? 0} streamId={streamId} schema={schema} forms={allForms} />
@@ -188,6 +190,7 @@ function StreamDetailRoute() {
                 streamFields={streamFields}
                 requiredFields={requiredFields}
                 streamProperties={streamProperties}
+                streamSchema={streamJsonSchema}
                 sources={sources}
                 formsById={formsById}
                 allForms={allForms}
@@ -409,6 +412,7 @@ function SourcesTab({
   streamFields,
   requiredFields,
   streamProperties,
+  streamSchema,
   sources,
   formsById,
   allForms,
@@ -417,6 +421,7 @@ function SourcesTab({
   readonly streamFields: readonly string[]
   readonly requiredFields: readonly string[]
   readonly streamProperties: Readonly<Record<string, JsonSchemaProperty>>
+  readonly streamSchema: JsonSchemaRoot
   readonly sources: readonly Source[]
   readonly formsById: ReadonlyMap<string, string>
   readonly allForms: readonly FormRef[]
@@ -450,6 +455,7 @@ function SourcesTab({
               streamFields={streamFields}
               requiredFields={requiredFields}
               streamProperties={streamProperties}
+              streamSchema={streamSchema}
             />
           ))}
         </div>
@@ -460,6 +466,7 @@ function SourcesTab({
         streamFields={streamFields}
         requiredFields={requiredFields}
         streamProperties={streamProperties}
+        streamSchema={streamSchema}
         attachable={attachable}
       />
     </div>
@@ -474,6 +481,7 @@ function SourceCard({
   streamFields,
   requiredFields,
   streamProperties,
+  streamSchema,
 }: {
   readonly streamId: string
   readonly source: Source
@@ -482,6 +490,7 @@ function SourceCard({
   readonly streamFields: readonly string[]
   readonly requiredFields: readonly string[]
   readonly streamProperties: Readonly<Record<string, JsonSchemaProperty>>
+  readonly streamSchema: JsonSchemaRoot
 }) {
   const known = useFormKnownFields(source.form_id)
   const removeSource = useRemoveStreamSource(streamId)
@@ -547,6 +556,7 @@ function SourceCard({
               streamFields={streamFields}
               requiredFields={requiredFields}
               streamProperties={streamProperties}
+              streamSchema={streamSchema}
               formFields={known.fields}
               initialMapping={source.mapping}
               missing={source.missing}
@@ -580,12 +590,14 @@ function AttachFormPanel({
   streamFields,
   requiredFields,
   streamProperties,
+  streamSchema,
   attachable,
 }: {
   readonly streamId: string
   readonly streamFields: readonly string[]
   readonly requiredFields: readonly string[]
   readonly streamProperties: Readonly<Record<string, JsonSchemaProperty>>
+  readonly streamSchema: JsonSchemaRoot
   readonly attachable: readonly FormRef[]
 }) {
   const addSource = useAddStreamSource(streamId)
@@ -618,7 +630,7 @@ function AttachFormPanel({
       setMapping((m) => Object.fromEntries(Object.entries(m).filter(([key]) => key !== field)))
     } else if (value === CONST) {
       const raw = initialMappingConstant(streamProperties[field])
-      const parsed = parseMappingConstant(raw, streamProperties[field])
+      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema)
       setConstDrafts((drafts) => ({ ...drafts, [field]: raw }))
       setMapping((m) => ({ ...m, [field]: mappingRuleWithConstant(m[field], parsed.ok ? parsed.value : raw) }))
     } else {
@@ -665,7 +677,7 @@ function AttachFormPanel({
     streamFields.flatMap((field) => {
       if (mapping[field]?.const === undefined) return []
       const raw = constDrafts[field] ?? formatMappingConstant(mapping[field].const)
-      const parsed = parseMappingConstant(raw, streamProperties[field])
+      const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema)
       return parsed.ok ? [] : [[field, parsed.message]]
     }),
   )
@@ -742,7 +754,7 @@ function AttachFormPanel({
                           value={constDrafts[field] ?? formatMappingConstant(rule?.const)}
                           onChange={(e) => {
                             const raw = e.target.value
-                            const parsed = parseMappingConstant(raw, streamProperties[field])
+                            const parsed = parseMappingConstant(raw, streamProperties[field], streamSchema)
                             setConstDrafts((drafts) => ({ ...drafts, [field]: raw }))
                             setMapping((m) => ({ ...m, [field]: mappingRuleWithConstant(m[field], parsed.ok ? parsed.value : raw) }))
                           }}
@@ -881,7 +893,7 @@ function PreviewTab({
             </pre>
             {Object.keys(preview.data.extras).length > 0 && (
               <p className="text-xs text-muted-foreground">
-                Fields the form sent that aren't in the shape travel along under <span className="font-mono">extras</span>:{" "}
+                Fields the Form sent that aren't used by this Mapping remain on the original Submission and appear here under <span className="font-mono">extras</span>:{" "}
                 <span className="font-mono">{Object.keys(preview.data.extras).join(", ")}</span>.
               </p>
             )}

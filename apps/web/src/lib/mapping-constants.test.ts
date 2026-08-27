@@ -25,6 +25,27 @@ describe("mapping constants", () => {
   it("rejects values that do not match the target schema", () => {
     expect(parseMappingConstant("4.2", { type: "integer" }).ok).toBe(false)
     expect(parseMappingConstant("yes", { type: "boolean" }).ok).toBe(false)
+    expect(parseMappingConstant("pending", { type: "string", enum: ["open", "closed"] }).ok).toBe(false)
+    expect(parseMappingConstant("not-an-email", { type: "string", format: "email" }).ok).toBe(false)
+  })
+
+  it("resolves local references from the complete Stream Schema", () => {
+    const root = {
+      $defs: { status: { type: "string", enum: ["open", "closed"] } },
+      type: "object",
+      properties: { status: { $ref: "#/$defs/status" } },
+    }
+    expect(parseMappingConstant("open", { $ref: "#/$defs/status" }, root)).toEqual({ ok: true, value: "open" })
+    expect(parseMappingConstant("pending", { $ref: "#/$defs/status" }, root).ok).toBe(false)
+  })
+
+  it("parses structured and union values before validating referenced constraints", () => {
+    const root = { $defs: { settings: { type: "object", required: ["enabled"], properties: { enabled: { type: "boolean" } } } } }
+    expect(parseMappingConstant('{"enabled":true}', { $ref: "#/$defs/settings" }, root)).toEqual({
+      ok: true,
+      value: { enabled: true },
+    })
+    expect(parseMappingConstant("42", { type: ["string", "integer"] })).toEqual({ ok: true, value: 42 })
   })
 
   it("round-trips non-string drafts", () => {

@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch"
 import { describeDestination } from "@/components/destination-row"
 import { Badge } from "@/components/ui/badge"
 import { toastApiError } from "@/lib/api"
-import { cadenceStateFromMode, isCadenceComplete, modeFor, type CadenceState } from "@/lib/cadence"
+import { cadenceStateFromMode, isCadenceReady, modeFor, type CadenceState } from "@/lib/cadence"
 import { useDestinations, type Destination } from "@/lib/queries/destinations"
 import { useMe } from "@/lib/queries/me"
 import { useDeleteRoute, useRoutes, useUpdateRoute } from "@/lib/queries/routes"
@@ -198,13 +198,15 @@ function EditRouteDialog({
   const updateRoute = useUpdateRoute()
   const mode = route.mode as { readonly type: string; readonly cron?: string; readonly timezone?: string }
   const [cadence, setCadence] = useState<CadenceState>(() => cadenceStateFromMode(mode))
-  const timezone = mode.timezone ?? me.data?.organization.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
-  const cadenceComplete = isCadenceComplete(cadence)
+  const timezone = mode.timezone ?? me.data?.organization.timezone
+  const timezoneLabel = timezone ?? (me.isError ? "Workspace timezone unavailable" : "Loading workspace timezone…")
+  const cadenceReady = isCadenceReady(cadence, timezone)
+  const timezoneUnavailable = cadence.cadence !== "instant" && timezone === undefined && me.isError
 
   function save() {
-    if (!cadenceComplete) return
+    if (!cadenceReady) return
     updateRoute.mutate(
-      { routeId: route.id, body: { mode: modeFor(cadence, timezone) } },
+      { routeId: route.id, body: { mode: modeFor(cadence, timezone ?? "UTC") } },
       {
         onSuccess: () => {
           onOpenChange(false)
@@ -231,9 +233,19 @@ function EditRouteDialog({
             {destinationName === undefined ? "How this Route delivers." : `How this Route delivers to ${destinationName}. To send somewhere else, add a new Route.`}
           </DialogDescription>
         </DialogHeader>
-        <CadencePicker value={cadence} onChange={setCadence} timezone={timezone} />
+        <CadencePicker value={cadence} onChange={setCadence} timezone={timezoneLabel} />
+        {timezoneUnavailable && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+            <p role="alert" className="text-xs text-destructive">
+              Couldn't read the workspace timezone, so this digest hasn't been changed.
+            </p>
+            <Button type="button" variant="outline" size="sm" onClick={() => { void me.refetch() }}>
+              Try again
+            </Button>
+          </div>
+        )}
         <DialogFooter>
-          <Button onClick={save} disabled={!cadenceComplete || updateRoute.isPending}>
+          <Button onClick={save} disabled={!cadenceReady || updateRoute.isPending}>
             {updateRoute.isPending ? "Saving…" : "Save delivery"}
           </Button>
         </DialogFooter>

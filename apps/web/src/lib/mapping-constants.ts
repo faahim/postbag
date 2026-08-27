@@ -1,4 +1,7 @@
+import { validateAgainstSchema } from "@postbag/core"
+
 export type JsonSchemaProperty = Readonly<Record<string, unknown>>
+export type JsonSchemaRoot = Readonly<Record<string, unknown>>
 export type EditableMappingRule = {
   readonly from?: string
   readonly const?: unknown
@@ -18,25 +21,45 @@ function matchesType(value: unknown, type: string): boolean {
   return typeof value === type
 }
 
-export function parseMappingConstant(raw: string, property: JsonSchemaProperty | undefined): ParsedConstant {
+function validationSchema(property: JsonSchemaProperty, root: JsonSchemaRoot | undefined): JsonSchemaRoot {
+  const schema: Record<string, unknown> = { ...property }
+  for (const key of ["$schema", "$defs", "definitions"] as const) {
+    if (root?.[key] !== undefined) schema[key] = root[key]
+  }
+  return schema
+}
+
+export function parseMappingConstant(
+  raw: string,
+  property: JsonSchemaProperty | undefined,
+  rootSchema?: JsonSchemaRoot,
+): ParsedConstant {
   const declared = property?.["type"]
   const types = (Array.isArray(declared) ? declared : [declared]).filter(
     (value): value is string => typeof value === "string",
   )
-  if (types.length === 0 || (types.length === 1 && types[0] === "string")) {
-    return { ok: true, value: raw }
-  }
-
   let parsed: unknown
-  try {
-    parsed = JSON.parse(raw)
-  } catch {
-    if (types.includes("string")) return { ok: true, value: raw }
+  if (types.length === 1 && types[0] === "string") {
+    parsed = raw
+  } else {
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      if (types.length === 0 || types.includes("string")) parsed = raw
+      else return { ok: false, message: `Enter a valid ${types.join(" or ")} value.` }
+    }
+  }
+
+  if (types.length > 0 && !types.some((type) => matchesType(parsed, type))) {
     return { ok: false, message: `Enter a valid ${types.join(" or ")} value.` }
   }
 
-  if (!types.some((type) => matchesType(parsed, type))) {
-    return { ok: false, message: `Enter a valid ${types.join(" or ")} value.` }
+  if (property !== undefined) {
+    const result = validateAgainstSchema(parsed, validationSchema(property, rootSchema))
+    if (!result.valid) {
+      const first = result.problems[0]
+      return { ok: false, message: first?.message ?? "Enter a value allowed by this field's Schema." }
+    }
   }
   return { ok: true, value: parsed }
 }
