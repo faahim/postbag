@@ -46,6 +46,7 @@ describe("mapping constants", () => {
         text: { type: "string" },
         count: { type: "integer" },
         enabled: { type: "boolean" },
+        textOrCount: { type: ["string", "integer"] },
       },
       type: "object",
       properties: {
@@ -54,6 +55,7 @@ describe("mapping constants", () => {
         wordNull: { $ref: "#/$defs/text" },
         count: { $ref: "#/$defs/count" },
         enabled: { $ref: "#/$defs/enabled" },
+        choice: { $ref: "#/$defs/textOrCount" },
       },
     }
 
@@ -62,6 +64,8 @@ describe("mapping constants", () => {
     expect(parseMappingConstant("null", root.properties.wordNull, root, "wordNull")).toEqual({ ok: true, value: "null" })
     expect(parseMappingConstant("42", root.properties.count, root, "count")).toEqual({ ok: true, value: 42 })
     expect(parseMappingConstant("false", root.properties.enabled, root, "enabled")).toEqual({ ok: true, value: false })
+    expect(parseMappingConstant("42", root.properties.choice, root, "choice")).toEqual({ ok: true, value: 42 })
+    expect(parseMappingConstant("draft note", root.properties.choice, root, "choice")).toEqual({ ok: true, value: "draft note" })
   })
 
   it("resolves root-property references while validating only the selected field", () => {

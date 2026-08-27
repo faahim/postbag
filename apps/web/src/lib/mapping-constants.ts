@@ -111,9 +111,23 @@ export function parseMappingConstant(
   )
 
   if (types.length === 0 && property !== undefined) {
+    let jsonValue: unknown
+    try {
+      jsonValue = JSON.parse(raw)
+    } catch {
+      const rawValidation = validateMappingValue(raw, property, rootSchema, propertyName)
+      if (rawValidation.valid) return { ok: true, value: raw }
+      return { ok: false, message: rawValidation.message }
+    }
+
+    const jsonValidation = validateMappingValue(jsonValue, property, rootSchema, propertyName)
+    if (jsonValidation.valid) return { ok: true, value: jsonValue }
+    if (jsonValidation.schemaError) return { ok: false, message: jsonValidation.message }
+
     const rawValidation = validateMappingValue(raw, property, rootSchema, propertyName)
     if (rawValidation.valid) return { ok: true, value: raw }
     if (rawValidation.schemaError) return { ok: false, message: rawValidation.message }
+    return { ok: false, message: jsonValidation.message }
   }
 
   let parsed: unknown
