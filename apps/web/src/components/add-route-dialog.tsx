@@ -152,7 +152,11 @@ export function AddRouteDialog({
       open={open}
       onOpenChange={(next) => {
         onOpenChange(next)
-        if (!next) setCreatingNew(false)
+        if (!next) {
+          setSelected(undefined)
+          setCreatingNew(false)
+          setCadence(DEFAULT_CADENCE)
+        }
       }}
     >
       <DialogContent>

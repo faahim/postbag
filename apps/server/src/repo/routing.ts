@@ -1,4 +1,4 @@
-import { and, eq, isNotNull } from "drizzle-orm"
+import { and, asc, eq, isNotNull } from "drizzle-orm"
 import { routes, streamSchemas, streamSources, streams, type Database } from "@postbag/db"
 import type { RoutingRoute, StreamMembership } from "@postbag/core"
 
@@ -58,6 +58,29 @@ export type StreamMembershipWithMapping = StreamMembership & {
   readonly streamSlug: string
 }
 
+type StreamSourceForRouting = {
+  readonly streamId: string
+  readonly formId: string | null
+  readonly selector: string | null
+}
+
+/** Resolve one source per Stream using the same precedence everywhere:
+ * the newest matching selector wins, and a directly attached Form always wins.
+ * Callers provide rows in oldest-first order so the last matching row is newest. */
+export function resolveStreamSourcesForForm<T extends StreamSourceForRouting>(
+  rows: readonly T[],
+  form: FormForRouting,
+): ReadonlyMap<string, T> {
+  const byStream = new Map<string, T>()
+  for (const row of rows) {
+    if (row.selector !== null && matchesSelector(row.selector, form)) byStream.set(row.streamId, row)
+  }
+  for (const row of rows) {
+    if (row.formId === form.id) byStream.set(row.streamId, row)
+  }
+  return byStream
+}
+
 export async function getStreamMembershipsForForm(
   db: Database,
   form: FormForRouting,
@@ -66,17 +89,14 @@ export async function getStreamMembershipsForForm(
     .select()
     .from(streamSources)
     .where(and(eq(streamSources.organizationId, form.organizationId), eq(streamSources.formId, form.id)))
+    .orderBy(asc(streamSources.createdAt), asc(streamSources.id))
   const selectorRows = await db
     .select()
     .from(streamSources)
     .where(and(eq(streamSources.organizationId, form.organizationId), isNotNull(streamSources.selector)))
-  const matchingSelectors = selectorRows.filter(
-    (row) => row.selector !== null && matchesSelector(row.selector, form),
-  )
+    .orderBy(asc(streamSources.createdAt), asc(streamSources.id))
 
-  const byStream = new Map<string, (typeof explicit)[number]>()
-  for (const row of matchingSelectors) byStream.set(row.streamId, row)
-  for (const row of explicit) byStream.set(row.streamId, row)
+  const byStream = resolveStreamSourcesForForm([...selectorRows, ...explicit], form)
   if (byStream.size === 0) return []
 
   const memberships: StreamMembershipWithMapping[] = []

@@ -1,6 +1,6 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
 import { applyMapping, inferSchema, newId, PostbagError, StreamInputSchema, validateMapping, type Mapping } from "@postbag/core"
-import { and, count, desc, eq, gte, lt, or, type SQL } from "drizzle-orm"
+import { and, asc, count, desc, eq, gte, lt, or, type SQL } from "drizzle-orm"
 import {
   events,
   formSchemaDrafts,
@@ -16,7 +16,7 @@ import {
 
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
-import { matchesSelector } from "../../repo/routing.js"
+import { resolveStreamSourcesForForm } from "../../repo/routing.js"
 import { asJson, serializeRoute, serializeStream } from "../../repo/serialize.js"
 import {
   CursorQuerySchema,
@@ -945,18 +945,13 @@ export function registerStreamRoutes(app: OpenAPIHono<AppEnv>, db: Database): vo
       .select()
       .from(streamSources)
       .where(and(eq(streamSources.organizationId, scope.organizationId), eq(streamSources.streamId, streamId)))
-    const source =
-      sourceRows.find((candidate) => candidate.formId === form_id) ??
-      sourceRows.find(
-        (candidate) =>
-          candidate.selector !== null &&
-          matchesSelector(candidate.selector, {
-            id: form.id,
-            organizationId: form.organizationId,
-            projectId: form.projectId,
-            tags: form.tags,
-          }),
-      )
+      .orderBy(asc(streamSources.createdAt), asc(streamSources.id))
+    const source = resolveStreamSourcesForForm(sourceRows, {
+      id: form.id,
+      organizationId: form.organizationId,
+      projectId: form.projectId,
+      tags: form.tags,
+    }).get(streamId)
     if (source === undefined) throw new PostbagError("not_found", "No source attached for that form.")
     const result = applyMapping(data, source.mapping as unknown as Mapping, schemaRow.jsonSchema)
     const body: z.infer<typeof PreviewResponseSchema> = {

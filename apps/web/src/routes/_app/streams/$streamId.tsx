@@ -771,6 +771,7 @@ function PreviewTab({
         <Select
           value={formId ?? ""}
           onValueChange={(v) => {
+            preview.reset()
             setFormId(v)
             setSubmissionId(undefined)
           }}
@@ -786,7 +787,14 @@ function PreviewTab({
             ))}
           </SelectContent>
         </Select>
-        <Select value={submissionId ?? ""} onValueChange={setSubmissionId} disabled={recent.length === 0}>
+        <Select
+          value={submissionId ?? ""}
+          onValueChange={(v) => {
+            preview.reset()
+            setSubmissionId(v)
+          }}
+          disabled={recent.length === 0}
+        >
           <SelectTrigger className="w-80 [&>span]:truncate" aria-label="Submission">
             <SelectValue placeholder={submissions.isPending ? "Loading submissions…" : recent.length === 0 ? "No submissions on this form yet" : "Choose a recent submission"} />
           </SelectTrigger>
