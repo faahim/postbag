@@ -45,6 +45,14 @@ export function headline(data: Readonly<Record<string, unknown>>): string | null
   return null
 }
 
+/** Form detail pages omit the label; the workspace Inbox always keeps an id fallback. */
+export function formLabel(
+  formId: string,
+  formNames: Readonly<Record<string, string>> | undefined,
+): string | undefined {
+  return formNames === undefined ? undefined : (formNames[formId] ?? formId)
+}
+
 function preview(data: Readonly<Record<string, unknown>>, skip: string | null): string {
   const entries = Object.entries(data).filter(
     ([key, value]) => !key.startsWith("_") && String(value).trim() !== "" && String(value) !== skip,
@@ -102,7 +110,7 @@ export function SubmissionsTable({
       <ul className="divide-y divide-border/60">
         {rows.map((row, i) => {
           const head = headline(row.data)
-          const formName = formNames?.[row.form_id]
+          const sourceLabel = formLabel(row.form_id, formNames)
           return (
             <li key={row.id} className="row-enter" style={{ "--row-index": i } as CSSProperties}>
               <button
@@ -140,7 +148,9 @@ export function SubmissionsTable({
 
                 <span className="flex shrink-0 flex-col items-end gap-1 text-right">
                   <span className="text-sm text-muted-foreground tabular-nums">{formatRelativeTime(row.received_at)}</span>
-                  {formName !== undefined && <span className="text-xs text-muted-foreground/70">{formName}</span>}
+                  {sourceLabel !== undefined && (
+                    <span className="text-xs text-muted-foreground/70">{sourceLabel}</span>
+                  )}
                 </span>
               </button>
             </li>
