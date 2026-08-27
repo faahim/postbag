@@ -32,6 +32,50 @@ const ROOT_CROSS_FIELD_KEYWORDS = [
 export const UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE =
   "This Schema has advanced cross-field constraints. Remove the field through the API so its constraints can be updated together."
 
+function schemaContainsReference(schema: unknown, visited = new Set<object>()): boolean {
+  if (!isRecord(schema)) return false
+  if (visited.has(schema)) return false
+  visited.add(schema)
+
+  if (typeof schema["$ref"] === "string" || typeof schema["$dynamicRef"] === "string") return true
+
+  for (const keyword of ["$defs", "definitions", "properties", "patternProperties", "dependentSchemas"] as const) {
+    const schemas = schema[keyword]
+    if (isRecord(schemas) && Object.values(schemas).some((value) => schemaContainsReference(value, visited))) return true
+  }
+
+  for (const keyword of ["allOf", "anyOf", "oneOf", "prefixItems"] as const) {
+    const schemas = schema[keyword]
+    if (Array.isArray(schemas) && schemas.some((value) => schemaContainsReference(value, visited))) return true
+  }
+
+  const items = schema["items"]
+  if (Array.isArray(items)) {
+    if (items.some((value) => schemaContainsReference(value, visited))) return true
+  } else if (schemaContainsReference(items, visited)) return true
+
+  for (const keyword of [
+    "additionalProperties",
+    "unevaluatedProperties",
+    "propertyNames",
+    "contains",
+    "additionalItems",
+    "unevaluatedItems",
+    "not",
+    "if",
+    "then",
+    "else",
+    "contentSchema",
+  ] as const) {
+    if (schemaContainsReference(schema[keyword], visited)) return true
+  }
+
+  const dependencies = schema["dependencies"]
+  return isRecord(dependencies) && Object.values(dependencies).some(
+    (value) => !Array.isArray(value) && schemaContainsReference(value, visited),
+  )
+}
+
 /**
  * The field-list editor only owns root `properties` and `required`. It must not guess
  * how a published cross-field rule, including a local reference, should change when a
@@ -46,8 +90,15 @@ export function hasUnsafeSchemaFieldRemoval(
   if (!isRecord(properties)) return false
 
   const names = new Set(fields.map((field) => field.name))
-  const hasRemoval = Object.keys(properties).some((name) => !names.has(name))
-  return hasRemoval && ROOT_CROSS_FIELD_KEYWORDS.some((keyword) => previous[keyword] !== undefined)
+  const removedNames = new Set(Object.keys(properties).filter((name) => !names.has(name)))
+  if (removedNames.size === 0) return false
+
+  return (
+    ROOT_CROSS_FIELD_KEYWORDS.some((keyword) => previous[keyword] !== undefined) ||
+    Object.entries(properties).some(
+      ([name, property]) => names.has(name) && schemaContainsReference(property),
+    )
+  )
 }
 
 /** Dots are reserved for nested paths in Stream mappings, not literal top-level field names. */

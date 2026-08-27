@@ -128,6 +128,51 @@ describe("dashboard schema editing", () => {
     }
   })
 
+  it("blocks removal when a retained property references a removed root property", () => {
+    const fields = [{ name: "company", type: "string" as const, required: true }]
+    const previous = {
+      properties: {
+        company: {
+          allOf: [{ $ref: "#/properties/vat" }],
+        },
+        vat: { type: "string" },
+      },
+    }
+
+    expect(hasUnsafeSchemaFieldRemoval(fields, previous)).toBe(true)
+    expect(() => buildEditedSchema(fields, previous)).toThrow(UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE)
+  })
+
+  it("blocks removal when a retained property contains any reference", () => {
+    const fields = [{ name: "company", type: "string" as const, required: true }]
+    const previous = {
+      properties: {
+        company: {
+          anyOf: [{ $dynamicRef: "#/$defs/company-rule" }],
+        },
+        vat: { type: "string" },
+      },
+    }
+
+    expect(hasUnsafeSchemaFieldRemoval(fields, previous)).toBe(true)
+    expect(() => buildEditedSchema(fields, previous)).toThrow(UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE)
+  })
+
+  it("does not treat references inside instance values as Schema references", () => {
+    const previous = {
+      properties: {
+        company: { const: { $ref: "literal", enabled: true } },
+        vat: { type: "string" },
+      },
+    }
+    const fields = [{ name: "company", type: "other" as const, required: true, original: previous.properties.company }]
+
+    expect(hasUnsafeSchemaFieldRemoval(fields, previous)).toBe(false)
+    expect(buildEditedSchema(fields, previous)).toMatchObject({
+      properties: { company: previous.properties.company },
+    })
+  })
+
   it("allows removal when the published Schema has no root cross-field constraints", () => {
     const previous = {
       properties: { company: { type: "string" }, vat: { type: "string" } },

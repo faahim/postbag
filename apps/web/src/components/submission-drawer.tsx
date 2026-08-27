@@ -199,7 +199,7 @@ function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: 
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title="Delete this Submission?"
-        description="It disappears from the record permanently. Deleting is the one thing Postbag never does on its own — and it can't be undone."
+        description="It disappears from the record permanently and can't be undone. Test Submissions are cleaned up automatically after 24 hours; all other Submissions follow your retention policy."
         confirmLabel="Delete Submission"
         pending={deleteSubmission.isPending}
         onConfirm={() => void remove()}

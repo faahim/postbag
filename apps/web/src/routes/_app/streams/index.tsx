@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
 import { StreamExplainer } from "@/components/stream-explainer"
 import { Button } from "@/components/ui/button"
@@ -50,6 +51,21 @@ function StreamsIndexRoute() {
 
       {streams.isLoading ? (
         <Skeleton className="h-40 w-full rounded-xl" />
+      ) : streams.isError ? (
+        <EmptyState
+          title="Couldn't load your Streams"
+          description="Nothing has changed. Try again to see your Streams."
+          action={
+            <Button
+              disabled={streams.isFetching}
+              onClick={() => {
+                void streams.refetch()
+              }}
+            >
+              {streams.isFetching ? "Trying again…" : "Try again"}
+            </Button>
+          }
+        />
       ) : streams.data === undefined || streams.data.length === 0 ? (
         <StreamExplainer
           title="Many forms in. One tidy shape out."
