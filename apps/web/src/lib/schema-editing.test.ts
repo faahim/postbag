@@ -13,12 +13,17 @@ describe("dashboard schema editing", () => {
         },
         required: ["email"],
       },
+      {
+        age: { type: "string" },
+        email: { type: "boolean" },
+        observed: { type: "boolean" },
+      },
     )
 
     expect(seeded["properties"]).toEqual({
       age: { type: "integer", minimum: 0 },
       email: { type: "string", format: "email" },
-      observed: { type: "string" },
+      observed: { type: "boolean" },
     })
     expect(buildEditedSchema(editableFieldsFromSchema(seeded, undefined), seeded)["properties"]).toEqual(seeded["properties"])
   })

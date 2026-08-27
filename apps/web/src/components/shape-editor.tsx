@@ -258,7 +258,7 @@ function SeedFromForm({
             size="sm"
             variant="outline"
             onClick={() => {
-              const seededSchema = schemaFromKnownFields(known.fields, known.jsonSchema)
+              const seededSchema = schemaFromKnownFields(known.fields, known.jsonSchema, known.observedProperties)
               onSeed(editableFieldsFromSchema(seededSchema, undefined), seededSchema)
             }}
           >

@@ -87,10 +87,12 @@ export function retainUiHints(
 }
 
 /** Seed a new Stream shape from a Form without flattening published property constraints.
- * Fields known only from observed Submissions receive the minimal string fallback. */
+ * Observed fields keep the inferred shape of their recent Submission values; only fields
+ * without either source use the minimal string fallback. */
 export function schemaFromKnownFields(
   fields: readonly string[],
   published: Readonly<Record<string, unknown>> | undefined,
+  observedProperties: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {},
 ): Record<string, unknown> {
   const properties = (published?.["properties"] ?? {}) as Readonly<
     Record<string, Readonly<Record<string, unknown>>>
@@ -99,7 +101,9 @@ export function schemaFromKnownFields(
     ...published,
     $schema: published?.["$schema"] ?? "https://json-schema.org/draft/2020-12/schema",
     type: "object",
-    properties: Object.fromEntries(fields.map((name) => [name, properties[name] ?? { type: "string" }])),
+    properties: Object.fromEntries(
+      fields.map((name) => [name, properties[name] ?? observedProperties[name] ?? { type: "string" }]),
+    ),
     required: published?.["required"] ?? [],
     additionalProperties: published?.["additionalProperties"] ?? true,
   }
