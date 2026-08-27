@@ -10,6 +10,46 @@ export type EditableField = {
 
 const EDITABLE_FIELD_NAME = /^[A-Za-z_][A-Za-z0-9_-]*$/u
 
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+const ROOT_CROSS_FIELD_KEYWORDS = [
+  "dependentRequired",
+  "dependentSchemas",
+  "dependencies",
+  "allOf",
+  "anyOf",
+  "oneOf",
+  "if",
+  "then",
+  "else",
+  "not",
+  "$ref",
+  "$dynamicRef",
+] as const
+
+export const UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE =
+  "This Schema has advanced cross-field constraints. Remove the field through the API so its constraints can be updated together."
+
+/**
+ * The field-list editor only owns root `properties` and `required`. It must not guess
+ * how a published cross-field rule, including a local reference, should change when a
+ * property is removed. Call this before removing a field from the dashboard draft.
+ */
+export function hasUnsafeSchemaFieldRemoval(
+  fields: readonly Pick<EditableField, "name">[],
+  previous: Readonly<Record<string, unknown>> | undefined,
+): boolean {
+  if (previous === undefined) return false
+  const properties = previous["properties"]
+  if (!isRecord(properties)) return false
+
+  const names = new Set(fields.map((field) => field.name))
+  const hasRemoval = Object.keys(properties).some((name) => !names.has(name))
+  return hasRemoval && ROOT_CROSS_FIELD_KEYWORDS.some((keyword) => previous[keyword] !== undefined)
+}
+
 /** Dots are reserved for nested paths in Stream mappings, not literal top-level field names. */
 export function isEditableFieldName(name: string): boolean {
   return EDITABLE_FIELD_NAME.test(name)
@@ -59,6 +99,9 @@ export function buildEditedSchema(
   fields: readonly EditableField[],
   previous: Readonly<Record<string, unknown>> | undefined,
 ): Record<string, unknown> {
+  if (hasUnsafeSchemaFieldRemoval(fields, previous)) {
+    throw new Error(UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE)
+  }
   const properties = Object.fromEntries(
     fields.map((field) => {
       const keepOriginal =

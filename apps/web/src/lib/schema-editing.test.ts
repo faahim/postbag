@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest"
 
-import { buildEditedSchema, editableFieldsFromSchema, isEditableFieldName, retainUiHints, schemaFromKnownFields } from "./schema-editing"
+import {
+  buildEditedSchema,
+  editableFieldsFromSchema,
+  hasUnsafeSchemaFieldRemoval,
+  isEditableFieldName,
+  retainUiHints,
+  schemaFromKnownFields,
+  UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE,
+} from "./schema-editing"
 
 describe("dashboard schema editing", () => {
   it("seeds a Stream with published Form property constraints intact", () => {
@@ -82,6 +90,57 @@ describe("dashboard schema editing", () => {
         company: { type: "string" },
       },
       required: ["email"],
+    })
+  })
+
+  it("blocks field removal when the published Schema has root cross-field constraints", () => {
+    const fields = [
+      { name: "company", type: "string" as const, required: true },
+      { name: "email", type: "string" as const, required: true },
+    ]
+    const constraints = {
+      dependentRequired: { company: ["vat"] },
+      dependentSchemas: { company: { required: ["vat"] } },
+      dependencies: { company: ["vat"] },
+      allOf: [{ if: { required: ["company"] }, then: { required: ["vat"] } }],
+      anyOf: [{ required: ["vat"] }],
+      oneOf: [{ required: ["vat"] }],
+      if: { required: ["company"] },
+      then: { required: ["vat"] },
+      else: { required: ["email"] },
+      not: { required: ["vat"] },
+      $ref: "#/$defs/cross-field-rule",
+      $dynamicRef: "#cross-field-rule",
+    }
+    const base = {
+      properties: {
+        company: { type: "string" },
+        vat: { type: "string" },
+        email: { type: "string" },
+      },
+      $defs: { "cross-field-rule": { if: { required: ["company"] }, then: { required: ["vat"] } } },
+    }
+
+    for (const [keyword, constraint] of Object.entries(constraints)) {
+      const previous = { ...base, [keyword]: constraint }
+      expect(hasUnsafeSchemaFieldRemoval(fields, previous)).toBe(true)
+      expect(() => buildEditedSchema(fields, previous)).toThrow(UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE)
+    }
+  })
+
+  it("allows removal when the published Schema has no root cross-field constraints", () => {
+    const previous = {
+      properties: { company: { type: "string" }, vat: { type: "string" } },
+      required: ["company", "vat"],
+      additionalProperties: false,
+    }
+    const fields = [{ name: "company", type: "string" as const, required: true }]
+
+    expect(hasUnsafeSchemaFieldRemoval(fields, previous)).toBe(false)
+    expect(buildEditedSchema(fields, previous)).toMatchObject({
+      properties: { company: previous.properties.company },
+      required: ["company"],
+      additionalProperties: false,
     })
   })
 

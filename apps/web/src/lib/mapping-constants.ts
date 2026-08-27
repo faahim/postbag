@@ -40,6 +40,26 @@ type SchemaResourceMap = {
   readonly anchors: ReadonlyMap<string, string>
 }
 
+const schemaMapKeywords = ["$defs", "definitions", "properties", "patternProperties", "dependentSchemas"] as const
+const schemaArrayKeywords = ["allOf", "anyOf", "oneOf", "prefixItems"] as const
+const schemaKeywords = [
+  "additionalProperties",
+  "unevaluatedProperties",
+  "propertyNames",
+  "contains",
+  "additionalItems",
+  "unevaluatedItems",
+  "not",
+  "if",
+  "then",
+  "else",
+  "contentSchema",
+] as const
+
+function schemaPointer(pointer: string, key: string): string {
+  return `${pointer}/${escapeJsonPointerSegment(key)}`
+}
+
 function resourceKey(resource: SchemaResource): string {
   return resource.id ?? resource.pointer
 }
@@ -66,6 +86,49 @@ function nextResource(value: Record<string, unknown>, pointer: string, parent: S
   return { id: resolveResourceId(declaredId, parent.id), pointer }
 }
 
+function visitSchemaChildren(
+  value: Record<string, unknown>,
+  pointer: string,
+  visit: (child: unknown, childPointer: string) => void,
+): void {
+  for (const key of schemaMapKeywords) {
+    const schemas = value[key]
+    if (!isRecord(schemas)) continue
+    for (const [name, schema] of Object.entries(schemas)) {
+      visit(schema, schemaPointer(schemaPointer(pointer, key), name))
+    }
+  }
+
+  for (const key of schemaArrayKeywords) {
+    const schemas = value[key]
+    if (!Array.isArray(schemas)) continue
+    schemas.forEach((schema, index) => {
+      visit(schema, `${schemaPointer(pointer, key)}/${index}`)
+    })
+  }
+
+  const items = value["items"]
+  if (Array.isArray(items)) {
+    items.forEach((schema, index) => {
+      visit(schema, `${schemaPointer(pointer, "items")}/${index}`)
+    })
+  }
+  else if (items !== undefined) visit(items, schemaPointer(pointer, "items"))
+
+  for (const key of schemaKeywords) {
+    const schema = value[key]
+    if (schema !== undefined) visit(schema, schemaPointer(pointer, key))
+  }
+
+  const dependencies = value["dependencies"]
+  if (!isRecord(dependencies)) return
+  for (const [name, dependency] of Object.entries(dependencies)) {
+    if (isRecord(dependency) || typeof dependency === "boolean") {
+      visit(dependency, schemaPointer(schemaPointer(pointer, "dependencies"), name))
+    }
+  }
+}
+
 function collectSchemaResources(
   value: unknown,
   pointer: string,
@@ -73,12 +136,6 @@ function collectSchemaResources(
   pointers: Map<string, string>,
   anchors: Map<string, string>,
 ): void {
-  if (Array.isArray(value)) {
-    value.forEach((item, index) => {
-      collectSchemaResources(item, `${pointer}/${index}`, parent, pointers, anchors)
-    })
-    return
-  }
   if (!isRecord(value)) return
 
   const resource = nextResource(value, pointer, parent)
@@ -88,9 +145,9 @@ function collectSchemaResources(
     if (typeof anchor === "string") anchors.set(`${resourceKey(resource)}#${anchor}`, pointer)
   }
 
-  for (const [key, nested] of Object.entries(value)) {
-    collectSchemaResources(nested, `${pointer}/${escapeJsonPointerSegment(key)}`, resource, pointers, anchors)
-  }
+  visitSchemaChildren(value, pointer, (nested, nestedPointer) => {
+    collectSchemaResources(nested, nestedPointer, resource, pointers, anchors)
+  })
 }
 
 function referencePointer(
@@ -113,21 +170,56 @@ function rewriteBundledReferences(
   parent: SchemaResource,
   resources: SchemaResourceMap,
 ): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item, index) => rewriteBundledReferences(item, `${pointer}/${index}`, parent, resources))
-  }
   if (!isRecord(value)) return value
 
   const resource = nextResource(value, pointer, parent)
-  return Object.fromEntries(
-    Object.entries(value).flatMap(([key, nested]) => {
-      if (key === "$id") return []
-      if ((key === "$ref" || key === "$dynamicRef") && typeof nested === "string") {
-        return [[key, referencePointer(nested, resource, resources)]]
-      }
-      return [[key, rewriteBundledReferences(nested, `${pointer}/${escapeJsonPointerSegment(key)}`, resource, resources)]]
-    }),
-  )
+  const rewritten = { ...value }
+  delete rewritten["$id"]
+  for (const key of ["$ref", "$dynamicRef"] as const) {
+    if (typeof rewritten[key] === "string") rewritten[key] = referencePointer(rewritten[key], resource, resources)
+  }
+  for (const key of schemaMapKeywords) {
+    const schemas = value[key]
+    if (!isRecord(schemas)) continue
+    rewritten[key] = Object.fromEntries(
+      Object.entries(schemas).map(([name, schema]) => [
+        name,
+        rewriteBundledReferences(schema, schemaPointer(schemaPointer(pointer, key), name), resource, resources),
+      ]),
+    )
+  }
+  for (const key of schemaArrayKeywords) {
+    const schemas = value[key]
+    if (!Array.isArray(schemas)) continue
+    rewritten[key] = schemas.map((schema, index) =>
+      rewriteBundledReferences(schema, `${schemaPointer(pointer, key)}/${index}`, resource, resources),
+    )
+  }
+  const items = value["items"]
+  if (Array.isArray(items)) {
+    rewritten["items"] = items.map((schema, index) =>
+      rewriteBundledReferences(schema, `${schemaPointer(pointer, "items")}/${index}`, resource, resources),
+    )
+  } else if (items !== undefined) {
+    rewritten["items"] = rewriteBundledReferences(items, schemaPointer(pointer, "items"), resource, resources)
+  }
+  for (const key of schemaKeywords) {
+    if (value[key] !== undefined) {
+      rewritten[key] = rewriteBundledReferences(value[key], schemaPointer(pointer, key), resource, resources)
+    }
+  }
+  const dependencies = value["dependencies"]
+  if (isRecord(dependencies)) {
+    rewritten["dependencies"] = Object.fromEntries(
+      Object.entries(dependencies).map(([name, dependency]) => [
+        name,
+        isRecord(dependency) || typeof dependency === "boolean"
+          ? rewriteBundledReferences(dependency, schemaPointer(schemaPointer(pointer, "dependencies"), name), resource, resources)
+          : dependency,
+      ]),
+    )
+  }
+  return rewritten
 }
 
 function bundledSchema(root: JsonSchemaRoot, prefix: string): unknown {

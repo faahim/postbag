@@ -12,7 +12,17 @@ import { toastApiError } from "@/lib/api"
 import { useFormKnownFields } from "@/lib/form-fields"
 import { formatRelativeTime } from "@/lib/format"
 import { usePublishStreamSchema, type SchemaVersion } from "@/lib/queries/streams"
-import { buildEditedSchema, editableFieldsFromSchema, isEditableFieldName, retainUiHints, schemaFromKnownFields, type EditableField, type EditableFieldType } from "@/lib/schema-editing"
+import {
+  buildEditedSchema,
+  editableFieldsFromSchema,
+  hasUnsafeSchemaFieldRemoval,
+  isEditableFieldName,
+  retainUiHints,
+  schemaFromKnownFields,
+  UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE,
+  type EditableField,
+  type EditableFieldType,
+} from "@/lib/schema-editing"
 import { cn } from "@/lib/utils"
 
 type FieldType = EditableFieldType
@@ -157,7 +167,12 @@ export function ShapeEditor({
                 className="size-8 text-muted-foreground hover:text-destructive"
                 aria-label={`Remove ${field.name}`}
                 onClick={() => {
-                  setFields((current) => current.filter((f) => f.name !== field.name))
+                  const nextFields = fields.filter((candidate) => candidate.name !== field.name)
+                  if (hasUnsafeSchemaFieldRemoval(nextFields, previous ?? seedSchema)) {
+                    toast.error(UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE)
+                    return
+                  }
+                  setFields(nextFields)
                 }}
               >
                 <X className="size-4" />

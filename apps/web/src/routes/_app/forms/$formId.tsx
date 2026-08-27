@@ -24,7 +24,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { api, toastApiError } from "@/lib/api"
 import { formatRelativeTime } from "@/lib/format"
 import { useForm, useFormDrift, useFormEmbed, useFormSchema, usePublishFormSchema, useUpdateForm, useFormSchemaVersions } from "@/lib/queries/forms"
-import { buildEditedSchema, editableFieldsFromSchema, isEditableFieldName, retainUiHints, type EditableField, type EditableFieldType } from "@/lib/schema-editing"
+import {
+  buildEditedSchema,
+  editableFieldsFromSchema,
+  hasUnsafeSchemaFieldRemoval,
+  isEditableFieldName,
+  retainUiHints,
+  UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE,
+  type EditableField,
+  type EditableFieldType,
+} from "@/lib/schema-editing"
 import { useFormSubmissions } from "@/lib/queries/submissions"
 
 const TAB_VALUES = ["inbox", "embed", "fields", "send-to", "settings"] as const
@@ -382,7 +391,12 @@ function FormFieldsEditor({ schema, publish }: { readonly schema: FieldsSchema |
                 className="size-8 text-muted-foreground"
                 aria-label={`Remove ${field.name}`}
                 onClick={() => {
-                  setFields((current) => current.filter((f) => f.name !== field.name))
+                  const nextFields = fields.filter((candidate) => candidate.name !== field.name)
+                  if (hasUnsafeSchemaFieldRemoval(nextFields, previous)) {
+                    toast.error(UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE)
+                    return
+                  }
+                  setFields(nextFields)
                 }}
               >
                 <X className="size-4" />

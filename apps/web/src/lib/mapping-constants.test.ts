@@ -119,6 +119,30 @@ describe("mapping constants", () => {
     expect(parseMappingConstant("no", root.properties.child, root, "child").ok).toBe(false)
   })
 
+  it("keeps instance-valued const objects out of bundled Schema resource traversal", () => {
+    const root = {
+      $id: "https://example.test/stream",
+      type: "object",
+      properties: {
+        fixed: { const: { $id: "literal-id", enabled: true } },
+        alias: { $ref: "#/properties/fixed" },
+      },
+    }
+
+    const value = '{"$id":"literal-id","enabled":true}'
+    const missingId = '{"enabled":true}'
+    expect(parseMappingConstant(value, root.properties.fixed, root, "fixed")).toEqual({
+      ok: true,
+      value: { $id: "literal-id", enabled: true },
+    })
+    expect(parseMappingConstant(missingId, root.properties.fixed, root, "fixed").ok).toBe(false)
+    expect(parseMappingConstant(value, root.properties.alias, root, "alias")).toEqual({
+      ok: true,
+      value: { $id: "literal-id", enabled: true },
+    })
+    expect(parseMappingConstant(missingId, root.properties.alias, root, "alias").ok).toBe(false)
+  })
+
   it("returns a validation result when a local reference cannot resolve", () => {
     const root = { type: "object", properties: { alias: { $ref: "#/properties/missing" } } }
 
