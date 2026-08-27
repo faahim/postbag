@@ -4719,8 +4719,11 @@ paths:
                         description: One Form feeding this Stream. Mutually exclusive with `selector`.
                       selector:
                         type: string
-                        description: "A dynamic Form source: `tag:<tag>` or `project:<project_id>`.
-                          Mutually exclusive with `form_id`."
+                        pattern: ^(?:tag|project):\S(?:.*\S)?$
+                        description: "A dynamic Form source: non-empty `tag:<tag>` or
+                          `project:<project_id>` without leading or trailing
+                          whitespace after `:`. Mutually exclusive with
+                          `form_id`."
                       mapping:
                         type: object
                         additionalProperties:
@@ -4904,8 +4907,11 @@ paths:
                         description: One Form feeding this Stream. Mutually exclusive with `selector`.
                       selector:
                         type: string
-                        description: "A dynamic Form source: `tag:<tag>` or `project:<project_id>`.
-                          Mutually exclusive with `form_id`."
+                        pattern: ^(?:tag|project):\S(?:.*\S)?$
+                        description: "A dynamic Form source: non-empty `tag:<tag>` or
+                          `project:<project_id>` without leading or trailing
+                          whitespace after `:`. Mutually exclusive with
+                          `form_id`."
                       mapping:
                         type: object
                         additionalProperties:
@@ -5230,8 +5236,10 @@ paths:
                   description: One Form feeding this Stream. Mutually exclusive with `selector`.
                 selector:
                   type: string
-                  description: "A dynamic Form source: `tag:<tag>` or `project:<project_id>`.
-                    Mutually exclusive with `form_id`."
+                  pattern: ^(?:tag|project):\S(?:.*\S)?$
+                  description: "A dynamic Form source: non-empty `tag:<tag>` or
+                    `project:<project_id>` without leading or trailing
+                    whitespace after `:`. Mutually exclusive with `form_id`."
                 mapping:
                   type: object
                   additionalProperties:
@@ -5326,8 +5334,10 @@ paths:
                   description: One Form feeding this Stream. Mutually exclusive with `selector`.
                 selector:
                   type: string
-                  description: "A dynamic Form source: `tag:<tag>` or `project:<project_id>`.
-                    Mutually exclusive with `form_id`."
+                  pattern: ^(?:tag|project):\S(?:.*\S)?$
+                  description: "A dynamic Form source: non-empty `tag:<tag>` or
+                    `project:<project_id>` without leading or trailing
+                    whitespace after `:`. Mutually exclusive with `form_id`."
                 mapping:
                   type: object
                   additionalProperties:

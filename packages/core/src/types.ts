@@ -410,11 +410,15 @@ const MappingEntrySchema = z
       })
   })
 const MappingSchema = z.record(z.string(), MappingEntrySchema)
+const StreamSourceSelectorSchema = z.string().regex(
+  /^(?:tag|project):\S(?:.*\S)?$/,
+  "Selector must be a non-empty `tag:<tag>` or `project:<project_id>` value.",
+)
 
 export const StreamSourceInputSchema = z
   .object({
     form_id: z.string().startsWith("fm_").optional(),
-    selector: z.string().optional(),
+    selector: StreamSourceSelectorSchema.optional(),
     mapping: MappingSchema.default({}),
   })
   .superRefine((value, context) => {

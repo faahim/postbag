@@ -511,6 +511,67 @@ integration("/v1 API", () => {
     await db.delete(streams).where(eq(streams.id, stream.id))
   })
 
+  it("accepts only non-empty tag and project selectors for Stream sources", async () => {
+    const createWithTagSelector = await harness.app.request(
+      "/v1/streams",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: "Tag selector contract",
+          schema: { json_schema: { type: "object", properties: {} } },
+          sources: [{ selector: "tag:contact", mapping: {} }],
+        }),
+      }),
+    )
+    expect(createWithTagSelector.status).toBe(201)
+    const stream = (await createWithTagSelector.json()) as { id: string }
+
+    const attachProjectSelector = await harness.app.request(
+      `/v1/streams/${stream.id}/sources`,
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ selector: "project:prj_site", mapping: {} }),
+      }),
+    )
+    expect(attachProjectSelector.status).toBe(201)
+    expect(((await attachProjectSelector.json()) as { selector: string }).selector).toBe("project:prj_site")
+
+    const invalidAttach = await harness.app.request(
+      `/v1/streams/${stream.id}/sources`,
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ selector: "tags:contact", mapping: {} }),
+      }),
+    )
+    expect(invalidAttach.status).toBe(422)
+    expect(((await invalidAttach.json()) as { error: { code: string; docs?: string } }).error).toMatchObject({
+      code: "validation_failed",
+      docs: "https://postbag.dev/docs/errors/validation_failed",
+    })
+
+    for (const selector of ["tag:", "tag:   ", "project:", "project:\t", "tags:contact", "form:fm_contact"]) {
+      const invalidCreate = await harness.app.request(
+        "/v1/streams",
+        authed(keyA, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: "Invalid selector contract",
+            schema: { json_schema: { type: "object", properties: {} } },
+            sources: [{ selector, mapping: {} }],
+          }),
+        }),
+      )
+      expect(invalidCreate.status, selector).toBe(422)
+      const body = (await invalidCreate.json()) as { error: { code: string; docs?: string } }
+      expect(body.error.code, selector).toBe("validation_failed")
+      expect(body.error.docs, selector).toBe("https://postbag.dev/docs/errors/validation_failed")
+    }
+  })
+
   it("counts recent Submissions from tag and Project selector sources once per Stream", async () => {
     const countOrg = await seedOrganization(db, "Selector count Org")
     const countKey = await createTestApiKey(harness.auth, countOrg.organizationId, countOrg.userId)

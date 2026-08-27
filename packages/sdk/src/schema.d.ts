@@ -5235,7 +5235,7 @@ export interface operations {
                     sources?: {
                         /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                         form_id?: string;
-                        /** @description A dynamic Form source: `tag:<tag>` or `project:<project_id>`. Mutually exclusive with `form_id`. */
+                        /** @description A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`. */
                         selector?: string;
                         /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                         mapping?: {
@@ -5507,7 +5507,7 @@ export interface operations {
                     sources?: {
                         /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                         form_id?: string;
-                        /** @description A dynamic Form source: `tag:<tag>` or `project:<project_id>`. Mutually exclusive with `form_id`. */
+                        /** @description A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`. */
                         selector?: string;
                         /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                         mapping?: {
@@ -5805,7 +5805,7 @@ export interface operations {
                 "application/json": {
                     /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                     form_id?: string;
-                    /** @description A dynamic Form source: `tag:<tag>` or `project:<project_id>`. Mutually exclusive with `form_id`. */
+                    /** @description A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`. */
                     selector?: string;
                     /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                     mapping?: {
@@ -5979,7 +5979,7 @@ export interface operations {
                 "application/json": {
                     /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                     form_id?: string;
-                    /** @description A dynamic Form source: `tag:<tag>` or `project:<project_id>`. Mutually exclusive with `form_id`. */
+                    /** @description A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`. */
                     selector?: string;
                     /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                     mapping?: {

@@ -76,6 +76,15 @@ const SafeMappingEntrySchema = z.object({
   default: z.unknown().optional().describe("Fallback value when the resolved value is missing."),
 })
 export const SafeMappingSchema = z.record(z.string(), SafeMappingEntrySchema)
+const StreamSelectorSchema = z
+  .string()
+  .regex(
+    /^(?:tag|project):\S(?:.*\S)?$/,
+    "Selector must be a non-empty `tag:<tag>` or `project:<project_id>` value.",
+  )
+  .describe(
+    "A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`.",
+  )
 export const SafeStreamSourceInputSchema = z.object({
   form_id: z
     .string()
@@ -83,10 +92,7 @@ export const SafeStreamSourceInputSchema = z.object({
     .describe(
       "One Form feeding this Stream. Mutually exclusive with `selector`.",
     ),
-  selector: z
-    .string()
-    .optional()
-    .describe("A dynamic Form source: `tag:<tag>` or `project:<project_id>`. Mutually exclusive with `form_id`."),
+  selector: StreamSelectorSchema.optional(),
   mapping: SafeMappingSchema.optional().describe(
     "Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), " +
       "`const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the " +
