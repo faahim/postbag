@@ -81,6 +81,7 @@ const overlaysHero = current === "/"
   const header = document.querySelector<HTMLElement>("[data-hero-overlay]")
   const siteNav = document.querySelector<HTMLElement>(".site-nav")
   const sentinel = document.querySelector<HTMLElement>("[data-nav-sentinel]")
+  const backgroundRegions = document.querySelectorAll<HTMLElement>("main, body > footer")
   if (header && sentinel) {
     const observer = new IntersectionObserver(([entry]) => {
       header.toggleAttribute("data-scrolled", !entry?.isIntersecting)
@@ -101,6 +102,7 @@ const overlaysHero = current === "/"
     navToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu")
     siteNav.toggleAttribute("data-menu-open", open)
     document.documentElement.toggleAttribute("data-mobile-nav-open", open)
+    backgroundRegions.forEach((region) => region.toggleAttribute("inert", open))
 
     if (open) {
       requestAnimationFrame(() => mobile.focus())

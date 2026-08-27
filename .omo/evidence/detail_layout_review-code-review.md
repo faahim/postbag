@@ -1,7 +1,7 @@
 # Detail-layout repair code review
 
-**Reviewed commit:** `b9dc70d fix(site): restore readable detail page layouts`  
-**Scope:** `apps/site/src/pages/features/[slug].astro`, `apps/site/src/pages/use-cases/[slug].astro`  
+**Reviewed commit:** `b9dc70d fix(site): restore readable detail page layouts`
+**Scope:** `apps/site/src/pages/features/[slug].astro`, `apps/site/src/pages/use-cases/[slug].astro`
 **Verdict:** `WATCH` - **APPROVE**
 
 ## Evidence reviewed
