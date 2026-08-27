@@ -24,6 +24,7 @@ import { api, unwrap } from "@/lib/api"
 import { authClient } from "@/lib/auth-client"
 import { billingIntentFromSearch, billingIntentSearchSchema } from "@/lib/billing-intent"
 import { useMe } from "@/lib/queries/me"
+import { timeZoneOptions } from "@/lib/timezones"
 import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/_app/settings/")({
@@ -40,7 +41,7 @@ function TimezoneField({
   readonly onChange: (next: string) => void
 }) {
   const [open, setOpen] = useState(false)
-  const zones = useMemo(() => Intl.supportedValuesOf("timeZone"), [])
+  const zones = useMemo(() => timeZoneOptions(Intl.supportedValuesOf("timeZone"), value), [value])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

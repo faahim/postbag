@@ -23,15 +23,8 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { api, toastApiError } from "@/lib/api"
 import { formatRelativeTime } from "@/lib/format"
-import {
-  useForm,
-  useFormDrift,
-  useFormEmbed,
-  useFormSchema,
-  usePublishFormSchema,
-  useUpdateForm,
-  useFormSchemaVersions,
-} from "@/lib/queries/forms"
+import { useForm, useFormDrift, useFormEmbed, useFormSchema, usePublishFormSchema, useUpdateForm, useFormSchemaVersions } from "@/lib/queries/forms"
+import { buildEditedSchema, editableFieldsFromSchema, retainUiHints, type EditableField, type EditableFieldType } from "@/lib/schema-editing"
 import { useFormSubmissions } from "@/lib/queries/submissions"
 
 const TAB_VALUES = ["inbox", "embed", "fields", "send-to", "settings"] as const
@@ -68,17 +61,14 @@ function FormDetailRoute() {
           to="/forms"
           className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-(--duration-quick) hover:text-foreground"
         >
-          <ArrowLeft className="size-3.5 transition-transform duration-(--duration-quick) ease-(--ease-smooth-out) group-hover:-translate-x-0.5" />{" "}
-          Forms
+          <ArrowLeft className="size-3.5 transition-transform duration-(--duration-quick) ease-(--ease-smooth-out) group-hover:-translate-x-0.5" /> Forms
         </Link>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight">{form.data.name}</h1>
           <Badge variant={form.data.status === "active" ? "success" : "muted"}>{form.data.status}</Badge>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <code className="rounded-md bg-muted px-2.5 py-1.5 font-mono text-xs text-muted-foreground">
-            {form.data.submit_url}
-          </code>
+          <code className="rounded-md bg-muted px-2.5 py-1.5 font-mono text-xs text-muted-foreground">{form.data.submit_url}</code>
           <CopyButton value={form.data.submit_url} label="Copy URL" />
         </div>
       </div>
@@ -86,7 +76,11 @@ function FormDetailRoute() {
       <Tabs
         value={search.tab ?? "inbox"}
         onValueChange={(tab) => {
-          void navigate({ to: "/forms/$formId", params: { formId }, search: { tab: tab as TabValue } })
+          void navigate({
+            to: "/forms/$formId",
+            params: { formId },
+            search: { tab: tab as TabValue },
+          })
         }}
       >
         <TabsList>
@@ -114,7 +108,12 @@ function FormDetailRoute() {
         </TabsContent>
       </Tabs>
 
-      <SubmissionDrawer submissionId={openSubmissionId} onOpenChange={(open) => { if (!open) setOpenSubmissionId(null) }} />
+      <SubmissionDrawer
+        submissionId={openSubmissionId}
+        onOpenChange={(open) => {
+          if (!open) setOpenSubmissionId(null)
+        }}
+      />
     </div>
   )
 }
@@ -156,9 +155,12 @@ function FieldsTab({ formId }: { readonly formId: string }) {
 
   async function publishWhatWereSeeing() {
     if (drift.data === undefined || drift.data.length === 0) return
-    const current = schema.data?.json_schema as { properties?: Record<string, unknown>; required?: string[] } | undefined
-    const properties: Record<string, unknown> = { ...(current?.properties ?? {}) }
-    let required: string[] = [...(current?.required ?? [])]
+    const current = schema.data?.json_schema as Readonly<Record<string, unknown>> | undefined
+    const currentUi = schema.data?.ui as Readonly<Record<string, unknown>> | undefined
+    const properties: Record<string, unknown> = {
+      ...((current?.["properties"] as Record<string, unknown> | undefined) ?? {}),
+    }
+    let required: string[] = [...((current?.["required"] as readonly string[] | undefined) ?? [])]
     for (const event of drift.data) {
       if (event.kind === "missing_field") {
         required = required.filter((f) => f !== event.field)
@@ -167,7 +169,15 @@ function FieldsTab({ formId }: { readonly formId: string }) {
       }
     }
     await publish.mutateAsync({
-      json_schema: { type: "object", properties, required },
+      json_schema: {
+        ...current,
+        $schema: current?.["$schema"] ?? "https://json-schema.org/draft/2020-12/schema",
+        type: "object",
+        properties,
+        required,
+        additionalProperties: current?.["additionalProperties"] ?? true,
+      },
+      ...(currentUi === undefined ? {} : { ui: currentUi }),
       changelog: "Published what we're seeing (drift resolution).",
     })
     toast.success("Schema published.")
@@ -185,13 +195,7 @@ function FieldsTab({ formId }: { readonly formId: string }) {
                 : "Edit and publish — a new immutable version each time; older Submissions keep the shape they arrived with."}
             </p>
           </div>
-          {!schema.isLoading && (
-            <FormFieldsEditor
-              key={schema.data?.version ?? 0}
-              schema={schema.data as FieldsSchema | undefined}
-              publish={publish}
-            />
-          )}
+          {!schema.isLoading && <FormFieldsEditor key={schema.data?.version ?? 0} schema={schema.data as FieldsSchema | undefined} publish={publish} />}
         </CardContent>
       </Card>
 
@@ -250,18 +254,13 @@ function FieldsTab({ formId }: { readonly formId: string }) {
   )
 }
 
-type FieldType = "string" | "number" | "boolean" | "other"
+type FieldType = EditableFieldType
 type FieldsSchema = {
   readonly version?: number
   readonly json_schema: unknown
+  readonly ui?: unknown
 }
-type FieldRow = {
-  readonly name: string
-  readonly type: FieldType
-  readonly required: boolean
-  /** The property as published, so untouched fields round-trip byte-for-byte. */
-  readonly original?: Readonly<Record<string, unknown>>
-}
+type FieldRow = EditableField
 
 const FIELD_TYPE_LABEL: Record<FieldType, string> = {
   string: "Text",
@@ -272,57 +271,24 @@ const FIELD_TYPE_LABEL: Record<FieldType, string> = {
 
 const FIELD_NAME = /^[A-Za-z_][A-Za-z0-9_.-]*$/u
 
-function fieldTypeOf(property: Readonly<Record<string, unknown>> | undefined): FieldType {
-  const type = property?.["type"]
-  if (type === "string" || type === "number" || type === "boolean") return type
-  if (type === "integer") return "number"
-  return "other"
-}
-
 function fieldsFromFormSchema(schema: FieldsSchema | undefined): FieldRow[] {
-  const json = schema?.json_schema as { properties?: Record<string, Record<string, unknown>>; required?: string[] } | undefined
-  const required = new Set(json?.required ?? [])
-  return Object.entries(json?.properties ?? {}).map(([name, property]) => ({
-    name,
-    type: fieldTypeOf(property),
-    required: required.has(name),
-    original: property,
-  }))
-}
-
-function buildFormSchema(fields: readonly FieldRow[], previous: Readonly<Record<string, unknown>> | undefined): Record<string, unknown> {
-  const properties = Object.fromEntries(
-    fields.map((field) => {
-      const keepOriginal = field.original !== undefined && (field.type === "other" || fieldTypeOf(field.original) === field.type)
-      return [field.name, keepOriginal ? field.original : { type: field.type }]
-    }),
+  return editableFieldsFromSchema(
+    schema?.json_schema as Readonly<Record<string, unknown>> | undefined,
+    schema?.ui as Readonly<Record<string, unknown>> | undefined,
   )
-  return {
-    $schema: previous?.["$schema"] ?? "https://json-schema.org/draft/2020-12/schema",
-    type: "object",
-    properties,
-    required: fields.filter((f) => f.required).map((f) => f.name),
-    additionalProperties: previous?.["additionalProperties"] ?? true,
-  }
 }
 
 /** The Form's declared fields as an editable list — publishing always creates the
  * next immutable version (Golden rule 5), never edits one in place. */
-function FormFieldsEditor({
-  schema,
-  publish,
-}: {
-  readonly schema: FieldsSchema | undefined
-  readonly publish: ReturnType<typeof usePublishFormSchema>
-}) {
+function FormFieldsEditor({ schema, publish }: { readonly schema: FieldsSchema | undefined; readonly publish: ReturnType<typeof usePublishFormSchema> }) {
   const previous = schema?.json_schema as Readonly<Record<string, unknown>> | undefined
+  const previousUi = schema?.ui as Readonly<Record<string, unknown>> | undefined
   const [fields, setFields] = useState<FieldRow[]>(() => fieldsFromFormSchema(schema))
   const [newName, setNewName] = useState("")
   const [nameError, setNameError] = useState<string | undefined>(undefined)
 
-  const draft = buildFormSchema(fields, previous)
-  const dirty =
-    schema === undefined ? fields.length > 0 : JSON.stringify(draft) !== JSON.stringify(buildFormSchema(fieldsFromFormSchema(schema), previous))
+  const draft = buildEditedSchema(fields, previous)
+  const dirty = schema === undefined ? fields.length > 0 : JSON.stringify(draft) !== JSON.stringify(buildEditedSchema(fieldsFromFormSchema(schema), previous))
   const nextVersion = (schema?.version ?? 0) + 1
 
   function addField(event: { preventDefault: () => void }) {
@@ -344,7 +310,12 @@ function FormFieldsEditor({
 
   async function publishFields() {
     try {
-      await publish.mutateAsync({ json_schema: draft, changelog: `Version ${nextVersion.toString()} — edited in the dashboard.` })
+      const keptUi = retainUiHints(previousUi, fields)
+      await publish.mutateAsync({
+        json_schema: draft,
+        ...(keptUi === undefined ? {} : { ui: keptUi }),
+        changelog: `Version ${nextVersion.toString()} — edited in the dashboard.`,
+      })
       toast.success(`Version ${nextVersion.toString()} published.`)
     } catch (error) {
       toastApiError(error, "Couldn't publish the fields — try again.")
@@ -446,9 +417,7 @@ function SettingsTab({
   const navigate = useNavigate()
   const updateForm = useUpdateForm(formId)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [origins, setOrigins] = useState(
-    Array.isArray(settings["allowed_origins"]) ? (settings["allowed_origins"] as string[]).join(", ") : "",
-  )
+  const [origins, setOrigins] = useState(Array.isArray(settings["allowed_origins"]) ? (settings["allowed_origins"] as string[]).join(", ") : "")
   const [redirectUrl, setRedirectUrl] = useState(typeof settings["redirect_url"] === "string" ? settings["redirect_url"] : "")
   const [honeypot, setHoneypot] = useState(typeof settings["honeypot_field"] === "string" ? settings["honeypot_field"] : "_gotcha")
   const [replyTo, setReplyTo] = useState(typeof settings["reply_to_field"] === "string" ? settings["reply_to_field"] : "")
@@ -493,19 +462,46 @@ function SettingsTab({
           <Separator />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="origins">Allowed origins</Label>
-            <Input id="origins" value={origins} onChange={(e) => { setOrigins(e.target.value) }} placeholder="https://example.com, https://www.example.com" />
+            <Input
+              id="origins"
+              value={origins}
+              onChange={(e) => {
+                setOrigins(e.target.value)
+              }}
+              placeholder="https://example.com, https://www.example.com"
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="redirect">Redirect URL</Label>
-            <Input id="redirect" value={redirectUrl} onChange={(e) => { setRedirectUrl(e.target.value) }} placeholder="https://example.com/thanks" />
+            <Input
+              id="redirect"
+              value={redirectUrl}
+              onChange={(e) => {
+                setRedirectUrl(e.target.value)
+              }}
+              placeholder="https://example.com/thanks"
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="honeypot">Honeypot field</Label>
-            <Input id="honeypot" value={honeypot} onChange={(e) => { setHoneypot(e.target.value) }} />
+            <Input
+              id="honeypot"
+              value={honeypot}
+              onChange={(e) => {
+                setHoneypot(e.target.value)
+              }}
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="reply-to">Reply-to field</Label>
-            <Input id="reply-to" value={replyTo} onChange={(e) => { setReplyTo(e.target.value) }} placeholder="email" />
+            <Input
+              id="reply-to"
+              value={replyTo}
+              onChange={(e) => {
+                setReplyTo(e.target.value)
+              }}
+              placeholder="email"
+            />
           </div>
           <Button className="self-start" onClick={() => void save()} disabled={updateForm.isPending}>
             {updateForm.isPending ? "Saving…" : "Save settings"}
