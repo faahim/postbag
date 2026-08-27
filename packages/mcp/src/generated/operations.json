@@ -2860,26 +2860,47 @@
           "description": "Disable a route without deleting it."
         },
         "mode": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": [
-                "instant",
-                "digest"
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "instant"
+                  ]
+                }
+              },
+              "required": [
+                "type"
               ]
             },
-            "cron": {
-              "type": "string",
-              "description": "Cron expression for digest mode, e.g. '0 9 * * *'."
-            },
-            "timezone": {
-              "type": "string",
-              "description": "IANA timezone the cron runs in; required when changing to digest mode."
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "digest"
+                  ]
+                },
+                "cron": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Cron expression for digest mode, e.g. '0 9 * * *'."
+                },
+                "timezone": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "IANA timezone the cron runs in."
+                }
+              },
+              "required": [
+                "type",
+                "cron",
+                "timezone"
+              ]
             }
-          },
-          "required": [
-            "type"
           ],
           "description": "instant delivers as submissions arrive; digest batches into one payload per period."
         },

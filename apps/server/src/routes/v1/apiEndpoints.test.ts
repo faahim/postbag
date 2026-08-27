@@ -582,6 +582,76 @@ integration("/v1 API", () => {
     expect(((await named.json()) as { name: string }).name).toBe("Sales inbox")
   })
 
+  it("rejects incomplete digest Route updates without changing delivery mode", async () => {
+    const formResponse = await harness.app.request(
+      "/v1/forms",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "Digest update validation" }),
+      }),
+    )
+    expect(formResponse.status).toBe(201)
+    const form = (await formResponse.json()) as { id: string }
+
+    const destinationResponse = await harness.app.request(
+      "/v1/destinations",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type: "email", config: { to: ["digest@example.com"] } }),
+      }),
+    )
+    expect(destinationResponse.status).toBe(201)
+    const destination = (await destinationResponse.json()) as { id: string }
+
+    const routeResponse = await harness.app.request(
+      "/v1/routes",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          form_id: form.id,
+          destination_id: destination.id,
+          mode: { type: "instant" },
+        }),
+      }),
+    )
+    expect(routeResponse.status).toBe(201)
+    const route = (await routeResponse.json()) as { id: string }
+
+    const incomplete = await harness.app.request(
+      `/v1/routes/${route.id}`,
+      authed(keyA, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode: { type: "digest", cron: "0 9 * * *" } }),
+      }),
+    )
+    expect(incomplete.status).toBe(422)
+
+    const unchanged = await harness.app.request(`/v1/routes/${route.id}`, authed(keyA))
+    expect(unchanged.status).toBe(200)
+    expect(((await unchanged.json()) as { mode: { type: string } }).mode).toEqual({ type: "instant" })
+
+    const complete = await harness.app.request(
+      `/v1/routes/${route.id}`,
+      authed(keyA, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          mode: { type: "digest", cron: "0 9 * * *", timezone: "Asia/Dhaka" },
+        }),
+      }),
+    )
+    expect(complete.status).toBe(200)
+    expect(((await complete.json()) as { mode: Record<string, string> }).mode).toEqual({
+      type: "digest",
+      cron: "0 9 * * *",
+      timezone: "Asia/Dhaka",
+    })
+  })
+
   it("GET /v1/webhooks/{id}/deliveries returns cursor-paginated delivery history", async () => {
     const createWebhook = await harness.app.request(
       "/v1/webhooks",

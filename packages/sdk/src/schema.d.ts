@@ -6896,11 +6896,14 @@ export interface operations {
                     /** @description instant delivers as submissions arrive; digest batches into one payload per period. */
                     mode?: {
                         /** @enum {string} */
-                        type: "instant" | "digest";
+                        type: "instant";
+                    } | {
+                        /** @enum {string} */
+                        type: "digest";
                         /** @description Cron expression for digest mode, e.g. '0 9 * * *'. */
-                        cron?: string;
-                        /** @description IANA timezone the cron runs in; required when changing to digest mode. */
-                        timezone?: string;
+                        cron: string;
+                        /** @description IANA timezone the cron runs in. */
+                        timezone: string;
                     };
                     /** @description Only deliver submissions received in this ISO datetime range. */
                     window?: {

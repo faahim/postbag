@@ -15,14 +15,14 @@ const RouteListSchema = z.object({ data: z.array(RouteSchema), next_cursor: z.st
 const RoutePatchInputSchema = z.object({
   enabled: z.boolean().optional().describe("Disable a route without deleting it."),
   mode: z
-    .object({
-      type: z.enum(["instant", "digest"]),
-      cron: z.string().optional().describe("Cron expression for digest mode, e.g. '0 9 * * *'."),
-      timezone: z
-        .string()
-        .optional()
-        .describe("IANA timezone the cron runs in; required when changing to digest mode."),
-    })
+    .discriminatedUnion("type", [
+      z.object({ type: z.literal("instant") }),
+      z.object({
+        type: z.literal("digest"),
+        cron: z.string().min(1).describe("Cron expression for digest mode, e.g. '0 9 * * *'."),
+        timezone: z.string().min(1).describe("IANA timezone the cron runs in."),
+      }),
+    ])
     .optional()
     .describe(
       "instant delivers as submissions arrive; digest batches into one payload per period.",
