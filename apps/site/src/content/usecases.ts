@@ -17,7 +17,7 @@ export const USE_CASES: UseCase[] = [
     lede: "Someone likes your site and writes to you. Postbag keeps the message safe and gets it to you without a server to look after.",
     sections: [
       { h: "Set up", p: ["Name the form, choose an email, and paste in the snippet. Or hand the setup to your agent and come back to a working form."] , code: { lang: "html", title: "contact.html", code: `<form action="${u}/s/${EXAMPLE.form}" method="POST">\n  <label>Email<input type="email" name="email" required /></label>\n  <label>Message<textarea name="message" required></textarea></label>\n  <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="position:absolute;left:-10000px" aria-hidden="true" />\n  <input type="hidden" name="_redirect" value="https://example.com/thanks" />\n  <button type="submit">Send</button>\n</form>` } },
-      { h: "A message you can find", p: ["You get an email for every message, where Reply reaches the person who wrote it. Your inbox keeps what arrived, including anything the spam trap caught. Visitors go straight to your thank-you page."] },
+      { h: "A message you can find", p: ["You get an email for each message that is ready to go, where Reply reaches the person who wrote it. Your inbox keeps everything that arrived, including anything held back by spam or safety checks. Visitors go straight to your thank-you page."] },
       { h: "When the site grows", p: ["Add Telegram for your phone or send leads to your CRM. Let only your own site use the form, or add a bot check when you need one. Your existing HTML can stay put."] },
     ],
     faqs: [ { q: "Do I need JavaScript?", a: "No. A plain HTML form works and redirects after it is sent. JavaScript is optional." }, { q: "Will I get spam?", a: "The spam trap and rate limit are on by default. We keep caught messages out of your email, and you can review them when you need to." } ],
@@ -46,7 +46,7 @@ export const USE_CASES: UseCase[] = [
     lede: "A lead is worth money. Keep it first, send it where it needs to go, and do not lose the thread when something is down.",
     sections: [
       { h: "Send it where it matters", p: ["One lead can go to a few places at once. Your CRM gets the details, sales gets a Telegram ping, and ops gets the morning note. You can see what happened at every stop."] },
-      { h: "When the CRM is down", p: ["If your CRM is down all weekend, the lead is still here on Monday. We keep trying to send it. If it cannot get through, you get a clear alert and can send it again with one click."] },
+      { h: "When the CRM is down", p: ["If your CRM is down all weekend, the lead is still here on Monday. Postbag tries up to 10 times. If it still cannot get through, you get a clear alert; once the CRM is back, send it again with one click."] },
       { h: "Keep spam from sales", p: ["Spam stays away from sales by default. You can choose to include it when an audit needs the full picture, but it never slips in by accident."] },
       { h: "Campaigns and daily notes", p: ["Set a campaign's dates once. Ask for a morning summary at 08:00 in your own timezone. One daily note means one daily note, not a busy inbox full of near-duplicates."] , code: { lang: "bash", title: "What your agent sends", code: `curl -X POST ${u}/v1/routes -H "Authorization: Bearer pb_live_…" -d '{\n  "stream_id": "${EXAMPLE.stream}", "destination_id": "${EXAMPLE.destination}",\n  "mode": { "type": "digest", "cron": "0 8 * * *", "timezone": "Europe/Stockholm" }\n}'` } },
     ],

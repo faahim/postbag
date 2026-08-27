@@ -26,6 +26,18 @@ export function modeFor(state: CadenceState, timezone: string) {
   return { type: "digest" as const, cron, timezone }
 }
 
+export function isEditableCadenceMode(mode: { readonly type: string; readonly cron?: string }): boolean {
+  if (mode.type !== "digest") return true
+  if (mode.cron === undefined) return false
+  const fields = mode.cron.trim().split(/\s+/u)
+  if (fields.length !== 5) return false
+  const [minute, hour, dayOfMonth, month, dayOfWeek] = fields
+  if (dayOfMonth !== "*" || month !== "*") return false
+  if (minute === undefined || !/^\d{1,2}$/u.test(minute) || Number(minute) > 59) return false
+  if (hour === undefined || !/^\d{1,2}$/u.test(hour) || Number(hour) > 23) return false
+  return dayOfWeek === "*" || (dayOfWeek !== undefined && /^[0-6]$/u.test(dayOfWeek))
+}
+
 /** The reverse read, so an existing Route's mode opens in the same controls it was made with. */
 export function cadenceStateFromMode(mode: { readonly type: string; readonly cron?: string }): CadenceState {
   if (mode.type !== "digest" || mode.cron === undefined) return DEFAULT_CADENCE

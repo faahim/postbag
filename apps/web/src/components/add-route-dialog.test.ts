@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { isCadenceComplete, isCadenceReady, modeFor } from "@/lib/cadence"
+import { isCadenceComplete, isCadenceReady, isEditableCadenceMode, modeFor } from "@/lib/cadence"
 
 describe("digest cadence validation", () => {
   it("accepts instant delivery without a time", () => {
@@ -27,5 +27,14 @@ describe("digest cadence validation", () => {
     expect(isCadenceReady({ cadence: "daily", time: "08:00", weekday: 1 }, undefined)).toBe(false)
     expect(isCadenceReady({ cadence: "daily", time: "08:00", weekday: 1 }, "Europe/Stockholm")).toBe(true)
     expect(isCadenceReady({ cadence: "instant", time: "", weekday: 1 }, undefined)).toBe(true)
+  })
+
+  it("only edits cron expressions the dashboard can round-trip", () => {
+    expect(isEditableCadenceMode({ type: "instant" })).toBe(true)
+    expect(isEditableCadenceMode({ type: "digest", cron: "5 8 * * *" })).toBe(true)
+    expect(isEditableCadenceMode({ type: "digest", cron: "5 8 * * 1" })).toBe(true)
+    expect(isEditableCadenceMode({ type: "digest", cron: "0 8 1 * *" })).toBe(false)
+    expect(isEditableCadenceMode({ type: "digest", cron: "0 8 * * 1,3" })).toBe(false)
+    expect(isEditableCadenceMode({ type: "digest", cron: "*/15 8 * * *" })).toBe(false)
   })
 })

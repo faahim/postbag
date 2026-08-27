@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch"
 import { describeDestination } from "@/components/destination-row"
 import { Badge } from "@/components/ui/badge"
 import { toastApiError } from "@/lib/api"
-import { cadenceStateFromMode, isCadenceReady, modeFor, type CadenceState } from "@/lib/cadence"
+import { cadenceStateFromMode, isCadenceReady, isEditableCadenceMode, modeFor, type CadenceState } from "@/lib/cadence"
 import { useDestinations, type Destination } from "@/lib/queries/destinations"
 import { useMe } from "@/lib/queries/me"
 import { useDeleteRoute, useRoutes, useUpdateRoute } from "@/lib/queries/routes"
@@ -198,9 +198,10 @@ function EditRouteDialog({
   const updateRoute = useUpdateRoute()
   const mode = route.mode as { readonly type: string; readonly cron?: string; readonly timezone?: string }
   const [cadence, setCadence] = useState<CadenceState>(() => cadenceStateFromMode(mode))
+  const cadenceEditable = isEditableCadenceMode(mode)
   const timezone = mode.timezone ?? me.data?.organization.timezone
   const timezoneLabel = timezone ?? (me.isError ? "Workspace timezone unavailable" : "Loading workspace timezone…")
-  const cadenceReady = isCadenceReady(cadence, timezone)
+  const cadenceReady = cadenceEditable && isCadenceReady(cadence, timezone)
   const timezoneUnavailable = cadence.cadence !== "instant" && timezone === undefined && me.isError
 
   function save() {
@@ -233,8 +234,17 @@ function EditRouteDialog({
             {destinationName === undefined ? "How this Route delivers." : `How this Route delivers to ${destinationName}. To send somewhere else, add a new Route.`}
           </DialogDescription>
         </DialogHeader>
-        <CadencePicker value={cadence} onChange={setCadence} timezone={timezoneLabel} />
-        {timezoneUnavailable && (
+        {cadenceEditable ? (
+          <CadencePicker value={cadence} onChange={setCadence} timezone={timezoneLabel} />
+        ) : (
+          <div className="rounded-lg border border-border/70 bg-muted/40 px-3 py-3">
+            <p className="text-sm font-medium">Advanced schedule</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This Route uses <span className="font-mono">{mode.cron}</span>, which the dashboard cannot edit safely. Its schedule is unchanged; use the API or CLI to update it.
+            </p>
+          </div>
+        )}
+        {cadenceEditable && timezoneUnavailable && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
             <p role="alert" className="text-xs text-destructive">
               Couldn't read the workspace timezone, so this digest hasn't been changed.
@@ -245,9 +255,13 @@ function EditRouteDialog({
           </div>
         )}
         <DialogFooter>
-          <Button onClick={save} disabled={!cadenceReady || updateRoute.isPending}>
-            {updateRoute.isPending ? "Saving…" : "Save delivery"}
-          </Button>
+          {cadenceEditable ? (
+            <Button onClick={save} disabled={!cadenceReady || updateRoute.isPending}>
+              {updateRoute.isPending ? "Saving…" : "Save delivery"}
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => { changeOpen(false) }}>Done</Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
