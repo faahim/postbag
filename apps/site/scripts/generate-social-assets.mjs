@@ -1,5 +1,5 @@
 import { constants } from "node:fs"
-import { access, mkdtemp, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises"
+import { access, mkdtemp, mkdir, rm, stat, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
@@ -64,44 +64,14 @@ function fileUrl(file) {
   return pathToFileURL(file).href
 }
 
-async function newestChromiumExecutable() {
-  const cache = path.join(os.homedir(), "Library/Caches/ms-playwright")
-  let entries
-
-  try {
-    entries = await readdir(cache, { withFileTypes: true })
-  } catch (error) {
-    throw new Error(
-      `Cannot read the Playwright browser cache at ${cache}. Install a Chromium headless shell before running brand:social.`,
-      { cause: error },
-    )
-  }
-
-  const versions = entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => /^chromium_headless_shell-(\d+)$/.exec(entry.name))
-    .filter(Boolean)
-    .map((match) => ({ directory: match[0], revision: Number(match[1]) }))
-    .sort((a, b) => b.revision - a.revision)
-
-  if (versions.length === 0) {
-    throw new Error(
-      `No chromium_headless_shell-* directory was found in ${cache}. Install a Playwright Chromium browser before running brand:social.`,
-    )
-  }
-
-  const newest = versions[0]
-  const executable = path.join(
-    cache,
-    newest.directory,
-    "chrome-headless-shell-mac-arm64/chrome-headless-shell",
-  )
+async function chromiumExecutable() {
+  const executable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || chromium.executablePath()
 
   try {
     await access(executable, constants.X_OK)
   } catch (error) {
     throw new Error(
-      `The newest cached Chromium headless shell (${newest.directory}) has no executable at ${executable}. Reinstall that Playwright browser before running brand:social.`,
+      `Chromium is not executable at ${executable}. Run "pnpm exec playwright install chromium" or set PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH before running brand:social.`,
       { cause: error },
     )
   }
@@ -383,7 +353,7 @@ async function main() {
   await assertAssets()
   await mkdir(output, { recursive: true })
 
-  const executablePath = await newestChromiumExecutable()
+  const executablePath = await chromiumExecutable()
   const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "postbag-social-"))
   const temporaryHtml = path.join(temporaryDirectory, "social-card.html")
   await writeFile(temporaryHtml, htmlTemplate(), "utf8")
