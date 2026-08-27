@@ -29,7 +29,7 @@ import {
 } from "@/lib/mapping-constants"
 import { useAllForms } from "@/lib/queries/forms"
 import { useFormSubmissions } from "@/lib/queries/submissions"
-import { formsForSources, selectorDescription, sourceMatchesForm } from "@/lib/stream-sources"
+import { formsForSources, formsWithoutDirectSource, selectorDescription, sourceMatchesForm } from "@/lib/stream-sources"
 import {
   useAddStreamSource,
   useDeleteStream,
@@ -421,8 +421,7 @@ function SourcesTab({
   readonly formsById: ReadonlyMap<string, string>
   readonly allForms: readonly FormRef[]
 }) {
-  const attachedFormIds = new Set(formsForSources(sources, allForms).map((form) => form.id))
-  const attachable = allForms.filter((f) => !attachedFormIds.has(f.id))
+  const attachable = formsWithoutDirectSource(sources, allForms)
 
   return (
     <div className="flex flex-col gap-4">

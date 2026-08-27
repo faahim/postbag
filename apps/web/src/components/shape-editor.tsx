@@ -253,7 +253,7 @@ function SeedFromForm({
             ))}
           </SelectContent>
         </Select>
-        {formId !== undefined && !known.pending && known.fields.length > 0 && (
+        {formId !== undefined && !known.pending && !known.failed && known.fields.length > 0 && (
           <Button
             size="sm"
             variant="outline"
@@ -266,7 +266,13 @@ function SeedFromForm({
           </Button>
         )}
       </div>
-      {formId !== undefined && !known.pending && (
+      {formId !== undefined && known.failed && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <p role="alert" className="text-xs text-destructive">Couldn't read this Form's fields, so its shape hasn't been copied.</p>
+          <Button type="button" variant="outline" size="sm" onClick={known.retry}>Try again</Button>
+        </div>
+      )}
+      {formId !== undefined && !known.pending && !known.failed && (
         <div className="flex flex-wrap gap-1.5">
           {known.fields.length === 0 ? (
             <p className="text-xs text-muted-foreground">

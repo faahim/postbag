@@ -24,6 +24,16 @@ export function formsForSources(
   return forms.filter((form) => sources.some((source) => sourceMatchesForm(source, form)))
 }
 
+/** A selector can include a Form while a direct source remains a useful, higher-priority
+ * override. Only Forms already attached directly should disappear from that picker. */
+export function formsWithoutDirectSource(
+  sources: readonly StreamSourceRef[],
+  forms: readonly StreamSourceForm[],
+): readonly StreamSourceForm[] {
+  const directIds = new Set(sources.flatMap((source) => source.form_id === undefined ? [] : [source.form_id]))
+  return forms.filter((form) => !directIds.has(form.id))
+}
+
 export function selectorDescription(selector: string): string {
   if (selector.startsWith("tag:")) return `Forms tagged “${selector.slice("tag:".length)}”`
   if (selector.startsWith("project:")) return `Forms in project ${selector.slice("project:".length)}`

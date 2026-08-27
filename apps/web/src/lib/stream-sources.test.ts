@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { formsForSources, selectorDescription, sourceMatchesForm } from "./stream-sources"
+import { formsForSources, formsWithoutDirectSource, selectorDescription, sourceMatchesForm } from "./stream-sources"
 
 const forms = [
   { id: "fm_one", name: "One", project_id: "pr_a", tags: ["lead", "site"] },
@@ -16,6 +16,11 @@ describe("Stream selector sources", () => {
 
   it("deduplicates the Forms represented by several sources", () => {
     expect(formsForSources([{ form_id: "fm_one" }, { selector: "tag:lead" }], forms).map((form) => form.id)).toEqual(["fm_one"])
+  })
+
+  it("keeps selector-matched Forms available as direct overrides", () => {
+    expect(formsWithoutDirectSource([{ selector: "tag:lead" }], forms).map((form) => form.id)).toEqual(["fm_one", "fm_two"])
+    expect(formsWithoutDirectSource([{ form_id: "fm_one" }, { selector: "tag:lead" }], forms).map((form) => form.id)).toEqual(["fm_two"])
   })
 
   it("gives supported selectors a readable label", () => {
