@@ -5233,9 +5233,9 @@ export interface operations {
                     };
                     /** @default [] */
                     sources?: {
-                        /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                        /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                         form_id?: string;
-                        /** @description Reserved for non-form sources (not yet implemented). */
+                        /** @description A dynamic Form source: `tag:<tag>` or `project:<project_id>`. Mutually exclusive with `form_id`. */
                         selector?: string;
                         /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                         mapping?: {
@@ -5505,9 +5505,9 @@ export interface operations {
                     };
                     /** @default [] */
                     sources?: {
-                        /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                        /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                         form_id?: string;
-                        /** @description Reserved for non-form sources (not yet implemented). */
+                        /** @description A dynamic Form source: `tag:<tag>` or `project:<project_id>`. Mutually exclusive with `form_id`. */
                         selector?: string;
                         /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                         mapping?: {
@@ -5803,9 +5803,9 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": {
-                    /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                    /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                     form_id?: string;
-                    /** @description Reserved for non-form sources (not yet implemented). */
+                    /** @description A dynamic Form source: `tag:<tag>` or `project:<project_id>`. Mutually exclusive with `form_id`. */
                     selector?: string;
                     /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                     mapping?: {
@@ -5977,9 +5977,9 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": {
-                    /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                    /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                     form_id?: string;
-                    /** @description Reserved for non-form sources (not yet implemented). */
+                    /** @description A dynamic Form source: `tag:<tag>` or `project:<project_id>`. Mutually exclusive with `form_id`. */
                     selector?: string;
                     /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                     mapping?: {

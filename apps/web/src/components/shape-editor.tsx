@@ -12,7 +12,7 @@ import { toastApiError } from "@/lib/api"
 import { useFormKnownFields } from "@/lib/form-fields"
 import { formatRelativeTime } from "@/lib/format"
 import { usePublishStreamSchema, type SchemaVersion } from "@/lib/queries/streams"
-import { buildEditedSchema, editableFieldsFromSchema, isEditableFieldName, retainUiHints, type EditableField, type EditableFieldType } from "@/lib/schema-editing"
+import { buildEditedSchema, editableFieldsFromSchema, isEditableFieldName, retainUiHints, schemaFromKnownFields, type EditableField, type EditableFieldType } from "@/lib/schema-editing"
 import { cn } from "@/lib/utils"
 
 type FieldType = EditableFieldType
@@ -47,12 +47,13 @@ export function ShapeEditor({
   const previous = schema?.json_schema as Readonly<Record<string, unknown>> | undefined
   const previousUi = schema?.ui as Readonly<Record<string, unknown>> | undefined
   const [fields, setFields] = useState<Field[]>(() => editableFieldsFromSchema(previous, previousUi))
+  const [seedSchema, setSeedSchema] = useState<Readonly<Record<string, unknown>> | undefined>(undefined)
   const [newName, setNewName] = useState("")
   const [nameError, setNameError] = useState<string | undefined>(undefined)
   const [changelog, setChangelog] = useState("")
   const publish = usePublishStreamSchema(streamId)
 
-  const draft = buildEditedSchema(fields, previous)
+  const draft = buildEditedSchema(fields, previous ?? seedSchema)
   const dirty =
     schema === undefined
       ? fields.length > 0
@@ -110,7 +111,13 @@ export function ShapeEditor({
       )}
 
       {fields.length === 0 ? (
-        <SeedFromForm forms={forms} onSeed={setFields} />
+        <SeedFromForm
+          forms={forms}
+          onSeed={(seededFields, seededSchema) => {
+            setSeedSchema(seededSchema)
+            setFields(seededFields)
+          }}
+        />
       ) : (
         <ul className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70 bg-card">
           {fields.map((field) => (
@@ -220,7 +227,7 @@ function SeedFromForm({
   onSeed,
 }: {
   readonly forms: readonly { readonly id: string; readonly name: string }[]
-  readonly onSeed: (fields: Field[]) => void
+  readonly onSeed: (fields: Field[], schema: Readonly<Record<string, unknown>>) => void
 }) {
   const [formId, setFormId] = useState<string | undefined>(undefined)
   const known = useFormKnownFields(formId)
@@ -251,13 +258,8 @@ function SeedFromForm({
             size="sm"
             variant="outline"
             onClick={() => {
-              onSeed(
-                known.fields.map((name) => ({
-                  name,
-                  type: "string",
-                  required: known.required.includes(name),
-                })),
-              )
+              const seededSchema = schemaFromKnownFields(known.fields, known.required, known.properties)
+              onSeed(editableFieldsFromSchema(seededSchema, undefined), seededSchema)
             }}
           >
             Use {known.fields.length === 1 ? "this field" : `these ${known.fields.length} fields`}

@@ -12,6 +12,7 @@ type MappingRule = { readonly from?: string; readonly const?: unknown }
 
 const UNMAPPED = "__unmapped__"
 const CONST = "__const__"
+const SOURCE_FIELD = "__source_field__"
 
 export function MappingEditor({
   streamId,
@@ -21,6 +22,7 @@ export function MappingEditor({
   formFields,
   initialMapping,
   missing,
+  freeformSource = false,
 }: {
   readonly streamId: string
   readonly sourceId: string
@@ -29,6 +31,9 @@ export function MappingEditor({
   readonly formFields: readonly string[]
   readonly initialMapping: Readonly<Record<string, MappingRule>>
   readonly missing: readonly string[]
+  /** Selector sources can represent several Forms, so their source field path is entered
+   * directly instead of pretending one Form's known-field list is exhaustive. */
+  readonly freeformSource?: boolean
 }) {
   const [mapping, setMapping] = useState<Record<string, MappingRule>>(initialMapping)
   const [constDrafts, setConstDrafts] = useState<Record<string, string>>({})
@@ -39,7 +44,8 @@ export function MappingEditor({
     const rule = mapping[field]
     if (rule === undefined) return UNMAPPED
     if (rule.const !== undefined) return CONST
-    return rule.from !== undefined ? `field:${rule.from}` : UNMAPPED
+    if (rule.from === undefined) return UNMAPPED
+    return freeformSource ? SOURCE_FIELD : `field:${rule.from}`
   }
 
   function onSelect(field: string, value: string) {
@@ -47,6 +53,8 @@ export function MappingEditor({
       setMapping((m) => Object.fromEntries(Object.entries(m).filter(([key]) => key !== field)))
     } else if (value === CONST) {
       setMapping((m) => ({ ...m, [field]: { const: constDrafts[field] ?? "" } }))
+    } else if (value === SOURCE_FIELD) {
+      setMapping((m) => ({ ...m, [field]: { from: m[field]?.from ?? "" } }))
     } else {
       setMapping((m) => ({ ...m, [field]: { from: value.replace("field:", "") } }))
     }
@@ -93,6 +101,17 @@ export function MappingEditor({
                     }}
                   />
                 )}
+                {current === SOURCE_FIELD && (
+                  <Input
+                    className="h-8 w-36 font-mono"
+                    placeholder="source.field"
+                    aria-label={`Source field for ${field}`}
+                    value={mapping[field]?.from ?? ""}
+                    onChange={(e) => {
+                      setMapping((m) => ({ ...m, [field]: { from: e.target.value } }))
+                    }}
+                  />
+                )}
                 <Select value={current} onValueChange={(v) => { onSelect(field, v) }}>
                   <SelectTrigger className="h-8 w-44">
                     <SelectValue />
@@ -100,11 +119,15 @@ export function MappingEditor({
                   <SelectContent>
                     <SelectItem value={UNMAPPED}>Leave unmapped</SelectItem>
                     <SelectItem value={CONST}>Fixed value</SelectItem>
-                    {formFields.map((f) => (
-                      <SelectItem key={f} value={`field:${f}`}>
-                        {f}
-                      </SelectItem>
-                    ))}
+                    {freeformSource ? (
+                      <SelectItem value={SOURCE_FIELD}>Map a source field</SelectItem>
+                    ) : (
+                      formFields.map((f) => (
+                        <SelectItem key={f} value={`field:${f}`}>
+                          {f}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

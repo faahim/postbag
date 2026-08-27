@@ -4716,12 +4716,11 @@ paths:
                     properties:
                       form_id:
                         type: string
-                        description: The form feeding this stream (mutually exclusive with `selector` in
-                          principle, though only one source kind is currently
-                          supported).
+                        description: One Form feeding this Stream. Mutually exclusive with `selector`.
                       selector:
                         type: string
-                        description: Reserved for non-form sources (not yet implemented).
+                        description: "A dynamic Form source: `tag:<tag>` or `project:<project_id>`.
+                          Mutually exclusive with `form_id`."
                       mapping:
                         type: object
                         additionalProperties:
@@ -4902,12 +4901,11 @@ paths:
                     properties:
                       form_id:
                         type: string
-                        description: The form feeding this stream (mutually exclusive with `selector` in
-                          principle, though only one source kind is currently
-                          supported).
+                        description: One Form feeding this Stream. Mutually exclusive with `selector`.
                       selector:
                         type: string
-                        description: Reserved for non-form sources (not yet implemented).
+                        description: "A dynamic Form source: `tag:<tag>` or `project:<project_id>`.
+                          Mutually exclusive with `form_id`."
                       mapping:
                         type: object
                         additionalProperties:
@@ -5229,12 +5227,11 @@ paths:
               properties:
                 form_id:
                   type: string
-                  description: The form feeding this stream (mutually exclusive with `selector` in
-                    principle, though only one source kind is currently
-                    supported).
+                  description: One Form feeding this Stream. Mutually exclusive with `selector`.
                 selector:
                   type: string
-                  description: Reserved for non-form sources (not yet implemented).
+                  description: "A dynamic Form source: `tag:<tag>` or `project:<project_id>`.
+                    Mutually exclusive with `form_id`."
                 mapping:
                   type: object
                   additionalProperties:
@@ -5326,12 +5323,11 @@ paths:
               properties:
                 form_id:
                   type: string
-                  description: The form feeding this stream (mutually exclusive with `selector` in
-                    principle, though only one source kind is currently
-                    supported).
+                  description: One Form feeding this Stream. Mutually exclusive with `selector`.
                 selector:
                   type: string
-                  description: Reserved for non-form sources (not yet implemented).
+                  description: "A dynamic Form source: `tag:<tag>` or `project:<project_id>`.
+                    Mutually exclusive with `form_id`."
                 mapping:
                   type: object
                   additionalProperties:

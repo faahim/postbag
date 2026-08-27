@@ -1,8 +1,26 @@
 import { describe, expect, it } from "vitest"
 
-import { buildEditedSchema, editableFieldsFromSchema, isEditableFieldName, retainUiHints } from "./schema-editing"
+import { buildEditedSchema, editableFieldsFromSchema, isEditableFieldName, retainUiHints, schemaFromKnownFields } from "./schema-editing"
 
 describe("dashboard schema editing", () => {
+  it("seeds a Stream with published Form property constraints intact", () => {
+    const seeded = schemaFromKnownFields(
+      ["age", "email", "observed"],
+      ["email"],
+      {
+        age: { type: "integer", minimum: 0 },
+        email: { type: "string", format: "email" },
+      },
+    )
+
+    expect(seeded["properties"]).toEqual({
+      age: { type: "integer", minimum: 0 },
+      email: { type: "string", format: "email" },
+      observed: { type: "string" },
+    })
+    expect(buildEditedSchema(editableFieldsFromSchema(seeded, undefined), seeded)["properties"]).toEqual(seeded["properties"])
+  })
+
   it("replaces editable fields without dropping advanced top-level constraints", () => {
     const previous = {
       $schema: "https://json-schema.org/draft/2020-12/schema",

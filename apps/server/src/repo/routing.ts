@@ -47,7 +47,7 @@ export async function getDirectRoutesForForm(
   return rows.map(toRoutingRoute)
 }
 
-function matchesSelector(selector: string, form: FormForRouting): boolean {
+export function matchesSelector(selector: string, form: FormForRouting): boolean {
   if (selector.startsWith("tag:")) return form.tags.includes(selector.slice("tag:".length))
   if (selector.startsWith("project:")) return form.projectId === selector.slice("project:".length)
   return false

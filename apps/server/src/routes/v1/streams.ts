@@ -16,6 +16,7 @@ import {
 
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
+import { matchesSelector } from "../../repo/routing.js"
 import { asJson, serializeRoute, serializeStream } from "../../repo/serialize.js"
 import {
   CursorQuerySchema,
@@ -934,11 +935,28 @@ export function registerStreamRoutes(app: OpenAPIHono<AppEnv>, db: Database): vo
       .where(and(eq(streamSchemas.streamId, streamId), eq(streamSchemas.version, stream.currentSchemaVersion)))
       .limit(1)
     if (schemaRow === undefined) throw new PostbagError("not_found", "Stream schema not found.")
-    const [source] = await db
+    const [form] = await db
+      .select()
+      .from(forms)
+      .where(and(eq(forms.organizationId, scope.organizationId), eq(forms.id, form_id)))
+      .limit(1)
+    if (form === undefined) throw new PostbagError("not_found", "No form with that id.")
+    const sourceRows = await db
       .select()
       .from(streamSources)
-      .where(and(eq(streamSources.organizationId, scope.organizationId), eq(streamSources.streamId, streamId), eq(streamSources.formId, form_id)))
-      .limit(1)
+      .where(and(eq(streamSources.organizationId, scope.organizationId), eq(streamSources.streamId, streamId)))
+    const source =
+      sourceRows.find((candidate) => candidate.formId === form_id) ??
+      sourceRows.find(
+        (candidate) =>
+          candidate.selector !== null &&
+          matchesSelector(candidate.selector, {
+            id: form.id,
+            organizationId: form.organizationId,
+            projectId: form.projectId,
+            tags: form.tags,
+          }),
+      )
     if (source === undefined) throw new PostbagError("not_found", "No source attached for that form.")
     const result = applyMapping(data, source.mapping as unknown as Mapping, schemaRow.jsonSchema)
     const body: z.infer<typeof PreviewResponseSchema> = {

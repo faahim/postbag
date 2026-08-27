@@ -85,3 +85,19 @@ export function retainUiHints(
   const names = new Set(fields.map((field) => field.name))
   return Object.fromEntries(Object.entries(ui).filter(([name]) => names.has(name)))
 }
+
+/** Seed a new Stream shape from a Form without flattening published property constraints.
+ * Fields known only from observed Submissions receive the minimal string fallback. */
+export function schemaFromKnownFields(
+  fields: readonly string[],
+  required: readonly string[],
+  properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>,
+): Record<string, unknown> {
+  return {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "object",
+    properties: Object.fromEntries(fields.map((name) => [name, properties[name] ?? { type: "string" }])),
+    required,
+    additionalProperties: true,
+  }
+}

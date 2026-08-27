@@ -31,6 +31,34 @@ export function useForms(params: { readonly project?: string; readonly tag?: str
   })
 }
 
+/** Form pickers that must cover the whole workspace (for example Stream sources) follow the
+ * cursor until it is exhausted instead of silently treating the first 100 rows as complete. */
+export function useAllForms(params: { readonly project?: string; readonly tag?: string } = {}) {
+  return useQuery<readonly Form[]>({
+    queryKey: ["forms", "all", params],
+    queryFn: async (): Promise<readonly Form[]> => {
+      const forms: Form[] = []
+      const seenCursors = new Set<string>()
+      let cursor: string | undefined
+
+      for (let pageIndex = 0; pageIndex < 10_000; pageIndex += 1) {
+        const page: Paginated<Form> = unwrap(
+          await api.GET("/v1/forms", {
+            params: { query: { ...params, ...(cursor === undefined ? {} : { cursor }), limit: 100 } },
+          }),
+        )
+        forms.push(...page.data)
+        if (page.next_cursor === null) return forms
+        if (seenCursors.has(page.next_cursor)) throw new Error("Forms pagination repeated a cursor.")
+        seenCursors.add(page.next_cursor)
+        cursor = page.next_cursor
+      }
+
+      throw new Error("Forms pagination exceeded 10,000 pages.")
+    },
+  })
+}
+
 export function useForm(formId: string | undefined) {
   return useQuery<Form>({
     queryKey: ["forms", formId],

@@ -465,6 +465,51 @@ integration("/v1 API", () => {
     await db.delete(streams).where(eq(streams.id, stream.id))
   })
 
+  it("previews a Form through a matching selector source", async () => {
+    const formResponse = await harness.app.request(
+      "/v1/forms",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "Selector preview form", tags: ["selector-preview"] }),
+      }),
+    )
+    const form = (await formResponse.json()) as { id: string }
+    const streamResponse = await harness.app.request(
+      "/v1/streams",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: "Selector preview stream",
+          schema: {
+            json_schema: {
+              type: "object",
+              properties: { email: { type: "string", format: "email" } },
+              required: ["email"],
+            },
+          },
+          sources: [{ selector: "tag:selector-preview", mapping: { email: { from: "contact.email" } } }],
+        }),
+      }),
+    )
+    expect(streamResponse.status).toBe(201)
+    const stream = (await streamResponse.json()) as { id: string }
+
+    const preview = await harness.app.request(
+      `/v1/streams/${stream.id}/preview`,
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ form_id: form.id, data: { contact: { email: "hello@example.com" } } }),
+      }),
+    )
+    expect(preview.status).toBe(200)
+    expect(await preview.json()).toMatchObject({ payload: { email: "hello@example.com" }, problems: [] })
+
+    await db.delete(streams).where(eq(streams.id, stream.id))
+  })
+
   it("derives a stream's first schema from recent submissions when the form has no schema", async () => {
     const formResponse = await harness.app.request(
       "/v1/forms",

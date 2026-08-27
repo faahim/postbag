@@ -20,8 +20,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PostbagApiError, toastApiError } from "@/lib/api"
 import { useFormKnownFields } from "@/lib/form-fields"
 import { formatDateTime } from "@/lib/format"
-import { useForms } from "@/lib/queries/forms"
+import { useAllForms } from "@/lib/queries/forms"
 import { useFormSubmissions } from "@/lib/queries/submissions"
+import { formsForSources, selectorDescription, sourceMatchesForm } from "@/lib/stream-sources"
 import {
   useAddStreamSource,
   useDeleteStream,
@@ -35,13 +36,19 @@ import {
 // route's Zod shape) — the server always populates the rest, so the UI can rely on it.
 type Source = {
   readonly id: string
-  readonly form_id: string
+  readonly form_id?: string
+  readonly selector?: string
   readonly mapping: Readonly<Record<string, { readonly from?: string; readonly const?: unknown }>>
   readonly mapping_status: "valid" | "incomplete"
   readonly missing: readonly string[]
 }
 
-type FormRef = { readonly id: string; readonly name: string }
+type FormRef = {
+  readonly id: string
+  readonly name: string
+  readonly project_id: string
+  readonly tags: readonly string[]
+}
 type StreamTab = "delivered" | "sources" | "send-to" | "preview" | "settings"
 
 export const Route = createFileRoute("/_app/streams/$streamId")({
@@ -51,7 +58,7 @@ export const Route = createFileRoute("/_app/streams/$streamId")({
 function StreamDetailRoute() {
   const { streamId } = Route.useParams()
   const stream = useStream(streamId)
-  const forms = useForms()
+  const forms = useAllForms()
   // Undefined until the user picks one: a fresh Stream opens on Sources (the one thing to
   // do), while a working Stream opens on its shape.
   const [chosenTab, setTab] = useState<StreamTab | undefined>(undefined)
@@ -72,7 +79,7 @@ function StreamDetailRoute() {
   const requiredFields = schemaProps?.required ?? []
   const sources = (streamData.sources ?? []) as unknown as readonly Source[]
   const routeCount = streamData.routes?.length ?? streamData.counts.routes
-  const allForms: readonly FormRef[] = forms.data?.data ?? []
+  const allForms: readonly FormRef[] = forms.data ?? []
   const formsById = new Map(allForms.map((f) => [f.id, f.name]))
   const fresh = schema === undefined && sources.length === 0
   const tab: StreamTab = chosenTab ?? (fresh ? "sources" : "delivered")
@@ -97,7 +104,7 @@ function StreamDetailRoute() {
               {schema === undefined ? "No shape yet" : `Shape v${schema.version ?? 1} · ${streamFields.length} ${streamFields.length === 1 ? "field" : "fields"}`}
             </Badge>
             <Badge variant="muted">
-              {sources.length} {sources.length === 1 ? "form" : "forms"}
+              {sources.length} {sources.length === 1 ? "source" : "sources"}
             </Badge>
             <Badge variant="muted">
               {routeCount} {routeCount === 1 ? "route" : "routes"}
@@ -195,7 +202,7 @@ function StreamDetailRoute() {
                 title="Try it on a real submission"
                 body="Pick a recent Submission from one of the attached Forms and see exactly what this Stream would deliver for it. Nothing is sent."
               />
-              <PreviewTab streamId={streamId} sources={sources} formsById={formsById} />
+              <PreviewTab streamId={streamId} sources={sources} forms={allForms} />
             </div>
           </TabsContent>
 
@@ -403,18 +410,18 @@ function SourcesTab({
   readonly formsById: ReadonlyMap<string, string>
   readonly allForms: readonly FormRef[]
 }) {
-  const attachedFormIds = new Set(sources.map((s) => s.form_id))
+  const attachedFormIds = new Set(formsForSources(sources, allForms).map((form) => form.id))
   const attachable = allForms.filter((f) => !attachedFormIds.has(f.id))
 
   return (
     <div className="flex flex-col gap-4">
       <TabIntro
-        title="Forms in this Stream"
-        body="Every Submission these Forms receive lands in the Stream. Each Form is matched onto the shape field by field — we flag any required field that still has nothing pointing at it."
+        title="Sources in this Stream"
+        body="A source can be one Form or a selector that follows Forms by tag or Project. Each source is matched onto the shape field by field — we flag any required field that still has nothing pointing at it."
       />
       {sources.length === 0 ? (
         <EmptyState
-          title="No Forms in this Stream yet"
+          title="No sources in this Stream yet"
           description={
             streamFields.length === 0
               ? "Attach the first one below — its fields become the Stream's shape, nothing to write."
@@ -428,7 +435,8 @@ function SourcesTab({
               key={source.id}
               streamId={streamId}
               source={source}
-              formName={formsById.get(source.form_id)}
+              formName={source.form_id === undefined ? undefined : formsById.get(source.form_id)}
+              forms={allForms}
               streamFields={streamFields}
               requiredFields={requiredFields}
             />
@@ -445,22 +453,28 @@ function SourceCard({
   streamId,
   source,
   formName,
+  forms,
   streamFields,
   requiredFields,
 }: {
   readonly streamId: string
   readonly source: Source
   readonly formName: string | undefined
+  readonly forms: readonly FormRef[]
   readonly streamFields: readonly string[]
   readonly requiredFields: readonly string[]
 }) {
   const known = useFormKnownFields(source.form_id)
   const removeSource = useRemoveStreamSource(streamId)
+  const matchingForms = forms.filter((form) => sourceMatchesForm(source, form))
+  const sourceLabel = source.form_id === undefined
+    ? selectorDescription(source.selector ?? "Selector")
+    : formName ?? source.form_id
 
   async function detach() {
     try {
       await removeSource.mutateAsync(source.id)
-      toast.success(`${formName ?? "Form"} detached.`, { description: "Its Submissions stay where they are — they just stop landing in this Stream." })
+      toast.success(`${sourceLabel} detached.`, { description: "Existing Submissions stay where they are — this source just stops feeding the Stream." })
     } catch (error) {
       toastApiError(error, "Couldn't detach that form — try again.")
     }
@@ -470,11 +484,18 @@ function SourceCard({
     <Card>
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-baseline gap-2">
-            <Link to="/forms/$formId" params={{ formId: source.form_id }} className="truncate text-sm font-medium hover:underline">
-              {formName ?? "Form"}
-            </Link>
-            <span className="font-mono text-xs text-muted-foreground">{source.form_id}</span>
+          <div className="flex min-w-0 flex-wrap items-baseline gap-2">
+            {source.form_id === undefined ? (
+              <span className="truncate text-sm font-medium">{sourceLabel}</span>
+            ) : (
+              <Link to="/forms/$formId" params={{ formId: source.form_id }} className="truncate text-sm font-medium hover:underline">
+                {sourceLabel}
+              </Link>
+            )}
+            <span className="font-mono text-xs text-muted-foreground">{source.form_id ?? source.selector}</span>
+            {source.selector !== undefined && (
+              <Badge variant="muted">{matchingForms.length} matching {matchingForms.length === 1 ? "Form" : "Forms"}</Badge>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={source.mapping_status === "valid" ? "success" : "warning"}>
@@ -493,17 +514,25 @@ function SourceCard({
           </div>
         </div>
         {streamFields.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Give the Stream a shape under “What gets delivered” to match this Form's fields.</p>
+          <p className="text-xs text-muted-foreground">Give the Stream a shape under “What gets delivered” to match this source's fields.</p>
         ) : (
-          <MappingEditor
-            streamId={streamId}
-            sourceId={source.id}
-            streamFields={streamFields}
-            requiredFields={requiredFields}
-            formFields={known.fields}
-            initialMapping={source.mapping}
-            missing={source.missing}
-          />
+          <div className="flex flex-col gap-3">
+            {source.selector !== undefined && (
+              <p className="text-xs text-muted-foreground">
+                This mapping applies to every matching Form. Enter source field paths directly because their published fields can differ.
+              </p>
+            )}
+            <MappingEditor
+              streamId={streamId}
+              sourceId={source.id}
+              streamFields={streamFields}
+              requiredFields={requiredFields}
+              formFields={known.fields}
+              initialMapping={source.mapping}
+              missing={source.missing}
+              freeformSource={source.selector !== undefined}
+            />
+          </div>
         )}
       </CardContent>
     </Card>
@@ -699,16 +728,21 @@ function AttachFormPanel({
 function PreviewTab({
   streamId,
   sources,
-  formsById,
+  forms,
 }: {
   readonly streamId: string
   readonly sources: readonly Source[]
-  readonly formsById: ReadonlyMap<string, string>
+  readonly forms: readonly FormRef[]
 }) {
-  const [formId, setFormId] = useState<string | undefined>(sources[0]?.form_id)
+  const previewForms = formsForSources(sources, forms)
+  const [formId, setFormId] = useState<string | undefined>(previewForms[0]?.id)
   const submissions = useFormSubmissions(formId)
   const [submissionId, setSubmissionId] = useState<string | undefined>(undefined)
   const preview = useStreamPreview(streamId)
+
+  useEffect(() => {
+    if (formId === undefined && previewForms[0] !== undefined) setFormId(previewForms[0].id)
+  }, [formId, previewForms])
 
   async function run() {
     if (formId === undefined || submissionId === undefined) return
@@ -723,6 +757,10 @@ function PreviewTab({
 
   if (sources.length === 0) {
     return <EmptyState title="Nothing to preview yet" description="Attach a Form under Sources first — preview maps one of its real Submissions through the Stream." />
+  }
+
+  if (previewForms.length === 0) {
+    return <EmptyState title="No matching Forms to preview" description="This Stream's selector does not currently match a Form. Update the Form tag or Project, then try again." />
   }
 
   const recent = submissions.data?.data ?? []
@@ -741,9 +779,9 @@ function PreviewTab({
             <SelectValue placeholder="Choose a form" />
           </SelectTrigger>
           <SelectContent>
-            {sources.map((s) => (
-              <SelectItem key={s.form_id} value={s.form_id}>
-                {formsById.get(s.form_id) ?? s.form_id}
+            {previewForms.map((form) => (
+              <SelectItem key={form.id} value={form.id}>
+                {form.name}
               </SelectItem>
             ))}
           </SelectContent>
