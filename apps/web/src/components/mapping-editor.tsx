@@ -9,6 +9,7 @@ import { PostbagApiError, toastApiError } from "@/lib/api"
 import {
   formatMappingConstant,
   initialMappingConstant,
+  isMappingSourcePathValid,
   mappingRuleWithConstant,
   mappingRuleWithSource,
   parseMappingConstant,
@@ -99,8 +100,15 @@ export function MappingEditor({
       return parsed.ok ? [] : [[field, parsed.message]]
     }),
   )
+  const sourcePathErrors = Object.fromEntries(
+    streamFields.flatMap((field) => {
+      const from = mapping[field]?.from
+      return freeformSource && !isMappingSourcePathValid(from) ? [[field, "Enter a source field path."]] : []
+    }),
+  )
 
   async function save() {
+    if (Object.keys(constantErrors).length > 0 || Object.keys(sourcePathErrors).length > 0) return
     try {
       await updateSource.mutateAsync({ sourceId, body: { mapping } })
       setLiveMissing([])
@@ -124,6 +132,7 @@ export function MappingEditor({
           const constValue = mapping[field]?.const
           const constDraft = constDrafts[field] ?? formatMappingConstant(constValue)
           const constantError = constantErrors[field]
+          const sourcePathError = sourcePathErrors[field]
           return (
             <div key={field} className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
               <div className="flex items-center gap-2">
@@ -152,6 +161,7 @@ export function MappingEditor({
                     className="h-8 w-36 font-mono"
                     placeholder="source.field"
                     aria-label={`Source field for ${field}`}
+                    aria-invalid={sourcePathError !== undefined}
                     value={mapping[field]?.from ?? ""}
                     onChange={(e) => {
                       setMapping((m) => ({ ...m, [field]: mappingRuleWithSource(m[field], e.target.value) }))
@@ -178,12 +188,18 @@ export function MappingEditor({
                   </Select>
                 </div>
                 {constantError !== undefined && <p role="alert" className="text-xs text-destructive">{constantError}</p>}
+                {sourcePathError !== undefined && <p role="alert" className="text-xs text-destructive">{sourcePathError}</p>}
               </div>
             </div>
           )
         })}
       </div>
-      <Button size="sm" className="self-start" onClick={() => void save()} disabled={updateSource.isPending || Object.keys(constantErrors).length > 0}>
+      <Button
+        size="sm"
+        className="self-start"
+        onClick={() => void save()}
+        disabled={updateSource.isPending || Object.keys(constantErrors).length > 0 || Object.keys(sourcePathErrors).length > 0}
+      >
         {updateSource.isPending ? "Saving…" : "Save mapping"}
       </Button>
     </div>

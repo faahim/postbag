@@ -96,3 +96,7 @@ export function mappingRuleWithConstant(rule: EditableMappingRule | undefined, v
     const: value,
   }
 }
+
+export function isMappingSourcePathValid(path: string | undefined): boolean {
+  return path === undefined || path.trim().length > 0
+}

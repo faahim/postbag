@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   formatMappingConstant,
   initialMappingConstant,
+  isMappingSourcePathValid,
   mappingRuleWithConstant,
   mappingRuleWithSource,
   parseMappingConstant,
@@ -62,5 +63,11 @@ describe("mapping constants", () => {
 
   it("removes a source path when switching to a fixed value", () => {
     expect(mappingRuleWithConstant({ from: "count", default: 0 }, 12)).toEqual({ const: 12, default: 0 })
+  })
+
+  it("rejects empty selector source paths", () => {
+    expect(isMappingSourcePathValid("")).toBe(false)
+    expect(isMappingSourcePathValid("   ")).toBe(false)
+    expect(isMappingSourcePathValid("contact.email")).toBe(true)
   })
 })
