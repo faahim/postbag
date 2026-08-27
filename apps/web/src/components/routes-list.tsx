@@ -217,8 +217,13 @@ function EditRouteDialog({
     )
   }
 
+  function changeOpen(next: boolean) {
+    if (!next) setCadence(cadenceStateFromMode(mode))
+    onOpenChange(next)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={changeOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit delivery</DialogTitle>

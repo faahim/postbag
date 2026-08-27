@@ -8,6 +8,13 @@ export type EditableField = {
   readonly original?: Readonly<Record<string, unknown>>
 }
 
+const EDITABLE_FIELD_NAME = /^[A-Za-z_][A-Za-z0-9_-]*$/u
+
+/** Dots are reserved for nested paths in Stream mappings, not literal top-level field names. */
+export function isEditableFieldName(name: string): boolean {
+  return EDITABLE_FIELD_NAME.test(name)
+}
+
 export function schemaFieldType(
   property: Readonly<Record<string, unknown>> | undefined,
 ): EditableFieldType {

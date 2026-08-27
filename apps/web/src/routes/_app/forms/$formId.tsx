@@ -24,7 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { api, toastApiError } from "@/lib/api"
 import { formatRelativeTime } from "@/lib/format"
 import { useForm, useFormDrift, useFormEmbed, useFormSchema, usePublishFormSchema, useUpdateForm, useFormSchemaVersions } from "@/lib/queries/forms"
-import { buildEditedSchema, editableFieldsFromSchema, retainUiHints, type EditableField, type EditableFieldType } from "@/lib/schema-editing"
+import { buildEditedSchema, editableFieldsFromSchema, isEditableFieldName, retainUiHints, type EditableField, type EditableFieldType } from "@/lib/schema-editing"
 import { useFormSubmissions } from "@/lib/queries/submissions"
 
 const TAB_VALUES = ["inbox", "embed", "fields", "send-to", "settings"] as const
@@ -269,8 +269,6 @@ const FIELD_TYPE_LABEL: Record<FieldType, string> = {
   other: "As published",
 }
 
-const FIELD_NAME = /^[A-Za-z_][A-Za-z0-9_.-]*$/u
-
 function fieldsFromFormSchema(schema: FieldsSchema | undefined): FieldRow[] {
   return editableFieldsFromSchema(
     schema?.json_schema as Readonly<Record<string, unknown>> | undefined,
@@ -295,8 +293,8 @@ function FormFieldsEditor({ schema, publish }: { readonly schema: FieldsSchema |
     event.preventDefault()
     const name = newName.trim()
     if (name.length === 0) return
-    if (!FIELD_NAME.test(name)) {
-      setNameError("Letters, numbers, _ . - only, starting with a letter.")
+    if (!isEditableFieldName(name)) {
+      setNameError("Use letters, numbers, _ or -; dots are reserved for nested paths.")
       return
     }
     if (fields.some((f) => f.name === name)) {

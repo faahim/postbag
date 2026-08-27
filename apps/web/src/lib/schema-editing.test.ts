@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { buildEditedSchema, editableFieldsFromSchema, retainUiHints } from "./schema-editing"
+import { buildEditedSchema, editableFieldsFromSchema, isEditableFieldName, retainUiHints } from "./schema-editing"
 
 describe("dashboard schema editing", () => {
   it("replaces editable fields without dropping advanced top-level constraints", () => {
@@ -66,5 +66,12 @@ describe("dashboard schema editing", () => {
 
   it("does not invent UI hints when a Schema has none", () => {
     expect(retainUiHints(undefined, [{ name: "email" }])).toBeUndefined()
+  })
+
+  it("reserves dotted names for nested mapping paths", () => {
+    expect(isEditableFieldName("contact.email")).toBe(false)
+    expect(isEditableFieldName("contact_email")).toBe(true)
+    expect(isEditableFieldName("contact-email")).toBe(true)
+    expect(isEditableFieldName("_metadata")).toBe(true)
   })
 })

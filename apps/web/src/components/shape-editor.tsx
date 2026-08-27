@@ -12,7 +12,7 @@ import { toastApiError } from "@/lib/api"
 import { useFormKnownFields } from "@/lib/form-fields"
 import { formatRelativeTime } from "@/lib/format"
 import { usePublishStreamSchema, type SchemaVersion } from "@/lib/queries/streams"
-import { buildEditedSchema, editableFieldsFromSchema, retainUiHints, type EditableField, type EditableFieldType } from "@/lib/schema-editing"
+import { buildEditedSchema, editableFieldsFromSchema, isEditableFieldName, retainUiHints, type EditableField, type EditableFieldType } from "@/lib/schema-editing"
 import { cn } from "@/lib/utils"
 
 type FieldType = EditableFieldType
@@ -24,8 +24,6 @@ const TYPE_LABEL: Record<FieldType, string> = {
   boolean: "Yes / no",
   other: "As published",
 }
-
-const FIELD_NAME = /^[A-Za-z_][A-Za-z0-9_.-]*$/u
 
 /**
  * The Stream's shape — the fields every Delivery from it carries — as a list people can edit
@@ -65,8 +63,8 @@ export function ShapeEditor({
     event.preventDefault()
     const name = newName.trim()
     if (name.length === 0) return
-    if (!FIELD_NAME.test(name)) {
-      setNameError("Letters, numbers, _ . - only, starting with a letter.")
+    if (!isEditableFieldName(name)) {
+      setNameError("Use letters, numbers, _ or -; dots are reserved for nested paths.")
       return
     }
     if (fields.some((f) => f.name === name)) {
