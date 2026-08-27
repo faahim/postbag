@@ -170,8 +170,8 @@ Homepage, features, use cases, pricing, about, compare, CTAs, FAQ, empty states,
   recognising their own Saturday, not a joke. Each major surface gets at most
   one micro-story — a person, a moment, a near-miss, a quiet save. The
   reference story (homepage, Journey section): *"Someone fills in your form at
-  2am on a Saturday. Your email is mid-outage. On Monday the message is in
-  your inbox like nothing happened."* Everything around the story stays
+  2am on a Saturday. Your email is mid-outage. On Monday the message is still
+  safely in Postbag, ready to retry if the attempts ran out."* Everything around the story stays
   declarative; two stories on one page cancel each other out.
 - **Subtraction budgets.** A page earns trust by saying each thing once: lede
   ≤ 20 words (the page's one story may run longer), one supporting paragraph
@@ -224,7 +224,8 @@ Instead of:
 Write:
 
 > We save every message before we try to send it anywhere. If sending fails, the
-> message stays put — and we keep trying.
+> message stays put while Postbag retries. If it still cannot get through, you
+> get a clear dead Delivery to retry once the receiver is back.
 
 Instead of:
 

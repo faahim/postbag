@@ -6,13 +6,13 @@ const stages = [
   { title: "Received", body: "The 2am message is kept the instant it lands. Even spam gets a label, not a trapdoor.", state: "HTTP 200" },
   { title: "Saved first", body: "Saved means saved — before we so much as think about emailing anyone.", state: "committed" },
   { title: "Routed second", body: "Sending comes second. A bad email day just means waiting, never vanishing.", state: "worker awake" },
-  { title: "Kept on record", body: "Failed sends retry, again and again. The Delivery keeps its retry count and latest outcome.", state: "attempt 2 sent" },
+  { title: "Kept on record", body: "Failed sends retry a set number of times. If they run out, the Delivery stays clearly marked and ready to retry when the other side is back.", state: "attempt 2 sent" },
 ] as const
 ---
 <section class="container-x mt-28 sm:mt-40" aria-labelledby="journey-heading" id="journey" data-journey>
   <div class="mx-auto max-w-3xl text-center" data-reveal>
     <h2 id="journey-heading" class="text-4xl font-semibold sm:text-5xl">It lands before it travels.</h2>
-    <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">Someone fills in your form at 2am on a Saturday. Your email is mid-outage. On Monday the message is in your inbox like nothing happened — because it was saved the moment it arrived.</p>
+    <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">Someone fills in your form at 2am on a Saturday. Your email is mid-outage. On Monday the message is still safely in Postbag. If the retries ran out, the Delivery is marked and ready to send again once email is back.</p>
   </div>
 
   <div class="mt-14 grid gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(19rem,0.72fr)] lg:gap-20">

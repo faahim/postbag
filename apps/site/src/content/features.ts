@@ -43,13 +43,13 @@ export const FEATURES: Feature[] = [
     slug: "never-lose-a-submission",
     nav: "Saved first",
     title: "Saved first. Sent second.",
-    description: "Postbag saves every form message before it tries to send it anywhere. If sending fails, the message stays put until it can go through.",
+    description: "Postbag saves every form message before it tries to send it anywhere. If sending fails, it makes its scheduled attempts, then stays visible for you to retry after recovery.",
     lede: "Someone writes to you at 2am. Your email is having a rough night. On Monday, the message is still there.",
     definition: "A message has a home the moment it arrives. Sending comes after, so an outage is a delay instead of a small disaster.",
     sections: [
       { h: "The message lands first", p: ["Postbag saves a message before it speaks to your inbox, CRM, or anything else. A reply from Postbag means it has somewhere safe to wait."] },
       { h: "Nothing gets quietly binned", p: ["Spam, a message from the wrong site, or a busy form all get a clear label and stay visible. Your inbox stays calm by default, but the record is yours to review."] },
-      { h: "Sending is patient", p: ["If an inbox or service is down, Postbag keeps trying with longer pauses. When it comes back, the original message is ready to go. If it does not, the stuck send is clear and easy to try again."] },
+      { h: "Sending is patient", p: ["If an inbox or service is down, Postbag retries with longer pauses. When it comes back in time, the original message is ready to go. If the attempts run out, the send stays clearly marked and easy to retry once it is back."] },
       { h: "Small promises with useful consequences", list: [
         "A reused idempotency key does not create two messages.",
         "Each destination keeps one sending record with its retry count and latest outcome.",
@@ -61,7 +61,7 @@ export const FEATURES: Feature[] = [
     ],
     faqs: [
       { q: "What happens when a message looks like spam?", a: "It is kept and labelled, but it does not disturb your inbox by default. You can review it later." },
-      { q: "What if my receiving service is down?", a: "The message stays in Postbag while we keep trying. When the service is back, it can continue from where it left off." },
+      { q: "What if my receiving service is down?", a: "The message stays in Postbag while it makes its scheduled attempts. If they run out, the send is clearly marked and ready for you to retry once the service is back." },
       { q: "Can a receiving service see a message twice?", a: "Postbag keeps one sending record for each place, including its retry count and latest outcome. A receiving service may see a repeat if it accepts a send but loses its reply." },
       { q: "Do I need extra queue software?", a: "No. Postbag comes with the moving parts it needs. The self-host guide explains the small setup when you want to run it yourself." },
     ],
@@ -77,7 +77,7 @@ export const FEATURES: Feature[] = [
     sections: [
       { h: "Email that answers the right person", p: ["A notification arrives in your inbox. Hit Reply and you are replying to the person who filled in the form, not a no-reply address. Small thing. Important thing."] },
       { h: "Telegram when you are away from your desk", p: ["Send a note into a Telegram chat for a quick heads-up. Postbag keeps it readable, so you do not have to decode a tiny wall of text on your phone."] },
-      { h: "A door to the rest of your tools", p: ["Use a webhook for your CRM, Zapier, Make, n8n, or a small thing you built on a Saturday. Add a secret and Postbag gives the receiving service a way to check the message really came from you. If the other side is unavailable, the message stays put and we try again."], code: { lang: "ts", title: "What your agent sees: verify a signed message", code: `import { createHmac, timingSafeEqual } from "node:crypto"\n\nexport function verify(secret: string, header: string, rawBody: string, toleranceSec = 300) {\n  const parts = Object.fromEntries(header.split(",").map((kv) => kv.split("=") as [string, string]))\n  const t = Number(parts.t)\n  if (!Number.isFinite(t) || Math.abs(Date.now() / 1000 - t) > toleranceSec) return false\n  const expected = createHmac("sha256", secret).update(\`\${t}.\${rawBody}\`).digest("hex")\n  return timingSafeEqual(Buffer.from(expected), Buffer.from(parts.v1 ?? ""))\n}` } },
+      { h: "A door to the rest of your tools", p: ["Use a webhook for your CRM, Zapier, Make, n8n, or a small thing you built on a Saturday. Add a secret and Postbag gives the receiving service a way to check the message really came from you. If the other side is unavailable, Postbag tries up to 10 times, then leaves the send clear and ready for you to retry after recovery."], code: { lang: "ts", title: "What your agent sees: verify a signed message", code: `import { createHmac, timingSafeEqual } from "node:crypto"\n\nexport function verify(secret: string, header: string, rawBody: string, toleranceSec = 300) {\n  const parts = Object.fromEntries(header.split(",").map((kv) => kv.split("=") as [string, string]))\n  const t = Number(parts.t)\n  if (!Number.isFinite(t) || Math.abs(Date.now() / 1000 - t) > toleranceSec) return false\n  const expected = createHmac("sha256", secret).update(\`\${t}.\${rawBody}\`).digest("hex")\n  return timingSafeEqual(Buffer.from(expected), Buffer.from(parts.v1 ?? ""))\n}` } },
       { h: "Test before you trust", p: ["Send a real sample and see what arrives before you switch a form on. Agents do this as part of setup. It is a good habit for humans too."] },
       { h: "More places soon", p: ["Slack and Discord are next in line. Until their native adapters arrive, configure a signed Postbag webhook for services that accept its delivery envelope."] },
     ],
