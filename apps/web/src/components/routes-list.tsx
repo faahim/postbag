@@ -5,9 +5,6 @@ import { toast } from "sonner"
 import {
   AddRouteDialog,
   CadencePicker,
-  cadenceStateFromMode,
-  modeFor,
-  type CadenceState,
   type RouteSubject,
 } from "@/components/add-route-dialog"
 import { EmptyState } from "@/components/empty-state"
@@ -19,6 +16,7 @@ import { Switch } from "@/components/ui/switch"
 import { describeDestination } from "@/components/destination-row"
 import { Badge } from "@/components/ui/badge"
 import { toastApiError } from "@/lib/api"
+import { cadenceStateFromMode, isCadenceComplete, modeFor, type CadenceState } from "@/lib/cadence"
 import { useDestinations, type Destination } from "@/lib/queries/destinations"
 import { useMe } from "@/lib/queries/me"
 import { useDeleteRoute, useRoutes, useUpdateRoute } from "@/lib/queries/routes"
@@ -201,8 +199,10 @@ function EditRouteDialog({
   const mode = route.mode as { readonly type: string; readonly cron?: string; readonly timezone?: string }
   const [cadence, setCadence] = useState<CadenceState>(() => cadenceStateFromMode(mode))
   const timezone = mode.timezone ?? me.data?.organization.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+  const cadenceComplete = isCadenceComplete(cadence)
 
   function save() {
+    if (!cadenceComplete) return
     updateRoute.mutate(
       { routeId: route.id, body: { mode: modeFor(cadence, timezone) } },
       {
@@ -233,7 +233,7 @@ function EditRouteDialog({
         </DialogHeader>
         <CadencePicker value={cadence} onChange={setCadence} timezone={timezone} />
         <DialogFooter>
-          <Button onClick={save} disabled={updateRoute.isPending}>
+          <Button onClick={save} disabled={!cadenceComplete || updateRoute.isPending}>
             {updateRoute.isPending ? "Saving…" : "Save delivery"}
           </Button>
         </DialogFooter>

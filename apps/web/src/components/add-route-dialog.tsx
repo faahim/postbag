@@ -8,38 +8,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toastApiError } from "@/lib/api"
+import {
+  DEFAULT_CADENCE,
+  isCadenceComplete,
+  modeFor,
+  type Cadence,
+  type CadenceState,
+} from "@/lib/cadence"
 import { useDestinations } from "@/lib/queries/destinations"
 import { useMe } from "@/lib/queries/me"
 import { useCreateRoute } from "@/lib/queries/routes"
 
 export type RouteSubject = { readonly formId: string } | { readonly streamId: string }
 
-type Cadence = "instant" | "daily" | "weekly"
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const
-
-export type CadenceState = { readonly cadence: Cadence; readonly time: string; readonly weekday: number }
-export const DEFAULT_CADENCE: CadenceState = { cadence: "instant", time: "08:00", weekday: 1 }
-
-/** The dashboard offers the digest subset the worker supports (core `digestPeriodKey`): a fixed
- * minute and hour, every day or on one weekday. Anything fancier is an API/CLI job. */
-export function modeFor(state: CadenceState, timezone: string) {
-  if (state.cadence === "instant") return { type: "instant" as const }
-  const [h, m] = state.time.split(":")
-  const hour = Number(h)
-  const minute = Number(m)
-  const cron = `${Number.isInteger(minute) ? minute : 0} ${Number.isInteger(hour) ? hour : 8} * * ${state.cadence === "weekly" ? state.weekday : "*"}`
-  return { type: "digest" as const, cron, timezone }
-}
-
-/** The reverse read, so an existing Route's mode opens in the same controls it was made with. */
-export function cadenceStateFromMode(mode: { readonly type: string; readonly cron?: string }): CadenceState {
-  if (mode.type !== "digest" || mode.cron === undefined) return DEFAULT_CADENCE
-  const [minute = "0", hour = "8", , , dow = "*"] = mode.cron.trim().split(/\s+/u)
-  const time = `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`
-  if (dow === "*") return { cadence: "daily", time, weekday: 1 }
-  const weekday = Number(dow)
-  return { cadence: "weekly", time, weekday: Number.isInteger(weekday) ? weekday : 1 }
-}
 
 /** Cadence controls shared by "add a Route" and "edit this Route's delivery". */
 export function CadencePicker({
@@ -51,6 +33,8 @@ export function CadencePicker({
   readonly onChange: (next: CadenceState) => void
   readonly timezone: string
 }) {
+  const complete = isCadenceComplete(value)
+
   return (
     <div className="flex flex-col gap-2.5 rounded-xl border border-border/70 bg-muted/30 p-4">
       <Label className="text-xs text-muted-foreground">Deliver</Label>
@@ -100,13 +84,19 @@ export function CadencePicker({
               }}
               className="h-9 w-28"
               aria-label="Digest time"
+              aria-invalid={!complete}
+              required
             />
             <span className="text-xs text-muted-foreground">{timezone}</span>
           </>
         )}
       </div>
       {value.cadence !== "instant" && (
-        <p className="text-xs text-muted-foreground">One message covering the whole period — nothing is sent for an empty period.</p>
+        complete ? (
+          <p className="text-xs text-muted-foreground">One message covering the whole period — nothing is sent for an empty period.</p>
+        ) : (
+          <p role="alert" className="text-xs text-destructive">Choose a complete delivery time.</p>
+        )
       )}
     </div>
   )
@@ -128,8 +118,13 @@ export function AddRouteDialog({
   const [creatingNew, setCreatingNew] = useState(false)
   const [cadence, setCadence] = useState<CadenceState>(DEFAULT_CADENCE)
   const timezone = me.data?.organization.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+  const cadenceComplete = isCadenceComplete(cadence)
 
   async function addRoute(destinationId: string) {
+    if (!cadenceComplete) {
+      toast.error("Choose a complete delivery time.")
+      return
+    }
     try {
       await createRoute.mutateAsync({
         destination_id: destinationId,
@@ -196,7 +191,7 @@ export function AddRouteDialog({
                   </SelectContent>
                 </Select>
                 <Button
-                  disabled={selected === undefined || createRoute.isPending}
+                  disabled={selected === undefined || !cadenceComplete || createRoute.isPending}
                   onClick={() => {
                     if (selected !== undefined) void addRoute(selected)
                   }}
@@ -209,6 +204,7 @@ export function AddRouteDialog({
             )}
             <Button
               variant="outline"
+              disabled={!cadenceComplete}
               onClick={() => {
                 setCreatingNew(true)
               }}

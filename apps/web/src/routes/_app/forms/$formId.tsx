@@ -154,7 +154,7 @@ function FieldsTab({ formId }: { readonly formId: string }) {
   const publish = usePublishFormSchema(formId)
 
   async function publishWhatWereSeeing() {
-    if (drift.data === undefined || drift.data.length === 0) return
+    if (!schema.isSuccess || drift.data === undefined || drift.data.length === 0) return
     const current = schema.data?.json_schema as Readonly<Record<string, unknown>> | undefined
     const currentUi = schema.data?.ui as Readonly<Record<string, unknown>> | undefined
     const properties: Record<string, unknown> = {
@@ -190,12 +190,32 @@ function FieldsTab({ formId }: { readonly formId: string }) {
           <div className="flex flex-col gap-1">
             <h3 className="text-sm font-medium">Fields</h3>
             <p className="text-sm text-muted-foreground">
-              {schema.data === undefined
-                ? "No declared schema yet — this Form accepts anything (observe mode). Add fields and publish to declare its shape."
-                : "Edit and publish — a new immutable version each time; older Submissions keep the shape they arrived with."}
+              {schema.isError
+                ? "The current Schema could not be loaded. Editing stays locked so an existing shape is never replaced by accident."
+                : schema.data == null
+                  ? "No declared schema yet — this Form accepts anything (observe mode). Add fields and publish to declare its shape."
+                  : "Edit and publish — a new immutable version each time; older Submissions keep the shape they arrived with."}
             </p>
           </div>
-          {!schema.isLoading && <FormFieldsEditor key={schema.data?.version ?? 0} schema={schema.data as FieldsSchema | undefined} publish={publish} />}
+          {schema.isLoading ? (
+            <Skeleton className="h-40 w-full rounded-xl" />
+          ) : schema.isError ? (
+            <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+              <p className="text-sm text-destructive">Nothing can be edited until the current Schema is available.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={schema.isFetching}
+                onClick={() => {
+                  void schema.refetch()
+                }}
+              >
+                {schema.isFetching ? "Trying again…" : "Try again"}
+              </Button>
+            </div>
+          ) : (
+            <FormFieldsEditor key={schema.data?.version ?? 0} schema={schema.data ?? undefined} publish={publish} />
+          )}
         </CardContent>
       </Card>
 
@@ -235,7 +255,7 @@ function FieldsTab({ formId }: { readonly formId: string }) {
                 <AlertTriangle className="size-4 text-warning-foreground" />
                 Change detected
               </h3>
-              <Button size="sm" onClick={() => void publishWhatWereSeeing()} disabled={publish.isPending} className="gap-1.5">
+              <Button size="sm" onClick={() => void publishWhatWereSeeing()} disabled={!schema.isSuccess || publish.isPending} className="gap-1.5">
                 <Sparkles className="size-3.5" />
                 Publish what we're seeing
               </Button>

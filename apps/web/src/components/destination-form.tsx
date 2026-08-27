@@ -20,6 +20,7 @@ export const DESTINATION_TYPES = [
   { value: "discord", label: "Discord", icon: MessageCircle },
 ] as const
 export type DestinationType = (typeof DESTINATION_TYPES)[number]["value"]
+const CREATABLE_DESTINATION_TYPES = DESTINATION_TYPES.filter((type) => type.value !== "slack" && type.value !== "discord")
 
 /** "a@x.com, b@y.com" → ["a@x.com", "b@y.com"] */
 function splitList(value: string | undefined): string[] {
@@ -170,8 +171,8 @@ export function DestinationForm({
       {mode === "create" ? (
         <div className="flex flex-col gap-2">
           <Label>Where it lands</Label>
-          <div className="grid grid-cols-5 gap-2">
-            {DESTINATION_TYPES.map((t) => (
+          <div className="grid grid-cols-3 gap-2">
+            {CREATABLE_DESTINATION_TYPES.map((t) => (
               <button
                 key={t.value}
                 type="button"
