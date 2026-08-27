@@ -5,6 +5,7 @@ import {
   forms,
   organization,
   organizationSettings,
+  projects,
   streams,
   submissions,
   systemWebhookDeliveries,
@@ -508,6 +509,98 @@ integration("/v1 API", () => {
     expect(await preview.json()).toMatchObject({ payload: { email: "hello@example.com" }, problems: [] })
 
     await db.delete(streams).where(eq(streams.id, stream.id))
+  })
+
+  it("counts recent Submissions from tag and Project selector sources once per Stream", async () => {
+    const countOrg = await seedOrganization(db, "Selector count Org")
+    const countKey = await createTestApiKey(harness.auth, countOrg.organizationId, countOrg.userId)
+    const taggedProjectId = newId("prj")
+    try {
+      await db.insert(projects).values({
+        id: taggedProjectId,
+        organizationId: countOrg.organizationId,
+        slug: "selector-count-tags",
+        name: "Selector count tags",
+        tags: [],
+      })
+      const [taggedForm, projectForm, bothSelectorForm, unrelatedForm] = await db
+        .insert(forms)
+        .values([
+          {
+            id: newId("fm"),
+            organizationId: countOrg.organizationId,
+            projectId: taggedProjectId,
+            slug: "tagged-selector-count",
+            name: "Tagged selector count",
+            tags: ["counted-by-selector"],
+          },
+          {
+            id: newId("fm"),
+            organizationId: countOrg.organizationId,
+            projectId: countOrg.projectId,
+            slug: "project-selector-count",
+            name: "Project selector count",
+            tags: [],
+          },
+          {
+            id: newId("fm"),
+            organizationId: countOrg.organizationId,
+            projectId: countOrg.projectId,
+            slug: "both-selector-count",
+            name: "Both selector count",
+            tags: ["counted-by-selector"],
+          },
+          {
+            id: newId("fm"),
+            organizationId: countOrg.organizationId,
+            projectId: taggedProjectId,
+            slug: "unrelated-selector-count",
+            name: "Unrelated selector count",
+            tags: [],
+          },
+        ])
+        .returning()
+      if (taggedForm === undefined || projectForm === undefined || bothSelectorForm === undefined || unrelatedForm === undefined)
+        throw new Error("failed to seed count Forms")
+
+      const streamResponse = await harness.app.request(
+        "/v1/streams",
+        authed(countKey, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: "Selector count stream",
+            schema: { json_schema: { type: "object", properties: {} } },
+            sources: [
+              { selector: "tag:counted-by-selector", mapping: {} },
+              { selector: `project:${countOrg.projectId}`, mapping: {} },
+            ],
+          }),
+        }),
+      )
+      expect(streamResponse.status).toBe(201)
+      const stream = (await streamResponse.json()) as { id: string }
+
+      await db.insert(submissions).values([
+        { id: newId("sb"), organizationId: countOrg.organizationId, formId: taggedForm.id, data: { source: "tag" } },
+        { id: newId("sb"), organizationId: countOrg.organizationId, formId: projectForm.id, data: { source: "project" } },
+        { id: newId("sb"), organizationId: countOrg.organizationId, formId: bothSelectorForm.id, data: { source: "both" } },
+        { id: newId("sb"), organizationId: countOrg.organizationId, formId: unrelatedForm.id, data: { source: "unrelated" } },
+        {
+          id: newId("sb"),
+          organizationId: countOrg.organizationId,
+          formId: taggedForm.id,
+          data: { source: "old tag" },
+          receivedAt: new Date("2020-01-01T00:00:00.000Z"),
+        },
+      ])
+
+      const detail = await harness.app.request(`/v1/streams/${stream.id}`, authed(countKey))
+      expect(detail.status).toBe(200)
+      expect(((await detail.json()) as { counts: { submissions_30d: number } }).counts.submissions_30d).toBe(3)
+    } finally {
+      await db.delete(organization).where(eq(organization.id, countOrg.organizationId))
+    }
   })
 
   it("derives a stream's first schema from recent submissions when the form has no schema", async () => {

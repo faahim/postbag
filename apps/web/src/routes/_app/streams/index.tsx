@@ -130,11 +130,15 @@ function CreateStreamDialog({ open, onOpenChange }: { readonly open: boolean; re
   } = useForm<z.infer<typeof createStreamSchema>>({ resolver: zodResolver(createStreamSchema) })
 
   const onSubmit = handleSubmit(async (values) => {
-    const created = await createStream.mutateAsync({ name: values.name })
-    toast.success(`${created.name} created.`)
-    reset()
-    onOpenChange(false)
-    await navigate({ to: "/streams/$streamId", params: { streamId: created.id } })
+    try {
+      const created = await createStream.mutateAsync({ name: values.name })
+      toast.success(`${created.name} created.`)
+      reset()
+      onOpenChange(false)
+      await navigate({ to: "/streams/$streamId", params: { streamId: created.id } })
+    } catch (error) {
+      toastApiError(error, "Couldn't create the Stream — try again.")
+    }
   })
 
   return (

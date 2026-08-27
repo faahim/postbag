@@ -1,8 +1,20 @@
 import { useFormSchema } from "@/lib/queries/forms"
 import { useFormSubmissions } from "@/lib/queries/submissions"
 
+/** Observe-mode Forms have no declared schema, so their usable shape is the union of
+ * every field seen in the recent Submission window, not just the newest Submission. */
+export function observedFieldNames(
+  submissions: readonly { readonly data: Readonly<Record<string, unknown>> }[] | undefined,
+): readonly string[] {
+  const fields = new Set<string>()
+  for (const submission of submissions ?? []) {
+    for (const field of Object.keys(submission.data)) fields.add(field)
+  }
+  return Array.from(fields)
+}
+
 /** A form's fields as a "known fields" list — declared schema properties (managed/enforced
- * forms) union'd with the keys of its most recent submission (observe-mode forms have no
+ * forms) union'd with the keys of its recent submissions (observe-mode forms have no
  * declared schema at all, but still have real field names worth offering). Returns `pending`
  * while either half is still loading so callers can tell "no fields" from "not yet". */
 export function useFormKnownFields(formId: string | undefined): {
@@ -22,7 +34,7 @@ export function useFormKnownFields(formId: string | undefined): {
   } | undefined
   const properties = jsonSchema?.properties ?? {}
   const fromSchema = Object.keys(properties)
-  const fromSubmission = Object.keys(submissions.data?.data[0]?.data ?? {})
+  const fromSubmission = observedFieldNames(submissions.data?.data)
   return {
     fields: Array.from(new Set([...fromSchema, ...fromSubmission])),
     required: jsonSchema?.required ?? [],

@@ -1,6 +1,6 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
 import { applyMapping, inferSchema, newId, PostbagError, StreamInputSchema, validateMapping, type Mapping } from "@postbag/core"
-import { and, asc, count, desc, eq, gte, lt, or, type SQL } from "drizzle-orm"
+import { and, arrayContains, asc, count, desc, eq, gte, lt, or, type SQL } from "drizzle-orm"
 import {
   events,
   formSchemaDrafts,
@@ -175,8 +175,8 @@ async function publishDerivedFirstSchema(
 }
 
 async function getStreamCounts(db: Database, organizationId: string, streamId: string) {
-  const [sourceCount] = await db
-    .select({ value: count() })
+  const sourceRows = await db
+    .select({ formId: streamSources.formId, selector: streamSources.selector })
     .from(streamSources)
     .where(and(eq(streamSources.organizationId, organizationId), eq(streamSources.streamId, streamId)))
   const [routeCount] = await db
@@ -184,19 +184,27 @@ async function getStreamCounts(db: Database, organizationId: string, streamId: s
     .from(routes)
     .where(and(eq(routes.organizationId, organizationId), eq(routes.streamId, streamId)))
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
-  const [submissionCount] = await db
-    .select({ value: count() })
-    .from(submissions)
-    .innerJoin(streamSources, eq(streamSources.formId, submissions.formId))
-    .where(
-      and(
-        eq(submissions.organizationId, organizationId),
-        eq(streamSources.streamId, streamId),
-        gte(submissions.receivedAt, since),
-      ),
-    )
+  const matchingFormConditions: SQL[] = []
+  for (const source of sourceRows) {
+    if (source.formId !== null) {
+      matchingFormConditions.push(eq(forms.id, source.formId))
+    } else if (source.selector?.startsWith("tag:") === true) {
+      matchingFormConditions.push(arrayContains(forms.tags, [source.selector.slice("tag:".length)]))
+    } else if (source.selector?.startsWith("project:") === true) {
+      matchingFormConditions.push(eq(forms.projectId, source.selector.slice("project:".length)))
+    }
+  }
+  const matchingForms = or(...matchingFormConditions)
+  const [submissionCount] =
+    matchingForms === undefined
+      ? []
+      : await db
+          .select({ value: count() })
+          .from(submissions)
+          .innerJoin(forms, eq(forms.id, submissions.formId))
+          .where(and(eq(submissions.organizationId, organizationId), gte(submissions.receivedAt, since), matchingForms))
   return {
-    sources: sourceCount?.value ?? 0,
+    sources: sourceRows.length,
     routes: routeCount?.value ?? 0,
     submissions30d: submissionCount?.value ?? 0,
   }
