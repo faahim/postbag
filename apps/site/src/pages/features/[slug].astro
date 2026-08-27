@@ -70,10 +70,11 @@ const others = FEATURES.filter((f) => f.slug !== feature.slug)
   .feature-summary p, .feature-links p { color: var(--primary); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
   .feature-summary div { max-width: 48rem; color: var(--accent-foreground); font-family: var(--font-display); font-size: clamp(1.12rem, 1.7vw, 1.35rem); line-height: 1.5; letter-spacing: -0.012em; }
   .feature-article { min-width: 0; }
-  .feature-section { display: grid; gap: 1.35rem; padding: clamp(2.5rem, 6vw, 4.5rem) 0; border-top: 1px solid var(--border); }
+  .feature-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.35rem; padding: clamp(2.5rem, 6vw, 4.5rem) 0; border-top: 1px solid var(--border); }
   .feature-section:first-child { margin-top: clamp(2.5rem, 6vw, 4.5rem); }
   .feature-section h2 { max-width: 22ch; font-size: clamp(1.85rem, 3.4vw, 2.8rem); font-weight: 580; line-height: 1.06; letter-spacing: -0.025em; text-wrap: balance; }
-  .feature-section-body { max-width: 46rem; color: var(--muted-foreground); font-size: clamp(1rem, 1.4vw, 1.08rem); line-height: 1.75; }
+  .feature-section-heading, .feature-section-body { min-width: 0; }
+  .feature-section-body { width: 100%; max-width: 46rem; color: var(--muted-foreground); font-size: clamp(1rem, 1.4vw, 1.08rem); line-height: 1.75; }
   .feature-section-body p + p { margin-top: 1rem; }
   .feature-section-body :global(ul) { display: grid; gap: 0.75rem; margin-top: 1.25rem; padding: 0; list-style: none; }
   .feature-section-body :global(li) { position: relative; padding-left: 1.25rem; }
