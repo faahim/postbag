@@ -8,7 +8,14 @@ import { ConnectedAccountsCard } from "@/components/connected-accounts-card"
 import { PlanCard } from "@/components/plan-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -24,8 +31,14 @@ export const Route = createFileRoute("/_app/settings/")({
   validateSearch: billingIntentSearchSchema,
 })
 
-/** Searchable IANA timezone picker — the org's clock for digests. */
-function TimezoneField({ value, onChange }: { readonly value: string; readonly onChange: (next: string) => void }) {
+/** Searchable IANA timezone picker — the default clock for new digest Routes. */
+function TimezoneField({
+  value,
+  onChange,
+}: {
+  readonly value: string
+  readonly onChange: (next: string) => void
+}) {
   const [open, setOpen] = useState(false)
   const zones = useMemo(() => Intl.supportedValuesOf("timeZone"), [])
 
@@ -88,7 +101,10 @@ function SettingsRoute() {
     setSaving(true)
     try {
       if (currentName !== savedName) {
-        await authClient.organization.update({ organizationId: me.data.organization.id, data: { name: currentName } })
+        await authClient.organization.update({
+          organizationId: me.data.organization.id,
+          data: { name: currentName },
+        })
       }
       if (currentTimezone !== savedTimezone) {
         unwrap(await api.PATCH("/v1/organizations/active", { body: { timezone: currentTimezone } }))
@@ -114,7 +130,9 @@ function SettingsRoute() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg tracking-tight">Workspace</CardTitle>
-            <CardDescription>The name everyone sees, and the clock your digest Routes follow.</CardDescription>
+            <CardDescription>
+              The name everyone sees, and the default clock for new digest Routes.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
@@ -130,7 +148,9 @@ function SettingsRoute() {
             <div className="flex flex-col gap-2">
               <Label>Timezone</Label>
               <TimezoneField value={currentTimezone} onChange={setTimezone} />
-              <p className="text-xs text-muted-foreground">Daily and weekly digests land by this clock.</p>
+              <p className="text-xs text-muted-foreground">
+                New digest Routes start on this clock. Existing Routes keep their own timezone.
+              </p>
             </div>
             <Button className="self-start" onClick={() => void save()} disabled={saving || !dirty}>
               {saving ? "Saving…" : "Save changes"}

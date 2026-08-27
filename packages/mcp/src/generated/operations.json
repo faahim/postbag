@@ -349,6 +349,30 @@
     }
   },
   {
+    "operationId": "organizations_update_active",
+    "method": "patch",
+    "path": "/v1/organizations/active",
+    "summary": "Update the active organization's settings",
+    "description": "Owner or admin (a manage-scoped API key counts as admin). Today that is the workspace timezone, used by the dashboard as the default when creating a digest Route. Each digest Route stores its own timezone, so changing this setting does not alter existing Routes.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "description": "IANA timezone, e.g. Europe/Stockholm. The dashboard uses it as the default for new digest Routes."
+        }
+      },
+      "required": [
+        "timezone"
+      ]
+    }
+  },
+  {
     "operationId": "organizations_create",
     "method": "post",
     "path": "/v1/organizations",
@@ -2851,7 +2875,7 @@
             },
             "timezone": {
               "type": "string",
-              "description": "IANA timezone the cron runs in; defaults to the org's timezone."
+              "description": "IANA timezone the cron runs in; required when changing to digest mode."
             }
           },
           "required": [

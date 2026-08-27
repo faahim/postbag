@@ -238,7 +238,7 @@ export interface paths {
         head?: never;
         /**
          * Update the active organization's settings
-         * @description Owner or admin (a manage-scoped API key counts as admin). Today that is the timezone — the IANA zone digest Routes follow when they don't carry one of their own. Changing it does not reschedule digests already queued for the current period.
+         * @description Owner or admin (a manage-scoped API key counts as admin). Today that is the workspace timezone, used by the dashboard as the default when creating a digest Route. Each digest Route stores its own timezone, so changing this setting does not alter existing Routes.
          */
         patch: operations["organizations_update_active"];
         trace?: never;
@@ -2444,7 +2444,7 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": {
-                    /** @description IANA timezone, e.g. Europe/Stockholm. Digest Routes without a timezone of their own follow it. */
+                    /** @description IANA timezone, e.g. Europe/Stockholm. The dashboard uses it as the default for new digest Routes. */
                     timezone: string;
                 };
             };
@@ -6899,7 +6899,7 @@ export interface operations {
                         type: "instant" | "digest";
                         /** @description Cron expression for digest mode, e.g. '0 9 * * *'. */
                         cron?: string;
-                        /** @description IANA timezone the cron runs in; defaults to the org's timezone. */
+                        /** @description IANA timezone the cron runs in; required when changing to digest mode. */
                         timezone?: string;
                     };
                     /** @description Only deliver submissions received in this ISO datetime range. */

@@ -44,12 +44,19 @@ export const JsonRecord = z.record(z.string(), z.unknown())
 // identical for well-formed JSON Schema documents; only used where a route definition
 // needs a request/response schema safe for app.doc31() to walk.
 export const SafeSchemaInputSchema = z.object({
-  json_schema: JsonRecord.describe("JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness."),
+  json_schema: JsonRecord.describe(
+    "JSON Schema draft 2020-12 describing the submission data. `required` drives drift detection and mapping completeness.",
+  ),
   ui: z
     .record(z.string(), JsonRecord)
     .optional()
-    .describe("Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets."),
-  changelog: z.string().optional().describe("A short human note on what changed in this version, shown in the version history."),
+    .describe(
+      "Per-field rendering hints keyed by field name (label, placeholder, widget, options, order) — used to render embed snippets.",
+    ),
+  changelog: z
+    .string()
+    .optional()
+    .describe("A short human note on what changed in this version, shown in the version history."),
 })
 
 // Same shape as core's StreamSourceInputSchema/Mapping, minus the recursive z.json()
@@ -57,14 +64,25 @@ export const SafeSchemaInputSchema = z.object({
 // also breaks OpenAPI doc generation. Runtime shape validation is unaffected; the
 // "exactly one of" invariant is still enforced downstream by core's validateMapping.
 const SafeMappingEntrySchema = z.object({
-  from: z.string().optional().describe("Copy this field's value from the source form's submitted data."),
-  const: z.unknown().optional().describe("Use this fixed value instead of anything from the source."),
+  from: z
+    .string()
+    .optional()
+    .describe("Copy this field's value from the source form's submitted data."),
+  const: z
+    .unknown()
+    .optional()
+    .describe("Use this fixed value instead of anything from the source."),
   expr: z.string().optional().describe("A JSONata expression evaluated against the source's data."),
   default: z.unknown().optional().describe("Fallback value when the resolved value is missing."),
 })
 export const SafeMappingSchema = z.record(z.string(), SafeMappingEntrySchema)
 export const SafeStreamSourceInputSchema = z.object({
-  form_id: z.string().optional().describe("The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported)."),
+  form_id: z
+    .string()
+    .optional()
+    .describe(
+      "The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported).",
+    ),
   selector: z.string().optional().describe("Reserved for non-form sources (not yet implemented)."),
   mapping: SafeMappingSchema.optional().describe(
     "Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), " +
@@ -130,7 +148,10 @@ export const FormSchema = z
     streams: z.array(
       z.object({ id: IdSchema, slug: z.string(), mapping_status: z.enum(["valid", "incomplete"]) }),
     ),
-    counts: z.object({ submissions: z.number().int(), last_submission_at: TimestampSchema.nullable() }),
+    counts: z.object({
+      submissions: z.number().int(),
+      last_submission_at: TimestampSchema.nullable(),
+    }),
     created_at: TimestampSchema,
   })
   .openapi("Form")
@@ -146,9 +167,12 @@ export const SubmissionSchema = z
     id: IdSchema,
     form_id: IdSchema,
     status: z.enum(["received", "quarantined", "spam"]),
-    quarantine_reason: z.string().nullable().describe(
-      "Machine-readable reason when status is quarantined: schema_violation, rate_limited, origin_rejected, turnstile_failed, or over_quota. Null for received or spam submissions.",
-    ),
+    quarantine_reason: z
+      .string()
+      .nullable()
+      .describe(
+        "Machine-readable reason when status is quarantined: schema_violation, rate_limited, origin_rejected, turnstile_failed, or over_quota. Null for received or spam submissions.",
+      ),
     test: z.boolean(),
     data: JsonRecord,
     form_schema_version: z.number().int().nullable(),
@@ -298,15 +322,32 @@ export const PlanSourceSchema = z.enum(["free", "billing", "complimentary", "sel
 
 export const PlanGrantCreateInputSchema = z.object({
   plan: PlanSchema.describe("The tier this code grants on redemption."),
-  note: z.string().max(280).optional().describe('Shown to the redeeming org, e.g. "Courtesy of Postbag".'),
-  expires_at: z.iso.datetime().optional().describe("When the code itself stops being redeemable. Omit for a code that never expires on its own."),
-  max_redemptions: z.number().int().min(1).optional().default(1).describe("How many different organizations may redeem this code."),
+  note: z
+    .string()
+    .max(280)
+    .optional()
+    .describe('Shown to the redeeming org, e.g. "Courtesy of Postbag".'),
+  expires_at: z.iso
+    .datetime()
+    .optional()
+    .describe(
+      "When the code itself stops being redeemable. Omit for a code that never expires on its own.",
+    ),
+  max_redemptions: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .default(1)
+    .describe("How many different organizations may redeem this code."),
   plan_duration_days: z
     .number()
     .int()
     .min(1)
     .optional()
-    .describe("How many days after redemption the granted plan lasts. Omit for a grant with no automatic expiry."),
+    .describe(
+      "How many days after redemption the granted plan lasts. Omit for a grant with no automatic expiry.",
+    ),
 })
 
 export const PlanGrantSummarySchema = z
@@ -337,7 +378,9 @@ export const OrganizationPlanSchema = z
   })
   .openapi("OrganizationPlan")
 
-export const PlanRedeemInputSchema = z.object({ code: z.string().min(1).describe("A code minted by POST /v1/admin/plan-grants.") })
+export const PlanRedeemInputSchema = z.object({
+  code: z.string().min(1).describe("A code minted by POST /v1/admin/plan-grants."),
+})
 
 export const PlanRedeemResponseSchema = OrganizationPlanSchema.extend({
   next: NextSchema,
@@ -387,7 +430,9 @@ export const InvitationSchema = z
 
 export const InvitationCreateInputSchema = z.object({
   email: z.email(),
-  role: z.enum(["admin", "member"]).describe("Invite as admin or member. Promote to owner from Members after they join."),
+  role: z
+    .enum(["admin", "member"])
+    .describe("Invite as admin or member. Promote to owner from Members after they join."),
 })
 
 export const PublicInvitationSchema = z
@@ -422,7 +467,9 @@ export const UpdateOrganizationSettingsInputSchema = z.object({
   timezone: z
     .string()
     .min(1)
-    .describe("IANA timezone, e.g. Europe/Stockholm. Digest Routes without a timezone of their own follow it."),
+    .describe(
+      "IANA timezone, e.g. Europe/Stockholm. The dashboard uses it as the default for new digest Routes.",
+    ),
 })
 
 export const UpdateOrganizationSettingsResponseSchema = z.object({
@@ -433,7 +480,10 @@ export const errorResponses = {
   400: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
   401: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
   403: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
-  404: { description: "Not found", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
+  404: {
+    description: "Not found",
+    content: { "application/json": { schema: ErrorEnvelopeSchema } },
+  },
   409: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
   422: { description: "Error", content: { "application/json": { schema: ErrorEnvelopeSchema } } },
 } as const
