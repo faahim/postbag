@@ -35,7 +35,7 @@ export const USE_CASES: UseCase[] = [
       { h: "Add the next site", p: ["When the next site is built, your agent can give it a form that already fits the rest of the fleet. Future agents find a small note in the repo and know where the form belongs."] },
       { h: "Know when a form changes", p: ["When a site adds a field, Postbag lets you know. When a partner needs a new field, your agent can update the shared setup before anyone is surprised weeks later."] },
     ],
-    faqs: [ { q: "Can each client see only their own forms?", a: "Today an agency usually runs one organization with a project for each client. Team roles and invitations are on the commercial roadmap." }, { q: "Can I send leads to a partner only during a campaign?", a: "Yes. Set a start and end time. Outside that time, the lead remains visible to you, so you can always see what happened." } ],
+    faqs: [ { q: "Can each client see only their own forms?", a: "You can invite people today as owners, admins, or members of one organization. Those roles cover the whole organization; per-project client access is the part still to come." }, { q: "Can I send leads to a partner only during a campaign?", a: "Yes. Set a start and end time. Outside that time, the lead remains visible to you, so you can always see what happened." } ],
     related: [ { href: "/features/routing/", label: "Where your forms can go" }, { href: "/features/schemas-and-drift/", label: "Keeping forms in step" } ],
   },
   {

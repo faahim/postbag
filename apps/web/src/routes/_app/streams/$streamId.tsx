@@ -71,11 +71,30 @@ function StreamDetailRoute() {
   // do), while a working Stream opens on its shape.
   const [chosenTab, setTab] = useState<StreamTab | undefined>(undefined)
 
-  if (stream.isPending || stream.data === undefined) {
+  if (stream.isPending || forms.isPending || stream.data === undefined) {
     return (
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-64 w-full" />
+      </div>
+    )
+  }
+
+  if (forms.isError) {
+    return (
+      <div className="page-enter flex flex-col gap-6">
+        <Link
+          to="/streams"
+          className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-(--duration-quick) hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5 transition-transform duration-(--duration-quick) ease-(--ease-smooth-out) group-hover:-translate-x-0.5" />{" "}
+          Streams
+        </Link>
+        <EmptyState
+          title="Couldn't load your Forms"
+          description="This Stream is unchanged. Try again before attaching or editing its Form sources."
+          action={<Button onClick={() => { void forms.refetch() }}>Try again</Button>}
+        />
       </div>
     )
   }
@@ -89,7 +108,7 @@ function StreamDetailRoute() {
   const requiredFields = schemaProps.required ?? []
   const sources = (streamData.sources ?? []) as unknown as readonly Source[]
   const routeCount = streamData.routes?.length ?? streamData.counts.routes
-  const allForms: readonly FormRef[] = forms.data ?? []
+  const allForms: readonly FormRef[] = forms.data
   const formsById = new Map(allForms.map((f) => [f.id, f.name]))
   const fresh = schema === undefined && sources.length === 0
   const tab: StreamTab = chosenTab ?? (fresh ? "sources" : "delivered")
