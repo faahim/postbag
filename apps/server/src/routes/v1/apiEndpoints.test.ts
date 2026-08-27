@@ -5,6 +5,7 @@ import {
   forms,
   organization,
   organizationSettings,
+  projects,
   streams,
   submissions,
   systemWebhookDeliveries,
@@ -465,6 +466,204 @@ integration("/v1 API", () => {
     await db.delete(streams).where(eq(streams.id, stream.id))
   })
 
+  it("previews a Form through a matching selector source", async () => {
+    const formResponse = await harness.app.request(
+      "/v1/forms",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "Selector preview form", tags: ["selector-preview"] }),
+      }),
+    )
+    const form = (await formResponse.json()) as { id: string }
+    const streamResponse = await harness.app.request(
+      "/v1/streams",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: "Selector preview stream",
+          schema: {
+            json_schema: {
+              type: "object",
+              properties: { email: { type: "string", format: "email" } },
+              required: ["email"],
+            },
+          },
+          sources: [{ selector: "tag:selector-preview", mapping: { email: { from: "contact.email" } } }],
+        }),
+      }),
+    )
+    expect(streamResponse.status).toBe(201)
+    const stream = (await streamResponse.json()) as { id: string }
+
+    const preview = await harness.app.request(
+      `/v1/streams/${stream.id}/preview`,
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ form_id: form.id, data: { contact: { email: "hello@example.com" } } }),
+      }),
+    )
+    expect(preview.status).toBe(200)
+    expect(await preview.json()).toMatchObject({ payload: { email: "hello@example.com" }, problems: [] })
+
+    await db.delete(streams).where(eq(streams.id, stream.id))
+  })
+
+  it("accepts only non-empty tag and project selectors for Stream sources", async () => {
+    const createWithTagSelector = await harness.app.request(
+      "/v1/streams",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: "Tag selector contract",
+          schema: { json_schema: { type: "object", properties: {} } },
+          sources: [{ selector: "tag:contact", mapping: {} }],
+        }),
+      }),
+    )
+    expect(createWithTagSelector.status).toBe(201)
+    const stream = (await createWithTagSelector.json()) as { id: string }
+
+    const attachProjectSelector = await harness.app.request(
+      `/v1/streams/${stream.id}/sources`,
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ selector: "project:prj_site", mapping: {} }),
+      }),
+    )
+    expect(attachProjectSelector.status).toBe(201)
+    expect(((await attachProjectSelector.json()) as { selector: string }).selector).toBe("project:prj_site")
+
+    const invalidAttach = await harness.app.request(
+      `/v1/streams/${stream.id}/sources`,
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ selector: "tags:contact", mapping: {} }),
+      }),
+    )
+    expect(invalidAttach.status).toBe(422)
+    expect(((await invalidAttach.json()) as { error: { code: string; docs?: string } }).error).toMatchObject({
+      code: "validation_failed",
+      docs: "https://postbag.dev/docs/errors/validation_failed",
+    })
+
+    for (const selector of ["tag:", "tag:   ", "project:", "project:\t", "tags:contact", "form:fm_contact"]) {
+      const invalidCreate = await harness.app.request(
+        "/v1/streams",
+        authed(keyA, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: "Invalid selector contract",
+            schema: { json_schema: { type: "object", properties: {} } },
+            sources: [{ selector, mapping: {} }],
+          }),
+        }),
+      )
+      expect(invalidCreate.status, selector).toBe(422)
+      const body = (await invalidCreate.json()) as { error: { code: string; docs?: string } }
+      expect(body.error.code, selector).toBe("validation_failed")
+      expect(body.error.docs, selector).toBe("https://postbag.dev/docs/errors/validation_failed")
+    }
+  })
+
+  it("counts recent Submissions from tag and Project selector sources once per Stream", async () => {
+    const countOrg = await seedOrganization(db, "Selector count Org")
+    const countKey = await createTestApiKey(harness.auth, countOrg.organizationId, countOrg.userId)
+    const taggedProjectId = newId("prj")
+    try {
+      await db.insert(projects).values({
+        id: taggedProjectId,
+        organizationId: countOrg.organizationId,
+        slug: "selector-count-tags",
+        name: "Selector count tags",
+        tags: [],
+      })
+      const [taggedForm, projectForm, bothSelectorForm, unrelatedForm] = await db
+        .insert(forms)
+        .values([
+          {
+            id: newId("fm"),
+            organizationId: countOrg.organizationId,
+            projectId: taggedProjectId,
+            slug: "tagged-selector-count",
+            name: "Tagged selector count",
+            tags: ["counted-by-selector"],
+          },
+          {
+            id: newId("fm"),
+            organizationId: countOrg.organizationId,
+            projectId: countOrg.projectId,
+            slug: "project-selector-count",
+            name: "Project selector count",
+            tags: [],
+          },
+          {
+            id: newId("fm"),
+            organizationId: countOrg.organizationId,
+            projectId: countOrg.projectId,
+            slug: "both-selector-count",
+            name: "Both selector count",
+            tags: ["counted-by-selector"],
+          },
+          {
+            id: newId("fm"),
+            organizationId: countOrg.organizationId,
+            projectId: taggedProjectId,
+            slug: "unrelated-selector-count",
+            name: "Unrelated selector count",
+            tags: [],
+          },
+        ])
+        .returning()
+      if (taggedForm === undefined || projectForm === undefined || bothSelectorForm === undefined || unrelatedForm === undefined)
+        throw new Error("failed to seed count Forms")
+
+      const streamResponse = await harness.app.request(
+        "/v1/streams",
+        authed(countKey, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: "Selector count stream",
+            schema: { json_schema: { type: "object", properties: {} } },
+            sources: [
+              { selector: "tag:counted-by-selector", mapping: {} },
+              { selector: `project:${countOrg.projectId}`, mapping: {} },
+            ],
+          }),
+        }),
+      )
+      expect(streamResponse.status).toBe(201)
+      const stream = (await streamResponse.json()) as { id: string }
+
+      await db.insert(submissions).values([
+        { id: newId("sb"), organizationId: countOrg.organizationId, formId: taggedForm.id, data: { source: "tag" } },
+        { id: newId("sb"), organizationId: countOrg.organizationId, formId: projectForm.id, data: { source: "project" } },
+        { id: newId("sb"), organizationId: countOrg.organizationId, formId: bothSelectorForm.id, data: { source: "both" } },
+        { id: newId("sb"), organizationId: countOrg.organizationId, formId: unrelatedForm.id, data: { source: "unrelated" } },
+        {
+          id: newId("sb"),
+          organizationId: countOrg.organizationId,
+          formId: taggedForm.id,
+          data: { source: "old tag" },
+          receivedAt: new Date("2020-01-01T00:00:00.000Z"),
+        },
+      ])
+
+      const detail = await harness.app.request(`/v1/streams/${stream.id}`, authed(countKey))
+      expect(detail.status).toBe(200)
+      expect(((await detail.json()) as { counts: { submissions_30d: number } }).counts.submissions_30d).toBe(3)
+    } finally {
+      await db.delete(organization).where(eq(organization.id, countOrg.organizationId))
+    }
+  })
+
   it("derives a stream's first schema from recent submissions when the form has no schema", async () => {
     const formResponse = await harness.app.request(
       "/v1/forms",
@@ -580,6 +779,76 @@ integration("/v1 API", () => {
       }),
     )
     expect(((await named.json()) as { name: string }).name).toBe("Sales inbox")
+  })
+
+  it("rejects incomplete digest Route updates without changing delivery mode", async () => {
+    const formResponse = await harness.app.request(
+      "/v1/forms",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "Digest update validation" }),
+      }),
+    )
+    expect(formResponse.status).toBe(201)
+    const form = (await formResponse.json()) as { id: string }
+
+    const destinationResponse = await harness.app.request(
+      "/v1/destinations",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type: "email", config: { to: ["digest@example.com"] } }),
+      }),
+    )
+    expect(destinationResponse.status).toBe(201)
+    const destination = (await destinationResponse.json()) as { id: string }
+
+    const routeResponse = await harness.app.request(
+      "/v1/routes",
+      authed(keyA, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          form_id: form.id,
+          destination_id: destination.id,
+          mode: { type: "instant" },
+        }),
+      }),
+    )
+    expect(routeResponse.status).toBe(201)
+    const route = (await routeResponse.json()) as { id: string }
+
+    const incomplete = await harness.app.request(
+      `/v1/routes/${route.id}`,
+      authed(keyA, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode: { type: "digest", cron: "0 9 * * *" } }),
+      }),
+    )
+    expect(incomplete.status).toBe(422)
+
+    const unchanged = await harness.app.request(`/v1/routes/${route.id}`, authed(keyA))
+    expect(unchanged.status).toBe(200)
+    expect(((await unchanged.json()) as { mode: { type: string } }).mode).toEqual({ type: "instant" })
+
+    const complete = await harness.app.request(
+      `/v1/routes/${route.id}`,
+      authed(keyA, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          mode: { type: "digest", cron: "0 9 * * *", timezone: "Asia/Dhaka" },
+        }),
+      }),
+    )
+    expect(complete.status).toBe(200)
+    expect(((await complete.json()) as { mode: Record<string, string> }).mode).toEqual({
+      type: "digest",
+      cron: "0 9 * * *",
+      timezone: "Asia/Dhaka",
+    })
   })
 
   it("GET /v1/webhooks/{id}/deliveries returns cursor-paginated delivery history", async () => {

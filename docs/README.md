@@ -7,6 +7,7 @@
 | [`DOMAIN-MODEL.md`](./DOMAIN-MODEL.md)       | To understand the nouns: Form, Submission, Stream, Schema, Mapping, Destination, Route, Delivery.                                          |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md)       | How it runs: the outbox, the worker, the submit path, spam, deliverability, multi-tenancy.                                                 |
 | [`AGENT-NATIVE.md`](./AGENT-NATIVE.md)       | What "agent-native" means concretely: the API surface, MCP, CLI, discoverability, the quickstart call.                                     |
+| [`BRAND.md`](./BRAND.md)                     | Positioning, message, voice and visual language for every public and product surface.                                                      |
 | [`DESIGN.md`](./DESIGN.md)                   | Before any UI work. shadcn/ui foundation, the identity coat, feel rules, and the mandatory design skills.                                  |
 | [`ROADMAP.md`](./ROADMAP.md)                 | Phases, what ships when, and what is deliberately deferred.                                                                                |
 | [`decisions/`](./decisions/)                 | Architecture Decision Records. One file per decision; never edit history, supersede instead.                                               |

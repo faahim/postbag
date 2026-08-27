@@ -13,7 +13,7 @@ const { code, lang = "text", title, class: className = "", copy = true, dense = 
       {copy && (
         <button
           type="button"
-          class={`copy-btn relative -mr-1.5 inline-flex items-center gap-1.5 rounded-md px-2.5 font-sans text-xs font-medium text-muted-foreground transition-colors duration-150 hover:bg-surface-2 hover:text-foreground ${large ? "h-11 min-w-11" : "h-8"}`}
+          class={`copy-btn relative -mr-1.5 inline-flex items-center gap-1.5 rounded-md px-2.5 font-sans text-xs font-medium text-muted-foreground transition-colors duration-(--duration-quick) hover:bg-surface-2 hover:text-foreground ${large ? "h-11 min-w-11" : "h-8"}`}
           data-copy
           aria-label="Copy code"
         >
@@ -35,6 +35,8 @@ const { code, lang = "text", title, class: className = "", copy = true, dense = 
   <pre class="hidden" data-raw>{code}</pre>
 </figure>
 <script>
+  const copiedHoldRaw = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--duration-copied-hold"))
+  const copiedHold = Number.isFinite(copiedHoldRaw) ? copiedHoldRaw : 1600
   document.querySelectorAll<HTMLElement>("[data-codeblock]").forEach((block) => {
     const btn = block.querySelector<HTMLButtonElement>("[data-copy]")
     const swap = btn?.querySelector<HTMLElement>(".t-icon-swap") ?? null
@@ -47,11 +49,12 @@ const { code, lang = "text", title, class: className = "", copy = true, dense = 
       btn.querySelector(".copy-label")?.classList.add("invisible")
       const done = btn.querySelector<HTMLElement>(".copied-label")
       done?.classList.remove("hidden"); done?.classList.add("inline-flex")
+      block.dispatchEvent(new CustomEvent("postbag:codecopied", { bubbles: true }))
       timer = setTimeout(() => {
         swap?.setAttribute("data-state", "a")
         btn.querySelector(".copy-label")?.classList.remove("invisible")
         done?.classList.add("hidden"); done?.classList.remove("inline-flex")
-      }, 1400)
+      }, copiedHold)
     })
   })
 </script>

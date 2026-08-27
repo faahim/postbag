@@ -8,12 +8,15 @@ import type { Auth } from "../../authSetup.js"
 import type { Env } from "../../env.js"
 import { forwardAuthCookies } from "../../lib/authCookies.js"
 import { assertSessionActor, type AppEnv } from "../../lib/scope.js"
+import { requireRole } from "../../lib/orgs.js"
 import {
   CreateOrganizationInputSchema,
   errorResponses,
   OrganizationSummarySchema,
   SetActiveOrganizationInputSchema,
   SetActiveOrganizationResponseSchema,
+  UpdateOrganizationSettingsInputSchema,
+  UpdateOrganizationSettingsResponseSchema,
 } from "../../schemas.js"
 
 // Job L §1/§3 — active-organization switching and creating a new organization from the
@@ -31,9 +34,14 @@ const setActiveOrganizationRoute = createRoute({
     "Session only — an API key already resolves to exactly one organization and cannot switch. " +
     "The caller must already be a member of the target organization (403 forbidden otherwise). " +
     "Every subsequent /v1 call on this session scopes to the new organization.",
-  request: { body: { content: { "application/json": { schema: SetActiveOrganizationInputSchema } } } },
+  request: {
+    body: { content: { "application/json": { schema: SetActiveOrganizationInputSchema } } },
+  },
   responses: {
-    200: { description: "ok", content: { "application/json": { schema: SetActiveOrganizationResponseSchema } } },
+    200: {
+      description: "ok",
+      content: { "application/json": { schema: SetActiveOrganizationResponseSchema } },
+    },
     ...errorResponses,
   },
 })
@@ -49,10 +57,44 @@ const createOrganizationRoute = createRoute({
     "settings + 'Default' project every signup gets, then makes it this session's active organization.",
   request: { body: { content: { "application/json": { schema: CreateOrganizationInputSchema } } } },
   responses: {
-    201: { description: "created", content: { "application/json": { schema: OrganizationSummarySchema } } },
+    201: {
+      description: "created",
+      content: { "application/json": { schema: OrganizationSummarySchema } },
+    },
     ...errorResponses,
   },
 })
+
+const updateOrganizationSettingsRoute = createRoute({
+  method: "patch",
+  path: "/v1/organizations/active",
+  operationId: "organizations_update_active",
+  tags: ["discovery"],
+  summary: "Update the active organization's settings",
+  description:
+    "Owner or admin (a manage-scoped API key counts as admin). Today that is the workspace " +
+    "timezone, used by the dashboard as the default when creating a digest Route. Each digest " +
+    "Route stores its own timezone, so changing this setting does not alter existing Routes.",
+  request: {
+    body: { content: { "application/json": { schema: UpdateOrganizationSettingsInputSchema } } },
+  },
+  responses: {
+    200: {
+      description: "ok",
+      content: { "application/json": { schema: UpdateOrganizationSettingsResponseSchema } },
+    },
+    ...errorResponses,
+  },
+})
+
+function isValidTimezone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: timezone })
+    return true
+  } catch {
+    return false
+  }
+}
 
 function slugify(value: string): string {
   const base = value
@@ -60,6 +102,13 @@ function slugify(value: string): string {
     .replaceAll(/[^a-z0-9]+/gu, "-")
     .replaceAll(/^-+|-+$/gu, "")
   return base.length === 0 ? "workspace" : base.slice(0, 40)
+}
+
+export function defaultOrganizationPlan(
+  env: Pick<Env, "POLAR_ACCESS_TOKEN">,
+): { readonly plan: "free" | "selfhost"; readonly planSource: "free" | "selfhost" } {
+  const plan = env.POLAR_ACCESS_TOKEN === undefined ? "selfhost" : "free"
+  return { plan, planSource: plan }
 }
 
 type SetActiveOrganizationWithHeaders = (input: {
@@ -84,10 +133,18 @@ export async function setActiveOrganizationWithCookies(
   forwardAuthCookies(c, result.headers)
 }
 
-export function registerOrganizationRoutes(app: OpenAPIHono<AppEnv>, auth: Auth, db: Database, env: Env): void {
+export function registerOrganizationRoutes(
+  app: OpenAPIHono<AppEnv>,
+  auth: Auth,
+  db: Database,
+  env: Env,
+): void {
   app.openapi(setActiveOrganizationRoute, async (c) => {
     const scope = c.var.scope
-    assertSessionActor(scope, "Switch the active organization from a signed-in session, not an API key.")
+    assertSessionActor(
+      scope,
+      "Switch the active organization from a signed-in session, not an API key.",
+    )
     const { organization_id: organizationId } = c.req.valid("json")
 
     try {
@@ -99,12 +156,49 @@ export function registerOrganizationRoutes(app: OpenAPIHono<AppEnv>, auth: Auth,
       throw error
     }
 
-    const [org] = await db.select().from(organization).where(eq(organization.id, organizationId)).limit(1)
+    const [org] = await db
+      .select()
+      .from(organization)
+      .where(eq(organization.id, organizationId))
+      .limit(1)
     if (org === undefined) throw new PostbagError("not_found", "No organization with that id.")
 
     const body: z.infer<typeof SetActiveOrganizationResponseSchema> = {
       organization: { id: org.id, slug: org.slug, name: org.name },
     }
+    return c.json(body, 200)
+  })
+
+  app.openapi(updateOrganizationSettingsRoute, async (c) => {
+    const scope = c.var.scope
+    await requireRole(db, scope, ["owner", "admin"])
+    const { timezone } = c.req.valid("json")
+
+    if (!isValidTimezone(timezone)) {
+      throw new PostbagError("validation_failed", "Not a recognized IANA timezone.", {
+        field: "timezone",
+        example: "Europe/Stockholm",
+      })
+    }
+
+    const updated = await db
+      .update(organizationSettings)
+      .set({ timezone })
+      .where(eq(organizationSettings.organizationId, scope.organizationId))
+      .returning({ timezone: organizationSettings.timezone })
+    if (updated.length === 0) {
+      // Settings rows exist for every provisioned org; self-heal if one is missing.
+      await db
+        .insert(organizationSettings)
+        .values({
+          organizationId: scope.organizationId,
+          ...defaultOrganizationPlan(env),
+          timezone,
+          limits: {},
+        })
+    }
+
+    const body: z.infer<typeof UpdateOrganizationSettingsResponseSchema> = { timezone }
     return c.json(body, 200)
   })
 
@@ -115,22 +209,35 @@ export function registerOrganizationRoutes(app: OpenAPIHono<AppEnv>, auth: Auth,
 
     const created = await auth.api.createOrganization({
       headers: c.req.raw.headers,
-      body: { name: body.name, slug: body.slug ?? `${slugify(body.name)}-${newId("org").slice(-6)}` },
+      body: {
+        name: body.name,
+        slug: body.slug ?? `${slugify(body.name)}-${newId("org").slice(-6)}`,
+      },
     })
-    const org = created as unknown as { readonly id: string; readonly slug: string; readonly name: string }
+    const org = created as unknown as {
+      readonly id: string
+      readonly slug: string
+      readonly name: string
+    }
 
     // Same shape provisionPersonalOrganization gives every signup: default settings + a
     // "Default" project (Principle 2 — the concept must not exist for the user yet).
     await db.transaction(async (tx) => {
-      const selfHosted = env.POLAR_ACCESS_TOKEN === undefined
       await tx.insert(organizationSettings).values({
         organizationId: org.id,
-        plan: selfHosted ? "selfhost" : "free",
-        planSource: selfHosted ? "selfhost" : "free",
+        ...defaultOrganizationPlan(env),
         timezone: "UTC",
         limits: {},
       })
-      await tx.insert(projects).values({ id: newId("prj"), organizationId: org.id, slug: "default", name: "Default", tags: [] })
+      await tx
+        .insert(projects)
+        .values({
+          id: newId("prj"),
+          organizationId: org.id,
+          slug: "default",
+          name: "Default",
+          tags: [],
+        })
     })
 
     await setActiveOrganizationWithCookies(c, auth, c.req.raw.headers, org.id)

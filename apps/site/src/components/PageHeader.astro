@@ -4,11 +4,96 @@ import type { Crumb } from "@/lib/seo"
 interface Props { title: string; lede: string; crumbs?: Crumb[]; eyebrow?: string; modified?: string }
 const { title, lede, crumbs, eyebrow, modified } = Astro.props
 ---
-<header class="container-x pt-10 pb-8 sm:pt-14 sm:pb-12">
-  {crumbs && <Breadcrumbs crumbs={crumbs} class="mb-6" />}
-  {eyebrow && <p class="mb-3 font-mono text-[12px] uppercase tracking-[0.14em] text-primary">{eyebrow}</p>}
-  <h1 class="max-w-4xl text-4xl font-semibold leading-[1.05] sm:text-5xl lg:text-[3.5rem]">{title}</h1>
-  <p class="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">{lede}</p>
-  {modified && <p class="mt-4 text-xs text-muted-foreground">Last updated <time datetime={modified}>{new Date(modified).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</time></p>}
-  <slot />
+<header class="brand-canvas-panel relative overflow-hidden border-b border-border/70 bg-gradient-to-b from-accent/55 to-background">
+  <!-- The receiving scene: a form plane drifting toward an aperture, melted into the
+       header surface. Decoration in the world, not an icon on the page. -->
+  <div class="header-scene" aria-hidden="true">
+    <span class="hs-trace hs-trace-a"></span>
+    <span class="hs-trace hs-trace-b"></span>
+    <span class="hs-plane"><i></i><i></i></span>
+    <span class="hs-aperture"></span>
+  </div>
+  <div class="container-x relative pt-10 pb-10 sm:pt-16 sm:pb-16">
+    {crumbs && <Breadcrumbs crumbs={crumbs} class="mb-7" />}
+    {eyebrow && <p class="mb-4 font-mono text-[12px] uppercase tracking-[0.12em] text-primary">{eyebrow}</p>}
+    <h1 class="max-w-4xl text-4xl font-semibold leading-[1.02] sm:text-5xl lg:text-[3.65rem]">{title}</h1>
+    <p class="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">{lede}</p>
+    {modified && <p class="mt-5 text-xs text-muted-foreground">Last updated <time datetime={modified}>{new Date(modified).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</time></p>}
+    <slot />
+  </div>
 </header>
+
+<style>
+  .header-scene {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(34rem, 46vw);
+    pointer-events: none;
+    mask-image: linear-gradient(to left, oklch(0 0 0) 55%, transparent), linear-gradient(to top, transparent 4%, oklch(0 0 0) 40%);
+    mask-composite: intersect;
+  }
+  .hs-trace {
+    position: absolute;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--primary) 65%, transparent));
+    transform-origin: right center;
+  }
+  .hs-trace-a { top: 34%; right: -2rem; width: 120%; transform: rotate(9deg); opacity: 0.5; }
+  .hs-trace-b { top: 52%; right: -2rem; width: 110%; transform: rotate(3.5deg); opacity: 0.3; }
+  .hs-plane {
+    position: absolute;
+    top: 26%;
+    right: 34%;
+    width: 4.6rem;
+    height: 3rem;
+    border-radius: calc(var(--radius) - 2px);
+    background: linear-gradient(160deg, var(--surface), color-mix(in oklch, var(--surface) 90%, var(--primary)));
+    box-shadow: var(--shadow-md), inset 0 0 0 1px color-mix(in oklch, var(--border-strong) 85%, transparent);
+    transform: rotate(-7deg);
+    opacity: 0.85;
+    animation: hs-drift 7s var(--ease-in-out) infinite alternate;
+  }
+  .hs-plane i {
+    display: block;
+    width: 58%;
+    height: 1.5px;
+    margin: 0.7rem 0.8rem -0.35rem;
+    border-radius: 999px;
+    background: var(--border-strong);
+  }
+  .hs-aperture {
+    position: absolute;
+    top: 62%;
+    right: 15%;
+    width: min(13.5rem, 50%);
+    height: 1.9rem;
+    border-radius: 999px;
+    background: radial-gradient(130% 200% at 50% -30%, oklch(0.55 0.13 277 / 0.42) 0%, oklch(0.36 0.11 275 / 0.5) 45%, oklch(0.24 0.08 274 / 0.55) 80%);
+    box-shadow:
+      inset 0 2px 5px oklch(0.05 0.03 272 / 0.28),
+      inset 0 1px 0 color-mix(in oklch, var(--brand-periwinkle) 45%, transparent),
+      0 -14px 30px 8px color-mix(in oklch, var(--surface) 55%, transparent),
+      0 12px 24px color-mix(in oklch, var(--primary) 14%, transparent);
+    opacity: 0.75;
+  }
+  .dark .hs-aperture {
+    background: radial-gradient(130% 200% at 50% -30%, oklch(0.42 0.09 276 / 0.8) 0%, oklch(0.2 0.06 273 / 0.8) 42%, oklch(0.1 0.04 272 / 0.85) 78%);
+    box-shadow:
+      inset 0 2px 6px oklch(0 0 0 / 0.4),
+      inset 0 1px 0 color-mix(in oklch, var(--brand-periwinkle) 50%, transparent),
+      0 12px 24px oklch(0 0 0 / 0.3);
+  }
+  @keyframes hs-drift {
+    from { transform: rotate(-7deg) translate(0, 0); }
+    to { transform: rotate(-5.5deg) translate(-0.5rem, 0.55rem); }
+  }
+  @media (max-width: 767px) {
+    .header-scene { width: 60vw; opacity: 0.55; }
+    .hs-plane { width: 3.6rem; height: 2.4rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hs-plane { animation: none; }
+  }
+</style>

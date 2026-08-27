@@ -223,6 +223,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update the active organization's settings
+         * @description Owner or admin (a manage-scoped API key counts as admin). Today that is the workspace timezone, used by the dashboard as the default when creating a digest Route. Each digest Route stores its own timezone, so changing this setting does not alter existing Routes.
+         */
+        patch: operations["organizations_update_active"];
+        trace?: never;
+    };
     "/v1/organizations": {
         parameters: {
             query?: never;
@@ -735,7 +755,7 @@ export interface paths {
         put?: never;
         /**
          * Create a stream (optionally with its first schema version and sources)
-         * @description A stream (shown as 'Bag' in the dashboard) collects submissions from many forms into one shared shape. Pass `schema` to define that shape up front, or omit it and pass `sources` — the first source's form then provides version 1 (copied from its published schema, its inferred draft, or the fields seen in recent submissions) with an identity mapping, so `{ name, sources: [{ form_id }] }` is a complete request.
+         * @description A Stream collects Submissions from many Forms into one shared shape. Pass `schema` to define that shape up front, or omit it and pass `sources` — the first source's form then provides version 1 (copied from its published schema, its inferred draft, or the fields seen in recent submissions) with an identity mapping, so `{ name, sources: [{ form_id }] }` is a complete request.
          */
         post: operations["streams_create"];
         delete?: never;
@@ -2356,6 +2376,89 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActiveOrganization"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    organizations_update_active: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description IANA timezone, e.g. Europe/Stockholm. The dashboard uses it as the default for new digest Routes. */
+                    timezone: string;
+                };
+            };
+        };
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        timezone: string;
+                    };
                 };
             };
             /** @description Error */
@@ -5130,9 +5233,9 @@ export interface operations {
                     };
                     /** @default [] */
                     sources?: {
-                        /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                        /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                         form_id?: string;
-                        /** @description Reserved for non-form sources (not yet implemented). */
+                        /** @description A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`. */
                         selector?: string;
                         /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                         mapping?: {
@@ -5402,9 +5505,9 @@ export interface operations {
                     };
                     /** @default [] */
                     sources?: {
-                        /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                        /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                         form_id?: string;
-                        /** @description Reserved for non-form sources (not yet implemented). */
+                        /** @description A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`. */
                         selector?: string;
                         /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                         mapping?: {
@@ -5700,9 +5803,9 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": {
-                    /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                    /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                     form_id?: string;
-                    /** @description Reserved for non-form sources (not yet implemented). */
+                    /** @description A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`. */
                     selector?: string;
                     /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                     mapping?: {
@@ -5874,9 +5977,9 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": {
-                    /** @description The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported). */
+                    /** @description One Form feeding this Stream. Mutually exclusive with `selector`. */
                     form_id?: string;
-                    /** @description Reserved for non-form sources (not yet implemented). */
+                    /** @description A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`. */
                     selector?: string;
                     /** @description Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), `const` (a fixed value) or `expr` (a JSONata expression), plus an optional `default`. Every required field in the stream's schema must be covered or this call fails 422 mapping_incomplete. */
                     mapping?: {
@@ -6793,11 +6896,14 @@ export interface operations {
                     /** @description instant delivers as submissions arrive; digest batches into one payload per period. */
                     mode?: {
                         /** @enum {string} */
-                        type: "instant" | "digest";
+                        type: "instant";
+                    } | {
+                        /** @enum {string} */
+                        type: "digest";
                         /** @description Cron expression for digest mode, e.g. '0 9 * * *'. */
-                        cron?: string;
-                        /** @description IANA timezone the cron runs in; defaults to the org's timezone. */
-                        timezone?: string;
+                        cron: string;
+                        /** @description IANA timezone the cron runs in. */
+                        timezone: string;
                     };
                     /** @description Only deliver submissions received in this ISO datetime range. */
                     window?: {

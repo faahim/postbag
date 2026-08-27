@@ -3,139 +3,65 @@ import Base from "@/layouts/Base.astro"
 import PageHeader from "@/components/PageHeader.astro"
 import Faq from "@/components/Faq.astro"
 import CtaBand from "@/components/CtaBand.astro"
-import Postmark from "@/components/Postmark.astro"
 import { APP_URL, GITHUB_URL, PLANS, SIGNUP_URL, SITE_URL } from "@/config"
 import { breadcrumbLd, faqLd, softwareLd, webPageLd } from "@/lib/seo"
 const crumbs = [ { name: "Home", href: "/" }, { name: "Pricing", href: "/pricing/" } ]
 const pro = PLANS.find((p) => p.id === "pro")!
 const team = PLANS.find((p) => p.id === "team")!
 const faqs = [
-  { q: "Is Postbag free?", a: "Yes. The free plan includes 5 forms, 1,000 submissions a month, 5 destinations and 90-day retention, with every feature: streams, schemas, signed webhooks, the full API. Pro and Team are available for higher limits." },
-  { q: "What happens if I go over the submission limit?", a: "Submissions are still stored and flagged over quota; delivery pauses until the plan allows. Nothing is dropped. Test submissions (_test: true) do not count." },
-  { q: "Do the paid plans have different features?", a: "No. Plans differ only in limits: forms, submissions per month, destinations and retention. Every plan has the whole product, including the API and agent features. Team adds seats and compliance paperwork, which only make sense on a hosted account." },
-  { q: `Why is Pro $${pro.monthly} a month?`, a: "Because it is priced as a routing and delivery service, not as a form-to-email relay. The outbox, signed webhooks, streams and the agent surface are on every plan; the price buys the hosted operation of them: deliverability, retries, retention and support." },
-  { q: "Who is the seller, and will I get a proper invoice?", a: "Paid checkout is handled by Polar as our Merchant of Record. Polar acts as the seller, charges the correct VAT or sales tax for your country and issues a compliant invoice for every payment." },
-  { q: "What does self-hosting cost?", a: "Nothing from us. Postbag is open source: the server is AGPL-3.0 and the client packages (SDK, CLI, MCP server) are MIT. You run the image against your own Postgres with effectively unlimited limits. The repository opens publicly with the first npm release of the client packages." },
+  { q: "Is Postbag free?", a: "Yes. Free includes 5 forms, 1,000 messages a month and 90 days of history — and everything else the product does, agents included. It's a smaller room, not a smaller product." },
+  { q: "What happens over the message limit?", a: "We still keep the message, marked as over quota. Once there is room again, you or your agent can release it for sending. Nothing already received is ever dropped — and test messages don't count against you." },
+  { q: "Do paid plans unlock product features?", a: "No — that's a promise, not a coincidence. Plans differ by room. Team adds seats, an audit log and compliance paperwork, because those only make sense when we're the ones hosting." },
+  { q: `Why is Pro $${pro.monthly} a month?`, a: "You're paying for the running of it: sending, retries, history, backups, and one less thing on your plate. The product itself is on every plan — and in the open-source repository." },
+  { q: "Who handles payment and invoices?", a: "Polar, as the Merchant of Record. They're the seller on the receipt, they work out the tax, and they issue the invoice." },
+  { q: "What does self-hosting cost?", a: "Nothing from us, ever — no licence fee, no strings. The server is AGPL-3.0 and the SDK, CLI and MCP server are MIT. You bring the machine; the product is the same one we run." },
 ]
 const fmt = (n: number) => n.toLocaleString("en-US")
-const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postbag pricing", description: `Postbag plans: Free (5 forms, 1,000 submissions/month), Pro $${pro.monthly}/month, Team $${team.monthly}/month, and free open-source self-hosting. Every feature on every plan.` }), breadcrumbLd(crumbs), faqLd(faqs) ]
+const description = `Postbag pricing: Free with 5 forms and 1,000 messages a month, Pro at $${pro.monthly}/month, Team at $${team.monthly}/month — the whole product on every plan.`
+const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postbag pricing", description }), breadcrumbLd(crumbs), faqLd(faqs) ]
 ---
-<Base title="Pricing" description={`Postbag pricing: Free with 5 forms and 1,000 submissions a month, Pro at $${pro.monthly}/month, Team at $${team.monthly}/month, every feature on every plan. Self-hosting is free and open source.`} canonical="/pricing/" ld={ld}>
-  <PageHeader title="Every feature on every plan. Plans differ only in limits." lede="There is no feature gate in Postbag: streams, schemas, signed webhooks and the agent surface are on the free plan. Paid plans raise the numbers. Choose Pro or Team to continue to checkout." crumbs={crumbs} />
-  <section class="container-x" data-pricing>
-    <div class="mb-8 flex justify-center">
-      <div class="t-tabs" role="tablist" aria-label="Billing interval">
-        <span class="t-tabs-pill" aria-hidden="true"></span>
-        <button type="button" role="tab" class="t-tab" aria-selected="true" aria-controls="pricing-plans" tabindex="0" data-interval="month">Monthly</button>
-        <button type="button" role="tab" class="t-tab" aria-selected="false" aria-controls="pricing-plans" tabindex="-1" data-interval="year">Yearly · save 20%</button>
-      </div>
+<Base title="Pricing" description={description} canonical="/pricing/" ld={ld}>
+  <PageHeader eyebrow="Hosted or yours" title="Pay for room, not permission." lede="Every plan gets the whole product — bigger plans just get more room. Rather run it yourself? Free, forever." crumbs={crumbs} />
+
+  <section class="container-x pricing-shell" data-pricing aria-labelledby="plans-heading">
+    <div class="pricing-control" data-reveal>
+      <div><p class="control-label">Billing interval</p><p>Yearly billing saves 20% on Pro and Team.</p></div>
+      <div class="t-tabs" role="tablist" aria-label="Billing interval"><span class="t-tabs-pill" aria-hidden="true"></span><button type="button" role="tab" class="t-tab" aria-selected="true" aria-controls="pricing-plans" tabindex="0" data-interval="month">Monthly</button><button type="button" role="tab" class="t-tab" aria-selected="false" aria-controls="pricing-plans" tabindex="-1" data-interval="year">Yearly</button></div>
     </div>
-    <div id="pricing-plans" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-reveal-group="70">
-      {PLANS.map((p) => (
-        <div class={`card flex flex-col p-6 ${p.id === "pro" ? "shadow-md ring-1 ring-primary/30" : ""}`} data-reveal data-plan-card={p.id === "free" ? undefined : ""} data-monthly={p.monthly} data-yearly={p.yearly} data-yearly-total={p.yearly * 12}>
-          <div class="flex items-baseline justify-between gap-3">
-            <h2 class="text-xl font-semibold">{p.name}</h2>
-            {p.id === "pro" && <span class="rounded-full bg-accent/60 px-2.5 py-0.5 text-xs font-medium">For many sites</span>}
-          </div>
-          <p class="mt-1 font-display text-3xl font-semibold tabular">$<span data-price>{p.monthly}</span><span class="text-base font-normal text-muted-foreground">/month</span></p>
-          <p class="mt-1 text-sm text-muted-foreground tabular" data-price-detail={p.id === "free" ? undefined : ""}>{p.monthly === 0 ? "Free forever, no card." : "Billed monthly."}</p>
-          <dl class="mt-5 grid flex-1 gap-2 text-[15px]">
-            <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Forms</dt><dd class="tabular">{fmt(p.forms)}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Submissions / month</dt><dd class="tabular">{fmt(p.submissions)}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Destinations</dt><dd class="tabular">{fmt(p.destinations)}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Retention</dt><dd class="tabular">{p.retention} days</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Seats, audit log, DPA</dt><dd class={p.id === "team" ? "" : "text-muted-foreground/50"}>{p.id === "team" ? "Included" : "—"}</dd></div>
-          </dl>
-          {p.id === "free" ? <a href={SIGNUP_URL} class="btn btn-primary mt-6">Create a form</a> : <a href={`${APP_URL}/settings?plan=${p.id}&interval=month&checkout=1`} data-checkout data-checkout-base={`${APP_URL}/settings`} data-plan={p.id} class="btn btn-primary mt-6">Choose {p.name}</a>}
-        </div>
+    <h2 id="plans-heading" class="sr-only">Postbag Cloud plans</h2>
+    <div id="pricing-plans" class="plan-ledger">
+      {PLANS.map((plan, index) => (
+        <article class:list={["plan-row", { featured: plan.id === "pro" }]} data-reveal style={`--reveal-delay: calc(var(--duration-quick) * ${index * 0.42})`} data-plan-card={plan.id === "free" ? undefined : ""} data-monthly={plan.monthly} data-yearly={plan.yearly} data-yearly-total={plan.yearly * 12}>
+          <header><div><p class="plan-index">0{index + 1} · cloud</p><h3>{plan.name}</h3></div>{plan.id === "pro" && <span class="plan-note">A comfortable default</span>}</header>
+          <div class="price"><p>$<span data-price>{plan.monthly}</span></p><span>/ month</span><small data-price-detail={plan.id === "free" ? undefined : ""}>{plan.monthly === 0 ? "No card needed." : "Billed monthly."}</small></div>
+          <dl><div><dt>Forms</dt><dd>{fmt(plan.forms)}</dd></div><div><dt>Messages / month</dt><dd>{fmt(plan.submissions)}</dd></div><div><dt>Destinations</dt><dd>{fmt(plan.destinations)}</dd></div><div><dt>Retention</dt><dd>{plan.retention} days</dd></div><div><dt>Seats, audit log, DPA</dt><dd>{plan.id === "team" ? "Included" : "Not included"}</dd></div></dl>
+          <div class="plan-action">{plan.id === "free" ? <a href={SIGNUP_URL} class="btn btn-secondary">Start free</a> : <a href={`${APP_URL}/settings?plan=${plan.id}&interval=month&checkout=1`} data-checkout data-checkout-base={`${APP_URL}/settings`} data-plan={plan.id} class="btn btn-primary">Choose {plan.name}</a>}</div>
+        </article>
       ))}
-      <div class="card flex flex-col bg-surface-2 p-6 ring-1 ring-border-strong" data-reveal>
-        <div class="flex items-center gap-2.5">
-          <Postmark status="sent" tone="accent" size={22} title="Self-host" />
-          <h2 class="text-xl font-semibold">Self-host</h2>
-        </div>
-        <p class="mt-1 font-display text-3xl font-semibold tabular">Free</p>
-        <p class="mt-1 text-sm text-muted-foreground">Open source, AGPL-3.0.</p>
-        <dl class="mt-5 grid flex-1 gap-2 text-[15px]">
-          <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Forms</dt><dd>Unlimited</dd></div>
-          <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Submissions</dt><dd>Unlimited</dd></div>
-          <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Destinations</dt><dd>Unlimited</dd></div>
-          <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Retention</dt><dd>Your policy</dd></div>
-          <div class="flex justify-between gap-4"><dt class="text-muted-foreground">Seats, audit log, DPA</dt><dd>Manual</dd></div>
-        </dl>
-        <div class="mt-6 grid gap-2">
-          <a href="/docs/self-hosting/" class="btn btn-secondary">Self-host guide</a>
-          <a href={GITHUB_URL} class="text-center text-sm text-muted-foreground hover:text-foreground" rel="noopener">Source on GitHub</a>
-        </div>
-      </div>
     </div>
-    <p class="mt-6 max-w-3xl text-[15px] text-muted-foreground">Every plan includes: unlimited projects, streams and routes; email, Telegram and signed webhook destinations; schemas, drift and inference; the full API, llms.txt and OpenAPI; the dashboard. Limits mirror <code class="font-mono text-[0.9em]">GET /v1/me</code>. Prices are in USD; tax is added at checkout where it applies.</p>
+    <p class="included">Every plan includes the whole product: unlimited projects and routing, email, Telegram and webhooks with optional HMAC signing, drift alerts, the full API, the agent clients and the dashboard. Prices are in USD; applicable tax is added at checkout.</p>
+  </section>
+
+  <section class="container-x self-host" aria-labelledby="self-host-heading" data-reveal>
+    <div class="self-host-scene" aria-hidden="true"><span class="source-plane">source</span><span class="route-line"></span><span class="instance">your instance</span></div>
+    <div class="self-host-copy"><p class="section-label">The other first-class path</p><h2 id="self-host-heading">Run the same product yourself.</h2><p>No licence fee and no reduced community edition. Bring a container and Postgres. You own operation, upgrades, backups and delivery configuration.</p><dl><div><dt>Product limits</dt><dd>Effectively unlimited</dd></div><div><dt>Retention</dt><dd>Your policy</dd></div><div><dt>Licence</dt><dd>AGPL-3.0 server, MIT clients</dd></div></dl><div class="self-actions"><a href="/docs/self-hosting/" class="btn btn-primary">Self-host guide</a><a href={GITHUB_URL} class="btn btn-secondary" rel="noopener">Source on GitHub</a></div></div>
   </section>
   <Faq items={faqs} class="mt-20" title="Pricing questions" />
-  <CtaBand />
+  <CtaBand title="Start with the room you need." body="Nothing changes as you grow — same form, same product, just a bigger room." />
 </Base>
+
+<style>
+  .pricing-shell{padding-top:2rem}.pricing-control{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1.25rem;padding:1.1rem 1.25rem;border-radius:calc(var(--radius) + 8px);background:var(--surface);box-shadow:var(--shadow-sm)}.control-label,.section-label,.plan-index{font-family:var(--font-mono);font-size:.67rem;font-weight:650;letter-spacing:.11em;text-transform:uppercase;color:var(--primary)}.pricing-control>div>p:last-child{margin-top:.2rem;color:var(--muted-foreground);font-size:.86rem}.plan-ledger{display:grid;margin-top:1.5rem}.plan-row{position:relative;display:grid;gap:1.5rem;padding:clamp(1.4rem,4vw,2.25rem);border-top:1px solid var(--border-strong);background:var(--background)}.plan-row.featured{z-index:1;margin-inline:-.5rem;padding-inline:calc(clamp(1.4rem,4vw,2.25rem) + .5rem);border:0;border-radius:calc(var(--radius) + 12px);background:var(--surface);box-shadow:var(--shadow-lg)}.plan-row header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.plan-row h3{margin-top:.4rem;font-size:1.65rem;font-weight:600}.plan-note{padding:.35rem .6rem;border-radius:99px;background:var(--accent);color:var(--accent-foreground);font-size:.72rem;font-weight:600}.price{display:grid;grid-template-columns:auto 1fr;align-items:baseline}.price p{font-family:var(--font-display);font-size:2.8rem;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}.price>span{color:var(--muted-foreground)}.price small{grid-column:1/-1;margin-top:.45rem;color:var(--muted-foreground);font-size:.75rem;font-variant-numeric:tabular-nums}.plan-row dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem 1.5rem}.plan-row dl div{min-width:0}.plan-row dt{color:var(--muted-foreground);font-size:.73rem}.plan-row dd{margin-top:.2rem;font-size:.92rem;font-variant-numeric:tabular-nums}.plan-action{align-self:center}.plan-action .btn{width:100%}.included{max-width:55rem;margin-top:1.5rem;color:var(--muted-foreground);font-size:.88rem;line-height:1.7}
+  .self-host{display:grid;overflow:hidden;margin-top:7rem;border-radius:calc(var(--radius) + 16px);background:var(--foreground);color:var(--background);box-shadow:var(--shadow-xl)}.self-host-scene{position:relative;min-height:18rem;background:radial-gradient(circle at 45% 48%,var(--primary),transparent 47%)}.source-plane,.instance{position:absolute;display:grid;place-items:center;border-radius:var(--radius);font-family:var(--font-mono);font-size:.7rem;letter-spacing:.05em}.source-plane{left:10%;top:20%;width:7rem;height:4.5rem;background:var(--primary-foreground);color:var(--primary)}.instance{right:9%;bottom:20%;width:9rem;height:6rem;border:1px solid var(--primary);color:var(--primary-foreground);background:var(--foreground);box-shadow:var(--shadow-xl)}.route-line{position:absolute;left:29%;right:29%;top:50%;height:1px;background:var(--primary);transform:rotate(18deg);transform-origin:left}.self-host-copy{padding:clamp(2rem,6vw,4.5rem)}.self-host-copy .section-label{color:var(--primary)}.self-host h2{max-width:35rem;margin-top:.8rem;color:var(--background);font-size:clamp(2.2rem,5vw,3.7rem);font-weight:600;line-height:1}.self-host-copy>p:not(.section-label){max-width:38rem;margin-top:1.25rem;color:var(--muted);font-size:1.05rem;line-height:1.7}.self-host dl{display:grid;gap:.8rem;margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border-strong)}.self-host dl div{display:flex;justify-content:space-between;gap:1rem}.self-host dt{color:var(--muted)}.self-host dd{font-weight:600;text-align:right}.self-actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:2rem}.self-host .btn-secondary{background:transparent;color:var(--background)}
+  @media(min-width:48rem){.self-host{grid-template-columns:minmax(17rem,.75fr) minmax(0,1.25fr)}.self-host-scene{min-height:100%}}@media(min-width:64rem){.plan-row{grid-template-columns:minmax(8rem,.72fr) minmax(9rem,.55fr) minmax(17rem,1.3fr) 9rem;align-items:center}.plan-row dl{grid-template-columns:repeat(3,minmax(0,1fr))}.plan-action .btn{width:auto}}@media(prefers-reduced-motion:reduce){.t-tabs-pill{transition-duration:1ms}}
+</style>
 <script>
   document.querySelectorAll<HTMLElement>("[data-pricing]").forEach((root) => {
-    const bar = root.querySelector<HTMLElement>(".t-tabs")
-    const pill = bar?.querySelector<HTMLElement>(".t-tabs-pill")
-    if (!bar || !pill) return
-
-    const tabs = Array.from(bar.querySelectorAll<HTMLButtonElement>("[data-interval]"))
-    const cards = Array.from(root.querySelectorAll<HTMLElement>("[data-plan-card]"))
-
-    function moveTo(tab: HTMLButtonElement, animate: boolean) {
-      if (!animate) {
-        const previousTransition = pill!.style.transition
-        pill!.style.transition = "none"
-        pill!.style.transform = `translateX(${tab.offsetLeft}px)`
-        pill!.style.width = `${tab.offsetWidth}px`
-        void pill!.offsetWidth
-        pill!.style.transition = previousTransition
-        return
-      }
-      pill!.style.transform = `translateX(${tab.offsetLeft}px)`
-      pill!.style.width = `${tab.offsetWidth}px`
-    }
-
-    function activate(tab: HTMLButtonElement) {
-      const interval = tab.dataset.interval === "year" ? "year" : "month"
-      tabs.forEach((candidate) => {
-        const selected = candidate === tab
-        candidate.setAttribute("aria-selected", String(selected))
-        candidate.tabIndex = selected ? 0 : -1
-      })
-      cards.forEach((card) => {
-        const price = card.querySelector<HTMLElement>("[data-price]")
-        const detail = card.querySelector<HTMLElement>("[data-price-detail]")
-        const checkout = card.querySelector<HTMLAnchorElement>("[data-checkout]")
-        if (!price || !detail || !checkout) return
-
-        price.textContent = interval === "year" ? card.dataset.yearly! : card.dataset.monthly!
-        detail.textContent = interval === "year" ? `$${card.dataset.yearlyTotal} billed yearly.` : "Billed monthly."
-        const checkoutUrl = new URL(checkout.dataset.checkoutBase!)
-        checkoutUrl.searchParams.set("plan", checkout.dataset.plan!)
-        checkoutUrl.searchParams.set("interval", interval)
-        checkoutUrl.searchParams.set("checkout", "1")
-        checkout.href = checkoutUrl.toString()
-      })
-    }
-
+    const bar = root.querySelector<HTMLElement>(".t-tabs"); const pill = bar?.querySelector<HTMLElement>(".t-tabs-pill"); if (!bar || !pill) return
+    const tabs = Array.from(bar.querySelectorAll<HTMLButtonElement>("[data-interval]")); const cards = Array.from(root.querySelectorAll<HTMLElement>("[data-plan-card]"))
+    function moveTo(tab: HTMLButtonElement, animate: boolean) { if (!animate) { const previous = pill!.style.transition; pill!.style.transition = "none"; pill!.style.transform = `translateX(${tab.offsetLeft}px)`; pill!.style.width = `${tab.offsetWidth}px`; void pill!.offsetWidth; pill!.style.transition = previous; return } pill!.style.transform = `translateX(${tab.offsetLeft}px)`; pill!.style.width = `${tab.offsetWidth}px` }
+    function activate(tab: HTMLButtonElement) { const interval = tab.dataset.interval === "year" ? "year" : "month"; tabs.forEach((candidate) => { const selected = candidate === tab; candidate.setAttribute("aria-selected", String(selected)); candidate.tabIndex = selected ? 0 : -1 }); cards.forEach((card) => { const price = card.querySelector<HTMLElement>("[data-price]"); const detail = card.querySelector<HTMLElement>("[data-price-detail]"); const checkout = card.querySelector<HTMLAnchorElement>("[data-checkout]"); if (!price || !detail || !checkout) return; price.textContent = interval === "year" ? card.dataset.yearly! : card.dataset.monthly!; detail.textContent = interval === "year" ? `$${card.dataset.yearlyTotal} billed yearly.` : "Billed monthly."; const url = new URL(checkout.dataset.checkoutBase!); url.searchParams.set("plan", checkout.dataset.plan!); url.searchParams.set("interval", interval); url.searchParams.set("checkout", "1"); checkout.href = url.toString() }) }
     const activeTab = () => tabs.find((tab) => tab.getAttribute("aria-selected") === "true") ?? tabs[0]!
-    tabs.forEach((tab, index) => {
-      tab.addEventListener("click", () => {
-        activate(tab)
-        moveTo(tab, true)
-      })
-      tab.addEventListener("keydown", (event) => {
-        if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return
-        const offset = event.key === "ArrowRight" ? 1 : tabs.length - 1
-        const next = tabs[(index + offset) % tabs.length]!
-        next.focus()
-        activate(next)
-        moveTo(next, true)
-      })
-    })
-    requestAnimationFrame(() => moveTo(activeTab(), false))
-    window.addEventListener("resize", () => moveTo(activeTab(), false))
+    tabs.forEach((tab, index) => { tab.addEventListener("click", () => { activate(tab); moveTo(tab, true) }); tab.addEventListener("keydown", (event) => { if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return; const offset = event.key === "ArrowRight" ? 1 : tabs.length - 1; const next = tabs[(index + offset) % tabs.length]!; next.focus(); activate(next); moveTo(next, true) }) }); requestAnimationFrame(() => moveTo(activeTab(), false)); window.addEventListener("resize", () => moveTo(activeTab(), false))
   })
 </script>

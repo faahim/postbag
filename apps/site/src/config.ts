@@ -14,11 +14,11 @@ export const OPENAPI_URL = `${API_URL}/openapi.json`
 export const LLMS_URL = `${API_URL}/llms.txt`
 export const GITHUB_URL = "https://github.com/faahim/postbag"
 export const AUTHOR = { name: "Fahim", url: "https://faahim.dev" }
-export const TAGLINE = "A form backend that routes."
+export const TAGLINE = "Your forms have somewhere to go."
 /** The single line an agent pastes to set up a form. Shown in the hero, AgentNative and for-ai-agents. */
-export const AGENT_PROMPT = `Set up a contact form on this site with Postbag. Read ${LLMS_URL} first.`
+export const AGENT_PROMPT = "Install the Postbag skill with `npx skills add faahim/postbag --skill postbag`, then use it to set up and test a working contact form for this site."
 export const DESCRIPTION =
-  "Postbag is a form backend that routes. Point any HTML form at a Postbag endpoint; every submission is stored durably, then delivered to email, Telegram and signed webhooks by rules. Multi-tenant, self-hostable, and built for AI agents: one API key is enough to create, verify and route a form without a browser."
+  "Postbag is the open-source form backend built for agents. Your agent builds, wires and tests your form before you sign up. Every message is saved first, then sent to your inbox, Telegram or webhooks."
 
 /**
  * The legal facts, single source of truth for /legal/*. Every legal page is generated from
@@ -99,13 +99,13 @@ export const DESTINATIONS = [
   {
     id: "email",
     name: "Email",
-    blurb: "Sent through Resend with Reply-To set from the submission, so replying just works.",
+    blurb: "Lands in your inbox, and hitting Reply goes straight to the person who wrote to you.",
   },
-  { id: "telegram", name: "Telegram", blurb: "A bot message to any chat, rendered from a template." },
+  { id: "telegram", name: "Telegram", blurb: "A message in your chat the moment something arrives. Lovely for the phone-first life." },
   {
     id: "webhook",
-    name: "Signed webhook",
-    blurb: "JSON POST with an HMAC-SHA256 signature, timestamp and delivery id. The universal extension point.",
+    name: "Webhook",
+    blurb: "For everything else: a retried nudge to any URL you own. Add a secret when the receiver should verify it.",
   },
 ] as const
 

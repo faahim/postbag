@@ -10,7 +10,10 @@ export default defineConfig({
   site,
   // Built straight into the server's dist so the one Docker image serves it (ADR-003 spirit).
   outDir: "../server/dist/site",
-  trailingSlash: "always",
+  // Canonical page links still use trailing slashes and the production server enforces
+  // them. `ignore` keeps file-like static endpoints such as `/docs/x/index.md` reachable
+  // in Astro dev/preview instead of redirecting them to the nonexistent `index.md/`.
+  trailingSlash: "ignore",
   build: { format: "directory", inlineStylesheets: "auto" },
   compressHTML: true,
   prefetch: { prefetchAll: true, defaultStrategy: "viewport" },

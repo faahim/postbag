@@ -7,11 +7,11 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { EmptyState } from "@/components/empty-state"
-import { Postmark, type PostmarkStatus } from "@/components/postmark"
-import { EventsNav } from "@/components/events-nav"
+import { RoutingMark, type RoutingMarkStatus } from "@/components/routing-mark"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -48,14 +48,7 @@ function EventWebhooksRoute() {
   const [adding, setAdding] = useState(false)
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Events</h1>
-        <p className="text-sm text-muted-foreground">Everything that happened, most recent first.</p>
-      </div>
-
-      <EventsNav />
-
+    <div className="flex max-w-3xl flex-col gap-8">
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-sm font-medium">Event webhooks</h2>
@@ -251,6 +244,7 @@ function WebhookRow({ hook }: { readonly hook: SystemWebhook }) {
   const update = useUpdateSystemWebhook()
   const remove = useDeleteSystemWebhook()
   const [open, setOpen] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
   const health = HEALTH[hook.health ?? "unknown"]
   const enabled = hook.enabled ?? true
 
@@ -263,7 +257,6 @@ function WebhookRow({ hook }: { readonly hook: SystemWebhook }) {
   }
 
   async function del() {
-    if (!window.confirm(`Remove the webhook for ${display}? It stops receiving events immediately; past deliveries are kept in the log.`)) return
     try {
       await remove.mutateAsync(hook.id)
       toast.success("Webhook removed.")
@@ -321,11 +314,28 @@ function WebhookRow({ hook }: { readonly hook: SystemWebhook }) {
             Deliveries
             <ChevronDown className={cn("size-3.5 transition-transform duration-(--duration-quick)", open && "rotate-180")} />
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Remove webhook" onClick={() => void del()} disabled={remove.isPending}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Remove webhook"
+            onClick={() => {
+              setConfirmRemove(true)
+            }}
+            disabled={remove.isPending}
+          >
             <Trash2 className="size-4 text-muted-foreground" />
           </Button>
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title={`Remove the webhook for ${display}?`}
+        description="It stops receiving events immediately. Past deliveries are kept in the log."
+        confirmLabel="Remove webhook"
+        pending={remove.isPending}
+        onConfirm={() => void del()}
+      />
       {open && <DeliveriesPanel webhookId={hook.id} />}
     </div>
   )
@@ -346,7 +356,7 @@ function DeliveriesPanel({ webhookId }: { readonly webhookId: string }) {
           {rows.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-3 py-1.5 text-xs">
               <div className="flex min-w-0 items-center gap-2">
-                <Postmark status={d.status as PostmarkStatus} size={16} />
+                <RoutingMark status={d.status as RoutingMarkStatus} size={16} />
                 <span className="font-mono">{d.event_type}</span>
                 {d.last_error !== null && <span className="truncate text-destructive">{d.last_error}</span>}
               </div>

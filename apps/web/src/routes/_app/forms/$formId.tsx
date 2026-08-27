@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { AlertTriangle, ArrowLeft, Sparkles } from "lucide-react"
+import { AlertTriangle, ArrowLeft, Plus, Sparkles, X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { CopyButton } from "@/components/copy-button"
 import { EmbedSnippetTabs } from "@/components/embed-snippets"
 import { RoutesList } from "@/components/routes-list"
 import { SubmissionDrawer } from "@/components/submission-drawer"
@@ -11,23 +12,28 @@ import { SubmissionsTable } from "@/components/submissions-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { api } from "@/lib/api"
+import { api, toastApiError } from "@/lib/api"
 import { formatRelativeTime } from "@/lib/format"
+import { useForm, useFormDrift, useFormEmbed, useFormSchema, usePublishFormSchema, useUpdateForm, useFormSchemaVersions } from "@/lib/queries/forms"
 import {
-  useForm,
-  useFormDrift,
-  useFormEmbed,
-  useFormSchema,
-  usePublishFormSchema,
-  useUpdateForm,
-  useFormSchemaVersions,
-} from "@/lib/queries/forms"
+  buildEditedSchema,
+  editableFieldsFromSchema,
+  hasUnsafeSchemaFieldRemoval,
+  isEditableFieldName,
+  retainUiHints,
+  UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE,
+  type EditableField,
+  type EditableFieldType,
+} from "@/lib/schema-editing"
 import { useFormSubmissions } from "@/lib/queries/submissions"
 
 const TAB_VALUES = ["inbox", "embed", "fields", "send-to", "settings"] as const
@@ -58,22 +64,32 @@ function FormDetailRoute() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <Link to="/forms" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-3.5" /> Forms
+    <div className="page-enter flex flex-col gap-8">
+      <div className="flex flex-col gap-4">
+        <Link
+          to="/forms"
+          className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-(--duration-quick) hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5 transition-transform duration-(--duration-quick) ease-(--ease-smooth-out) group-hover:-translate-x-0.5" /> Forms
         </Link>
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold">{form.data.name}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight">{form.data.name}</h1>
           <Badge variant={form.data.status === "active" ? "success" : "muted"}>{form.data.status}</Badge>
         </div>
-        <p className="font-mono text-xs text-muted-foreground">{form.data.submit_url}</p>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <code className="rounded-md bg-muted px-2.5 py-1.5 font-mono text-xs text-muted-foreground">{form.data.submit_url}</code>
+          <CopyButton value={form.data.submit_url} label="Copy URL" />
+        </div>
       </div>
 
       <Tabs
         value={search.tab ?? "inbox"}
         onValueChange={(tab) => {
-          void navigate({ to: "/forms/$formId", params: { formId }, search: { tab: tab as TabValue } })
+          void navigate({
+            to: "/forms/$formId",
+            params: { formId },
+            search: { tab: tab as TabValue },
+          })
         }}
       >
         <TabsList>
@@ -101,7 +117,12 @@ function FormDetailRoute() {
         </TabsContent>
       </Tabs>
 
-      <SubmissionDrawer submissionId={openSubmissionId} onOpenChange={(open) => { if (!open) setOpenSubmissionId(null) }} />
+      <SubmissionDrawer
+        submissionId={openSubmissionId}
+        onOpenChange={(open) => {
+          if (!open) setOpenSubmissionId(null)
+        }}
+      />
     </div>
   )
 }
@@ -142,10 +163,13 @@ function FieldsTab({ formId }: { readonly formId: string }) {
   const publish = usePublishFormSchema(formId)
 
   async function publishWhatWereSeeing() {
-    if (drift.data === undefined || drift.data.length === 0) return
-    const current = schema.data?.json_schema as { properties?: Record<string, unknown>; required?: string[] } | undefined
-    const properties: Record<string, unknown> = { ...(current?.properties ?? {}) }
-    let required: string[] = [...(current?.required ?? [])]
+    if (!schema.isSuccess || drift.data === undefined || drift.data.length === 0) return
+    const current = schema.data?.json_schema as Readonly<Record<string, unknown>> | undefined
+    const currentUi = schema.data?.ui as Readonly<Record<string, unknown>> | undefined
+    const properties: Record<string, unknown> = {
+      ...((current?.["properties"] as Record<string, unknown> | undefined) ?? {}),
+    }
+    let required: string[] = [...((current?.["required"] as readonly string[] | undefined) ?? [])]
     for (const event of drift.data) {
       if (event.kind === "missing_field") {
         required = required.filter((f) => f !== event.field)
@@ -154,37 +178,52 @@ function FieldsTab({ formId }: { readonly formId: string }) {
       }
     }
     await publish.mutateAsync({
-      json_schema: { type: "object", properties, required },
+      json_schema: {
+        ...current,
+        $schema: current?.["$schema"] ?? "https://json-schema.org/draft/2020-12/schema",
+        type: "object",
+        properties,
+        required,
+        additionalProperties: current?.["additionalProperties"] ?? true,
+      },
+      ...(currentUi === undefined ? {} : { ui: currentUi }),
       changelog: "Published what we're seeing (drift resolution).",
     })
     toast.success("Schema published.")
   }
 
-  const properties = (schema.data?.json_schema as { properties?: Record<string, unknown>; required?: string[] } | undefined)?.properties ?? {}
-  const required = (schema.data?.json_schema as { properties?: Record<string, unknown>; required?: string[] } | undefined)?.required ?? []
-
   return (
     <div className="flex flex-col gap-6">
       <Card>
-        <CardContent>
-          <h3 className="mb-3 text-sm font-medium text-muted-foreground">Current fields</h3>
-          {Object.keys(properties).length === 0 ? (
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-sm font-medium">Fields</h3>
             <p className="text-sm text-muted-foreground">
-              No declared schema yet — this form accepts anything (observe mode). Fields appear here once you publish a
-              schema.
+              {schema.isError
+                ? "The current Schema could not be loaded. Editing stays locked so an existing shape is never replaced by accident."
+                : schema.data == null
+                  ? "No declared schema yet — this Form accepts anything (observe mode). Add fields and publish to declare its shape."
+                  : "Edit and publish — a new immutable version each time; older Submissions keep the shape they arrived with."}
             </p>
+          </div>
+          {schema.isLoading ? (
+            <Skeleton className="h-40 w-full rounded-xl" />
+          ) : schema.isError ? (
+            <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+              <p className="text-sm text-destructive">Nothing can be edited until the current Schema is available.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={schema.isFetching}
+                onClick={() => {
+                  void schema.refetch()
+                }}
+              >
+                {schema.isFetching ? "Trying again…" : "Try again"}
+              </Button>
+            </div>
           ) : (
-            <ul className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
-              {Object.entries(properties).map(([name, def]) => (
-                <li key={name} className="flex items-center justify-between px-3 py-2 text-sm">
-                  <span className="font-mono">{name}</span>
-                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {(def as { type?: string }).type ?? "any"}
-                    {required.includes(name) && <Badge variant="outline">required</Badge>}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <FormFieldsEditor key={schema.data?.version ?? 0} schema={schema.data ?? undefined} publish={publish} />
           )}
         </CardContent>
       </Card>
@@ -200,7 +239,7 @@ function FieldsTab({ formId }: { readonly formId: string }) {
                   const fieldCount = Object.keys((v.json_schema as { properties?: Record<string, unknown> }).properties ?? {}).length
                   const current = v.version === schema.data?.version
                   return (
-                    <li key={v.version ?? v.created_at} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                    <li key={v.version ?? v.created_at} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="font-mono text-xs tabular-nums">v{v.version}</span>
                         {current && <Badge variant="outline">current</Badge>}
@@ -225,7 +264,7 @@ function FieldsTab({ formId }: { readonly formId: string }) {
                 <AlertTriangle className="size-4 text-warning-foreground" />
                 Change detected
               </h3>
-              <Button size="sm" onClick={() => void publishWhatWereSeeing()} disabled={publish.isPending} className="gap-1.5">
+              <Button size="sm" onClick={() => void publishWhatWereSeeing()} disabled={!schema.isSuccess || publish.isPending} className="gap-1.5">
                 <Sparkles className="size-3.5" />
                 Publish what we're seeing
               </Button>
@@ -244,6 +283,160 @@ function FieldsTab({ formId }: { readonly formId: string }) {
   )
 }
 
+type FieldType = EditableFieldType
+type FieldsSchema = {
+  readonly version?: number
+  readonly json_schema: unknown
+  readonly ui?: unknown
+}
+type FieldRow = EditableField
+
+const FIELD_TYPE_LABEL: Record<FieldType, string> = {
+  string: "Text",
+  number: "Number",
+  boolean: "Yes / no",
+  other: "As published",
+}
+
+function fieldsFromFormSchema(schema: FieldsSchema | undefined): FieldRow[] {
+  return editableFieldsFromSchema(
+    schema?.json_schema as Readonly<Record<string, unknown>> | undefined,
+    schema?.ui as Readonly<Record<string, unknown>> | undefined,
+  )
+}
+
+/** The Form's declared fields as an editable list — publishing always creates the
+ * next immutable version (Golden rule 5), never edits one in place. */
+function FormFieldsEditor({ schema, publish }: { readonly schema: FieldsSchema | undefined; readonly publish: ReturnType<typeof usePublishFormSchema> }) {
+  const previous = schema?.json_schema as Readonly<Record<string, unknown>> | undefined
+  const previousUi = schema?.ui as Readonly<Record<string, unknown>> | undefined
+  const [fields, setFields] = useState<FieldRow[]>(() => fieldsFromFormSchema(schema))
+  const [newName, setNewName] = useState("")
+  const [nameError, setNameError] = useState<string | undefined>(undefined)
+
+  const draft = buildEditedSchema(fields, previous)
+  const dirty = schema === undefined ? fields.length > 0 : JSON.stringify(draft) !== JSON.stringify(buildEditedSchema(fieldsFromFormSchema(schema), previous))
+  const nextVersion = (schema?.version ?? 0) + 1
+
+  function addField(event: { preventDefault: () => void }) {
+    event.preventDefault()
+    const name = newName.trim()
+    if (name.length === 0) return
+    if (!isEditableFieldName(name)) {
+      setNameError("Use letters, numbers, _ or -; dots are reserved for nested paths.")
+      return
+    }
+    if (fields.some((f) => f.name === name)) {
+      setNameError("That field is already declared.")
+      return
+    }
+    setFields((current) => [...current, { name, type: "string", required: false }])
+    setNewName("")
+    setNameError(undefined)
+  }
+
+  async function publishFields() {
+    try {
+      const keptUi = retainUiHints(previousUi, fields)
+      await publish.mutateAsync({
+        json_schema: draft,
+        ...(keptUi === undefined ? {} : { ui: keptUi }),
+        changelog: `Version ${nextVersion.toString()} — edited in the dashboard.`,
+      })
+      toast.success(`Version ${nextVersion.toString()} published.`)
+    } catch (error) {
+      toastApiError(error, "Couldn't publish the fields — try again.")
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {fields.length > 0 && (
+        <ul className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
+          {fields.map((field) => (
+            <li key={field.name} className="flex items-center gap-3 px-4 py-2.5">
+              <span className="min-w-0 flex-1 truncate font-mono text-sm">{field.name}</span>
+              <Select
+                value={field.type}
+                onValueChange={(value) => {
+                  setFields((current) => current.map((f) => (f.name === field.name ? { ...f, type: value as FieldType } : f)))
+                }}
+              >
+                <SelectTrigger className="h-8 w-36 text-xs" aria-label={`Type of ${field.name}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(FIELD_TYPE_LABEL) as FieldType[])
+                    .filter((t) => t !== "other" || field.original !== undefined)
+                    .map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {FIELD_TYPE_LABEL[t]}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Checkbox
+                  checked={field.required}
+                  onCheckedChange={(checked) => {
+                    setFields((current) => current.map((f) => (f.name === field.name ? { ...f, required: checked === true } : f)))
+                  }}
+                  aria-label={`${field.name} required`}
+                />
+                required
+              </label>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground"
+                aria-label={`Remove ${field.name}`}
+                onClick={() => {
+                  const nextFields = fields.filter((candidate) => candidate.name !== field.name)
+                  if (hasUnsafeSchemaFieldRemoval(nextFields, previous)) {
+                    toast.error(UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE)
+                    return
+                  }
+                  setFields(nextFields)
+                }}
+              >
+                <X className="size-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form onSubmit={addField} className="flex items-start gap-2">
+        <div className="flex flex-1 flex-col gap-1">
+          <Input
+            value={newName}
+            onChange={(e) => {
+              setNewName(e.target.value)
+              setNameError(undefined)
+            }}
+            placeholder="Add a field, e.g. email"
+            aria-label="New field name"
+            aria-invalid={nameError !== undefined}
+          />
+          {nameError !== undefined && <p className="text-xs text-destructive">{nameError}</p>}
+        </div>
+        <Button type="submit" variant="outline" disabled={newName.trim().length === 0}>
+          <Plus /> Add field
+        </Button>
+      </form>
+
+      {dirty && (
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-accent/40 px-4 py-3">
+          <p className="text-sm text-accent-foreground">Unpublished changes — Submissions are checked against the published version only.</p>
+          <Button size="sm" onClick={() => void publishFields()} disabled={publish.isPending}>
+            {publish.isPending ? "Publishing…" : `Publish v${nextVersion.toString()}`}
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SettingsTab({
   formId,
   settings,
@@ -255,9 +448,8 @@ function SettingsTab({
 }) {
   const navigate = useNavigate()
   const updateForm = useUpdateForm(formId)
-  const [origins, setOrigins] = useState(
-    Array.isArray(settings["allowed_origins"]) ? (settings["allowed_origins"] as string[]).join(", ") : "",
-  )
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [origins, setOrigins] = useState(Array.isArray(settings["allowed_origins"]) ? (settings["allowed_origins"] as string[]).join(", ") : "")
   const [redirectUrl, setRedirectUrl] = useState(typeof settings["redirect_url"] === "string" ? settings["redirect_url"] : "")
   const [honeypot, setHoneypot] = useState(typeof settings["honeypot_field"] === "string" ? settings["honeypot_field"] : "_gotcha")
   const [replyTo, setReplyTo] = useState(typeof settings["reply_to_field"] === "string" ? settings["reply_to_field"] : "")
@@ -278,7 +470,6 @@ function SettingsTab({
   }
 
   async function deleteForm() {
-    if (!window.confirm("Delete this form permanently? Submissions are kept, but the endpoint stops accepting new ones.")) return
     await api.DELETE("/v1/forms/{formId}", { params: { path: { formId } } })
     toast.success("Form deleted.")
     await navigate({ to: "/forms" })
@@ -290,8 +481,8 @@ function SettingsTab({
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label>Pause this form</Label>
-              <p className="text-xs text-muted-foreground">Paused forms store submissions but never deliver them.</p>
+              <Label>Pause this Form</Label>
+              <p className="text-xs text-muted-foreground">A paused Form stores every Submission but never delivers one.</p>
             </div>
             <Switch
               checked={status === "paused"}
@@ -303,19 +494,46 @@ function SettingsTab({
           <Separator />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="origins">Allowed origins</Label>
-            <Input id="origins" value={origins} onChange={(e) => { setOrigins(e.target.value) }} placeholder="https://example.com, https://www.example.com" />
+            <Input
+              id="origins"
+              value={origins}
+              onChange={(e) => {
+                setOrigins(e.target.value)
+              }}
+              placeholder="https://example.com, https://www.example.com"
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="redirect">Redirect URL</Label>
-            <Input id="redirect" value={redirectUrl} onChange={(e) => { setRedirectUrl(e.target.value) }} placeholder="https://example.com/thanks" />
+            <Input
+              id="redirect"
+              value={redirectUrl}
+              onChange={(e) => {
+                setRedirectUrl(e.target.value)
+              }}
+              placeholder="https://example.com/thanks"
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="honeypot">Honeypot field</Label>
-            <Input id="honeypot" value={honeypot} onChange={(e) => { setHoneypot(e.target.value) }} />
+            <Input
+              id="honeypot"
+              value={honeypot}
+              onChange={(e) => {
+                setHoneypot(e.target.value)
+              }}
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="reply-to">Reply-to field</Label>
-            <Input id="reply-to" value={replyTo} onChange={(e) => { setReplyTo(e.target.value) }} placeholder="email" />
+            <Input
+              id="reply-to"
+              value={replyTo}
+              onChange={(e) => {
+                setReplyTo(e.target.value)
+              }}
+              placeholder="email"
+            />
           </div>
           <Button className="self-start" onClick={() => void save()} disabled={updateForm.isPending}>
             {updateForm.isPending ? "Saving…" : "Save settings"}
@@ -327,13 +545,27 @@ function SettingsTab({
         <CardContent className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-medium text-destructive">Danger zone</h3>
-            <p className="text-xs text-muted-foreground">Deletes the form and stops it from accepting submissions.</p>
+            <p className="text-xs text-muted-foreground">Deletes the Form and stops it from accepting Submissions.</p>
           </div>
-          <Button variant="destructive" onClick={() => void deleteForm()}>
-            Delete form
+          <Button
+            variant="destructive"
+            onClick={() => {
+              setConfirmDelete(true)
+            }}
+          >
+            Delete Form
           </Button>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete this Form?"
+        description="Its Submissions are kept in the record, but the URL stops accepting new ones — anything your site posts here afterwards is turned away."
+        confirmLabel="Delete Form"
+        onConfirm={() => void deleteForm()}
+      />
     </div>
   )
 }

@@ -1,0 +1,73 @@
+apps/site/src/components/home/Integration.astro:13:  { id: "curl", label: "curl", lang: "bash", code: `curl -X POST ${url} \\\n  -H "Content-Type: application/json" \\\n  -d '{"email":"you@example.com","message":"Hello","_test":true}'\n\n# {"ok":true,"submission_id":"${EXAMPLE.submission}",\n#  "status":"received","deliveries":[]}` },
+apps/site/src/components/home/AgentNative.astro:13:    "accepted_count": 0, "remaining": 5 },
+apps/site/src/components/home/AgentNative.astro:14:  "sandbox_token": "pbs_…", "claim_url": "${API_URL}/app/claim#token=…" }
+apps/site/src/components/home/AgentNative.astro:19:{ "id": "fm_…", "status": "active", "remaining": 4,
+apps/site/src/components/home/AgentNative.astro:20:  "submissions": [{ "id": "sb_…", "received_at": "…" }] }`
+apps/site/src/components/home/AgentNative.astro:23:  { title: "Create", body: "The response shows the sandbox capability once. The agent keeps it and can reuse it to verify receipt until claim or expiry." },
+apps/site/src/components/home/AgentNative.astro:27:  { title: "Route", body: "Add a Destination and Route, then send a new test to verify a real Delivery. Earlier sandbox tests stay inert." },
+apps/site/src/components/home/AgentNative.astro:51:        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">The capability is shown only in the creation response. It is not single-use for status reads; it remains valid until the Form is claimed, expires or is blocked.</p>
+      })
+
+      if (anonymousResult.kind === "accepted") {
+        logger.info(
+          {
+            sandbox_id: formId,
+            submission_id: anonymousResult.submissionId,
+            request_id: requestId,
+            idempotent: anonymousResult.idempotent,
+          },
+          "anonymous_submission.accepted",
+        )
+        const accept = c.req.header("accept") ?? ""
+        if (parsedBody.isForm && !accept.includes("application/json")) {
+          return c.redirect(`/s/${formId}/thanks`, 303)
+        }
+        return c.json({
+          ok: true,
+          submission_id: anonymousResult.submissionId,
+          status: "received",
+          test: true,
+          ...(anonymousResult.idempotent ? { idempotent: true } : {}),
+        })
+      }
+
+      // Claim may have committed between the initial normal-Form lookup and the sandbox's
+  submissions: z.array(SandboxSubmissionSchema),
+})
+
+const SandboxCreatedSchema = z.object({
+  sandbox: SandboxStatusSchema.omit({ submissions: true }),
+  sandbox_token: z.string().describe("Shown only in this response. Treat it as a secret."),
+  authorization: z.object({
+    scheme: z.literal("Sandbox"),
+    example: z.string(),
+  }),
+  embed: z.object({
+    html: z.string(),
+    fetch: z.string(),
+    react: z.string(),
+    astro: z.string(),
+    nextjs_action: z.string(),
+  }),
+  verify: z.object({ curl: z.string(), then: z.string() }),
+  claim_url: z.string(),
+  next: z.array(
+    z.object({
+      why: z.string(),
+      method: z.string(),
+      path: z.string(),
+      headers: z.record(z.string(), z.string()).optional(),
+      body: JsonRecord.optional(),
+    }),
+  ),
+})
+
+const SandboxClaimedSchema = z.object({
+  claimed: z.literal(true),
+  idempotent: z.boolean(),
+  form: z.object({
+    id: IdSchema,
+    project_id: IdSchema,
+    slug: z.string(),
+    name: z.string(),
+    submit_url: z.string(),

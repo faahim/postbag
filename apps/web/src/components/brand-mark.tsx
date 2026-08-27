@@ -1,0 +1,236 @@
+import { useId } from "react"
+
+import { cn } from "@/lib/utils"
+
+/**
+ * Inline, animated Postbag mark — the React twin of apps/site's BrandMark.astro.
+ * Keep the artwork in both byte-identical to /logo-mark-c27b566.svg's source,
+ * plus two animation-only deviations: the pbm-cardWindow clip around the two
+ * cards (so a diving card can never poke out below the pocket), and the back
+ * shell extended to y=570 (the static art ends it at 520, leaving a see-through
+ * gap under the lip's centre dip that only shows once the cards fully vanish).
+ * Hover/focus any ancestor with `data-brand-trigger` for the nudge; pass
+ * `ambient` for the interval loop (letters vanish into the bag, two fresh
+ * ones drop in from above). Styles live in src/styles/brand-mark.css.
+ */
+const MARK = `  <defs>
+    <linearGradient id="pbm-rearCardBase" x1="494" y1="266" x2="500" y2="625" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1F0FB"/>
+      <stop offset="0.35" stop-color="#F0F0FD"/>
+      <stop offset="0.72" stop-color="#E1E4FD"/>
+      <stop offset="1" stop-color="#C8CDFB"/>
+    </linearGradient>
+    <radialGradient id="pbm-rearCardTopLight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(350 287) rotate(38) scale(314 255)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.34"/>
+      <stop offset="0.48" stop-color="#FFFFFF" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-rearCardLavender" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(610 509) rotate(152) scale(320 230)">
+      <stop stop-color="#C9CEFA" stop-opacity="0.46"/>
+      <stop offset="0.58" stop-color="#D9DDFB" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#D9DDFB" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="pbm-frontCardBase" x1="421" y1="339" x2="652" y2="606" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F6FC"/>
+      <stop offset="0.45" stop-color="#E9EBFC"/>
+      <stop offset="1" stop-color="#C5C9FC"/>
+    </linearGradient>
+    <radialGradient id="pbm-frontCardLight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(408 371) rotate(39) scale(358 300)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.52"/>
+      <stop offset="0.32" stop-color="#FFFFFF" stop-opacity="0.14"/>
+      <stop offset="0.78" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-frontCardLavender" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(574 547) rotate(97) scale(185 285)">
+      <stop stop-color="#D2D6FC" stop-opacity="0.58"/>
+      <stop offset="0.66" stop-color="#DEE1FD" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#DEE1FD" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-frontCardLeftShade" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(366 522) rotate(18) scale(150 220)">
+      <stop stop-color="#AEB8F4" stop-opacity="0.25"/>
+      <stop offset="0.55" stop-color="#C2C9F8" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#C2C9F8" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="pbm-backShell" x1="512" y1="371" x2="512" y2="547" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#AEB9FA"/>
+      <stop offset="0.48" stop-color="#7788F0"/>
+      <stop offset="1" stop-color="#5261C7"/>
+    </linearGradient>
+    <linearGradient id="pbm-cavity" x1="512" y1="372" x2="512" y2="495" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6371D6"/>
+      <stop offset="0.48" stop-color="#4653BA"/>
+      <stop offset="1" stop-color="#252E92"/>
+    </linearGradient>
+    <radialGradient id="pbm-shellLeftLight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(253 405) rotate(18) scale(86 146)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.3"/>
+      <stop offset="0.32" stop-color="#DDE2FF" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#DDE2FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-shellRightLight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(777 406) rotate(162) scale(87 145)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.38"/>
+      <stop offset="0.34" stop-color="#DFE3FF" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#DFE3FF" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="pbm-pocketBase" x1="520" y1="456" x2="506" y2="836" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B8C1F9"/>
+      <stop offset="0.24" stop-color="#A1ADF7"/>
+      <stop offset="0.6" stop-color="#7C8DF1"/>
+      <stop offset="0.86" stop-color="#697BEA"/>
+      <stop offset="1" stop-color="#95A2FA"/>
+    </linearGradient>
+    <radialGradient id="pbm-pocketUpperLeft" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(296 514) rotate(39) scale(272 320)">
+      <stop stop-color="#F2F3FF" stop-opacity="0.2"/>
+      <stop offset="0.28" stop-color="#CCD3FD" stop-opacity="0.16"/>
+      <stop offset="0.72" stop-color="#B5BFFC" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#B5BFFC" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-pocketUpperCenter" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(504 575) rotate(91) scale(216 260)">
+      <stop stop-color="#C5CCFB" stop-opacity="0.54"/>
+      <stop offset="0.52" stop-color="#B6C0FA" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#B6C0FA" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-pocketUpperRight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(760 492) rotate(143) scale(226 278)">
+      <stop stop-color="#F4F5FF" stop-opacity="0.4"/>
+      <stop offset="0.24" stop-color="#D6DBFE" stop-opacity="0.26"/>
+      <stop offset="0.72" stop-color="#C1C9FC" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#C1C9FC" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-pocketLowerDepth" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(514 751) rotate(89) scale(232 330)">
+      <stop stop-color="#5266DE" stop-opacity="0.3"/>
+      <stop offset="0.52" stop-color="#6375E6" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#6375E6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-pocketLowerRight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(718 723) rotate(133) scale(224 250)">
+      <stop stop-color="#9DABF8" stop-opacity="0.34"/>
+      <stop offset="0.66" stop-color="#8E9DF6" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#8E9DF6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-pocketLowerLeft" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(286 735) rotate(40) scale(210 250)">
+      <stop stop-color="#CBD3FF" stop-opacity="0.3"/>
+      <stop offset="0.58" stop-color="#B8C2FE" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#B8C2FE" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-pocketLeftEdge" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(241 626) scale(88 284)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.52"/>
+      <stop offset="0.38" stop-color="#E4E8FF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#E4E8FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-pocketRightEdge" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(788 607) scale(78 270)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.42"/>
+      <stop offset="0.38" stop-color="#E4E8FF" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#E4E8FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pbm-bottomGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 846) rotate(90) scale(105 420)">
+      <stop stop-color="#C5CCFF" stop-opacity="0.58"/>
+      <stop offset="0.45" stop-color="#AEB8FD" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#9AA8FA" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pbm-lipStroke" x1="238" y1="437" x2="787" y2="444" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.68"/>
+      <stop offset="0.15" stop-color="#F7F8FF" stop-opacity="0.52"/>
+      <stop offset="0.55" stop-color="#E6E9FE" stop-opacity="0.34"/>
+      <stop offset="0.84" stop-color="#F8F9FF" stop-opacity="0.58"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.82"/>
+    </linearGradient>
+    <linearGradient id="pbm-outerStroke" x1="238" y1="451" x2="756" y2="839" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.54"/>
+      <stop offset="0.33" stop-color="#F0F2FF" stop-opacity="0.28"/>
+      <stop offset="0.7" stop-color="#B7C0FC" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#8998F5" stop-opacity="0.42"/>
+    </linearGradient>
+
+    <filter id="pbm-objectShadow" x="150" y="-60" width="730" height="975" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="13" result="ambientBlur"/>
+      <feOffset in="ambientBlur" dy="9" result="ambientOffset"/>
+      <feFlood flood-color="#02051F" flood-opacity="0.28" result="ambientColor"/>
+      <feComposite in="ambientColor" in2="ambientOffset" operator="in" result="ambientShadow"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="contactBlur"/>
+      <feOffset in="contactBlur" dy="5" result="contactOffset"/>
+      <feFlood flood-color="#11184F" flood-opacity="0.2" result="contactColor"/>
+      <feComposite in="contactColor" in2="contactOffset" operator="in" result="contactShadow"/>
+      <feMerge>
+        <feMergeNode in="ambientShadow"/>
+        <feMergeNode in="contactShadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="pbm-cardShadow" x="240" y="215" width="590" height="510" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="11" stdDeviation="17" flood-color="#273489" flood-opacity="0.2"/>
+    </filter>
+    <filter id="pbm-edgeBloom" x="190" y="345" width="660" height="550" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+
+    <clipPath id="pbm-pocketClip">
+      <path d="M237 436C240 453 250 464 266 469C289 475 331 469 359 473C382 476 397 488 411 507L434 540C442 551 453 555 467 556C498 558 533 558 564 555C578 553 589 547 598 537L627 500C644 479 666 472 691 472C713 472 734 475 752 467C769 460 780 448 783 431C788 442 790 457 790 474V715C790 782 736 836 669 836H358C291 836 237 782 237 715V436Z"/>
+    </clipPath>
+    <clipPath id="pbm-backShellClip">
+      <path d="M237 428C237 397 262 372 293 372H734C765 372 790 397 790 428V570H237V428Z"/>
+    </clipPath>
+    <clipPath id="pbm-cardWindow">
+      <rect x="150" y="-40" width="730" height="810"/>
+    </clipPath>
+  </defs>
+
+
+  <g filter="url(#pbm-objectShadow)">
+    <g class="pbm-shell">
+    <path d="M237 428C237 397 262 372 293 372H734C765 372 790 397 790 428V570H237V428Z" fill="url(#pbm-backShell)"/>
+    <path d="M237 428C237 397 262 372 293 372H734C765 372 790 397 790 428V487H237V428Z" fill="url(#pbm-cavity)"/>
+    <g clip-path="url(#pbm-backShellClip)">
+      <rect x="225" y="350" width="170" height="230" fill="url(#pbm-shellLeftLight)"/>
+      <rect x="630" y="350" width="170" height="230" fill="url(#pbm-shellRightLight)"/>
+    </g>
+    </g>
+    <g clip-path="url(#pbm-cardWindow)">
+    <g class="pbm-card pbm-card-back" filter="url(#pbm-cardShadow)">
+      <rect x="308" y="266" width="380" height="382" rx="39" fill="url(#pbm-rearCardBase)"/>
+      <rect x="308" y="266" width="380" height="382" rx="39" fill="url(#pbm-rearCardTopLight)"/>
+      <rect x="308" y="266" width="380" height="382" rx="39" fill="url(#pbm-rearCardLavender)"/>
+      <rect class="pbm-card-edge" x="308" y="266" width="380" height="382" rx="39"/>
+    </g>
+
+    <g class="pbm-card pbm-card-front" filter="url(#pbm-cardShadow)">
+      <path d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z" fill="url(#pbm-frontCardBase)"/>
+      <path d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z" fill="url(#pbm-frontCardLight)"/>
+      <path d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z" fill="url(#pbm-frontCardLavender)"/>
+      <path d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z" fill="url(#pbm-frontCardLeftShade)"/>
+      <path class="pbm-card-edge" d="M405 354L716 321C739 319 758 337 758 361L746 715H350L363 399C364 376 382 357 405 354Z"/>
+    </g>
+    </g>
+
+    <g class="pbm-pocket">
+    <path d="M237 436C240 453 250 464 266 469C289 475 331 469 359 473C382 476 397 488 411 507L434 540C442 551 453 555 467 556C498 558 533 558 564 555C578 553 589 547 598 537L627 500C644 479 666 472 691 472C713 472 734 475 752 467C769 460 780 448 783 431C788 442 790 457 790 474V715C790 782 736 836 669 836H358C291 836 237 782 237 715V436Z" fill="url(#pbm-pocketBase)"/>
+    <rect x="210" y="410" width="620" height="470" fill="url(#pbm-pocketUpperLeft)" clip-path="url(#pbm-pocketClip)"/>
+    <rect x="210" y="410" width="620" height="470" fill="url(#pbm-pocketUpperCenter)" clip-path="url(#pbm-pocketClip)"/>
+    <rect x="210" y="410" width="620" height="470" fill="url(#pbm-pocketUpperRight)" clip-path="url(#pbm-pocketClip)"/>
+    <rect x="210" y="410" width="620" height="470" fill="url(#pbm-pocketLowerDepth)" clip-path="url(#pbm-pocketClip)"/>
+    <rect x="210" y="410" width="620" height="470" fill="url(#pbm-pocketLowerRight)" clip-path="url(#pbm-pocketClip)"/>
+    <rect x="210" y="410" width="620" height="470" fill="url(#pbm-pocketLowerLeft)" clip-path="url(#pbm-pocketClip)"/>
+    <rect x="210" y="410" width="620" height="470" fill="url(#pbm-pocketLeftEdge)" clip-path="url(#pbm-pocketClip)"/>
+    <rect x="210" y="410" width="620" height="470" fill="url(#pbm-pocketRightEdge)" clip-path="url(#pbm-pocketClip)"/>
+    <rect x="210" y="700" width="620" height="150" fill="url(#pbm-bottomGlow)" clip-path="url(#pbm-pocketClip)"/>
+
+    <path d="M237 436C240 453 250 464 266 469C289 475 331 469 359 473C382 476 397 488 411 507L434 540C442 551 453 555 467 556C498 558 533 558 564 555C578 553 589 547 598 537L627 500C644 479 666 472 691 472C713 472 734 475 752 467C769 460 780 448 783 431C788 442 790 457 790 474V715C790 782 736 836 669 836H358C291 836 237 782 237 715V436Z" stroke="#EEF1FF" stroke-opacity="0.16" stroke-width="10" stroke-linejoin="round" filter="url(#pbm-edgeBloom)"/>
+    <path d="M237 436C240 453 250 464 266 469C289 475 331 469 359 473C382 476 397 488 411 507L434 540C442 551 453 555 467 556C498 558 533 558 564 555C578 553 589 547 598 537L627 500C644 479 666 472 691 472C713 472 734 475 752 467C769 460 780 448 783 431C788 442 790 457 790 474V715C790 782 736 836 669 836H358C291 836 237 782 237 715V436Z" stroke="url(#pbm-outerStroke)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M309 373H294C268 373 243 394 238 419C236 427 236 433 237 436C240 453 250 464 266 469C289 475 331 469 359 473C382 476 397 488 411 507L434 540C442 551 453 555 467 556C498 558 533 558 564 555C578 553 589 547 598 537L627 500C644 479 666 472 691 472C713 472 734 475 752 467C769 460 780 448 783 431C787 409 775 387 754 378" stroke="url(#pbm-lipStroke)" stroke-width="3.5" stroke-linecap="butt" stroke-linejoin="round"/>
+    </g>
+  </g>`
+
+export function BrandMark({ className, ambient = false }: { readonly className?: string; readonly ambient?: boolean }) {
+  const uid = "pbm" + useId().replace(/[^a-zA-Z0-9]/g, "")
+  return (
+    <svg
+      viewBox="164 206 700 700"
+      fill="none"
+      aria-hidden="true"
+      className={cn("brand-mark", ambient && "brand-mark-ambient", className)}
+      dangerouslySetInnerHTML={{
+        __html: MARK.replaceAll('id="pbm-', `id="${uid}-`).replaceAll("url(#pbm-", `url(#${uid}-`),
+      }}
+    />
+  )
+}

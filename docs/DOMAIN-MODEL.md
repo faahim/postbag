@@ -164,7 +164,7 @@ Per (stream, form): how that form's fields produce the stream schema's fields.
 }
 ```
 
-Unmapped fields from the form are kept under `extras` so nothing is silently lost.
+The Mapping determines the Delivery payload. Form fields it does not use remain on the original Submission; the Stream preview returns those unused values under `extras` so nothing is silently lost.
 A mapping is `valid` or `incomplete` (a required stream field has no source); an
 incomplete mapping blocks attachment and is reported immediately — to the dashboard
 and to the agent making the call — not at delivery time.

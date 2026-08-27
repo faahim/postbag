@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { SuccessCheck } from "@/components/success-check"
+import { SuccessMark } from "@/components/success-mark"
 import { PlanBillingControls } from "@/components/plan-billing-controls"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -37,9 +37,9 @@ function sourceLine(organization: {
     case "billing":
       return "Billed through Polar"
     case "selfhost":
-      return "Self-hosted instance"
+      return "This instance runs on your own infrastructure"
     default:
-      return "Free"
+      return "Every plan gets the whole product — plans differ by room, not features"
   }
 }
 
@@ -104,20 +104,14 @@ export function PlanCard({ checkoutIntent = null }: { readonly checkoutIntent?: 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <CardTitle>Plan</CardTitle>
+        <div className="flex items-center gap-2.5">
+          <CardTitle className="text-lg tracking-tight">{PLAN_LABEL[organization.plan] ?? organization.plan}</CardTitle>
           {isComplimentary && <VipBadge />}
         </div>
         <CardDescription>{sourceLine(organization)}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="flex items-baseline justify-between">
-          <span className="text-lg font-semibold text-foreground">
-            {PLAN_LABEL[organization.plan] ?? organization.plan}
-          </span>
-        </div>
-
-        <div className="flex flex-col gap-1.5 rounded-lg border border-border/70 bg-muted/30 p-3">
+        <div className="flex flex-col gap-2 rounded-lg border border-border/70 bg-muted/30 p-4">
           <LimitRow label="Forms" used={limits.used.forms} limit={limits.forms} />
           <LimitRow
             label="Submissions this month"
@@ -140,7 +134,7 @@ export function PlanCard({ checkoutIntent = null }: { readonly checkoutIntent?: 
 
         {arrived && (
           <div className="flex animate-in items-center gap-1.5 text-sm text-primary fade-in-0 zoom-in-75 duration-(--duration-very-slow) ease-(--ease-bounce)">
-            <SuccessCheck show size={14} />
+            <SuccessMark show size={14} />
             It arrived — plan updated.
           </div>
         )}

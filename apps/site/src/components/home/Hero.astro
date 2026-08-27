@@ -1,23 +1,119 @@
 ---
-import AgentPromptSwitcher from "@/components/AgentPromptSwitcher.astro"
-import { SIGNUP_URL } from "@/config"
+import { AGENT_PROMPT } from "@/config"
+import { Check, Copy } from "@lucide/astro"
 ---
-<section class="container-x pt-14 pb-16 sm:pt-20 lg:pt-24 lg:pb-24">
-  <div class="mx-auto max-w-[42rem] text-center" data-reveal-group="90">
-    <h1 class="display-tight text-[2.75rem] font-semibold leading-[1.02] sm:text-6xl" data-reveal>
-      A form backend that <em class="not-italic text-primary">routes</em>.
-    </h1>
-    <p class="mx-auto mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground sm:text-xl" data-reveal>
-      Paste one line into your coding agent and your site has a working, routed contact form. No dashboard, no human in the loop.
-    </p>
+<section class="hero-shell" data-hero>
+  <div class="hero-scene" data-hero-asset aria-hidden="true" data-reveal>
+    <picture>
+      <source media="(max-width: 767px)" srcset="/brand/hero-receiving-pocket-mobile-v5.webp" width="941" height="1672" />
+      <img
+        class="media-reveal"
+        src="/brand/hero-receiving-pocket-desktop-v5.webp"
+        width="1672"
+        height="941"
+        alt=""
+        fetchpriority="high"
+        loading="eager"
+        decoding="async"
+      />
+    </picture>
   </div>
 
-  <div class="mx-auto mt-10 max-w-2xl" data-reveal style="--reveal-delay: 120ms">
-    <AgentPromptSwitcher />
-  </div>
-
-  <div class="mx-auto mt-7 flex max-w-2xl flex-col items-center gap-3 text-center" data-reveal style="--reveal-delay: 180ms">
-    <a href={`${SIGNUP_URL}`} class="btn btn-secondary">Or create a form by hand</a>
-    <p class="text-xs text-muted-foreground">Submissions are stored the instant they land, never dropped, and delivered in under three minutes.</p>
+  <div class="container-x hero-message" data-reveal-group="80">
+    <div class="hero-copy">
+      <p class="hero-kicker" data-reveal>Open source. Agent-native. Yours.</p>
+      <h1 class="display-tight hero-title" data-reveal>Your forms have somewhere to go.</h1>
+    </div>
+    <div class="hero-intro">
+      <p class="hero-lede" data-reveal>
+        Your agent can build, wire and test your form before you even sign up. Claim it whenever you want.
+      </p>
+      <div class="hero-actions" data-reveal style="--reveal-delay: var(--duration-quick)">
+        <button
+          id="agent-prompt"
+          type="button"
+          class="btn btn-primary copy-agent-button"
+          data-copy-agent
+          data-copy-text={AGENT_PROMPT}
+          aria-label="Copy agent prompt"
+        >
+          <span class="copy-agent-states" aria-hidden="true">
+            <span class="copy-agent-state" data-copy-state="default">
+              <Copy size={16} stroke-width={2} />
+              <span>Copy agent prompt</span>
+            </span>
+            <span class="copy-agent-state" data-copy-state="success">
+              <span class="t-success-check" data-state="out"><Check size={17} stroke-width={2.4} /></span>
+              <span>Copied</span>
+            </span>
+          </span>
+          <span class="sr-only" data-copy-announcement aria-live="polite"></span>
+        </button>
+        <a href="/docs/self-hosting/" class="btn hero-secondary-action">Self-host Postbag</a>
+      </div>
+    </div>
   </div>
 </section>
+
+<script>
+  const heroAsset = document.querySelector<HTMLElement>("[data-hero-asset]")
+  const rootStyle = getComputedStyle(document.documentElement)
+  const ms = (name: string, fallback: number) => {
+    const raw = Number.parseFloat(rootStyle.getPropertyValue(name))
+    return Number.isFinite(raw) ? raw : fallback
+  }
+  const copiedHold = ms("--duration-copied-hold", 1600)
+  const acknowledge = ms("--duration-acknowledge", 2400)
+  let pulseReset: ReturnType<typeof setTimeout> | undefined
+
+  async function copyText(text: string) {
+    await navigator.clipboard.writeText(text)
+  }
+
+  document.querySelectorAll<HTMLButtonElement>("[data-copy-agent]").forEach((button) => {
+    const announcement = button.querySelector<HTMLElement>("[data-copy-announcement]")
+    const check = button.querySelector<HTMLElement>(".t-success-check")
+    const checkPath = check?.querySelector<SVGPathElement>("path")
+    if (checkPath) {
+      const pathLength = Math.ceil(checkPath.getTotalLength()) + 1
+      checkPath.style.strokeDasharray = String(pathLength)
+      checkPath.style.strokeDashoffset = String(pathLength)
+    }
+    let labelReset: ReturnType<typeof setTimeout> | undefined
+    button.addEventListener("click", async () => {
+      if (button.disabled) return
+      const prompt = button.dataset.copyText
+      if (!prompt) return
+
+      try {
+        await copyText(prompt)
+      } catch {
+        if (announcement) announcement.textContent = "Could not copy the agent prompt"
+        return
+      }
+
+      button.disabled = true
+      button.setAttribute("data-copied", "")
+      if (announcement) announcement.textContent = "Agent prompt copied"
+      if (check) {
+        check.setAttribute("data-state", "out")
+        void check.offsetWidth
+        check.setAttribute("data-state", "in")
+      }
+      clearTimeout(pulseReset)
+      heroAsset?.removeAttribute("data-copy-pulse")
+      if (heroAsset) {
+        void heroAsset.offsetWidth
+        heroAsset.setAttribute("data-copy-pulse", "")
+        pulseReset = setTimeout(() => heroAsset.removeAttribute("data-copy-pulse"), acknowledge + 100)
+      }
+      clearTimeout(labelReset)
+      labelReset = setTimeout(() => {
+        check?.setAttribute("data-state", "out")
+        button.removeAttribute("data-copied")
+        button.disabled = false
+        if (announcement) announcement.textContent = ""
+      }, copiedHold)
+    })
+  })
+</script>

@@ -11,13 +11,33 @@ export type SchemaVersion = components["schemas"]["SchemaVersion"]
 export type StreamInput = z.input<typeof StreamInputSchema>
 export type StreamSourceInput = z.input<typeof StreamSourceInputSchema>
 
+/** Stream lists feed both the Streams page and the Inbox filter. Follow every cursor so
+ * an organization with more than one page can still open and filter every Stream. */
+export async function fetchAllStreams(): Promise<readonly Stream[]> {
+  const streams: Stream[] = []
+  const seenCursors = new Set<string>()
+  let cursor: string | undefined
+
+  for (let pageIndex = 0; pageIndex < 10_000; pageIndex += 1) {
+    const page: Paginated<Stream> = unwrap(
+      await api.GET("/v1/streams", {
+        params: { query: { ...(cursor === undefined ? {} : { cursor }), limit: 100 } },
+      }),
+    )
+    streams.push(...page.data)
+    if (page.next_cursor === null) return streams
+    if (seenCursors.has(page.next_cursor)) throw new Error("Streams pagination repeated a cursor.")
+    seenCursors.add(page.next_cursor)
+    cursor = page.next_cursor
+  }
+
+  throw new Error("Streams pagination exceeded 10,000 pages.")
+}
+
 export function useStreams() {
   return useQuery<readonly Stream[]>({
     queryKey: ["streams"],
-    queryFn: async (): Promise<readonly Stream[]> => {
-      const page: Paginated<Stream> = unwrap(await api.GET("/v1/streams", { params: { query: { limit: 100 } } }))
-      return page.data
-    },
+    queryFn: fetchAllStreams,
   })
 }
 

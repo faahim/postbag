@@ -1,16 +1,24 @@
-import { Trash2 } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { AddRouteDialog, type RouteSubject } from "@/components/add-route-dialog"
+import {
+  AddRouteDialog,
+  CadencePicker,
+  type RouteSubject,
+} from "@/components/add-route-dialog"
 import { EmptyState } from "@/components/empty-state"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { describeDestination } from "@/components/destination-row"
 import { Badge } from "@/components/ui/badge"
 import { toastApiError } from "@/lib/api"
-import { useDestinations } from "@/lib/queries/destinations"
+import { cadenceStateFromMode, isCadenceReady, isEditableCadenceMode, modeFor, type CadenceState } from "@/lib/cadence"
+import { useDestinations, type Destination } from "@/lib/queries/destinations"
+import { useMe } from "@/lib/queries/me"
 import { useDeleteRoute, useRoutes, useUpdateRoute } from "@/lib/queries/routes"
 
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const
@@ -26,20 +34,25 @@ function describeMode(mode: { readonly type: string; readonly cron?: string; rea
   return `Weekly digest · ${day} ${hhmm}${tz}`
 }
 
+type Route = {
+  readonly id: string
+  readonly destination_id: string
+  readonly enabled: boolean
+  readonly mode: Readonly<Record<string, unknown>>
+}
+
 export function RoutesList({ subject }: { readonly subject: RouteSubject }) {
   const routes = useRoutes("formId" in subject ? { form: subject.formId } : { stream: subject.streamId })
   const destinations = useDestinations()
-  const updateRoute = useUpdateRoute()
-  const deleteRoute = useDeleteRoute()
   const [addOpen, setAddOpen] = useState(false)
 
   const destinationById = new Map((destinations.data ?? []).map((d) => [d.id, d]))
 
   if (routes.isLoading) {
     return (
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-14 w-full" />
-        <Skeleton className="h-14 w-full" />
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-[4.5rem] w-full rounded-xl" />
+        <Skeleton className="h-[4.5rem] w-full rounded-xl" />
       </div>
     )
   }
@@ -49,76 +62,22 @@ export function RoutesList({ subject }: { readonly subject: RouteSubject }) {
       {routes.data === undefined || routes.data.data.length === 0 ? (
         <EmptyState
           title="Nothing sends anywhere yet"
-          description="Add a route to deliver submissions to a destination."
+          description="Add a Route to deliver Submissions to a Destination."
           action={
             <Button
               onClick={() => {
                 setAddOpen(true)
               }}
             >
-              Send to a destination
+              Send to a Destination
             </Button>
           }
         />
       ) : (
-        <div className="flex flex-col gap-2">
-          {routes.data.data.map((route) => {
-            const destination = destinationById.get(route.destination_id)
-            return (
-              <div key={route.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/70 px-4 py-3">
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium">{destination?.name ?? route.destination_id}</span>
-                    <Badge variant="muted" className="shrink-0">
-                      {describeMode(route.mode as { readonly type: string; readonly cron?: string; readonly timezone?: string })}
-                    </Badge>
-                    {!route.enabled && (
-                      <Badge variant="warning" className="shrink-0">
-                        paused
-                      </Badge>
-                    )}
-                  </div>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {destination === undefined ? "destination" : `${destination.type} · ${describeDestination(destination)}`}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Switch
-                    checked={route.enabled}
-                    onCheckedChange={(checked) => {
-                      updateRoute.mutate(
-                        { routeId: route.id, body: { enabled: checked } },
-                        {
-                          onError: (error) => {
-                            toastApiError(error, "Couldn't update the route — try again.")
-                          },
-                        },
-                      )
-                    }}
-                    aria-label={route.enabled ? "Disable route" : "Enable route"}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Remove route"
-                    onClick={() => {
-                      if (!window.confirm(`Stop sending to ${destination?.name ?? "this destination"}? The destination itself stays.`)) return
-                      deleteRoute.mutate(route.id, {
-                        onSuccess: () => {
-                          toast.success("Route removed.")
-                        },
-                        onError: (error) => {
-                          toastApiError(error, "Couldn't remove the route — try again.")
-                        },
-                      })
-                    }}
-                  >
-                    <Trash2 className="size-4 text-muted-foreground" />
-                  </Button>
-                </div>
-              </div>
-            )
-          })}
+        <div className="flex flex-col gap-3">
+          {routes.data.data.map((route) => (
+            <RouteRow key={route.id} route={route as Route} destination={destinationById.get(route.destination_id)} />
+          ))}
           <Button
             variant="outline"
             className="self-start"
@@ -126,11 +85,185 @@ export function RoutesList({ subject }: { readonly subject: RouteSubject }) {
               setAddOpen(true)
             }}
           >
-            Add route
+            Add Route
           </Button>
         </div>
       )}
       <AddRouteDialog open={addOpen} onOpenChange={setAddOpen} subject={subject} />
     </div>
+  )
+}
+
+function RouteRow({ route, destination }: { readonly route: Route; readonly destination: Destination | undefined }) {
+  const updateRoute = useUpdateRoute()
+  const deleteRoute = useDeleteRoute()
+  const [confirmRemove, setConfirmRemove] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const mode = route.mode as { readonly type: string; readonly cron?: string; readonly timezone?: string }
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-5 py-4 shadow-xs">
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-[15px] font-medium">{destination?.name ?? route.destination_id}</span>
+          <Badge variant="muted" className="shrink-0">
+            {describeMode(mode)}
+          </Badge>
+          {!route.enabled && (
+            <Badge variant="warning" className="shrink-0">
+              paused
+            </Badge>
+          )}
+        </div>
+        <span className="truncate text-sm text-muted-foreground">
+          {destination === undefined ? "Destination" : `${destination.type} · ${describeDestination(destination)}`}
+        </span>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Edit delivery"
+          className="text-muted-foreground"
+          onClick={() => {
+            setEditing(true)
+          }}
+        >
+          <Pencil className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Remove route"
+          className="text-muted-foreground"
+          onClick={() => {
+            setConfirmRemove(true)
+          }}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+        <Switch
+          checked={route.enabled}
+          onCheckedChange={(checked) => {
+            updateRoute.mutate(
+              { routeId: route.id, body: { enabled: checked } },
+              {
+                onError: (error) => {
+                  toastApiError(error, "Couldn't update the Route — try again.")
+                },
+              },
+            )
+          }}
+          aria-label={route.enabled ? "Pause this Route" : "Resume this Route"}
+        />
+      </div>
+
+      <EditRouteDialog route={route} destinationName={destination?.name} open={editing} onOpenChange={setEditing} />
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title={`Stop sending to ${destination?.name ?? "this Destination"}?`}
+        description="Only this Route goes — the Destination itself stays, and every Submission already saved is untouched."
+        confirmLabel="Remove Route"
+        pending={deleteRoute.isPending}
+        onConfirm={() => {
+          deleteRoute.mutate(route.id, {
+            onSuccess: () => {
+              setConfirmRemove(false)
+              toast.success("Route removed.")
+            },
+            onError: (error) => {
+              toastApiError(error, "Couldn't remove the Route — try again.")
+            },
+          })
+        }}
+      />
+    </div>
+  )
+}
+
+/** Change how (not where) an existing Route delivers — instant vs. a digest. */
+function EditRouteDialog({
+  route,
+  destinationName,
+  open,
+  onOpenChange,
+}: {
+  readonly route: Route
+  readonly destinationName: string | undefined
+  readonly open: boolean
+  readonly onOpenChange: (open: boolean) => void
+}) {
+  const me = useMe()
+  const updateRoute = useUpdateRoute()
+  const mode = route.mode as { readonly type: string; readonly cron?: string; readonly timezone?: string }
+  const [cadence, setCadence] = useState<CadenceState>(() => cadenceStateFromMode(mode))
+  const cadenceEditable = isEditableCadenceMode(mode)
+  const timezone = mode.timezone ?? me.data?.organization.timezone
+  const timezoneLabel = timezone ?? (me.isError ? "Workspace timezone unavailable" : "Loading workspace timezone…")
+  const cadenceReady = cadenceEditable && isCadenceReady(cadence, timezone)
+  const timezoneUnavailable = cadence.cadence !== "instant" && timezone === undefined && me.isError
+
+  function save() {
+    if (!cadenceReady) return
+    updateRoute.mutate(
+      { routeId: route.id, body: { mode: modeFor(cadence, timezone ?? "UTC") } },
+      {
+        onSuccess: () => {
+          onOpenChange(false)
+          toast.success("Delivery updated.")
+        },
+        onError: (error) => {
+          toastApiError(error, "Couldn't update the Route — try again.")
+        },
+      },
+    )
+  }
+
+  function changeOpen(next: boolean) {
+    if (!next) setCadence(cadenceStateFromMode(mode))
+    onOpenChange(next)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={changeOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit delivery</DialogTitle>
+          <DialogDescription>
+            {destinationName === undefined ? "How this Route delivers." : `How this Route delivers to ${destinationName}. To send somewhere else, add a new Route.`}
+          </DialogDescription>
+        </DialogHeader>
+        {cadenceEditable ? (
+          <CadencePicker value={cadence} onChange={setCadence} timezone={timezoneLabel} />
+        ) : (
+          <div className="rounded-lg border border-border/70 bg-muted/40 px-3 py-3">
+            <p className="text-sm font-medium">Advanced schedule</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This Route uses <span className="font-mono">{mode.cron}</span>, which the dashboard cannot edit safely. Its schedule is unchanged; use the API or CLI to update it.
+            </p>
+          </div>
+        )}
+        {cadenceEditable && timezoneUnavailable && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+            <p role="alert" className="text-xs text-destructive">
+              Couldn't read the workspace timezone, so this digest hasn't been changed.
+            </p>
+            <Button type="button" variant="outline" size="sm" onClick={() => { void me.refetch() }}>
+              Try again
+            </Button>
+          </div>
+        )}
+        <DialogFooter>
+          {cadenceEditable ? (
+            <Button onClick={save} disabled={!cadenceReady || updateRoute.isPending}>
+              {updateRoute.isPending ? "Saving…" : "Save delivery"}
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => { changeOpen(false) }}>Done</Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

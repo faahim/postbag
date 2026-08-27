@@ -25,7 +25,7 @@ type SourceAddOpts = {
 }
 
 export function registerStreamsCommands(program: Command, deps: CliDeps): void {
-  const streams = program.command("streams").description("Manage streams (Bags) — one canonical schema fed by many forms")
+  const streams = program.command("streams").description("Manage Streams — one canonical Schema fed by many Forms")
 
   streams
     .command("list")

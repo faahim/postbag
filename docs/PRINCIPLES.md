@@ -48,7 +48,7 @@ docs, or copy.
 | Temporary, unclaimed Form                                   | `sandbox`       | Sandbox Form                                           |
 | One received payload                                        | `submission`    | Submission                                             |
 | Declared shape of a form                                    | `form_schema`   | Fields                                                 |
-| A named group of forms with a shared output shape           | `stream`        | Bag _(candidate — on-brand; decide before Phase 1 UI)_ |
+| A named group of Forms with a shared output shape           | `stream`        | Stream |
 | The shared output shape of a stream                         | `stream_schema` | What gets delivered                                    |
 | A form's field → stream field assignment                    | `mapping`       | Match fields                                           |
 | Somewhere submissions can be sent                           | `destination`   | Destination                                            |

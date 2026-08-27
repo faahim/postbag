@@ -349,6 +349,30 @@
     }
   },
   {
+    "operationId": "organizations_update_active",
+    "method": "patch",
+    "path": "/v1/organizations/active",
+    "summary": "Update the active organization's settings",
+    "description": "Owner or admin (a manage-scoped API key counts as admin). Today that is the workspace timezone, used by the dashboard as the default when creating a digest Route. Each digest Route stores its own timezone, so changing this setting does not alter existing Routes.",
+    "tags": [
+      "discovery"
+    ],
+    "params": [],
+    "body": {
+      "type": "object",
+      "properties": {
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "description": "IANA timezone, e.g. Europe/Stockholm. The dashboard uses it as the default for new digest Routes."
+        }
+      },
+      "required": [
+        "timezone"
+      ]
+    }
+  },
+  {
     "operationId": "organizations_create",
     "method": "post",
     "path": "/v1/organizations",
@@ -1747,7 +1771,7 @@
     "method": "post",
     "path": "/v1/streams",
     "summary": "Create a stream (optionally with its first schema version and sources)",
-    "description": "A stream (shown as 'Bag' in the dashboard) collects submissions from many forms into one shared shape. Pass `schema` to define that shape up front, or omit it and pass `sources` — the first source's form then provides version 1 (copied from its published schema, its inferred draft, or the fields seen in recent submissions) with an identity mapping, so `{ name, sources: [{ form_id }] }` is a complete request.",
+    "description": "A Stream collects Submissions from many Forms into one shared shape. Pass `schema` to define that shape up front, or omit it and pass `sources` — the first source's form then provides version 1 (copied from its published schema, its inferred draft, or the fields seen in recent submissions) with an identity mapping, so `{ name, sources: [{ form_id }] }` is a complete request.",
     "tags": [
       "streams"
     ],
@@ -1795,11 +1819,12 @@
             "properties": {
               "form_id": {
                 "type": "string",
-                "description": "The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported)."
+                "description": "One Form feeding this Stream. Mutually exclusive with `selector`."
               },
               "selector": {
                 "type": "string",
-                "description": "Reserved for non-form sources (not yet implemented)."
+                "pattern": "^(?:tag|project):\\S(?:.*\\S)?$",
+                "description": "A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`."
               },
               "mapping": {
                 "type": "object",
@@ -1922,11 +1947,12 @@
             "properties": {
               "form_id": {
                 "type": "string",
-                "description": "The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported)."
+                "description": "One Form feeding this Stream. Mutually exclusive with `selector`."
               },
               "selector": {
                 "type": "string",
-                "description": "Reserved for non-form sources (not yet implemented)."
+                "pattern": "^(?:tag|project):\\S(?:.*\\S)?$",
+                "description": "A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`."
               },
               "mapping": {
                 "type": "object",
@@ -2100,11 +2126,12 @@
       "properties": {
         "form_id": {
           "type": "string",
-          "description": "The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported)."
+          "description": "One Form feeding this Stream. Mutually exclusive with `selector`."
         },
         "selector": {
           "type": "string",
-          "description": "Reserved for non-form sources (not yet implemented)."
+          "pattern": "^(?:tag|project):\\S(?:.*\\S)?$",
+          "description": "A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`."
         },
         "mapping": {
           "type": "object",
@@ -2165,11 +2192,12 @@
       "properties": {
         "form_id": {
           "type": "string",
-          "description": "The form feeding this stream (mutually exclusive with `selector` in principle, though only one source kind is currently supported)."
+          "description": "One Form feeding this Stream. Mutually exclusive with `selector`."
         },
         "selector": {
           "type": "string",
-          "description": "Reserved for non-form sources (not yet implemented)."
+          "pattern": "^(?:tag|project):\\S(?:.*\\S)?$",
+          "description": "A dynamic Form source: non-empty `tag:<tag>` or `project:<project_id>` without leading or trailing whitespace after `:`. Mutually exclusive with `form_id`."
         },
         "mapping": {
           "type": "object",
@@ -2836,26 +2864,47 @@
           "description": "Disable a route without deleting it."
         },
         "mode": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": [
-                "instant",
-                "digest"
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "instant"
+                  ]
+                }
+              },
+              "required": [
+                "type"
               ]
             },
-            "cron": {
-              "type": "string",
-              "description": "Cron expression for digest mode, e.g. '0 9 * * *'."
-            },
-            "timezone": {
-              "type": "string",
-              "description": "IANA timezone the cron runs in; defaults to the org's timezone."
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "digest"
+                  ]
+                },
+                "cron": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Cron expression for digest mode, e.g. '0 9 * * *'."
+                },
+                "timezone": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "IANA timezone the cron runs in."
+                }
+              },
+              "required": [
+                "type",
+                "cron",
+                "timezone"
+              ]
             }
-          },
-          "required": [
-            "type"
           ],
           "description": "instant delivers as submissions arrive; digest batches into one payload per period."
         },

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { AuthSplitLayout } from "@/components/auth-split-layout"
-import { Postmark } from "@/components/postmark"
+import { RoutingMark } from "@/components/routing-mark"
 import { SocialButtons } from "@/components/social-buttons"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -86,7 +86,7 @@ function AcceptInvitationRoute() {
     return (
       <AuthSplitLayout>
         <div className="flex flex-col items-center gap-4 text-center">
-          <Postmark status="failed" size={40} />
+          <RoutingMark status="failed" size={40} />
           <div className="flex flex-col gap-1.5">
             <h2 className="text-xl font-semibold text-balance">This invitation isn't available</h2>
             <p className="text-sm text-muted-foreground">{invitationErrorMessage(invitation.error)}</p>
@@ -110,7 +110,7 @@ function AcceptInvitationRoute() {
     return (
       <AuthSplitLayout>
         <div className="flex flex-col items-center gap-4 text-center">
-          <Postmark status="sent" size={48} />
+          <RoutingMark status="sent" size={48} />
           <div className="flex flex-col gap-1.5">
             <h2 className="text-2xl font-semibold text-balance">You're in</h2>
             <p className="text-sm text-muted-foreground">
@@ -152,7 +152,7 @@ function AcceptInvitationRoute() {
     return (
       <AuthSplitLayout>
         <div className="flex flex-col items-center gap-4 text-center">
-          <Postmark status="pending" size={40} className="animate-pulse" />
+          <RoutingMark status="pending" size={40} className="animate-pulse" />
           <p className="text-sm text-muted-foreground">Joining {info.organization.name}…</p>
         </div>
       </AuthSplitLayout>

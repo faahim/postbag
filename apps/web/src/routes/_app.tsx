@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/rea
 import { useEffect, useRef } from "react"
 
 import { AppShell } from "@/components/app-shell/app-shell"
-import { Postmark } from "@/components/postmark"
+import { RoutingMark } from "@/components/routing-mark"
 import { useSession } from "@/lib/auth-client"
 
 export const Route = createFileRoute("/_app")({
@@ -29,8 +29,8 @@ function AppLayout() {
 
   if (isPending || session == null) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-background">
-        <Postmark status="pending" size={32} className="animate-pulse" />
+      <div className="flex h-dvh items-center justify-center">
+        <RoutingMark status="pending" size={32} className="animate-pulse" />
       </div>
     )
   }

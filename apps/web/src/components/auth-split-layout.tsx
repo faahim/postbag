@@ -1,47 +1,56 @@
 import type { ReactNode } from "react"
 
+import { BrandMark } from "@/components/brand-mark"
+
 export function AuthSplitLayout({ children }: { readonly children: ReactNode }) {
   return (
-    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-primary px-12 py-10 text-primary-foreground lg:flex">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-90"
-          style={{
-            background:
-              "radial-gradient(120% 90% at 12% 8%, oklch(0.62 0.2 25) 0%, transparent 55%), radial-gradient(90% 70% at 90% 95%, oklch(0.46 0.16 20) 0%, transparent 60%)",
-          }}
-        />
-        <div aria-hidden className="pointer-events-none absolute inset-0 mix-blend-overlay opacity-[0.06]" style={{
-          backgroundImage:
-            "repeating-linear-gradient(115deg, white 0 1px, transparent 1px 34px)",
-        }} />
+    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+      <aside
+        data-theme="dark"
+        className="brand-ink-canvas relative hidden min-h-dvh overflow-hidden text-foreground lg:flex lg:flex-col lg:justify-between lg:px-12 lg:py-10 xl:px-16"
+      >
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 -left-20 size-80 rounded-full bg-primary/20 blur-3xl" />
+          <div className="absolute -right-24 bottom-0 size-96 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute top-1/2 right-0 h-px w-2/5 bg-gradient-to-l from-primary/50 to-transparent" />
+        </div>
 
-        <span className="relative z-10 flex items-center gap-2 text-sm font-semibold tracking-wide">
-          <img src={`${import.meta.env.BASE_URL}logo-mark-455264e.svg`} alt="" width={24} height={24} className="size-6 shrink-0" />
+        <div className="relative flex items-center gap-2.5 text-sm font-semibold tracking-tight" data-brand-trigger>
+          <BrandMark className="size-7 shrink-0" />
           Postbag
-        </span>
+        </div>
 
-        <div className="relative z-10 flex flex-col gap-8">
-          <img src={`${import.meta.env.BASE_URL}logo-mark-455264e.svg`} alt="" width={168} height={168} />
-          <div className="flex max-w-md flex-col gap-3">
-            <h1 className="text-3xl font-semibold text-balance">A form backend that routes.</h1>
-            <p className="text-base text-primary-foreground/80 text-pretty">
-              Point any HTML form at Postbag. Every submission is stored the instant it
-              arrives, then delivered to email, Telegram or a webhook — never lost, never
-              silently dropped.
+        <div className="relative flex max-w-xl flex-col gap-8">
+          <div className="relative w-fit">
+            <div aria-hidden className="absolute inset-x-8 bottom-2 h-8 rounded-full bg-primary/20 blur-xl" />
+            <BrandMark ambient className="relative size-40 xl:size-44" />
+          </div>
+          <div className="flex flex-col gap-4">
+            <h1 className="max-w-lg text-4xl leading-tight font-semibold tracking-tight text-balance xl:text-5xl">
+              Your forms have somewhere to go.
+            </h1>
+            <p className="max-w-md text-base leading-relaxed text-foreground/70 text-pretty">
+              Postbag receives every Submission, keeps it safe, and routes it to the people and
+              tools that need it.
             </p>
           </div>
         </div>
 
-        <p className="relative z-10 text-xs text-primary-foreground/60">
-          Self-hostable. Agent-native. One Postgres, one container.
+        <p className="relative text-xs text-foreground/55 text-pretty">
+          Open source. Agent-native. Yours to run.
         </p>
-      </div>
+      </aside>
 
-      <div className="flex items-center justify-center px-6 py-16">
+      <main className="relative flex min-h-dvh items-center justify-center px-5 py-24 sm:px-8 lg:px-12 lg:py-16">
+        <div
+          className="absolute top-6 left-5 flex items-center gap-2 text-sm font-semibold tracking-tight sm:left-8 lg:hidden"
+          data-brand-trigger
+        >
+          <BrandMark className="size-6.5 shrink-0" />
+          Postbag
+        </div>
         <div className="w-full max-w-sm">{children}</div>
-      </div>
+      </main>
     </div>
   )
 }

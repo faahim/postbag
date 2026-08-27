@@ -6,43 +6,44 @@ import { breadcrumbLd, webPageLd } from "@/lib/seo"
 import { SITE_URL } from "@/config"
 const crumbs = [ { name: "Home", href: "/" }, { name: "Glossary", href: "/glossary/" } ]
 const terms = [
-  { t: "Form backend", d: "A hosted service that receives HTML form submissions so a website needs no server code of its own. The site's form action points at the backend, which stores the submission and notifies someone. Postbag is a form backend that also routes." },
-  { t: "Organization", d: "The tenant. Owns everything: projects, forms, streams, destinations, routes, API keys. Every row in Postbag carries an organization_id. UI label: Workspace." },
-  { t: "Project", d: "A folder for forms, grouping them for humans (a client, a niche, a site). Projects are never a routing boundary; routing is done by streams. A Default project exists from signup." },
-  { t: "Form", d: "The thing a website posts to. Identified publicly by a prefixed id such as fm_8f3kq2 that appears in the submit URL and is not secret. Has tags, settings (allowed origins, redirect, honeypot, rate limit, Turnstile) and a schema mode." },
-  { t: "Submission", d: "One received payload (sb_…). Has data (the submitted fields), status (received, quarantined or spam), spam score and reasons, meta (ip, user agent, origin, country, received_at) and the schema version it was validated against." },
-  { t: "Form schema", d: "A versioned, immutable declaration of what a form collects: JSON Schema plus UI hints. New version = new row. UI label: Fields." },
-  { t: "Schema mode", d: "observe (accept everything, detect drift, infer), enforce (validate, quarantine violations) or managed (Postbag owns the schema and serves it at /s/{id}/schema)." },
-  { t: "Stream", d: "A named group of forms with a shared, versioned output shape. The operator's primary object: all vending leads, all AI-app signups. UI label: Bag." },
-  { t: "Stream schema", d: "The outbound contract a stream's routes deliver. Versioned and immutable; changing it creates a new version and re-validates every mapping. UI label: What gets delivered." },
-  { t: "Mapping", d: "A form's field → stream field assignment: from (direct), const (literal), default, and later expr. Unmapped fields ride along under extras. A mapping is valid or incomplete. UI label: Match fields." },
-  { t: "Destination", d: "Somewhere submissions can be sent: email, telegram, webhook (signed). Organization-level and reusable across routes; testable with a sample payload." },
-  { t: "Route", d: "form or stream → destination, with rules: mode (instant or digest), window, quality, enabled. UI label: Send to." },
-  { t: "Delivery", d: "One attempt-tracked send of one submission via one route (dl_…). The outbox. Statuses: pending, sending, sent, failed, dead, skipped. Keeps the payload snapshot, attempts, last error and the provider's response." },
-  { t: "Digest", d: "For digest-mode routes, one delivery grouping a period's submissions, unique per (route, period)." },
-  { t: "Drift", d: "A change in what a form actually receives versus its declared schema: new_field, missing_field or type_change. Recorded as a drift event until resolved. UI label: Change detected." },
-  { t: "Outbox", d: "The pattern where work to be done (deliveries) is written in the same transaction as the data that caused it, then drained by a worker. The database makes it correct; events make it fast." },
-  { t: "Quarantine", d: "A submission status for outcomes that are stored but not delivered by default: schema_violation, rate_limited, origin_rejected, turnstile_failed, over_quota. Visible and reversible." },
-  { t: "Agent-native", d: "A property of the whole surface: an agent holding only an API key can discover the API, create what it needs, receive embed snippets, verify a test submission arrived, and wire a destination, without a browser or a human." },
+  { t: "Form backend", d: "A service that receives HTML Form Submissions so the website needs no server code of its own. Postbag also stores and routes them." },
+  { t: "Organization", label: "Workspace", d: "The tenant. It owns Projects, Forms, Streams, Destinations, Routes and API keys. Every tenant row carries an organization_id." },
+  { t: "Project", d: "A folder that keeps Forms understandable for people. A client, a site or a product can each be a Project. Routing is handled by Routes, not Projects." },
+  { t: "Form", d: "The thing a website posts to. Its public prefixed id appears in the stable submit URL. Settings cover origins, redirects, honeypots, rate limits, Turnstile and Schema mode." },
+  { t: "Submission", d: "One received payload. It keeps submitted data, status, spam signals, request metadata and the Schema version used to validate it." },
+  { t: "Form Schema", label: "Fields", d: "A versioned, immutable declaration of what a Form collects. Publishing a change creates a new version." },
+  { t: "Schema mode", d: "Observe accepts data and detects Drift; enforce validates and quarantines violations; managed lets Postbag own and serve the Schema." },
+  { t: "Stream", label: "Stream", d: "A named group of Forms with one shared, versioned output shape. It lets many Forms feed the same downstream contract." },
+  { t: "Stream Schema", label: "What gets delivered", d: "The immutable outbound contract shared by a Stream. A new version revalidates every Mapping." },
+  { t: "Mapping", label: "Match fields", d: "The assignment from Form fields to Stream fields. It determines the Delivery payload; values it does not use remain on the original Submission. A Mapping is either valid or incomplete." },
+  { t: "Destination", d: "Somewhere Submissions can be sent, such as email, Telegram or a webhook. Add a secret when the receiver should verify its HMAC signature. A Destination belongs to the Organization and can be reused." },
+  { t: "Route", label: "Send to", d: "The connection from a Form or Stream to a Destination, with mode, timing, quality rules and an enabled state." },
+  { t: "Delivery", d: "One attempt-tracked send of one Submission through one Route. It keeps its payload snapshot, status, attempts, last error and provider response." },
+  { t: "Digest", d: "For a digest Route, one Delivery that groups a period's Submissions. It is unique for that Route and period." },
+  { t: "Drift", label: "Change detected", d: "A difference between what a Form receives and its declared Schema, such as a new field, missing field or type change." },
+  { t: "Outbox", d: "The pattern that writes pending Delivery work in the same transaction as the Submission, then lets a worker drain it safely." },
+  { t: "Quarantine", d: "A stored Submission state for outcomes that should not deliver by default, including Schema violations, rejected origins and over-quota traffic." },
+  { t: "Agent-native", d: "A property of the whole product: an agent can discover, create, wire, test and manage Forms through the same public contract used by every other client." },
 ]
-const ld = [
-  webPageLd({ url: `${SITE_URL}/glossary/`, name: "Postbag glossary", description: "Definitions of the fixed Postbag vocabulary: form backend, organization, project, form, submission, schema, stream, mapping, destination, route, delivery, drift, outbox, quarantine, agent-native." }),
-  breadcrumbLd(crumbs),
-  { "@type": "DefinedTermSet", "@id": `${SITE_URL}/glossary/#terms`, name: "Postbag vocabulary", hasDefinedTerm: terms.map((x) => ({ "@type": "DefinedTerm", name: x.t, description: x.d, inDefinedTermSet: `${SITE_URL}/glossary/#terms` })) },
-]
+const slug = (value: string) => value.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-")
+const description = "The fixed Postbag vocabulary for Forms, Submissions, Streams, Schemas, Mappings, Destinations, Routes, Deliveries and Drift."
+const ld = [webPageLd({ url: `${SITE_URL}/glossary/`, name: "Postbag glossary", description }),breadcrumbLd(crumbs),{ "@type": "DefinedTermSet", "@id": `${SITE_URL}/glossary/#terms`, name: "Postbag vocabulary", hasDefinedTerm: terms.map((x) => ({ "@type": "DefinedTerm", name: x.t, description: x.d, inDefinedTermSet: `${SITE_URL}/glossary/#terms` })) }]
 ---
-<Base title="Glossary: the Postbag vocabulary" description="Definitions of the fixed Postbag vocabulary: form backend, organization, project, form, submission, schema, stream, mapping, destination, route, delivery, drift, outbox, quarantine, agent-native. One word per concept, no synonyms." canonical="/glossary/" ld={ld} ogImage="/og/docs.png">
-  <PageHeader title="One word per concept." lede="The vocabulary is fixed across the API, the dashboard, the docs and this site. The API uses the engineering word; the dashboard may show a friendlier label, but it is a label, not a second concept." crumbs={crumbs} />
-  <section class="container-x">
-    <dl class="grid gap-x-12 gap-y-8 md:grid-cols-2">
-      {terms.map((x) => (
-        <div id={x.t.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-")} class="scroll-mt-24 border-t border-border-strong pt-4">
-          <dt class="font-display text-xl font-semibold">{x.t}</dt>
-          <dd class="mt-2 text-[15.5px] leading-relaxed text-muted-foreground">{x.d}</dd>
+<Base title="Glossary: the Postbag vocabulary" description={description} canonical="/glossary/" ld={ld} ogImage="/og/docs.png">
+  <PageHeader eyebrow="Fixed vocabulary" title="One word per concept." lede="The API uses the engineering word. The dashboard may show a friendlier label, but the underlying concept stays the same everywhere." crumbs={crumbs} />
+  <section class="container-x glossary-shell" aria-labelledby="term-index-heading">
+    <aside class="term-index" data-reveal><p id="term-index-heading">Jump to</p><nav aria-label="Glossary terms">{terms.map((term) => <a href={`#${slug(term.t)}`}>{term.t}</a>)}</nav></aside>
+    <dl id="terms" class="terms">
+      {terms.map((term, index) => (
+        <div id={slug(term.t)} class="term" data-reveal style={`--reveal-delay: calc(var(--duration-quick) * ${Math.min((index % 4) * 0.3, 0.9)})`}>
+          <dt><span>{term.t}</span>{term.label && <small>In the dashboard: {term.label}</small>}</dt><dd>{term.d}</dd>
         </div>
       ))}
     </dl>
-    <p class="mt-10 max-w-2xl text-[15px] text-muted-foreground">Words Postbag does <strong>not</strong> use, to avoid two names for one thing: endpoint (as a noun for form), integration, channel, hook (for destination), entry, response (for submission), pipeline.</p>
   </section>
+  <section class="container-x avoid" aria-labelledby="avoid-heading" data-reveal><p>Vocabulary boundary</p><h2 id="avoid-heading">A few words stay outside.</h2><p>Postbag does not use <strong>endpoint</strong> as a noun for Form, or use <strong>integration</strong>, <strong>channel</strong> or <strong>hook</strong> for Destination. It does not rename a Submission as an entry or response. One concept gets one name.</p></section>
   <CtaBand />
 </Base>
+<style>
+  .glossary-shell{display:grid;gap:3rem;padding-top:2rem}.term-index{align-self:start;padding:1.25rem;border-radius:calc(var(--radius) + 8px);background:var(--surface);box-shadow:var(--shadow-sm)}.term-index>p,.avoid>p:first-child{font-family:var(--font-mono);font-size:.68rem;font-weight:650;letter-spacing:.11em;text-transform:uppercase;color:var(--primary)}.term-index nav{display:flex;flex-wrap:wrap;gap:.3rem .8rem;margin-top:1rem}.term-index a{display:inline-flex;align-items:center;min-height:2.5rem;color:var(--muted-foreground);font-size:.84rem;transition:color var(--duration-quick) var(--ease-smooth-out)}.term-index a:hover{color:var(--foreground)}.terms{display:grid}.term{scroll-margin-top:6rem;padding:1.6rem 0;border-top:1px solid var(--border-strong)}dt{display:flex;flex-direction:column;gap:.35rem;font-family:var(--font-display);font-size:1.35rem;font-weight:600}dt small{font-family:var(--font-mono);font-size:.66rem;font-weight:500;letter-spacing:.04em;color:var(--primary)}dd{margin-top:.65rem;color:var(--muted-foreground);font-size:.97rem;line-height:1.7}.avoid{margin-top:5rem;padding-block:3rem;border-block:1px solid var(--border-strong)}.avoid h2{margin-top:.7rem;font-size:clamp(2rem,4vw,3rem);font-weight:600}.avoid>p:last-child{max-width:48rem;margin-top:1rem;color:var(--muted-foreground);line-height:1.75}@media(min-width:48rem){.glossary-shell{grid-template-columns:14rem minmax(0,1fr);gap:clamp(3rem,8vw,7rem)}.term-index{position:sticky;top:6rem}.term-index nav{display:grid;gap:0}.term-index a{min-height:2rem}.term{display:grid;grid-template-columns:minmax(10rem,.65fr) minmax(0,1.35fr);gap:2rem;align-items:start;padding:2rem 0}dd{margin-top:0}}@media(prefers-reduced-motion:reduce){.term-index a{transition-duration:1ms}}
+</style>

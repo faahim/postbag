@@ -3,6 +3,7 @@
 @import "@fontsource-variable/instrument-sans";
 @import "@fontsource-variable/jetbrains-mono";
 @import "./tokens.css";
+@import "./brand-mark.css";
 
 /* Tailwind's `dark:` variant follows our explicit data-theme attribute
    (resolved from system/light/dark in main.tsx), not prefers-color-scheme —
@@ -65,9 +66,31 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+    position: relative;
+    isolation: isolate;
+    min-height: 100dvh;
     font-feature-settings:
       "cv11",
       "ss01";
+  }
+
+  body::before {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: var(--canvas-grain-image);
+    background-size: var(--canvas-grain-size);
+    background-repeat: repeat;
+    mix-blend-mode: var(--canvas-grain-blend);
+    opacity: var(--canvas-grain-opacity);
+    content: "";
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
+    min-height: 100dvh;
   }
 
   h1,
@@ -94,6 +117,140 @@
 }
 
 @layer components {
+  /* Tactile controls on the grain (docs/DESIGN.md §3): the primary face carries
+     the canvas grain and a top edge that catches light; pressing sinks in. */
+  .btn-tactile {
+    background-color: var(--primary);
+    background-image: var(--canvas-grain-image), linear-gradient(to bottom, oklch(1 0 0 / 0.12), oklch(1 0 0 / 0) 58%);
+    background-size: 9rem auto, 100% 100%;
+    background-blend-mode: soft-light, normal;
+    box-shadow:
+      inset 0 1px 0 var(--btn-top-light),
+      inset 0 -1.5px 0 var(--btn-bottom-shade),
+      var(--btn-drop);
+  }
+  .btn-tactile:hover {
+    background-color: var(--primary-hover);
+    box-shadow:
+      inset 0 1px 0 var(--btn-top-light),
+      inset 0 -1.5px 0 var(--btn-bottom-shade),
+      var(--btn-drop-hover);
+  }
+  .btn-tactile:active {
+    box-shadow: var(--btn-press-inset), var(--btn-press-drop);
+  }
+
+  /* The raised neutral face: sits just above the surface, presses just below it. */
+  .btn-raised {
+    background-color: var(--card);
+    background-image: var(--btn-raised-face);
+    box-shadow: var(--btn-raised-shadow);
+  }
+  .btn-raised:hover {
+    background-color: var(--secondary);
+    box-shadow: var(--btn-raised-shadow-hover);
+  }
+  .btn-raised:active {
+    box-shadow: var(--btn-raised-press);
+  }
+
+  /* Enter choreography: route content rises in as a few semantic chunks, not one
+     container. Put .page-enter on the route root; direct children stagger. */
+  .page-enter > * {
+    animation: page-rise var(--duration-very-slow) var(--ease-smooth-out) backwards;
+  }
+  .page-enter > *:nth-child(2) {
+    animation-delay: calc(var(--duration-stagger) * 1);
+  }
+  .page-enter > *:nth-child(3) {
+    animation-delay: calc(var(--duration-stagger) * 2);
+  }
+  .page-enter > *:nth-child(4) {
+    animation-delay: calc(var(--duration-stagger) * 3);
+  }
+  .page-enter > *:nth-child(n + 5) {
+    animation-delay: calc(var(--duration-stagger) * 4);
+  }
+  @keyframes page-rise {
+    from {
+      opacity: 0;
+      transform: translateY(var(--distance-base));
+      filter: blur(var(--blur-small));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  /* List rows settle in with the same rhythm, driven per-row by --row-index. */
+  .row-enter {
+    animation: page-rise var(--duration-slow) var(--ease-smooth-out) backwards;
+    animation-delay: calc(var(--duration-stagger) * min(var(--row-index, 0), 8));
+  }
+
+  /* Lists sit on a quiet plane above the grain: hairline edge, soft lift. */
+  .list-surface {
+    overflow: hidden;
+    border-radius: calc(var(--radius) + 4px);
+    background: var(--card);
+    box-shadow:
+      0 0 0 1px var(--border),
+      var(--shadow-sm);
+  }
+
+  /* Sidebar: the active pill slides between items (tabs-sliding, vertical).
+     --nav-active-index is set by the component; -1 hides the pill. */
+  .nav-rail {
+    position: relative;
+  }
+  .nav-rail-pill {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 2.5rem;
+    border-radius: calc(var(--radius) + 2px);
+    background: var(--accent);
+    opacity: 1;
+    transform: translateY(calc(var(--nav-active-index) * 2.75rem));
+    transition:
+      transform var(--tabs-dur) var(--tabs-ease),
+      opacity var(--duration-quick) var(--ease-smooth-out);
+    pointer-events: none;
+  }
+  .nav-rail[data-no-active="true"] .nav-rail-pill {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-enter > *,
+    .row-enter {
+      animation: none !important;
+    }
+    .nav-rail-pill {
+      transition: none !important;
+    }
+  }
+
+  .brand-ink-canvas {
+    isolation: isolate;
+    background-color: var(--background);
+  }
+
+  .brand-ink-canvas::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: var(--canvas-grain-image);
+    background-size: var(--canvas-grain-size);
+    background-repeat: repeat;
+    mix-blend-mode: screen;
+    opacity: var(--canvas-grain-ink-opacity);
+    content: "";
+  }
+
   /* transitions-dev: icon swap — two icons cross-fade in the same grid cell. */
   .t-icon-swap {
     position: relative;
@@ -184,84 +341,14 @@
     }
   }
 
-  /* transitions-dev: success check — destination "Test" button confirmation. */
-  .t-success-check {
-    display: inline-block;
-    transform-origin: center;
-    opacity: 0;
-    will-change: transform, opacity, filter;
-  }
-  .t-success-check svg {
-    display: block;
-    overflow: visible;
-  }
-  .t-success-check[data-state="in"] {
-    animation:
-      t-check-fade var(--check-opacity-dur) var(--check-ease-opacity) forwards,
-      t-check-rotate var(--check-rotate-dur) var(--check-ease-rotate) forwards,
-      t-check-blur var(--check-blur-dur) var(--check-ease-out) forwards,
-      t-check-bob var(--check-bob-dur) var(--check-ease-bob) forwards;
-  }
-  .t-success-check[data-state="in"] svg path {
-    animation: t-check-draw var(--check-path-dur) var(--check-ease-path) var(--check-path-delay, 0ms) forwards;
-  }
-  @keyframes t-check-fade {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-  @keyframes t-check-rotate {
-    from {
-      transform: rotate(var(--check-rotate-from));
-    }
-    to {
-      transform: rotate(0deg);
-    }
-  }
-  @keyframes t-check-blur {
-    from {
-      filter: blur(var(--check-blur-from));
-    }
-    to {
-      filter: blur(0);
-    }
-  }
-  @keyframes t-check-bob {
-    from {
-      translate: 0 var(--check-y-amount);
-    }
-    to {
-      translate: 0 0;
-    }
-  }
-  @keyframes t-check-draw {
-    to {
-      stroke-dashoffset: 0;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .t-success-check {
-      animation: none !important;
-      opacity: 1;
-    }
-    .t-success-check svg path {
-      animation: none !important;
-      stroke-dashoffset: 0 !important;
-    }
-  }
-
-  /* Bag explainer — the postmark on the bucket brightens each time a submission lands
-     (three arrivals per loop, timed to the SMIL dots in components/bag-explainer.tsx). */
-  .bag-explainer-stamp {
+  /* Stream explainer — the routing mark brightens each time a Submission lands
+     (three arrivals per loop, timed to the SMIL dots in components/stream-explainer.tsx). */
+  .stream-explainer-route-mark {
     transform-box: fill-box;
     transform-origin: center;
-    animation: bag-stamp var(--bag-loop) var(--bag-ease) infinite;
+    animation: stream-route-mark var(--stream-loop) var(--stream-ease) infinite;
   }
-  @keyframes bag-stamp {
+  @keyframes stream-route-mark {
     0%,
     23%,
     31%,
@@ -279,7 +366,7 @@
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .bag-explainer-stamp {
+    .stream-explainer-route-mark {
       animation: none !important;
       opacity: 0.7;
     }

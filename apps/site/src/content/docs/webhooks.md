@@ -19,7 +19,7 @@ Postbag-Signature: t=1724200000,v1=5f1c…e9a2
 { "id": "dl_a91x02", "type": "submission.received", "schema_version": 3,
   "stream": { "id": "st_…", "slug": "vending-leads" } | null,
   "form":   { "id": "fm_…", "slug": "kontorsautomat-contact" },
-  "data":   { …mapped payload… }, "extras": { … }, "meta": { … } }
+  "data":   { …mapped payload… }, "meta": { … } }
 ```
 
 `Postbag-Event` is `submission.received` for instant routes and `digest.ready` for digest routes (one payload per period containing the period's submissions).
@@ -85,4 +85,4 @@ func verifyPostbag(secret, header string, rawBody []byte, tolerance time.Duratio
 
 ## Organization system webhooks
 
-Separate from route destinations, `POST /v1/webhooks { url, events[], secret? }` subscribes to organization events (`submission.received`, `delivery.dead`, `form.schema.changed`, `stream.schema.changed`, `drift.detected`, `destination.failing`, …). Dispatch is triggered from Postgres; deliveries are listed at `GET /v1/webhooks/{id}/deliveries` and signed the same way.
+Separate from route destinations, `POST /v1/webhooks { url, events[], secret? }` subscribes to organization events (`submission.received`, `delivery.dead`, `form.schema.changed`, `stream.schema.changed`, `drift.detected`, `destination.failing`, …). Dispatch is triggered from Postgres; deliveries are listed at `GET /v1/webhooks/{id}/deliveries` and signed the same way when a secret is configured.

@@ -11,26 +11,26 @@ import SelfHost from "@/components/home/SelfHost.astro"
 import Faq from "@/components/Faq.astro"
 import CtaBand from "@/components/CtaBand.astro"
 import { faqLd, softwareLd, webPageLd } from "@/lib/seo"
-import { DESCRIPTION, SITE_URL } from "@/config"
+import { AGENT_PROMPT, DESCRIPTION, SITE_URL } from "@/config"
 
 const faqs = [
-  { q: "What is Postbag?", a: "Postbag is a form backend that routes. You point an HTML form (or a fetch call) at a Postbag submit URL; Postbag stores every submission durably and then delivers it to email, Telegram and signed webhooks according to routes you configure. It is multi-tenant, self-hostable, and agent-native: everything in the dashboard is available through the same /v1 API." },
-  { q: "What is a form backend?", a: "A form backend is a service that receives HTML form submissions so a website does not need its own server code. The site's <code>&lt;form action&gt;</code> points at the backend, which stores the data and notifies you. Postbag adds routing on top: grouping many forms into one stream, mapping fields onto one schema, and delivering to several destinations with rules." },
-  { q: "Do I need JavaScript or an SDK?", a: "No. A plain HTML form posting to your submit URL works; Postbag answers with a 303 redirect to your page. JSON and fetch work too. The API returns ready-made snippets for HTML, fetch, React, Astro and Next.js server actions for each form." },
-  { q: "Does Postbag ever drop submissions?", a: "No. Spam, schema violations, rate-limit overflow, rejected origins and over-quota submissions are all stored with a status (received, quarantined or spam) and are visible in the inbox and the API. Data is only deleted by your action or your retention policy." },
-  { q: "How is Postbag different from Formspree, Formspark or Getform?", a: "Three things: every submission is a durable row with an attempt-tracked delivery outbox; streams let many forms with different field names map onto one versioned schema and go to one partner or CRM; and the whole product is driven by one API with llms.txt, OpenAPI, a one-call quickstart and test submissions, so AI agents can set it up end to end. It also self-hosts as one container plus Postgres. See the <a href='/compare/'>comparison pages</a>." },
-  { q: "Which destinations are supported?", a: "Email (via Resend, with Reply-To set from the submission), Telegram bot messages, and webhooks signed with HMAC-SHA256. Webhooks are the universal extension point; Slack and Discord are planned next." },
-  { q: "Can AI agents like Claude Code or Cursor use Postbag?", a: "Yes. An agent with only an API key can read GET /llms.txt and /openapi.json, call GET /v1/me, create a working routed form with POST /v1/quickstart, post a test submission with _test: true, and poll the resulting delivery ids to confirm it was sent. Every error carries a hint and a docs link; every create returns next steps." },
-  { q: "Can I self-host Postbag?", a: "Yes. Postbag runs as one Docker image (api, worker or both) against one Postgres database, with a docker-compose file. The hosted product is the same image with billing turned on; no feature depends on a cloud-only service without a self-host path." },
-  { q: "How much does it cost?", a: "The free plan includes 5 forms, 1,000 submissions a month, 5 destinations and 90-day retention. Pro is $15 a month ($12 billed yearly) and Team is $49 a month ($39 billed yearly); paid checkout is handled by Polar as our Merchant of Record. See <a href='/pricing/'>pricing</a> for the limits. Self-hosting is free and open source." },
+  { q: "What is Postbag?", a: "The open-source form backend built for agents. Point any form at your Postbag address; every message is saved the moment it arrives, then sent where you want it — inbox, Telegram, or a webhook. Your agent can run the whole setup." },
+  { q: "What is a form backend?", a: "The part of a contact form you'd rather not build: the place messages actually go. Your site's <code>&lt;form action&gt;</code> points at Postbag; Postbag keeps the message safe and tells you. No server code on your end." },
+  { q: "Do I need JavaScript or an SDK?", a: "No. A plain HTML form works as it is, and visitors land back on your page. Prefer fetch or a framework? Postbag hands you ready-made snippets for HTML, fetch, React, Astro and Next.js." },
+  { q: "Does Postbag ever lose submissions?", a: "No — this is the hill Postbag lives on. Everything that arrives is saved, spam included, each with a label. Things are deleted only when you delete them, or when your retention window says so." },
+  { q: "How is Postbag different from Formspree, Formspark or Getform?", a: "Three things. Every message is saved before it's sent anywhere, and each Delivery keeps its retry count and latest outcome. A coding agent can do the entire setup before you sign up. And you can run the whole product yourself, free. See the <a href='/compare/'>comparison pages</a>." },
+  { q: "Where can Postbag send messages?", a: "Email (replying goes straight to the sender), Telegram, and webhooks for everything else — your CRM, your Slack bot, anything with a URL. Add a secret for HMAC signing. Native Slack and Discord are next." },
+  { q: "Can coding agents like Claude Code or Cursor use Postbag?", a: "Yes — that's the heart of it. An agent can create a form with no account, wire it into your site, and prove it works with test messages. You sign in only to keep the form and turn on real sending." },
+  { q: "Can I self-host Postbag?", a: "Yes. One Docker container plus one Postgres database is the entire product — the hosted version is the same code with billing on. There's a compose file to start from and a proper guide." },
+  { q: "How much does it cost?", a: "Free gets you 5 forms, 1,000 messages a month and 90 days of history. Pro is $15 a month, Team is $49 — bigger rooms, same product. Self-hosting is free, because it's open source. See <a href='/pricing/'>pricing</a>." },
 ]
 const ld = [
   softwareLd(),
-  webPageLd({ url: `${SITE_URL}/`, name: "Postbag: the form backend that routes", description: DESCRIPTION }),
+  webPageLd({ url: `${SITE_URL}/`, name: "Postbag: your forms have somewhere to go", description: DESCRIPTION }),
   faqLd(faqs),
 ]
 ---
-<Base title="Postbag: the form backend that routes" description={DESCRIPTION} canonical="/" ld={ld}>
+<Base title="Postbag: your forms have somewhere to go" description={DESCRIPTION} canonical="/" ld={ld}>
   <Hero />
   <Integration />
   <Journey />
@@ -40,5 +40,9 @@ const ld = [
   <Destinations />
   <SelfHost />
   <Faq items={faqs} class="mt-28 sm:mt-36" />
-  <CtaBand />
+  <CtaBand
+    title="Give the form job to your agent."
+    body="It can build, wire and test the form before you even have an account. Claim it when it's worth keeping."
+    primary={{ label: "Copy agent prompt", copyText: AGENT_PROMPT }}
+  />
 </Base>

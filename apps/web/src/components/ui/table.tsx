@@ -46,7 +46,7 @@ function TableHead({ className, ...props }: ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-9 px-3 text-left align-middle text-xs font-medium text-muted-foreground whitespace-nowrap",
+        "h-11 px-4 text-left align-middle text-xs font-medium text-muted-foreground whitespace-nowrap first:pl-5 last:pr-5",
         "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className,
       )}
@@ -60,7 +60,7 @@ function TableCell({ className, ...props }: ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "px-3 py-2.5 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "px-4 py-4 align-middle whitespace-nowrap first:pl-5 last:pr-5 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className,
       )}
       {...props}

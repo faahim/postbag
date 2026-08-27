@@ -54,9 +54,11 @@ function SignUpRoute() {
     <AuthSplitLayout>
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-1.5">
-          <h2 className="text-2xl font-semibold text-balance">Create your workspace</h2>
-          <p className="text-sm text-muted-foreground">
-            One form and one email, in under three minutes.
+          <h2 className="text-3xl font-semibold tracking-tight text-balance">
+            Give your Forms somewhere to go
+          </h2>
+          <p className="text-sm text-muted-foreground text-pretty">
+            Create a workspace, then send your first Submission in a few minutes.
           </p>
         </div>
 
@@ -141,7 +143,7 @@ function SignUpRoute() {
           <Link
             to="/sign-in"
             search={search.redirect === undefined ? {} : { redirect: search.redirect }}
-            className="font-medium text-foreground underline-offset-4 hover:underline"
+            className="font-medium text-primary underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
           >
             Sign in
           </Link>

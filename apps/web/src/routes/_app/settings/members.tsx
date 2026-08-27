@@ -6,7 +6,6 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { EmptyState } from "@/components/empty-state"
-import { SettingsNav } from "@/components/settings-nav"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -59,14 +58,7 @@ function MembersRoute() {
   const alone = (members.data?.length ?? 0) <= 1 && (invitations.data?.length ?? 0) === 0
 
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Settings</h1>
-        <p className="text-sm text-muted-foreground">Who has access to this workspace, and what they can do.</p>
-      </div>
-
-      <SettingsNav />
-
+    <div className="flex flex-col gap-8">
       {loading ? (
         <Skeleton className="h-64 w-full" />
       ) : alone ? (

@@ -1,0 +1,53 @@
+{
+  "url": "http://127.0.0.1:4321/",
+  "desktop": {
+    "viewport": "1440x1000",
+    "clientWidth": 1440,
+    "scrollWidth": 1440,
+    "consoleWarningsOrErrors": 0,
+    "darkSettledScreenshot": "desktop-1440x1000-settled.png",
+    "lightFleetScreenshot": "desktop-light-fleet.png",
+    "deliveryStateScreenshot": "desktop-journey-state.png",
+    "agentHandoffScreenshot": "desktop-agent-state.png"
+  },
+  "tablet": {
+    "viewport": "900x1100",
+    "clientWidth": 900,
+    "scrollWidth": 900,
+    "screenshot": "tablet-900x1100-guarantees.png"
+  },
+  "mobile": {
+    "viewport": "390x844",
+    "clientWidth": 390,
+    "scrollWidth": 390,
+    "journeyStage": "4",
+    "consoleWarningsOrErrors": 0,
+    "screenshots": [
+      "mobile-390x844-integration.png",
+      "mobile-390x844-agent.png",
+      "mobile-390x844-self-host.png"
+    ]
+  },
+  "interactions": {
+    "snippetTabs": {
+      "action": "clicked curl tab",
+      "selectedTab": "curl",
+      "visiblePanel": "panel-curl"
+    },
+    "demoValidation": {
+      "action": "clicked Send with required fields empty",
+      "focusedField": "email",
+      "receiptRemainedHidden": true,
+      "buttonLabel": "Send"
+    },
+    "journey": {
+      "settledStage": "4",
+      "stateLabel": "attempt 2 sent",
+      "deliveryLabel": "sent on attempt 2"
+    },
+    "theme": {
+      "action": "clicked Toggle dark mode",
+      "htmlDarkClassAfter": false
+    }
+  }
+}

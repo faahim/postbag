@@ -73,8 +73,8 @@ function SheetContent({
         {children}
         <DialogPrimitive.Close
           className={cn(
-            "absolute top-4 right-4 rounded-sm opacity-60 outline-none",
-            "transition-opacity duration-(--duration-quick) hover:opacity-100",
+            "absolute top-4 right-4 flex size-8 items-center justify-center rounded-lg text-muted-foreground outline-none",
+            "transition-[background-color,color] duration-(--duration-quick) hover:bg-muted hover:text-foreground",
             "focus-visible:ring-[3px] focus-visible:ring-ring disabled:pointer-events-none",
           )}
         >
@@ -87,7 +87,13 @@ function SheetContent({
 }
 
 function SheetHeader({ className, ...props }: ComponentProps<"div">) {
-  return <div data-slot="sheet-header" className={cn("flex flex-col gap-1 px-6 pt-6", className)} {...props} />
+  return (
+    <div
+      data-slot="sheet-header"
+      className={cn("flex flex-col gap-1.5 border-b border-border/60 px-6 pt-6 pb-5", className)}
+      {...props}
+    />
+  )
 }
 
 function SheetFooter({ className, ...props }: ComponentProps<"div">) {
@@ -96,7 +102,11 @@ function SheetFooter({ className, ...props }: ComponentProps<"div">) {
 
 function SheetTitle({ className, ...props }: ComponentProps<typeof DialogPrimitive.Title>) {
   return (
-    <DialogPrimitive.Title data-slot="sheet-title" className={cn("font-semibold text-foreground", className)} {...props} />
+    <DialogPrimitive.Title
+      data-slot="sheet-title"
+      className={cn("pr-8 text-lg leading-snug font-semibold tracking-tight text-balance text-foreground", className)}
+      {...props}
+    />
   )
 }
 

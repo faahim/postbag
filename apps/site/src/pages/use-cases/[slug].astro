@@ -7,37 +7,80 @@ import CtaBand from "@/components/CtaBand.astro"
 import { USE_CASES } from "@/content/usecases"
 import { breadcrumbLd, faqLd, webPageLd } from "@/lib/seo"
 import { SITE_URL } from "@/config"
+import { ArrowUpRight } from "@lucide/astro"
 
 export function getStaticPaths() {
   return USE_CASES.map((u) => ({ params: { slug: u.slug }, props: { uc: u } }))
 }
+
 const { uc } = Astro.props
 const path = `/use-cases/${uc.slug}/`
 const crumbs = [ { name: "Home", href: "/" }, { name: "Use cases", href: "/use-cases/" }, { name: uc.nav, href: path } ]
 const ld = [ webPageLd({ url: `${SITE_URL}${path}`, name: uc.title, description: uc.description }), breadcrumbLd(crumbs), faqLd(uc.faqs) ]
-const others = USE_CASES.filter((o) => o.slug !== uc.slug)
+const others = USE_CASES.filter((item) => item.slug !== uc.slug)
 ---
 <Base title={uc.title} description={uc.description} canonical={path} ld={ld} ogImage="/og/default.png">
   <PageHeader title={uc.title} lede={uc.lede} crumbs={crumbs} />
-  <div class="container-x grid gap-12 lg:grid-cols-[minmax(0,1fr)_260px]">
-    <article class="prose-pb max-w-3xl">
-      {uc.sections.map((s) => (
-        <section>
-          <h2>{s.h}</h2>
-          {s.p.map((p) => <p>{p}</p>)}
-          {s.code && <CodeBlock code={s.code.code} lang={s.code.lang} title={s.code.title} />}
+
+  <div class="container-x usecase-detail">
+    <article class="usecase-article">
+      {uc.sections.map((section) => (
+        <section class="usecase-section" data-reveal>
+          <div class="usecase-section-marker" aria-hidden="true"><span /></div>
+          <div class="usecase-section-heading"><h2>{section.h}</h2></div>
+          <div class="usecase-section-body">
+            {section.p.map((paragraph) => <p>{paragraph}</p>)}
+            {section.code && <CodeBlock code={section.code.code} lang={section.code.lang} title={section.code.title} />}
+          </div>
         </section>
       ))}
     </article>
-    <aside class="lg:sticky lg:top-24 lg:self-start">
-      <nav aria-label="Other use cases" class="card p-5">
-        <h2 class="font-sans text-[13px] font-semibold">Use cases</h2>
-        <ul class="mt-3 space-y-2">{others.map((o) => <li><a href={`/use-cases/${o.slug}/`} class="text-sm text-muted-foreground hover:text-foreground">{o.nav}</a></li>)}</ul>
-        <h2 class="mt-6 font-sans text-[13px] font-semibold">Related</h2>
-        <ul class="mt-3 space-y-2">{uc.related.map((r) => <li><a href={r.href} class="text-sm text-muted-foreground hover:text-foreground">{r.label}</a></li>)}</ul>
+
+    <aside class="usecase-links" data-reveal>
+      <nav aria-label="Other use cases">
+        <p>Other paths</p>
+        <ul>{others.map((item) => <li><a href={`/use-cases/${item.slug}/`}>{item.nav}<ArrowUpRight size={15} stroke-width={1.7} aria-hidden="true" /></a></li>)}</ul>
+      </nav>
+      <nav aria-label="Related pages">
+        <p>Related</p>
+        <ul>{uc.related.map((item) => <li><a href={item.href}>{item.label}<ArrowUpRight size={15} stroke-width={1.7} aria-hidden="true" /></a></li>)}</ul>
       </nav>
     </aside>
   </div>
-  <Faq items={uc.faqs} class="mt-20" />
+
+  <Faq items={uc.faqs} class="mt-24" />
   <CtaBand />
 </Base>
+
+<style>
+  .usecase-detail { display: grid; gap: clamp(3.5rem, 8vw, 6.5rem); padding-top: clamp(2.5rem, 6vw, 5rem); }
+  .usecase-article { min-width: 0; }
+  .usecase-section { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); gap: 0.35rem 1rem; padding: clamp(2.5rem, 6vw, 4.5rem) 0; border-top: 1px solid var(--border); }
+  .usecase-section:first-child { padding-top: 0; border-top: 0; }
+  .usecase-section-marker { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: 50% 50% calc(var(--radius) + 4px) calc(var(--radius) + 4px); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border-strong); }
+  .usecase-section-marker span { width: 0.7rem; height: 0.45rem; margin-top: 0.2rem; border-radius: 0.08rem 0.08rem 0.5rem 0.5rem; background: var(--primary); }
+  .usecase-section-heading, .usecase-section-body { grid-column: 2; }
+  .usecase-section h2 { max-width: 22ch; font-size: clamp(1.85rem, 3.4vw, 2.8rem); font-weight: 580; line-height: 1.06; letter-spacing: -0.025em; text-wrap: balance; }
+  .usecase-section-body { max-width: 46rem; margin-top: 0.65rem; color: var(--muted-foreground); font-size: clamp(1rem, 1.4vw, 1.08rem); line-height: 1.75; }
+  .usecase-section-body p + p { margin-top: 1rem; }
+  .usecase-section-body :global(.code-panel) { margin-top: 1.5rem; box-shadow: var(--shadow-md); }
+  .usecase-links { display: grid; align-content: start; gap: 2.5rem; }
+  .usecase-links p { color: var(--primary); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .usecase-links ul { margin-top: 0.7rem; }
+  .usecase-links li + li { margin-top: 0.1rem; }
+  .usecase-links a { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); color: var(--muted-foreground); font-size: 0.92rem; text-decoration: none; transition-property: color, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
+  .usecase-links a:hover { color: var(--primary); transform: translateX(0.2rem); }
+  .usecase-links a:active { transform: translateX(0.1rem); }
+  @media (min-width: 64rem) {
+    .usecase-detail { grid-template-columns: minmax(0, 1fr) minmax(15rem, 17rem); align-items: start; }
+    .usecase-links { position: sticky; top: 6.25rem; }
+    .usecase-section { grid-template-columns: 2.8rem minmax(0, 1fr); gap: 0.4rem 1.35rem; }
+    .usecase-section-marker { width: 2.55rem; height: 2.55rem; }
+    .usecase-section-heading { grid-column: 2; }
+    .usecase-section-body { grid-column: 2; margin-top: 0.65rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .usecase-links a { transition: none; }
+    .usecase-links a:hover, .usecase-links a:active { transform: none; }
+  }
+</style>

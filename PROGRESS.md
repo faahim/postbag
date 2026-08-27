@@ -7,7 +7,20 @@ the rules and `docs/` for the design.
 
 ## Current state (update this block, don't append)
 
-- **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in *Next up*.
+- **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in _Next up_.
+- **Brand overhaul complete on `codex/brand-overhaul` 2026-08-24:** `docs/BRAND.md` is the source of truth. The approved
+  receiving-pocket hero now leads one coherent midnight-indigo/periwinkle identity across the complete homepage,
+  public page family, documentation shell, auth, first-run, empty/status states, manifests and social previews. The old
+  red circular check/postmark family is replaced by the receiving/routing mark; ordinary interface checks remain
+  ordinary. The documentation family received its final editorial polish on 2026-08-25: routing-aware navigation,
+  live page context, copyable language-labelled code, improved reading typography and responsive API error pages now
+  share one shell. File-like `index.md` twins also resolve consistently in Astro preview and the production static server,
+  with direct-link and content-negotiation regression coverage. A shared static material grain now carries through the
+  marketing, docs, auth and dashboard canvases while
+  inputs, code, payloads, tables and other working planes remain clear. Public claims were reconciled to the live
+  anonymous sandbox/claim contract, public GitHub repository and
+  published npm clients. Static gates, 164 tests, production builds and settled browser checks at desktop/tablet/mobile
+  are green on the branch; merge and production deployment remain intentionally pending.
 - **Anonymous claimable quickstart live 2026-08-23 (ADR-008/009):** `ANONYMOUS_QUICKSTART_ENABLED=true`. Merge `54c4fd8`
   shipped the bounded 24-hour sandbox flow; closeout `b273d46` and API-key-name validation fix `bed1ebd` are deployed
   (`loqdcusasbxdn106nvgrsgu7`, `wqahvskwleapheboflsy0bin`, `mi1vbrf4wdgurxlgldp9hbuh`). Local Postgres, 308 tests,
@@ -66,7 +79,8 @@ the rules and `docs/` for the design.
 
 ## Decisions made tonight (2026-08-21)
 
-- UI label for `stream` = **Bag**. ("Collection" considered; Bag is on-brand and unambiguous.)
+- UI label for `stream` = **Stream** (supersedes the 2026-08-21 “Bag” experiment; fixed domain vocabulary now matches
+  the dashboard, public site and generated API clients).
 - ADR-003 accepted: dashboard = Vite + React SPA served by the API container.
   **Public/marketing pages are a separate Astro site** (SSR/SSG, SEO + GEO optimised) —
   `apps/site`, Phase 3. Nothing public-facing is rendered client-side.
@@ -92,13 +106,13 @@ the rules and `docs/` for the design.
 ## Done
 
 - [x] **Marketing + docs site (2026-08-21):** `apps/site`. Home (live demo form, scroll-driven "journey", agent
-  transcript, streams diagram, invariants, destinations, self-host, FAQ), `/for-ai-agents/`, `/features/*` (6),
-  `/docs/*` (13 pages + `/docs/errors/{code}/` for every API error code; Markdown twins at `index.md`,
-  `/llms-full.txt`), `/compare/*` (6 competitors, facts sourced and dated), `/use-cases/*` (5), `/glossary/`,
-  `/pricing/`, `/changelog/`, `/about/` (real contact form), 404. SEO/GEO: JSON-LD graph (Organization, WebSite,
-  SoftwareApplication, BreadcrumbList, FAQPage, TechArticle, DefinedTermSet), canonical/OG/Twitter, sitemap,
-  robots.txt allowing AI crawlers, `Accept: text/markdown` negotiation on the server, `X-Robots-Tag: noindex` on
-  Markdown twins. Verified: astro check, eslint, server tests 43/43, built site served by the server locally.
+      transcript, streams diagram, invariants, destinations, self-host, FAQ), `/for-ai-agents/`, `/features/*` (6),
+      `/docs/*` (13 pages + `/docs/errors/{code}/` for every API error code; Markdown twins at `index.md`,
+      `/llms-full.txt`), `/compare/*` (6 competitors, facts sourced and dated), `/use-cases/*` (5), `/glossary/`,
+      `/pricing/`, `/changelog/`, `/about/` (real contact form), 404. SEO/GEO: JSON-LD graph (Organization, WebSite,
+      SoftwareApplication, BreadcrumbList, FAQPage, TechArticle, DefinedTermSet), canonical/OG/Twitter, sitemap,
+      robots.txt allowing AI crawlers, `Accept: text/markdown` negotiation on the server, `X-Robots-Tag: noindex` on
+      Markdown twins. Verified: astro check, eslint, server tests 43/43, built site served by the server locally.
 
 - [x] Phase 0 docs committed (`042d820`).
 - [x] GitHub repo created, pushed, default branch `main`.
@@ -110,65 +124,85 @@ the rules and `docs/` for the design.
 - [x] Job A (Codex, spec `tasks/job-A-scaffold.md`): monorepo + `packages/core` (pure domain, 10 test files) + `packages/db` (23 tables, 1 migration, claim/notify helpers) + `packages/auth` (Better Auth, org-owned API keys via `referenceId`→`organization_id`). Codex's sandbox had no network/Docker, so Claude installed deps and verified: lint 0, typecheck ok, migrate ok, 49/49 tests. Fixed by Claude: pnpm `allowBuilds`, ESLint typed-rule scoping, engine range.
 - [x] Job B (Sonnet, spec `tasks/job-B-server.md`): `apps/server` — submit path, `/v1` (all openapi paths), Better Auth + API keys + org provisioning on signup, worker with email/telegram/webhook adapters, `/health`, `/llms.txt`, generated `/openapi.json`, multi-stage Dockerfile. Verified by Claude: lint 0, typecheck ok, 72/72 tests, image builds. Known gaps (tracked in Next up): system-webhook dispatch, digest sending, schema inference for `observe`, RLS second fence, `drizzle-kit generate` broken by `@postbag/core` export map (migration 0001 hand-written).
 
-- [x] Job E (Sonnet, spec `tasks/job-E-design-polish.md`): display-scale first-run headline, accent-red brand postmark, staggered "It arrived" reveal, inbox id chips + postmark status + fade truncation, delivery timeline, collapsible meta, hover lift. Verified: lint 0, typecheck ok, build ok. **Honest verdict:** better, still "tidy" rather than "distinctive" — the next design step should be a session with Fahim's eye (swatches, hero composition, illustration family), not another agent pass.
+- [x] Job E (Sonnet, spec `tasks/job-E-design-polish.md`): historical dashboard polish pass. Its accent-red postmark treatment was retired by the 2026-08-24 brand overhaul in favour of periwinkle receiving/routing marks. Original verification: lint 0, typecheck ok, build ok.
 - [x] `staticApp.ts` now also resolves `dist/public` when run from source, so `pnpm --filter @postbag/server dev` serves a built SPA.
 - [x] Job D (Sonnet, spec `tasks/job-D-server-followups.md`): scope implication (`manage ⊇ read ⊇ submit`), template context with real names, CF client IP/country, isolated worker tests, **system-webhook dispatch via Postgres trigger** + `system_webhook_deliveries` + `GET /v1/webhooks/{id}/deliveries`, digest routes (one payload per period), observe-mode inference (`form_schema_drafts`, `POST /v1/forms/{id}/schema/infer`), `drizzle-kit generate` fixed (export map + reconstructed snapshots), RLS policies + `postbag_app` role (migrations 0002, 0003). Claude removed `FORCE ROW LEVEL SECURITY` (would break non-superuser self-host owners; Principle 7) — owners exempt, `postbag_app` fenced. **Open:** request-path `SET LOCAL ROLE postbag_app` + `app.org_id` (flag `RLS_ENFORCED`, inert). Verified by Claude on a fresh DB: lint 0, typecheck ok, 110/110 tests, image builds.
 - [x] **Dashboard live in production** at `https://postbag.withfaahim.com/app/` (deploy of `6ec3802`, 2026-08-21 00:32 UTC; CI green). Sign in with the account in `~/.postbag/credentials`.
-- [x] Job C (Sonnet, spec `tasks/job-C-dashboard.md`): `apps/web` (Vite+React+shadcn, all 10 screens, postmark motif, Instrument Sans/JetBrains Mono, wax-seal accent, ⌘K, live inbox) + `packages/sdk` (openapi-typescript + openapi-fetch). SPA builds into `apps/server/dist/public`, served at `/app`. Verified by Claude: lint 0, typecheck ok, 81 tests (worker tests need a clean DB — see job D), Docker image serves `/app` + `/health`. Design verdict: coherent and clean; a dedicated polish pass (job E) should push it from 'tidy' to 'distinctive'.
+- [x] Job C (Sonnet, spec `tasks/job-C-dashboard.md`): `apps/web` (Vite+React+shadcn, all 10 screens, ⌘K, live inbox) + `packages/sdk` (openapi-typescript + openapi-fetch). SPA builds into `apps/server/dist/public`, served at `/app`. Its original wax/postmark identity was superseded by the 2026-08-24 brand overhaul. Original verification: lint 0, typecheck ok, 81 tests.
 - [x] **Production verified end-to-end 2026-08-21 23:25 UTC:** `d4a8f3a` deployed; `/health` db up + worker alive; signup → `/v1/me` → API key → `/v1/quickstart` → real submission → email delivered via Resend in ~1 s and confirmed in Fahim's Gmail.
-  Fahim's production account: `afiur.fahim@gmail.com`, org `org_3yv5z32sed4q`, project `postbag`, form `fm_gwdahpd22tjy` ("Overnight smoke test"). Password + full-scope API key saved at **`~/.postbag/credentials`** (mode 600, not in repo).
+      Fahim's production account: `afiur.fahim@gmail.com`, org `org_3yv5z32sed4q`, project `postbag`, form `fm_gwdahpd22tjy` ("Overnight smoke test"). Password + full-scope API key saved at **`~/.postbag/credentials`** (mode 600, not in repo).
 
 - [x] **Job F (2026-08-21, Sonnet agents × 3, spec `tasks/job-F-cli-mcp.md`):** 59→60 `operationId`s + `bearerAuth`;
-  `api/openapi.yaml` generated (`pnpm openapi:export`, sync test); `@postbag/sdk` publishable; `LEGACY_HOSTS` redirect
-  (live: withfaahim → postbag.dev, `/s` `/v1` untouched); **`packages/cli`** (npm `postbag`, 29 tests, smoke-tested
-  against prod); **`packages/mcp`** (`@postbag/mcp`, 62 tools, `server.json`, smoke-tested against prod). CI green
-  from `eb92643`. Not yet published (needs `npm login` + `NPM_TOKEN`).
+      `api/openapi.yaml` generated (`pnpm openapi:export`, sync test); `@postbag/sdk` publishable; `LEGACY_HOSTS` redirect
+      (live: withfaahim → postbag.dev, `/s` `/v1` untouched); **`packages/cli`** (npm `postbag`, 29 tests, smoke-tested
+      against prod); **`packages/mcp`** (`@postbag/mcp`, 62 tools, `server.json`, smoke-tested against prod). CI green
+      from `eb92643`. Not yet published (needs `npm login` + `NPM_TOKEN`).
 - [x] **Job G (2026-08-21, spec `tasks/job-G-social-login.md`):** Google + GitHub via Better Auth, `GET /v1/auth/providers`,
-  SocialButtons + Connected accounts card. Linking kept at secure defaults (reviewer reverted the agent's
-  `trustedProviders` + `requireLocalEmailVerified:false` — pre-registration takeover). Providers activate the moment
-  `GOOGLE_*`/`GITHUB_*` env land on Coolify (`VITE_HOSTED=1` build arg already set).
+      SocialButtons + Connected accounts card. Linking kept at secure defaults (reviewer reverted the agent's
+      `trustedProviders` + `requireLocalEmailVerified:false` — pre-registration takeover). Providers activate the moment
+      `GOOGLE_*`/`GITHUB_*` env land on Coolify (`VITE_HOSTED=1` build arg already set).
 
 - [x] **Job H (2026-08-21, spec `tasks/job-H-agent-onboarding.md`):** `POST /v1/auth/request-code` + `/verify-code`
-  (Better Auth `emailOTP`, hashed 6-digit, 3 attempts, 3/email + 10/IP per 10 min, no cookie, mints a key through the
-  same helper as `/v1/api-keys`); `postbag login` drives it (`--email`, `--code`); `skills/postbag/SKILL.md` served at
-  `/.well-known/skills/` (bundled into dist by the server build); landing "set up your agent" block; llms.txt section.
-  184 tests.
+      (Better Auth `emailOTP`, hashed 6-digit, 3 attempts, 3/email + 10/IP per 10 min, no cookie, mints a key through the
+      same helper as `/v1/api-keys`); `postbag login` drives it (`--email`, `--code`); `skills/postbag/SKILL.md` served at
+      `/.well-known/skills/` (bundled into dist by the server build); landing "set up your agent" block; llms.txt section.
+      184 tests.
 
-- [x] **Job M (2026-08-22, Bag first-run — Eric's "Publish a stream schema before attaching sources" dead end):**
-  the dashboard could not publish a stream schema, so a fresh Bag was unusable. Fixed end to end: server derives a
-  stream's **version 1 from the first attached form** (published schema → inferred draft → recent submissions; identity
-  mapping; `stream.schema.changed` event records `derived_from`) in both `POST /v1/streams` and
-  `POST /v1/streams/{id}/sources`; new error code `stream_schema_missing` (core + site errors page) replaces the bare
-  422 when nothing can be derived. Dashboard: `BagExplainer` ("the sorting office" SVG/SMIL animation + plain-language
-  copy + numbered steps) on the Bags list and on every fresh bag, first-form attach from the explainer, `ShapeEditor`
-  on "What gets delivered" (fields/type/required, seed from a form, publish vN+1), Sources show form names, pre-match
-  same-named fields on attach, detach, preview by name + `extras` note, header badges. `toastApiError` shows the API
-  `hint` as the toast description app-wide (bags, mapping editor, plan card, members). Docs: routing.md,
-  DOMAIN-MODEL.md (StreamSchema), errors.md, SKILL.md, CLI option help, OpenAPI + MCP operations regenerated.
-  Verified locally in the browser (light + dark); lint 0, typecheck ok, 239/239 tests.
+- [x] **Job M (2026-08-22, Stream first-run — Eric's "Publish a stream schema before attaching sources" dead end):**
+      the dashboard could not publish a Stream Schema, so a fresh Stream was unusable. Fixed end to end: server derives a
+      Stream's **version 1 from the first attached Form** (published Schema → inferred draft → recent Submissions; identity
+      mapping; `stream.schema.changed` event records `derived_from`) in both `POST /v1/streams` and
+      `POST /v1/streams/{id}/sources`; new error code `stream_schema_missing` (core + site errors page) replaces the bare
+      422 when nothing can be derived. Dashboard: `StreamExplainer` (receiving-pocket SVG/SMIL animation + plain-language
+      copy + numbered steps) on the Streams list and on every fresh Stream, first-Form attach from the explainer, `ShapeEditor`
+      on "What gets delivered" (fields/type/required, seed from a Form, publish vN+1), Sources show Form names, pre-match
+      same-named fields on attach, detach, preview by name + `extras` note, header badges. `toastApiError` shows the API
+      `hint` as the toast description app-wide (Streams, Mapping editor, plan card, members). Docs: routing.md,
+      DOMAIN-MODEL.md (StreamSchema), errors.md, SKILL.md, CLI option help, OpenAPI + MCP operations regenerated.
+      Verified locally in the browser (light + dark); lint 0, typecheck ok, 239/239 tests.
 
 - [x] **Destinations list (2026-08-22):** rows showed only name + type ("Email / Email"). Now: type icon + badge,
-  a summary of where it sends (to/cc, chat id, URL host+path) from the already-returned redacted config, health dot
-  with tooltip, **Edit** (sheet; blank secret = keep), delete with confirm + hinted errors. Email form accepts several
-  recipients, cc and a subject template. Unnamed destinations are named after where they send
-  (`eric@example.com`, `hooks.example.com`, `Telegram chat …`) instead of their type.
+      a summary of where it sends (to/cc, chat id, URL host+path) from the already-returned redacted config, health dot
+      with tooltip, **Edit** (sheet; blank secret = keep), delete with confirm + hinted errors. Email form accepts several
+      recipients, cc and a subject template. Unnamed destinations are named after where they send
+      (`eric@example.com`, `hooks.example.com`, `Telegram chat …`) instead of their type.
 
 - [x] **API-vs-dashboard sweep (2026-08-22):** diffed the 76 OpenAPI operations against the 53 the dashboard called.
-  Fixed the human-facing gaps: **delete submission** (drawer, confirmed); **route delivery mode** — add-route dialog
-  offers instant / daily digest / weekly digest (time, weekday, org timezone) and the routes list shows the mode,
-  destination summary and a paused badge, with confirmed removal; **Events → Webhooks** (org-level system webhooks, a tab beside the event log so they don't collide with webhook *destinations*:
-  list, add with grouped event checkboxes + secret, pause/resume, remove, recent deliveries); **schema version history**
-  on the form's Fields tab. Left agent/admin-only on purpose: auth codes, plan grants, single-resource GETs, schema
-  infer (the Fields tab's "Publish what we're seeing" covers it). **Projects** stay hidden in the UI (Principle 1).
+      Fixed the human-facing gaps: **delete submission** (drawer, confirmed); **route delivery mode** — add-route dialog
+      offers instant / daily digest / weekly digest (time, weekday, org timezone) and the routes list shows the mode,
+      destination summary and a paused badge, with confirmed removal; **Events → Webhooks** (org-level system webhooks, a tab beside the event log so they don't collide with webhook _destinations_:
+      list, add with grouped event checkboxes + secret, pause/resume, remove, recent deliveries); **schema version history**
+      on the form's Fields tab. Left agent/admin-only on purpose: auth codes, plan grants, single-resource GETs, schema
+      infer (the Fields tab's "Publish what we're seeing" covers it). **Projects** stay hidden in the UI (Principle 1).
 
 - [x] **Polar billing wiring live (2026-08-23, `ba38622`):** migration 0006, checkout and customer
-  portal routes, durable signed webhook ingestion/processing, plan enforcement, monthly usage and
-  retention. Production Polar has Pro and Team monthly/annual catalog prices, the signed webhook
-  endpoint exists, and Coolify has masked billing env vars. Coolify deployment
-  `mi8j9gmthrh8p8ss9p2a3yss` finished healthy; hosted health/worker, pricing, authenticated Settings,
-  canonical redirects and unsigned-webhook rejection were verified. Existing production workspaces
-  are complimentary, so checkout is intentionally hidden there; successful checkout creation is
-  covered by the live-DB integration suite, not by a real production charge.
+      portal routes, durable signed webhook ingestion/processing, plan enforcement, monthly usage and
+      retention. Production Polar has Pro and Team monthly/annual catalog prices, the signed webhook
+      endpoint exists, and Coolify has masked billing env vars. Coolify deployment
+      `mi8j9gmthrh8p8ss9p2a3yss` finished healthy; hosted health/worker, pricing, authenticated Settings,
+      canonical redirects and unsigned-webhook rejection were verified. Existing production workspaces
+      are complimentary, so checkout is intentionally hidden there; successful checkout creation is
+      covered by the live-DB integration suite, not by a real production charge.
+
+- [x] **Dashboard design sweep (2026-08-26, branch `codex/brand-overhaul`):** the "design session on the dashboard"
+      from Next-up item 0 — the brand overhaul finally reaches the product's core. Tactile buttons (the site's grain-face
+      `--btn-*` material ported to both dashboard themes; primary + outline variants), spacious two-line tables on
+      `.list-surface` planes, an Inbox that reads like an inbox (headline-first letter rows via `headline()`, status
+      apertures, Form names instead of ids), a shared `PageHeader`, larger type throughout, enter choreography
+      (`page-enter` / `row-enter` staggers), sliding active pills in the sidebar nav and Tabs (transitions-dev
+      tabs-sliding on Radix), warm product-register empty states everywhere, and the large ambient `BrandMark`
+      greeting the empty Inbox and first-run (also committed: the animated BrandMark migration into web + site footer,
+      `8808331`). Fixed-vocabulary copy pass over dialogs/confirms/palette; PlanCard header de-echoed; workspace wording
+      unified. Verified in the browser light + dark with seeded local data (3 Forms, 10 Submissions, retrying
+      Deliveries); typecheck 0, eslint 0, 12/12 web tests, build ok. Local dev DB now holds seed data and a spare
+      empty "Design QA" workspace for empty-state review. **Review sweep (`335427e`)** from Fahim's pass: dark
+      `--warning-foreground` contrast fix, `ConfirmDialog` replaces every `window.confirm`, sheet/dialog/palette polish,
+      deliveries-dialog overflow fix, drawn empty-state mark, embed's double tab bar folded into one code card,
+      Events/Settings became layout routes (tabs swap content only), Route delivery-cadence editing, a Form-Fields
+      editor (publishes vN+1), and **`PATCH /v1/organizations/active`** (workspace timezone, owner/admin, contract-first —
+      openapi + SDK regenerated) behind a searchable timezone picker in Settings. Server 174/174 on the local DB
+      (stop the dev worker first — it races the webhook-deliveries test), web 12/12, eslint 0. The local development
+      database contains disposable QA credentials; keep those in local-only notes rather than this public repository.
 
 ## Handoff (2026-08-21 ~22:50 UTC — session ended near a usage limit; resume from here)
 
@@ -210,41 +244,41 @@ tokens in `~/Developer/smedja/.env` (Cloudflare token: DNS only; no Email Routin
 
 ## Next up (in order)
 
-0. Design session with Fahim on the dashboard (see Job E verdict). Screenshots: session scratchpad `web-shots/` (before) and `web-shots-v2/` (after).
+0. ~~Design session with Fahim on the dashboard~~ **done 2026-08-26** (see "Dashboard design sweep" above; awaiting Fahim's review on `codex/brand-overhaul`).
 1. Wire RLS into the request path (`RLS_ENFORCED=true`: per-request transaction with `SET LOCAL ROLE postbag_app` + `set_config('app.org_id')`); then flip the default on. Sync `api/openapi.yaml` with the generated doc (new: `/v1/forms/{id}/schema/infer`, `/v1/webhooks/{id}/deliveries`, `SchemaVersion.inferred`).
 2. ~~CLI + MCP~~ **published 2026-08-21.** npm: `postbag@0.1.0`, `@postbag/sdk@0.1.0`, `@postbag/mcp@0.1.1` — first
    versions by Fahim with 2FA, then **trusted publishing (OIDC)** configured per package (`npm trust github … --file
-   release.yml`); `release.yml` publishes on `v*` tags with no secret (verified: v0.1.1 run published via OIDC). The
+release.yml`); `release.yml` publishes on `v*` tags with no secret (verified: v0.1.1 run published via OIDC). The
    `NPM_TOKEN` GitHub secret is deleted; **Fahim: revoke the bypass-2FA GAT on npmjs.com**. Bypass-2FA tokens lose
    publishing ~Jan 2027 (github.blog 2026-07-08) — we're already off them. **MCP registry:** `dev.postbag/mcp` 0.1.1
    listed (DNS-verified; apex TXT on postbag.dev; key `~/.config/postbag/mcp-registry-ed25519.pem`, login command in
    `release.yml`'s sibling notes above). Each new MCP version: bump `packages/mcp/package.json` + `server.json`, tag,
    then `mcp-publisher login dns … && mcp-publisher publish`. Site copy flipped. **Repo public since 2026-08-21 15:15 UTC** (gitleaks clean); `--provenance` re-enabled in `release.yml`.
-2b. **Legal pages before selling (agent drafts, Fahim supplies entity name/address):** Terms, Privacy
+   2b. **Legal pages before selling (agent drafts, Fahim supplies entity name/address):** Terms, Privacy
    Policy, DPA for operators, sub-processor list (Resend, Cloudflare, the hosting provider, Polar),
    GDPR Art. 27 EU-representative answer for a non-EU entity. Pages at `/legal/terms/`, `/legal/privacy/`, `/legal/dpa/`.
-2c. **Polar:** production organisation "Postbag" (slug `pushkunni`) has Pro and Team monthly/annual catalog
-  prices. A production webhook endpoint exists, and Coolify has the masked billing env vars. The local billing code
-  includes migration 0006, checkout/portal, durable webhook processing, plan enforcement, monthly usage and
-  retention. Do not claim this is deployed: hosted runtime verification is still pending. Separately track
-  Billing commit `ba38622` is deployed and hosted health, worker, pricing, authenticated Settings and
-  webhook signature rejection are verified. Separately track KYC/account review, a compatible local
-  payout account, the first real paid purchase and the first payout as operational evidence; none blocks
-  building or enabling checkout. If the payout rail fails in practice → Paddle
-  via a superseding ADR.
-2d. ~~Social login~~ **live 2026-08-21 14:40 UTC.** Google + GitHub buttons on `postbag.dev/app/sign-in`;
+   2c. **Polar:** production organisation "Postbag" (slug `pushkunni`) has Pro and Team monthly/annual catalog
+   prices. A production webhook endpoint exists, and Coolify has the masked billing env vars. The local billing code
+   includes migration 0006, checkout/portal, durable webhook processing, plan enforcement, monthly usage and
+   retention. Do not claim this is deployed: hosted runtime verification is still pending. Separately track
+   Billing commit `ba38622` is deployed and hosted health, worker, pricing, authenticated Settings and
+   webhook signature rejection are verified. Separately track KYC/account review, a compatible local
+   payout account, the first real paid purchase and the first payout as operational evidence; none blocks
+   building or enabling checkout. If the payout rail fails in practice → Paddle
+   via a superseding ADR.
+   2d. ~~Social login~~ **live 2026-08-21 14:40 UTC.** Google + GitHub buttons on `postbag.dev/app/sign-in`;
    `/v1/auth/providers` → `["google","github"]`. GitHub OAuth app `Postbag` (client id `Ov23li80jqB1DXPzvMsP`,
    callbacks postbag.dev + localhost:3000). Google: GCP project **`postbag-dev`**, consent screen published
    **In production** (External, non-sensitive scopes, privacy URL `/about/#privacy` — replace with `/legal/privacy/`
    once 2b ships), web client "Postbag web" (`596015045839-…apps.googleusercontent.com`), same two callbacks.
    Secrets live only in Coolify env (`GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET`). Verified: both buttons
    hand off to the right provider with the right redirect_uri; a full login round-trip is Fahim's to try.
-2f. **Email verification on password sign-up** (follow-up to social login): Better Auth `emailVerification`
+   2f. **Email verification on password sign-up** (follow-up to social login): Better Auth `emailVerification`
    with `sendOnSignUp: true` via Resend (`requireEmailVerification` stays false so the 3-minute test holds).
    Until a password account is verified, Better Auth will not auto-link a same-email Google/GitHub sign-in
    (by design — pre-registration takeover); the sign-in page explains to use the password and connect from
    Settings. Also: resend-verification button in Settings → Profile.
-2e. **Agent onboarding** — (a)+(b) shipped (job H); (c) anonymous/claimable quickstart **live 2026-08-23 under
+   2e. **Agent onboarding** — (a)+(b) shipped (job H); (c) anonymous/claimable quickstart **live 2026-08-23 under
    ADR-008/009 with edge, origin, OTP claim and real Delivery production gates passed**. Account-first with email code remains available.
    For the record: (a) agent-assisted signup without a browser —
    `POST /v1/auth/request-code {email}` → emailed 6-digit code (Better Auth `emailOTP` plugin) →
@@ -269,6 +303,7 @@ tokens in `~/Developer/smedja/.env` (Cloudflare token: DNS only; no Email Routin
   verified; `RESEND_API_KEY` set on the Coolify app.
 
 ## Operations
+
 - **DB backups:** daily at 03:00 server time, kept 14 days, **on the same server** (Coolify backup schedule
   `3gwbwkbf1mhtbp3gxwd9zw5x` on Postgres `fmeduf0fi7ax0dvsdhsvtewb`, created 2026-08-21). Off-server copies are
   not configured yet: add a Cloudflare R2 (S3-compatible) bucket as a Coolify S3 storage and flip `save_s3` — do this
@@ -286,7 +321,7 @@ tokens in `~/Developer/smedja/.env` (Cloudflare token: DNS only; no Email Routin
   SSH after a burst of sessions — batch commands into one session.
 - **Google consent screen** links `/legal/privacy/` + `/legal/terms/`; Google asks for "branding verification" (Search
   Console proof of postbag.dev) before showing the app name instead of the domain — do together with the Search Console
-  + IndexNow item (DNS TXT verification; Fahim's Google login in the browser).
+  - IndexNow item (DNS TXT verification; Fahim's Google login in the browser).
 - **hello@postbag.dev** → Cloudflare Email Routing rule → afiur.fahim@gmail.com (set up 2026-08-21 in the Cloudflare
   dashboard; the API token in `~/Developer/smedja/.env` has no Email Routing scope). Apex MX records are Cloudflare's;
   Resend sends from `send.postbag.dev`, so they don't collide.
@@ -294,10 +329,11 @@ tokens in `~/Developer/smedja/.env` (Cloudflare token: DNS only; no Email Routin
   governing law Bangladesh. Production is in **Germany** (Hetzner, `dekhval-1`) since 2026-08-21 16:04 UTC; the legal pages say so.
 
 ## Gotchas learned
+
 - **Email identity is mailbox identity, not string identity.** Invitation accept compares with `sameMailbox()`
   (`packages/core/src/email.ts`): case/whitespace folded, `+tag` stripped everywhere, dots ignored on
   gmail.com/googlemail.com only. Found when Fahim was invited as `afiurfahim@gmail.com` but signed in as
-  `afiur.fahim@gmail.com` (2026-08-22). Never rewrite addresses for *sending*, only for comparison.
+  `afiur.fahim@gmail.com` (2026-08-22). Never rewrite addresses for _sending_, only for comparison.
 
 - pnpm 11: build-script approval lives in `pnpm-workspace.yaml` under `allowBuilds:` (not `package.json.pnpm`).
 - Local dev Postgres: `docker compose up -d db` → `postgres://postbag:postbag@localhost:5433/postbag` (OrbStack). To reset it, drop **both** `public` and `drizzle` schemas (drizzle tracks applied migrations in `drizzle.__drizzle_migrations`) and `drop role postbag_app`.

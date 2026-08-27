@@ -47,7 +47,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 [&>*]:min-w-0",
           "rounded-xl border border-border/70 bg-card p-6 shadow-xl",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-(--modal-scale) data-[state=open]:duration-(--modal-open-dur) data-[state=open]:ease-(--modal-ease)",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-(--modal-scale-close) data-[state=closed]:duration-(--modal-close-dur)",
@@ -60,8 +60,8 @@ function DialogContent({
           <DialogPrimitive.Close
             data-slot="dialog-close"
             className={cn(
-              "absolute top-4 right-4 rounded-sm opacity-60 outline-none",
-              "transition-opacity duration-(--duration-quick) hover:opacity-100",
+              "absolute top-3.5 right-3.5 flex size-8 items-center justify-center rounded-lg text-muted-foreground outline-none",
+              "transition-[background-color,color] duration-(--duration-quick) hover:bg-muted hover:text-foreground",
               "focus-visible:ring-[3px] focus-visible:ring-ring disabled:pointer-events-none",
             )}
           >
@@ -92,7 +92,7 @@ function DialogTitle({ className, ...props }: ComponentProps<typeof DialogPrimit
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-lg leading-none font-semibold", className)}
+      className={cn("text-lg leading-snug font-semibold tracking-tight", className)}
       {...props}
     />
   )

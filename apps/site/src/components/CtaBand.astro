@@ -1,23 +1,51 @@
 ---
-import Postmark from "@/components/Postmark.astro"
 import { SIGNUP_URL } from "@/config"
-interface Props { title?: string; body?: string; primary?: { href: string; label: string }; secondary?: { href: string; label: string } }
+import { Check, Copy } from "@lucide/astro"
+interface PrimaryAction { href?: string; label: string; copyText?: string }
+interface Props { title?: string; body?: string; primary?: PrimaryAction; secondary?: { href: string; label: string } }
 const {
-  title = "Your first form is three minutes away.",
-  body = "Sign up, get a submit URL, point a form at it. The first submission lands in your inbox and your email. Everything else appears when you need it.",
+  title = "Give the form job to your agent.",
+  body = "It can build, wire and test the form before you even sign up. Claim it when it's worth keeping.",
   primary = { href: SIGNUP_URL, label: "Create a form" },
   secondary = { href: "/docs/quickstart/", label: "Read the quickstart" },
 } = Astro.props
 ---
 <section class="container-x mt-24">
-  <div class="relative overflow-hidden rounded-2xl bg-foreground px-6 py-14 text-background sm:px-12 sm:py-16" data-reveal>
-    <Postmark size={420} tone="current" class="pointer-events-none absolute -right-24 -top-28 opacity-[0.07]" title="" />
-    <div class="relative max-w-2xl">
-      <h2 class="text-3xl font-semibold text-background sm:text-4xl">{title}</h2>
-      <p class="mt-4 text-base leading-relaxed text-background/75 sm:text-lg">{body}</p>
+  <div
+    class="relative overflow-hidden rounded-2xl bg-brand-ink px-6 py-14 text-brand-form shadow-xl sm:px-12 sm:py-16"
+    style={`background-image: url("data:image/webp;base64,UklGRk4AAABXRUJQVlA4IEIAAABQAwCdASocAA8APulep00pJSOiMAgBIB0JZQABNDer20LQAAD++n7rZ5543m4M73u6VcMaWfd8G1XzFWdTmTAAAAA="); background-size: cover; background-position: center;`}
+    data-reveal
+  >
+    <img src="/brand/social-routing-field-v1.webp" alt="" width="1800" height="945" loading="lazy" class="media-reveal pointer-events-none absolute inset-0 size-full object-cover" style="--media-opacity: 0.8" />
+    <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-brand-ink via-brand-ink/90 to-brand-ink/20" aria-hidden="true"></div>
+    <div class="relative max-w-[40rem]">
+      <h2 class="text-3xl font-semibold text-brand-form sm:text-4xl">{title}</h2>
+      <p class="mt-4 text-base leading-relaxed text-brand-muted sm:text-lg">{body}</p>
       <div class="mt-8 flex flex-wrap gap-3">
-        <a href={primary.href} class="btn btn-primary">{primary.label}</a>
-        <a href={secondary.href} class="btn bg-background/10 text-background hover:bg-background/20">{secondary.label}</a>
+        {primary.copyText ? (
+          <button
+            type="button"
+            class="btn btn-primary copy-agent-button"
+            data-copy-agent
+            data-copy-text={primary.copyText}
+            aria-label={primary.label}
+          >
+            <span class="copy-agent-states" aria-hidden="true">
+              <span class="copy-agent-state" data-copy-state="default">
+                <Copy size={16} stroke-width={2} />
+                <span>{primary.label}</span>
+              </span>
+              <span class="copy-agent-state" data-copy-state="success">
+                <span class="t-success-check" data-state="out"><Check size={17} stroke-width={2.4} /></span>
+                <span>Copied</span>
+              </span>
+            </span>
+            <span class="sr-only" data-copy-announcement aria-live="polite"></span>
+          </button>
+        ) : (
+          <a href={primary.href ?? SIGNUP_URL} class="btn btn-primary">{primary.label}</a>
+        )}
+        <a href={secondary.href} class="btn bg-brand-form/10 text-brand-form hover:bg-brand-form/15">{secondary.label}</a>
       </div>
     </div>
   </div>

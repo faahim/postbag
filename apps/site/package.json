@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && node scripts/postbuild.mjs",
+    "brand:social": "node scripts/generate-social-assets.mjs",
     "preview": "astro preview",
     "typecheck": "astro check"
   },
@@ -24,6 +25,7 @@
     "typescript": "5.9.3"
   },
   "devDependencies": {
+    "playwright-core": "1.55.0",
     "sharp": "0.34.5",
     "shiki": "^4.4.3"
   }

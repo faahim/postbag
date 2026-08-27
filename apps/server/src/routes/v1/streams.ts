@@ -1,6 +1,6 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
 import { applyMapping, inferSchema, newId, PostbagError, StreamInputSchema, validateMapping, type Mapping } from "@postbag/core"
-import { and, count, desc, eq, gte, lt, or, type SQL } from "drizzle-orm"
+import { and, arrayContains, asc, count, desc, eq, gte, lt, or, type SQL } from "drizzle-orm"
 import {
   events,
   formSchemaDrafts,
@@ -16,6 +16,7 @@ import {
 
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
+import { resolveStreamSourcesForForm } from "../../repo/routing.js"
 import { asJson, serializeRoute, serializeStream } from "../../repo/serialize.js"
 import {
   CursorQuerySchema,
@@ -60,7 +61,7 @@ type DerivedSchema = {
 /** Where a stream's *first* schema comes from when a form is attached before one exists:
  * the form's published schema, else its inferred (unpublished) draft, else the fields seen
  * in its recent submissions. `null` means the form has nothing to copy yet. Nobody should
- * have to hand-write JSON Schema to start a Bag — the first form *is* the shape. */
+ * have to hand-write JSON Schema to start a Stream — the first Form *is* the shape. */
 async function deriveSchemaFromForm(
   db: Queryable,
   organizationId: string,
@@ -174,8 +175,8 @@ async function publishDerivedFirstSchema(
 }
 
 async function getStreamCounts(db: Database, organizationId: string, streamId: string) {
-  const [sourceCount] = await db
-    .select({ value: count() })
+  const sourceRows = await db
+    .select({ formId: streamSources.formId, selector: streamSources.selector })
     .from(streamSources)
     .where(and(eq(streamSources.organizationId, organizationId), eq(streamSources.streamId, streamId)))
   const [routeCount] = await db
@@ -183,19 +184,27 @@ async function getStreamCounts(db: Database, organizationId: string, streamId: s
     .from(routes)
     .where(and(eq(routes.organizationId, organizationId), eq(routes.streamId, streamId)))
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
-  const [submissionCount] = await db
-    .select({ value: count() })
-    .from(submissions)
-    .innerJoin(streamSources, eq(streamSources.formId, submissions.formId))
-    .where(
-      and(
-        eq(submissions.organizationId, organizationId),
-        eq(streamSources.streamId, streamId),
-        gte(submissions.receivedAt, since),
-      ),
-    )
+  const matchingFormConditions: SQL[] = []
+  for (const source of sourceRows) {
+    if (source.formId !== null) {
+      matchingFormConditions.push(eq(forms.id, source.formId))
+    } else if (source.selector?.startsWith("tag:") === true) {
+      matchingFormConditions.push(arrayContains(forms.tags, [source.selector.slice("tag:".length)]))
+    } else if (source.selector?.startsWith("project:") === true) {
+      matchingFormConditions.push(eq(forms.projectId, source.selector.slice("project:".length)))
+    }
+  }
+  const matchingForms = or(...matchingFormConditions)
+  const [submissionCount] =
+    matchingForms === undefined
+      ? []
+      : await db
+          .select({ value: count() })
+          .from(submissions)
+          .innerJoin(forms, eq(forms.id, submissions.formId))
+          .where(and(eq(submissions.organizationId, organizationId), gte(submissions.receivedAt, since), matchingForms))
   return {
-    sources: sourceCount?.value ?? 0,
+    sources: sourceRows.length,
     routes: routeCount?.value ?? 0,
     submissions30d: submissionCount?.value ?? 0,
   }
@@ -218,7 +227,7 @@ const createRouteDef = createRoute({
   tags: ["streams"],
   summary: "Create a stream (optionally with its first schema version and sources)",
   description:
-    "A stream (shown as 'Bag' in the dashboard) collects submissions from many forms into one shared shape. " +
+    "A Stream collects Submissions from many Forms into one shared shape. " +
     "Pass `schema` to define that shape up front, or omit it and pass `sources` — the first source's form then " +
     "provides version 1 (copied from its published schema, its inferred draft, or the fields seen in recent " +
     "submissions) with an identity mapping, so `{ name, sources: [{ form_id }] }` is a complete request.",
@@ -767,7 +776,7 @@ export function registerStreamRoutes(app: OpenAPIHono<AppEnv>, db: Database): vo
       let mapping = input.mapping
       if (schemaVersion === null) {
         // First form in, shape out: the stream copies this form's fields as version 1 and
-        // the form maps onto it one-to-one. Nobody starts a Bag by writing JSON Schema.
+        // the Form maps onto it one-to-one. Nobody starts a Stream by writing JSON Schema.
         const derived = await publishDerivedFirstSchema(tx, scope.organizationId, streamId, input.form_id)
         schemaVersion = 1
         schemaJson = derived.jsonSchema
@@ -934,11 +943,23 @@ export function registerStreamRoutes(app: OpenAPIHono<AppEnv>, db: Database): vo
       .where(and(eq(streamSchemas.streamId, streamId), eq(streamSchemas.version, stream.currentSchemaVersion)))
       .limit(1)
     if (schemaRow === undefined) throw new PostbagError("not_found", "Stream schema not found.")
-    const [source] = await db
+    const [form] = await db
+      .select()
+      .from(forms)
+      .where(and(eq(forms.organizationId, scope.organizationId), eq(forms.id, form_id)))
+      .limit(1)
+    if (form === undefined) throw new PostbagError("not_found", "No form with that id.")
+    const sourceRows = await db
       .select()
       .from(streamSources)
-      .where(and(eq(streamSources.organizationId, scope.organizationId), eq(streamSources.streamId, streamId), eq(streamSources.formId, form_id)))
-      .limit(1)
+      .where(and(eq(streamSources.organizationId, scope.organizationId), eq(streamSources.streamId, streamId)))
+      .orderBy(asc(streamSources.createdAt), asc(streamSources.id))
+    const source = resolveStreamSourcesForForm(sourceRows, {
+      id: form.id,
+      organizationId: form.organizationId,
+      projectId: form.projectId,
+      tags: form.tags,
+    }).get(streamId)
     if (source === undefined) throw new PostbagError("not_found", "No source attached for that form.")
     const result = applyMapping(data, source.mapping as unknown as Mapping, schemaRow.jsonSchema)
     const body: z.infer<typeof PreviewResponseSchema> = {

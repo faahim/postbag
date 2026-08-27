@@ -1,0 +1,336 @@
+{
+  "tablet": [
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 98,
+          "text": "Routing: every message where it belongs"
+        }
+      ],
+      "innerHeight": 1112,
+      "innerWidth": 834,
+      "mainWidth": 834,
+      "overflow": false,
+      "path": "/features/routing/",
+      "scrollWidth": 834
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 98,
+          "text": "Never lose a submission: saved first, sent second"
+        }
+      ],
+      "innerHeight": 1112,
+      "innerWidth": 834,
+      "mainWidth": 834,
+      "overflow": false,
+      "path": "/features/never-lose-a-submission/",
+      "scrollWidth": 834
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 98,
+          "text": "Destinations: email, Telegram and signed webhooks"
+        }
+      ],
+      "innerHeight": 1112,
+      "innerWidth": 834,
+      "mainWidth": 834,
+      "overflow": false,
+      "path": "/features/destinations/",
+      "scrollWidth": 834
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 98,
+          "text": "Schemas and drift: know what your forms actually send"
+        }
+      ],
+      "innerHeight": 1112,
+      "innerWidth": 834,
+      "mainWidth": 834,
+      "overflow": false,
+      "path": "/features/schemas-and-drift/",
+      "scrollWidth": 834
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 98,
+          "text": "Spam protection that stores, flags and never deletes"
+        }
+      ],
+      "innerHeight": 1112,
+      "innerWidth": 834,
+      "mainWidth": 834,
+      "overflow": false,
+      "path": "/features/spam-protection/",
+      "scrollWidth": 834
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 98,
+          "text": "Self-hosting Postbag: one container, one Postgres"
+        }
+      ],
+      "innerHeight": 1112,
+      "innerWidth": 834,
+      "mainWidth": 834,
+      "overflow": false,
+      "path": "/features/self-hosting/",
+      "scrollWidth": 834
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 147,
+          "text": "Contact form backend for any website: one URL, one email, three minutes"
+        }
+      ],
+      "innerHeight": 1112,
+      "innerWidth": 834,
+      "mainWidth": 834,
+      "overflow": false,
+      "path": "/use-cases/contact-form/",
+      "scrollWidth": 834
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 147,
+          "text": "Form backend for agencies: many client sites, one inbox per client, one contract per partner"
+        }
+      ],
+      "innerHeight": 1112,
+      "innerWidth": 834,
+      "mainWidth": 834,
+      "overflow": false,
+      "path": "/use-cases/agencies/",
+      "scrollWidth": 834
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 147,
+          "text": "Lead routing: send form leads to your CRM, a partner and your team, with rules"
+        }
+      ],
+      "innerHeight": 1112,
+      "innerWidth": 834,
+      "mainWidth": 834,
+      "overflow": false,
+      "path": "/use-cases/lead-routing/",
+      "scrollWidth": 834
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 98,
+          "text": "AI-built websites: leave a working form behind before signup"
+        }
+      ],
+      "innerHeight": 1112,
+      "innerWidth": 834,
+      "mainWidth": 834,
+      "overflow": false,
+      "path": "/use-cases/ai-built-websites/",
+      "scrollWidth": 834
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 98,
+          "text": "Forms for static sites: Astro, Next.js, Hugo, Eleventy, plain HTML"
+        }
+      ],
+      "innerHeight": 1112,
+      "innerWidth": 834,
+      "mainWidth": 834,
+      "overflow": false,
+      "path": "/use-cases/static-sites/",
+      "scrollWidth": 834
+    }
+  ],
+  "mobile": [
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 110,
+          "text": "Routing: every message where it belongs"
+        }
+      ],
+      "innerHeight": 844,
+      "innerWidth": 390,
+      "mainWidth": 390,
+      "overflow": false,
+      "path": "/features/routing/",
+      "scrollWidth": 390
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 110,
+          "text": "Never lose a submission: saved first, sent second"
+        }
+      ],
+      "innerHeight": 844,
+      "innerWidth": 390,
+      "mainWidth": 390,
+      "overflow": false,
+      "path": "/features/never-lose-a-submission/",
+      "scrollWidth": 390
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 110,
+          "text": "Destinations: email, Telegram and signed webhooks"
+        }
+      ],
+      "innerHeight": 844,
+      "innerWidth": 390,
+      "mainWidth": 390,
+      "overflow": false,
+      "path": "/features/destinations/",
+      "scrollWidth": 390
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 110,
+          "text": "Schemas and drift: know what your forms actually send"
+        }
+      ],
+      "innerHeight": 844,
+      "innerWidth": 390,
+      "mainWidth": 390,
+      "overflow": false,
+      "path": "/features/schemas-and-drift/",
+      "scrollWidth": 390
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 110,
+          "text": "Spam protection that stores, flags and never deletes"
+        }
+      ],
+      "innerHeight": 844,
+      "innerWidth": 390,
+      "mainWidth": 390,
+      "overflow": false,
+      "path": "/features/spam-protection/",
+      "scrollWidth": 390
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 147,
+          "text": "Self-hosting Postbag: one container, one Postgres"
+        }
+      ],
+      "innerHeight": 844,
+      "innerWidth": 390,
+      "mainWidth": 390,
+      "overflow": false,
+      "path": "/features/self-hosting/",
+      "scrollWidth": 390
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 184,
+          "text": "Contact form backend for any website: one URL, one email, three minutes"
+        }
+      ],
+      "innerHeight": 844,
+      "innerWidth": 390,
+      "mainWidth": 390,
+      "overflow": false,
+      "path": "/use-cases/contact-form/",
+      "scrollWidth": 390
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 184,
+          "text": "Form backend for agencies: many client sites, one inbox per client, one contract per partner"
+        }
+      ],
+      "innerHeight": 844,
+      "innerWidth": 390,
+      "mainWidth": 390,
+      "overflow": false,
+      "path": "/use-cases/agencies/",
+      "scrollWidth": 390
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 184,
+          "text": "Lead routing: send form leads to your CRM, a partner and your team, with rules"
+        }
+      ],
+      "innerHeight": 844,
+      "innerWidth": 390,
+      "mainWidth": 390,
+      "overflow": false,
+      "path": "/use-cases/lead-routing/",
+      "scrollWidth": 390
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 147,
+          "text": "AI-built websites: leave a working form behind before signup"
+        }
+      ],
+      "innerHeight": 844,
+      "innerWidth": 390,
+      "mainWidth": 390,
+      "overflow": false,
+      "path": "/use-cases/ai-built-websites/",
+      "scrollWidth": 390
+    },
+    {
+      "clipped": [],
+      "h1": [
+        {
+          "height": 147,
+          "text": "Forms for static sites: Astro, Next.js, Hugo, Eleventy, plain HTML"
+        }
+      ],
+      "innerHeight": 844,
+      "innerWidth": 390,
+      "mainWidth": 390,
+      "overflow": false,
+      "path": "/use-cases/static-sites/",
+      "scrollWidth": 390
+    }
+  ]
+}

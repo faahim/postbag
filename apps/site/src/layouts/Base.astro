@@ -51,9 +51,8 @@ const graph = { "@context": "https://schema.org", "@graph": [organizationLd(), w
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
     {noindex ? <meta name="robots" content="noindex, follow" /> : <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />}
-    <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbfaf8" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1d1a17" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0c1026" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -70,6 +69,7 @@ const graph = { "@context": "https://schema.org", "@graph": [organizationLd(), w
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content={`${SITE_NAME}: ${title}`} />
@@ -80,16 +80,15 @@ const graph = { "@context": "https://schema.org", "@graph": [organizationLd(), w
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content={`${SITE_NAME}: ${title}`} />
 
     <script is:inline>
-      // Theme before first paint: explicit choice in localStorage wins, else system.
+      // The site commits to the midnight look. Light tokens stay parked in the CSS
+      // (remove this class to bring them back), but the marketing site ships dark.
       ;(function () {
         var d = document.documentElement
         d.classList.remove("no-js")
-        var s = null
-        try { s = localStorage.getItem("postbag-site-theme") } catch (e) {}
-        var dark = s === "dark" || (s !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches)
-        if (dark) d.classList.add("dark")
+        d.classList.add("dark")
       })()
     </script>
     <script type="application/ld+json" set:html={JSON.stringify(graph)} />
@@ -117,6 +116,26 @@ const graph = { "@context": "https://schema.org", "@graph": [organizationLd(), w
           if (r.top < vh * 0.88 && r.bottom > 0) els[i].setAttribute("data-in", "")
         }
         document.documentElement.classList.add("reveal-ready")
+      })()
+    </script>
+    <script is:inline>
+      // Graceful media: already-cached images appear instantly (transition suppressed);
+      // network loads fade + settle in via the img.media-reveal transition in global.css.
+      ;(function () {
+        var imgs = document.querySelectorAll("img.media-reveal")
+        for (var i = 0; i < imgs.length; i++) {
+          ;(function (img) {
+            if (img.complete && img.naturalWidth > 0) {
+              img.style.transition = "none"
+              img.setAttribute("data-loaded", "")
+              requestAnimationFrame(function () { img.style.transition = "" })
+            } else {
+              var mark = function () { img.setAttribute("data-loaded", "") }
+              img.addEventListener("load", mark, { once: true })
+              img.addEventListener("error", mark, { once: true })
+            }
+          })(imgs[i])
+        }
       })()
     </script>
     <script>

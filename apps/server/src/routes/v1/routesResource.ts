@@ -15,15 +15,23 @@ const RouteListSchema = z.object({ data: z.array(RouteSchema), next_cursor: z.st
 const RoutePatchInputSchema = z.object({
   enabled: z.boolean().optional().describe("Disable a route without deleting it."),
   mode: z
-    .object({
-      type: z.enum(["instant", "digest"]),
-      cron: z.string().optional().describe("Cron expression for digest mode, e.g. '0 9 * * *'."),
-      timezone: z.string().optional().describe("IANA timezone the cron runs in; defaults to the org's timezone."),
-    })
+    .discriminatedUnion("type", [
+      z.object({ type: z.literal("instant") }),
+      z.object({
+        type: z.literal("digest"),
+        cron: z.string().min(1).describe("Cron expression for digest mode, e.g. '0 9 * * *'."),
+        timezone: z.string().min(1).describe("IANA timezone the cron runs in."),
+      }),
+    ])
     .optional()
-    .describe("instant delivers as submissions arrive; digest batches into one payload per period."),
+    .describe(
+      "instant delivers as submissions arrive; digest batches into one payload per period.",
+    ),
   window: z
-    .object({ from: z.iso.datetime().nullable().optional(), until: z.iso.datetime().nullable().optional() })
+    .object({
+      from: z.iso.datetime().nullable().optional(),
+      until: z.iso.datetime().nullable().optional(),
+    })
     .optional()
     .describe("Only deliver submissions received in this ISO datetime range."),
   quality: z
@@ -33,8 +41,14 @@ const RoutePatchInputSchema = z.object({
     })
     .optional()
     .describe("Defaults to excluding spam and quarantined submissions from delivery."),
-  filter: z.string().optional().describe("A JSONata boolean expression; only matching submissions are delivered."),
-  transform: z.string().optional().describe("A JSONata expression applied to the payload before delivery."),
+  filter: z
+    .string()
+    .optional()
+    .describe("A JSONata boolean expression; only matching submissions are delivered."),
+  transform: z
+    .string()
+    .optional()
+    .describe("A JSONata expression applied to the payload before delivery."),
 })
 
 const listRoute = createRoute({
@@ -47,10 +61,15 @@ const listRoute = createRoute({
     query: CursorQuerySchema.extend({
       form: z.string().optional().describe("Filter to routes whose source is this form id."),
       stream: z.string().optional().describe("Filter to routes whose source is this stream id."),
-      destination: z.string().optional().describe("Filter to routes pointing at this destination id."),
+      destination: z
+        .string()
+        .optional()
+        .describe("Filter to routes pointing at this destination id."),
     }),
   },
-  responses: { 200: { description: "ok", content: { "application/json": { schema: RouteListSchema } } } },
+  responses: {
+    200: { description: "ok", content: { "application/json": { schema: RouteListSchema } } },
+  },
 })
 
 const createRouteDef = createRoute({
@@ -59,7 +78,8 @@ const createRouteDef = createRoute({
   operationId: "routes_create",
   tags: ["routes"],
   summary: "Create a route (source is exactly one of form_id / stream_id)",
-  description: "A route ties one source (a form or a stream) to one destination, with a mode (instant or digest) and optional filter/transform/quality rules.",
+  description:
+    "A route ties one source (a form or a stream) to one destination, with a mode (instant or digest) and optional filter/transform/quality rules.",
   request: { body: { content: { "application/json": { schema: RouteInputSchema } } } },
   responses: {
     201: { description: "created", content: { "application/json": { schema: RouteSchema } } },
@@ -74,7 +94,10 @@ const getRoute = createRoute({
   tags: ["routes"],
   summary: "Get a route",
   request: { params: z.object({ routeId: IdSchema }) },
-  responses: { 200: { description: "ok", content: { "application/json": { schema: RouteSchema } } }, ...errorResponses },
+  responses: {
+    200: { description: "ok", content: { "application/json": { schema: RouteSchema } } },
+    ...errorResponses,
+  },
 })
 
 const patchRoute = createRoute({
@@ -87,7 +110,10 @@ const patchRoute = createRoute({
     params: z.object({ routeId: IdSchema }),
     body: { content: { "application/json": { schema: RoutePatchInputSchema } } },
   },
-  responses: { 200: { description: "ok", content: { "application/json": { schema: RouteSchema } } }, ...errorResponses },
+  responses: {
+    200: { description: "ok", content: { "application/json": { schema: RouteSchema } } },
+    ...errorResponses,
+  },
 })
 
 const deleteRoute = createRoute({
@@ -100,7 +126,11 @@ const deleteRoute = createRoute({
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })
 
-async function assertDestinationExists(db: Database, organizationId: string, destinationId: string): Promise<void> {
+async function assertDestinationExists(
+  db: Database,
+  organizationId: string,
+  destinationId: string,
+): Promise<void> {
   const [row] = await db
     .select({ id: destinations.id })
     .from(destinations)
@@ -143,7 +173,8 @@ export function registerRouteResourceRoutes(app: OpenAPIHono<AppEnv>, db: Databa
     const conditions: SQL[] = [eq(routes.organizationId, scope.organizationId)]
     if (query.form !== undefined) conditions.push(eq(routes.formId, query.form))
     if (query.stream !== undefined) conditions.push(eq(routes.streamId, query.stream))
-    if (query.destination !== undefined) conditions.push(eq(routes.destinationId, query.destination))
+    if (query.destination !== undefined)
+      conditions.push(eq(routes.destinationId, query.destination))
     if (cursor !== null) {
       const cursorCondition = or(
         lt(routes.createdAt, cursor.createdAt),
@@ -158,7 +189,10 @@ export function registerRouteResourceRoutes(app: OpenAPIHono<AppEnv>, db: Databa
       .orderBy(desc(routes.createdAt), desc(routes.id))
       .limit(limit + 1)
     const { data, nextCursor } = page(rows, limit)
-    const body: z.infer<typeof RouteListSchema> = { data: data.map(serializeRoute), next_cursor: nextCursor }
+    const body: z.infer<typeof RouteListSchema> = {
+      data: data.map(serializeRoute),
+      next_cursor: nextCursor,
+    }
     return c.json(body)
   })
 
@@ -236,7 +270,9 @@ export function registerRouteResourceRoutes(app: OpenAPIHono<AppEnv>, db: Databa
       .where(and(eq(routes.organizationId, scope.organizationId), eq(routes.id, routeId)))
       .limit(1)
     if (row === undefined) throw new PostbagError("not_found", "No route with that id.")
-    await db.delete(routes).where(and(eq(routes.organizationId, scope.organizationId), eq(routes.id, routeId)))
+    await db
+      .delete(routes)
+      .where(and(eq(routes.organizationId, scope.organizationId), eq(routes.id, routeId)))
     return c.body(null, 204)
   })
 }

@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
+import { LoaderCircle } from "lucide-react"
 
-import { Postmark } from "@/components/postmark"
 import { api } from "@/lib/api"
 import { useSession } from "@/lib/auth-client"
 
@@ -23,8 +23,14 @@ function IndexRoute() {
 
   if (isPending || (session != null && me.isLoading)) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-background">
-        <Postmark status="pending" size={32} className="animate-pulse" />
+      <div
+        className="flex min-h-dvh items-center justify-center"
+        role="status"
+        aria-label="Loading Postbag"
+      >
+        <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-xs">
+          <LoaderCircle className="size-5 animate-spin" />
+        </div>
       </div>
     )
   }

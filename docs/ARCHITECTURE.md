@@ -90,7 +90,7 @@ Postbag-Event: submission.received | digest.ready | …
 { "id": "dl_…", "type": "submission.received", "schema_version": 3,
   "stream": { "id": "st_…", "slug": "vending-leads" } | null,
   "form":   { "id": "fm_…", "slug": "kontorsautomat-contact" },
-  "data":   { …mapped payload… }, "extras": { … }, "meta": { … } }
+  "data":   { …mapped payload… }, "meta": { … } }
 ```
 
 2xx = sent. 410 = destination disabled itself. Anything else retries.

@@ -34,7 +34,7 @@ Sources are explicit (`form_id`) or selectors (`tag:vending`, `project:prj_…`)
   "phone": { "from": "tel", "default": null }, "site": { "const": "kontorsautomat.se" } }
 ```
 
-Exactly one of `from`, `const` or `expr` per field. `expr` (JSONata, ADR-005) is reserved and currently returns `422 expressions_not_enabled` with a hint to use `from`, `const` or `default`. Unmapped form fields are kept under `extras`. A mapping is `valid` or `incomplete`; incomplete blocks attachment with `422 mapping_incomplete` listing the missing fields.
+Exactly one of `from`, `const` or `expr` per field. `expr` (JSONata, ADR-005) is reserved and currently returns `422 expressions_not_enabled` with a hint to use `from`, `const` or `default`. A mapping determines the Delivery payload; form fields it does not use remain on the original Submission. The preview response reports those unused values under `extras`. A mapping is `valid` or `incomplete`; incomplete blocks attachment with `422 mapping_incomplete` listing the missing fields.
 
 ## Stream schemas
 

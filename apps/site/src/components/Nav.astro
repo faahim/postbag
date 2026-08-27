@@ -1,5 +1,7 @@
 ---
 import { LOGIN_URL, SIGNUP_URL } from "@/config"
+import BrandMark from "@/components/BrandMark.astro"
+import { ArrowUpRight, LogIn, Menu, X } from "@lucide/astro"
 const links = [
   { href: "/features/", label: "Features" },
   { href: "/for-ai-agents/", label: "For AI agents" },
@@ -8,11 +10,21 @@ const links = [
   { href: "/compare/", label: "Compare" },
 ]
 const current = Astro.url.pathname
+const overlaysHero = current === "/"
 ---
-<header class="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+{overlaysHero && <span class="nav-scroll-sentinel" data-nav-sentinel aria-hidden="true"></span>}
+<header
+  class:list={[
+    "site-nav z-40",
+    overlaysHero
+      ? "fixed inset-x-0 top-0"
+      : "sticky top-0 border-b border-border/70 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70",
+  ]}
+  data-hero-overlay={overlaysHero ? "" : undefined}
+>
   <nav class="container-x flex h-16 items-center justify-between gap-6" aria-label="Primary">
-    <a href="/" class="flex items-center gap-2.5 font-display text-[19px] font-semibold tracking-tight" aria-label="Postbag home">
-      <img src="/logo-mark-455264e.svg" alt="" width="28" height="28" class="size-7 shrink-0" />
+    <a href="/" class="flex items-center gap-2.5 font-display text-[19px] font-semibold tracking-tight" aria-label="Postbag home" data-brand-trigger>
+      <BrandMark class="size-7 shrink-0" />
       Postbag
     </a>
     <ul class="hidden items-center gap-1 lg:flex">
@@ -27,38 +39,104 @@ const current = Astro.url.pathname
       ))}
     </ul>
     <div class="flex items-center gap-2">
-      <button type="button" id="theme-toggle" class="btn btn-ghost h-10 w-10 px-0" aria-label="Toggle dark mode" title="Toggle theme">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="hidden dark:block" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"/></svg>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="dark:hidden" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
-      </button>
       <a href={LOGIN_URL} class="btn btn-ghost btn-sm hidden sm:inline-flex">Sign in</a>
       <a href={SIGNUP_URL} class="btn btn-primary btn-sm">Create a form</a>
-      <button type="button" id="nav-toggle" class="btn btn-ghost h-10 w-10 px-0 lg:hidden" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <button type="button" id="nav-toggle" class="mobile-nav-toggle btn btn-ghost h-10 w-10 px-0 lg:hidden" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
+        <span class="mobile-nav-toggle-icon" data-menu-icon aria-hidden="true"><Menu size={20} stroke-width={1.75} /></span>
+        <span class="mobile-nav-toggle-icon" data-close-icon aria-hidden="true"><X size={20} stroke-width={1.75} /></span>
       </button>
     </div>
   </nav>
-  <div id="mobile-nav" hidden class="border-t border-border bg-background lg:hidden">
-    <ul class="container-x flex flex-col py-3">
-      {links.map((l) => (
-        <li><a href={l.href} class="block rounded-md px-3 py-2.5 text-[15px] hover:bg-surface-2">{l.label}</a></li>
-      ))}
-      <li><a href={LOGIN_URL} class="block rounded-md px-3 py-2.5 text-[15px] hover:bg-surface-2">Sign in</a></li>
-    </ul>
+  <div id="mobile-nav" class="mobile-nav-drawer lg:hidden" data-state="closed" aria-hidden="true" aria-label="Menu" role="dialog" aria-modal="true" tabindex="-1" inert>
+    <div class="mobile-nav-ambient" aria-hidden="true">
+      <BrandMark ambient />
+    </div>
+    <div class="container-x mobile-nav-content">
+      <nav aria-label="Mobile navigation">
+        <p class="mobile-nav-kicker">Find your way around.</p>
+        <ul class="mobile-nav-links">
+          {links.map((l, index) => (
+            <li style={`--menu-index: ${index}`}>
+              <a href={l.href} aria-current={current.startsWith(l.href) ? "page" : undefined}>
+                <span>{l.label}</span>
+                <ArrowUpRight size={21} stroke-width={1.65} aria-hidden="true" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <div class="mobile-nav-footer">
+        <p>Open source. Agent-native. Yours.</p>
+        <a href={LOGIN_URL} class="mobile-nav-sign-in">
+          <LogIn size={17} stroke-width={1.8} aria-hidden="true" />
+          <span>Sign in</span>
+        </a>
+      </div>
+    </div>
   </div>
 </header>
 <script>
-  const toggle = document.getElementById("theme-toggle")
-  toggle?.addEventListener("click", () => {
-    const dark = document.documentElement.classList.toggle("dark")
-    try { localStorage.setItem("postbag-site-theme", dark ? "dark" : "light") } catch {}
-  })
   const navToggle = document.getElementById("nav-toggle")
   const mobile = document.getElementById("mobile-nav")
-  navToggle?.addEventListener("click", () => {
-    const open = mobile?.hasAttribute("hidden")
-    if (open) mobile?.removeAttribute("hidden")
-    else mobile?.setAttribute("hidden", "")
+  const header = document.querySelector<HTMLElement>("[data-hero-overlay]")
+  const siteNav = document.querySelector<HTMLElement>(".site-nav")
+  const sentinel = document.querySelector<HTMLElement>("[data-nav-sentinel]")
+  const backgroundRegions = document.querySelectorAll<HTMLElement>("main, body > footer")
+  if (header && sentinel) {
+    const observer = new IntersectionObserver(([entry]) => {
+      header.toggleAttribute("data-scrolled", !entry?.isIntersecting)
+    }, { rootMargin: "-8px 0px 0px", threshold: 0 })
+    observer.observe(sentinel)
+  }
+  let returnFocus: HTMLElement | null = null
+
+  const setMenuOpen = (open: boolean) => {
+    if (!navToggle || !mobile || !siteNav) return
+    if (open) returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : navToggle
+
+    mobile.dataset.state = open ? "open" : "closed"
+    mobile.setAttribute("aria-hidden", String(!open))
+    if (open) mobile.removeAttribute("inert")
+    else mobile.setAttribute("inert", "")
     navToggle.setAttribute("aria-expanded", String(open))
+    navToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu")
+    siteNav.toggleAttribute("data-menu-open", open)
+    document.documentElement.toggleAttribute("data-mobile-nav-open", open)
+    backgroundRegions.forEach((region) => region.toggleAttribute("inert", open))
+
+    if (open) {
+      requestAnimationFrame(() => mobile.focus())
+    } else if (returnFocus) {
+      returnFocus.focus()
+      returnFocus = null
+    }
+  }
+
+  navToggle?.addEventListener("click", () => setMenuOpen(navToggle.getAttribute("aria-expanded") !== "true"))
+  mobile?.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => setMenuOpen(false)))
+
+  document.addEventListener("keydown", (event) => {
+    if (navToggle?.getAttribute("aria-expanded") !== "true" || !mobile) return
+    if (event.key === "Escape") {
+      event.preventDefault()
+      setMenuOpen(false)
+      return
+    }
+    if (event.key !== "Tab") return
+
+    const focusable = [navToggle, ...mobile.querySelectorAll<HTMLElement>("a")]
+    const first = focusable[0]
+    const last = focusable.at(-1)
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last?.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first?.focus()
+    }
+  })
+
+  window.matchMedia("(min-width: 1024px)").addEventListener("change", (event) => {
+    if (event.matches) setMenuOpen(false)
   })
 </script>

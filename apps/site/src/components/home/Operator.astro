@@ -1,67 +1,88 @@
 ---
-// Streams: many forms → one shape → one partner. The example is the real lead pipeline Postbag
-// generalises (vending machine sites feeding one partner). Field names are illustrative.
-const sources = [
-  { form: "kontorsautomat-contact", fields: ["fullName", "Företag", "tel", "message"] },
-  { form: "tcg-automat-contact", fields: ["name", "company", "phone", "msg"] },
-  { form: "snackbar-lead", fields: ["contact", "org", "mobile", "body", "city"] },
-]
-const schema = ["name", "company", "phone", "message", "site"]
+const forms = [
+  { name: "office-contact", fields: "fullName, company, tel" },
+  { name: "machine-enquiry", fields: "name, org, phone" },
+  { name: "partner-lead", fields: "contact, business, mobile" },
+] as const
+const routes = ["partner webhook", "daily ops email", "CRM webhook"] as const
 ---
-<section class="container-x mt-28 sm:mt-36" aria-labelledby="operator-heading" id="streams">
-  <div class="max-w-2xl" data-reveal>
-    <h2 id="operator-heading" class="text-3xl font-semibold sm:text-4xl">Fifteen sites. One shape. One partner.</h2>
-    <p class="mt-4 text-lg leading-relaxed text-muted-foreground">
-      A <strong class="font-medium text-foreground">stream</strong> groups forms, by id or by tag, and gives them one versioned output schema. Each form carries a mapping from its own field names onto that shape. A route sends the stream to a destination, with a delivery window, a digest schedule, or both.
-    </p>
+<section class="container-x mt-28 sm:mt-40" aria-labelledby="operator-heading" id="streams">
+  <div class="grid items-end gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]" data-reveal>
+    <h2 id="operator-heading" class="max-w-3xl text-4xl font-semibold sm:text-6xl">One form is simple. Fifteen can stay that way.</h2>
+    <p class="max-w-xl text-lg leading-relaxed text-muted-foreground">Fifteen sites, each naming its fields a little differently. Postbag lines them up, so everything arrives in one tidy place.</p>
   </div>
 
-  <figure class="mt-12 grid items-stretch gap-4 lg:grid-cols-[1fr_auto_1fr_auto_1fr]" aria-label="Three forms with different field names mapped onto one stream schema and routed to a partner" data-reveal-group="80">
-    <!-- Sources -->
-    <div class="grid min-w-0 gap-3" data-reveal>
-      {sources.map((s) => (
-        <div class="card p-4">
-          <p class="font-mono text-[12px] text-muted-foreground">form · {s.form}</p>
-          <ul class="mt-2 flex flex-wrap gap-1.5">{s.fields.map((f) => <li class="chip">{f}</li>)}</ul>
+  <figure class="fleet-map mt-14" aria-label="Several forms arriving in one shared place, then sent onward three ways" data-reveal>
+    <div class="fleet-sources">
+      {forms.map((form) => (
+        <div class="fleet-form">
+          <span class="form-sheet" aria-hidden="true"></span>
+          <div class="min-w-0">
+            <p class="font-mono text-xs font-medium text-foreground">Form · {form.name}</p>
+            <p class="mt-1 truncate font-mono text-[11px] text-muted-foreground">{form.fields}</p>
+          </div>
         </div>
       ))}
-      <p class="px-1 text-sm text-muted-foreground">…and twelve more, attached by <code class="font-mono text-[0.9em]">tag:vending</code>.</p>
+      <p class="pl-12 text-sm text-muted-foreground">and twelve more by tag</p>
     </div>
-    <div class="hidden items-center lg:flex" aria-hidden="true" data-reveal>
-      <svg width="56" height="120" viewBox="0 0 56 120" fill="none" class="text-border-strong"><path d="M2 20 C 28 20, 28 60, 54 60 M2 60 H54 M2 100 C 28 100, 28 60, 54 60" stroke="currentColor" stroke-width="1.5"/><circle cx="54" cy="60" r="3" fill="var(--primary)"/></svg>
+
+    <svg class="fleet-join" viewBox="0 0 64 192" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 30 C 40 30, 34 96, 64 96" />
+      <path class="fleet-main" d="M0 96 H 64" />
+      <path d="M0 162 C 40 162, 34 96, 64 96" />
+    </svg>
+
+    <div class="stream-core">
+      <p class="font-mono text-xs text-primary">Stream · enquiries</p>
+      <h3 class="mt-3 text-2xl font-semibold">Schema v3</h3>
+      <dl class="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 font-mono text-xs">
+        <div><dt class="text-muted-foreground">name</dt><dd>string</dd></div>
+        <div><dt class="text-muted-foreground">company</dt><dd>string</dd></div>
+        <div><dt class="text-muted-foreground">phone</dt><dd>string</dd></div>
+        <div><dt class="text-muted-foreground">site</dt><dd>constant</dd></div>
+      </dl>
+      <p class="mt-5 text-sm leading-relaxed text-muted-foreground">If a form doesn't fit, Postbag says so up front — not three weeks later, in production, at night.</p>
     </div>
-    <!-- Stream -->
-    <div class="card flex min-w-0 flex-col p-5 shadow-md" data-reveal>
-      <p class="font-mono text-[12px] text-muted-foreground">stream · vending-leads · schema v3</p>
-      <ul class="mt-3 grid gap-2 font-mono text-[13px]">
-        {schema.map((f) => (
-          <li class="flex items-center justify-between rounded-md bg-background px-3 py-2 hairline"><span>{f}</span><span class="text-muted-foreground">{f === "site" ? "const" : "from"}</span></li>
-        ))}
-      </ul>
-      <p class="mt-3 text-[13px] leading-relaxed text-muted-foreground">Unmapped form fields ride along under <code class="font-mono">extras</code>. An incomplete mapping is a 422 at attach time, never a surprise at delivery time.</p>
-    </div>
-    <div class="hidden items-center lg:flex" aria-hidden="true" data-reveal>
-      <svg width="56" height="24" viewBox="0 0 56 24" fill="none" class="text-border-strong"><path d="M2 12 H50 M44 6 L50 12 L44 18" stroke="currentColor" stroke-width="1.5"/></svg>
-    </div>
-    <!-- Route -->
-    <div class="grid min-w-0 content-start gap-3" data-reveal>
-      <div class="card p-4">
-        <p class="font-mono text-[12px] text-muted-foreground">route · instant</p>
-        <p class="mt-1.5 font-medium">→ partner webhook</p>
-        <p class="mt-1 font-mono text-[12px] text-muted-foreground">window 2026-09-01 → 2026-12-31<br/>exclude spam · exclude quarantined</p>
-      </div>
-      <div class="card p-4">
-        <p class="font-mono text-[12px] text-muted-foreground">route · digest</p>
-        <p class="mt-1.5 font-medium">→ ops@ email, daily</p>
-        <p class="mt-1 font-mono text-[12px] text-muted-foreground">cron 0 8 * * * · Europe/Stockholm<br/>one delivery per period, unique by (route, period)</p>
-      </div>
-      <div class="card p-4">
-        <p class="font-mono text-[12px] text-muted-foreground">route · instant</p>
-        <p class="mt-1.5 font-medium">→ CRM webhook, signed</p>
-        <p class="mt-1 font-mono text-[12px] text-muted-foreground">Postbag-Signature: t=…,v1=…</p>
-      </div>
+
+    <svg class="fleet-split" viewBox="0 0 64 192" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M64 30 C 24 30, 30 96, 0 96" />
+      <path class="fleet-main" d="M0 96 H 64" />
+      <path d="M64 162 C 24 162, 30 96, 0 96" />
+    </svg>
+
+    <div class="fleet-routes">
+      {routes.map((route, index) => (
+        <div class="fleet-route">
+          <span class="route-index font-mono text-xs text-primary tabular-nums">{String(index + 1).padStart(2, "0")}</span>
+          <div><p class="font-mono text-xs text-muted-foreground">Route</p><p class="mt-1 font-medium">{route}</p></div>
+        </div>
+      ))}
     </div>
   </figure>
-  <p class="mt-6 max-w-2xl text-[15px] text-muted-foreground" data-reveal>Changing the stream schema is a deliberate act: it creates a new immutable version, emits <code class="font-mono text-[0.9em]">stream.schema.changed</code>, and re-validates every source mapping. Downstream systems subscribe; they are never surprised.</p>
-  <a href="/features/routing/" class="mt-4 inline-flex items-center gap-1.5 text-[15px] font-medium text-primary underline-offset-4 hover:underline" data-reveal>Routing, streams and mappings in depth <span aria-hidden="true">→</span></a>
+
+  <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-start" data-reveal>
+    <p class="text-[15px] leading-relaxed text-muted-foreground">Change the shape whenever you need. Older records keep their old shape — nothing breaks quietly behind your back.</p>
+    <p class="text-[15px] leading-relaxed text-muted-foreground">Get things the moment they arrive, or as one tidy daily digest. Spam never tags along.</p>
+    <a href="/features/routing/" class="text-[15px] font-medium text-primary underline-offset-4 hover:underline">Explore routing</a>
+  </div>
 </section>
+
+<style>
+  .fleet-map { display: grid; grid-template-columns: minmax(13rem, 1fr) 4rem minmax(16rem, .82fr) 4rem minmax(13rem, .9fr); align-items: center; gap: 1rem; padding: clamp(1.25rem, 3vw, 2.5rem); border-radius: calc(var(--radius) + 16px); background: var(--surface); box-shadow: var(--shadow-xl), inset 0 0 0 1px var(--border); }
+  .fleet-sources, .fleet-routes { display: grid; gap: .8rem; }
+  .fleet-form, .fleet-route { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .9rem; min-height: 4.4rem; padding: .8rem 1rem; border-radius: var(--radius); background: var(--background); box-shadow: inset 0 0 0 1px var(--border); }
+  .form-sheet { width: 1.85rem; height: 2.25rem; border-radius: calc(var(--radius) - 2px); background: var(--surface); box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--border-strong); transform: rotate(-4deg); }
+  .stream-core { padding: 1.5rem; border-radius: calc(var(--radius) + 8px); background: color-mix(in oklch, var(--surface-2) 72%, var(--primary)); box-shadow: inset 0 0 0 1px var(--border-strong), var(--shadow-md); }
+  /* Connectors are route traces: two curves gathering into one primary line. */
+  .fleet-join, .fleet-split { height: 12rem; overflow: visible; }
+  .fleet-join path, .fleet-split path { fill: none; stroke: var(--border-strong); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+  .fleet-join .fleet-main, .fleet-split .fleet-main { stroke: var(--primary); }
+  .route-index { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--accent); }
+  @media (max-width: 1023px) {
+    .fleet-map { grid-template-columns: 1fr; }
+    /* Stacked layout: the gathering curves collapse to one vertical trace. */
+    .fleet-join, .fleet-split { height: 2rem; background: linear-gradient(var(--border-strong), var(--primary)) center / 1px 100% no-repeat; }
+    .fleet-split { background: linear-gradient(var(--primary), var(--border-strong)) center / 1px 100% no-repeat; }
+    .fleet-join path, .fleet-split path { display: none; }
+  }
+</style>

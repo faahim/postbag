@@ -1,0 +1,98 @@
+{
+  "brandMarks": 3,
+  "canonical": "https://postbag.dev/",
+  "icons": [
+    "/favicon.svg",
+    "/favicon-32.png",
+    "/apple-touch-icon.png"
+  ],
+  "images": [
+    {
+      "complete": true,
+      "naturalHeight": 941,
+      "naturalWidth": 1672,
+      "src": "http://127.0.0.1:4323/brand/hero-receiving-pocket-desktop-v5.webp"
+    },
+    {
+      "complete": false,
+      "naturalHeight": 0,
+      "naturalWidth": 0,
+      "src": "http://127.0.0.1:4323/logo-mark-c27b566.svg"
+    },
+    {
+      "complete": false,
+      "naturalHeight": 0,
+      "naturalWidth": 0,
+      "src": "http://127.0.0.1:4323/brand/social-routing-field-v1.webp"
+    }
+  ],
+  "og": [
+    [
+      "og:type",
+      "website"
+    ],
+    [
+      "og:site_name",
+      "Postbag"
+    ],
+    [
+      "og:title",
+      "Postbag: your forms have somewhere to go"
+    ],
+    [
+      "og:description",
+      "Postbag is the open-source form backend built for agents. Your agent builds, wires and tests your form before you sign up. Every message is saved first, then sent to your inbox, Telegram or webhooks."
+    ],
+    [
+      "og:url",
+      "https://postbag.dev/"
+    ],
+    [
+      "og:image",
+      "https://postbag.dev/og/default.png"
+    ],
+    [
+      "og:image:type",
+      "image/png"
+    ],
+    [
+      "og:image:width",
+      "1200"
+    ],
+    [
+      "og:image:height",
+      "630"
+    ],
+    [
+      "og:image:alt",
+      "Postbag: Postbag: your forms have somewhere to go"
+    ],
+    [
+      "og:locale",
+      "en_US"
+    ]
+  ],
+  "title": "Postbag: your forms have somewhere to go",
+  "twitter": [
+    [
+      "twitter:card",
+      "summary_large_image"
+    ],
+    [
+      "twitter:title",
+      "Postbag: your forms have somewhere to go"
+    ],
+    [
+      "twitter:description",
+      "Postbag is the open-source form backend built for agents. Your agent builds, wires and tests your form before you sign up. Every message is saved first, then sent to your inbox, Telegram or webhooks."
+    ],
+    [
+      "twitter:image",
+      "https://postbag.dev/og/default.png"
+    ],
+    [
+      "twitter:image:alt",
+      "Postbag: Postbag: your forms have somewhere to go"
+    ]
+  ]
+}

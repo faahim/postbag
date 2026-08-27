@@ -14,7 +14,7 @@ export type SystemEventType = SystemWebhookInput["events"][number]
 export const SYSTEM_EVENT_GROUPS: readonly { readonly label: string; readonly events: readonly SystemEventType[] }[] = [
   { label: "Submissions", events: ["submission.received", "submission.quarantined", "submission.spam"] },
   { label: "Deliveries", events: ["delivery.sent", "delivery.failed", "delivery.dead", "digest.ready"] },
-  { label: "Forms & bags", events: ["form.created", "form.schema.changed", "stream.schema.changed", "drift.detected", "drift.resolved"] },
+  { label: "Forms & Streams", events: ["form.created", "form.schema.changed", "stream.schema.changed", "drift.detected", "drift.resolved"] },
   { label: "Destinations", events: ["destination.failing", "destination.recovered"] },
 ]
 

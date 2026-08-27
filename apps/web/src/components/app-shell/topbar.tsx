@@ -34,18 +34,18 @@ export function Topbar() {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/70 px-4 sm:gap-3 md:px-6">
+    <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/70 px-5 sm:gap-3 md:px-8">
       <button
         type="button"
         aria-label="Search"
         onClick={() => {
           document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))
         }}
-        className="flex size-10 shrink-0 items-center justify-center rounded-md border border-input bg-card text-sm text-muted-foreground shadow-xs transition-[background-color] duration-(--duration-quick) ease-(--ease-smooth-out) hover:bg-muted sm:h-8 sm:w-64 sm:max-w-[40vw] sm:justify-start sm:gap-2 sm:px-2.5"
+        className="btn-raised flex size-10 shrink-0 items-center justify-center rounded-lg text-sm text-muted-foreground transition-[background-color,box-shadow,color] duration-(--duration-quick) ease-(--ease-smooth-out) hover:text-foreground sm:h-9 sm:w-72 sm:max-w-[40vw] sm:justify-start sm:gap-2.5 sm:px-3"
       >
-        <Search className="size-3.5" />
+        <Search className="size-4" />
         <span className="hidden flex-1 text-left sm:inline">Search…</span>
-        <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline">
+        <kbd className="hidden rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline">
           ⌘K
         </kbd>
       </button>

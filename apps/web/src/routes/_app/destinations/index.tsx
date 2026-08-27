@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { z } from "zod"
 
 import { DestinationForm } from "@/components/destination-form"
 import { DestinationRow } from "@/components/destination-row"
 import { EmptyState } from "@/components/empty-state"
+import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -24,46 +25,48 @@ function DestinationsRoute() {
   const [open, setOpen] = useState(search.new === true)
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Destinations</h1>
-          <p className="text-sm text-muted-foreground">Somewhere submissions can be sent.</p>
-        </div>
-        <Button
-          onClick={() => {
-            setOpen(true)
-          }}
-          className="gap-1.5"
-        >
-          <Plus className="size-4" />
-          New destination
-        </Button>
-      </div>
+    <div className="page-enter flex flex-col gap-8">
+      <PageHeader
+        title="Destinations"
+        description="The places a Submission can be sent — an inbox, a chat, any URL."
+        actions={
+          <Button
+            onClick={() => {
+              setOpen(true)
+            }}
+          >
+            <Plus />
+            New Destination
+          </Button>
+        }
+      />
 
       {destinations.isLoading ? (
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-[4.5rem] w-full rounded-xl" />
+          <Skeleton className="h-[4.5rem] w-full rounded-xl" />
         </div>
       ) : destinations.data === undefined || destinations.data.length === 0 ? (
         <EmptyState
-          title="No destinations yet"
-          description="Email, Telegram or a webhook — pick where submissions should land."
+          title="Nowhere to send things yet"
+          description="A Destination is anywhere a Submission can land: your inbox, a Telegram chat, or any URL that can catch a webhook. Add one and Postbag starts the mail run."
           action={
             <Button
+              size="lg"
               onClick={() => {
                 setOpen(true)
               }}
             >
-              Create a destination
+              Add a Destination
             </Button>
           }
         />
       ) : (
-        <div className="flex flex-col gap-2">
-          {destinations.data.map((d) => (
-            <DestinationRow key={d.id} destination={d} />
+        <div className="flex flex-col gap-3">
+          {destinations.data.map((d, i) => (
+            <div key={d.id} className="row-enter" style={{ "--row-index": i } as CSSProperties}>
+              <DestinationRow destination={d} />
+            </div>
           ))}
         </div>
       )}
@@ -71,10 +74,10 @@ function DestinationsRoute() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>New destination</SheetTitle>
-            <SheetDescription>Pick a type and fill in where submissions should go.</SheetDescription>
+            <SheetTitle>New Destination</SheetTitle>
+            <SheetDescription>Pick a type and fill in where Submissions should go.</SheetDescription>
           </SheetHeader>
-          <div className="px-6 pb-6">
+          <div className="overflow-y-auto px-6 py-6">
             <DestinationForm
               onSaved={() => {
                 setOpen(false)

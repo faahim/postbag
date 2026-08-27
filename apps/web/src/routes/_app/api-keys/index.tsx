@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { Plus, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { toast } from "sonner"
 
 import { CopyButton } from "@/components/copy-button"
 import { EmptyState } from "@/components/empty-state"
+import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -27,31 +28,31 @@ function ApiKeysRoute() {
   const [createOpen, setCreateOpen] = useState(false)
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">API keys</h1>
-          <p className="text-sm text-muted-foreground">Everything the dashboard can do, an agent can do with one of these.</p>
-        </div>
-        <Button
-          onClick={() => {
-            setCreateOpen(true)
-          }}
-          className="gap-1.5"
-        >
-          <Plus className="size-4" />
-          New key
-        </Button>
-      </div>
+    <div className="page-enter flex flex-col gap-8">
+      <PageHeader
+        title="API keys"
+        description="Everything the dashboard can do, an agent can do with one of these."
+        actions={
+          <Button
+            onClick={() => {
+              setCreateOpen(true)
+            }}
+          >
+            <Plus />
+            New key
+          </Button>
+        }
+      />
 
       {apiKeys.isLoading ? (
-        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-40 w-full rounded-xl" />
       ) : apiKeys.data === undefined || apiKeys.data.length === 0 ? (
         <EmptyState
-          title="No API keys yet"
-          description="Create one to script submissions, forms and destinations without the dashboard."
+          title="No keys cut yet"
+          description="An API key lets a script or an agent run this workspace — Forms, Submissions, Destinations, the lot — without ever opening the dashboard."
           action={
             <Button
+              size="lg"
               onClick={() => {
                 setCreateOpen(true)
               }}
@@ -61,22 +62,24 @@ function ApiKeysRoute() {
           }
         />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Prefix</TableHead>
-              <TableHead>Scopes</TableHead>
-              <TableHead className="text-right">Created</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {apiKeys.data.map((key) => (
-              <ApiKeyRow key={key.id} apiKey={key} />
-            ))}
-          </TableBody>
-        </Table>
+        <div className="list-surface">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Prefix</TableHead>
+                <TableHead>Scopes</TableHead>
+                <TableHead className="text-right">Created</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {apiKeys.data.map((key, i) => (
+                <ApiKeyRow key={key.id} apiKey={key} index={i} />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       <CreateApiKeyDialog open={createOpen} onOpenChange={setCreateOpen} />
@@ -86,13 +89,15 @@ function ApiKeysRoute() {
 
 function ApiKeyRow({
   apiKey,
+  index,
 }: {
   readonly apiKey: { readonly id: string; readonly name: string | null; readonly prefix: string | null; readonly scopes: readonly ApiKeyScope[]; readonly created_at: string }
+  readonly index: number
 }) {
   const deleteKey = useDeleteApiKey()
   return (
-    <TableRow>
-      <TableCell className="font-medium">{apiKey.name ?? "Untitled key"}</TableCell>
+    <TableRow className="row-enter" style={{ "--row-index": index } as CSSProperties}>
+      <TableCell className="text-[15px] font-medium">{apiKey.name ?? "Untitled key"}</TableCell>
       <TableCell className="font-mono text-xs text-muted-foreground">{apiKey.prefix ?? "—"}</TableCell>
       <TableCell>
         <div className="flex gap-1">
@@ -103,7 +108,7 @@ function ApiKeyRow({
           ))}
         </div>
       </TableCell>
-      <TableCell className="text-right text-xs text-muted-foreground tabular-nums">{formatDateTime(apiKey.created_at)}</TableCell>
+      <TableCell className="text-right text-sm text-muted-foreground tabular-nums">{formatDateTime(apiKey.created_at)}</TableCell>
       <TableCell className="text-right">
         <Button
           variant="ghost"

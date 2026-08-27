@@ -12,18 +12,21 @@ import { toastApiError } from "@/lib/api"
 import { useFormKnownFields } from "@/lib/form-fields"
 import { formatRelativeTime } from "@/lib/format"
 import { usePublishStreamSchema, type SchemaVersion } from "@/lib/queries/streams"
+import {
+  buildEditedSchema,
+  editableFieldsFromSchema,
+  hasUnsafeSchemaFieldRemoval,
+  isEditableFieldName,
+  retainUiHints,
+  schemaFromKnownFields,
+  UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE,
+  type EditableField,
+  type EditableFieldType,
+} from "@/lib/schema-editing"
 import { cn } from "@/lib/utils"
 
-type FieldType = "string" | "number" | "boolean" | "other"
-
-type Field = {
-  readonly name: string
-  readonly type: FieldType
-  readonly required: boolean
-  /** The property schema as it was published, so untouched fields round-trip byte-for-byte
-   * (formats, enums, descriptions) instead of being flattened to `{ type }`. */
-  readonly original?: Readonly<Record<string, unknown>>
-}
+type FieldType = EditableFieldType
+type Field = EditableField
 
 const TYPE_LABEL: Record<FieldType, string> = {
   string: "Text",
@@ -32,63 +35,20 @@ const TYPE_LABEL: Record<FieldType, string> = {
   other: "As published",
 }
 
-function typeOf(property: Readonly<Record<string, unknown>> | undefined): FieldType {
-  const type = property?.["type"]
-  if (type === "string" || type === "number" || type === "boolean") return type
-  if (type === "integer") return "number"
-  return "other"
-}
-
-/** Postgres' jsonb doesn't keep key order, so fields follow `ui[name].order` when the schema
- * carries UI hints and fall back to the stored order otherwise. */
-function fieldsFromSchema(
-  jsonSchema: Readonly<Record<string, unknown>> | undefined,
-  ui: Readonly<Record<string, unknown>> | undefined,
-): Field[] {
-  const properties = (jsonSchema?.["properties"] ?? {}) as Readonly<Record<string, Readonly<Record<string, unknown>>>>
-  const required = new Set((jsonSchema?.["required"] as readonly string[] | undefined) ?? [])
-  const orderOf = (name: string): number => {
-    const order = (ui?.[name] as { order?: unknown } | undefined)?.order
-    return typeof order === "number" ? order : Number.MAX_SAFE_INTEGER
-  }
-  return Object.entries(properties)
-    .map(([name, property], index) => ({ name, type: typeOf(property), required: required.has(name), original: property, index }))
-    .sort((a, b) => orderOf(a.name) - orderOf(b.name) || a.index - b.index)
-    .map(({ name, type, required, original }) => ({ name, type, required, original }))
-}
-
-function buildSchema(fields: readonly Field[], previous: Readonly<Record<string, unknown>> | undefined): Record<string, unknown> {
-  const properties = Object.fromEntries(
-    fields.map((field) => {
-      const keepOriginal = field.original !== undefined && (field.type === "other" || typeOf(field.original) === field.type)
-      return [field.name, keepOriginal ? field.original : { type: field.type }]
-    }),
-  )
-  return {
-    $schema: previous?.["$schema"] ?? "https://json-schema.org/draft/2020-12/schema",
-    type: "object",
-    properties,
-    required: fields.filter((f) => f.required).map((f) => f.name),
-    additionalProperties: previous?.["additionalProperties"] ?? true,
-  }
-}
-
-const FIELD_NAME = /^[A-Za-z_][A-Za-z0-9_.-]*$/u
-
 /**
- * The bag's shape — the fields every delivery from it carries — as a list people can edit
+ * The Stream's shape — the fields every Delivery from it carries — as a list people can edit
  * without seeing JSON Schema. Publishing always creates the next version (schemas are
  * immutable, Golden rule 5); attached forms are re-checked against it by the server.
  *
  * Mount with `key={schema.version}` so a fresh publish resets the draft.
  */
 export function ShapeEditor({
-  bagId,
+  streamId,
   schema,
   forms,
   onPublished,
 }: {
-  readonly bagId: string
+  readonly streamId: string
   readonly schema: SchemaVersion | undefined
   /** Forms that can seed an empty shape ("start from this form's fields"). */
   readonly forms: readonly { readonly id: string; readonly name: string }[]
@@ -96,22 +56,26 @@ export function ShapeEditor({
 }) {
   const previous = schema?.json_schema as Readonly<Record<string, unknown>> | undefined
   const previousUi = schema?.ui as Readonly<Record<string, unknown>> | undefined
-  const [fields, setFields] = useState<Field[]>(() => fieldsFromSchema(previous, previousUi))
+  const [fields, setFields] = useState<Field[]>(() => editableFieldsFromSchema(previous, previousUi))
+  const [seedSchema, setSeedSchema] = useState<Readonly<Record<string, unknown>> | undefined>(undefined)
   const [newName, setNewName] = useState("")
   const [nameError, setNameError] = useState<string | undefined>(undefined)
   const [changelog, setChangelog] = useState("")
-  const publish = usePublishStreamSchema(bagId)
+  const publish = usePublishStreamSchema(streamId)
 
-  const draft = buildSchema(fields, previous)
-  const dirty = schema === undefined ? fields.length > 0 : JSON.stringify(draft) !== JSON.stringify(buildSchema(fieldsFromSchema(previous, previousUi), previous))
+  const draft = buildEditedSchema(fields, previous ?? seedSchema)
+  const dirty =
+    schema === undefined
+      ? fields.length > 0
+      : JSON.stringify(draft) !== JSON.stringify(buildEditedSchema(editableFieldsFromSchema(previous, previousUi), previous))
   const nextVersion = (schema?.version ?? 0) + 1
 
   function addField(event: SyntheticEvent) {
     event.preventDefault()
     const name = newName.trim()
     if (name.length === 0) return
-    if (!FIELD_NAME.test(name)) {
-      setNameError("Letters, numbers, _ . - only, starting with a letter.")
+    if (!isEditableFieldName(name)) {
+      setNameError("Use letters, numbers, _ or -; dots are reserved for nested paths.")
       return
     }
     if (fields.some((f) => f.name === name)) {
@@ -129,10 +93,7 @@ export function ShapeEditor({
 
   async function publishShape() {
     try {
-      const keptUi =
-        previousUi === undefined
-          ? undefined
-          : Object.fromEntries(Object.entries(previousUi).filter(([name]) => fields.some((f) => f.name === name)))
+      const keptUi = retainUiHints(previousUi, fields)
       const result = await publish.mutateAsync({
         json_schema: draft,
         ...(keptUi === undefined ? {} : { ui: keptUi }),
@@ -140,10 +101,7 @@ export function ShapeEditor({
       })
       const incomplete = result.mappings.filter((m) => m.mapping_status === "incomplete").length
       toast.success(`Version ${nextVersion} published.`, {
-        description:
-          incomplete > 0
-            ? `${incomplete} attached ${incomplete === 1 ? "form has" : "forms have"} fields left to match — see Sources.`
-            : undefined,
+        description: incomplete > 0 ? `${incomplete} attached ${incomplete === 1 ? "form has" : "forms have"} fields left to match — see Sources.` : undefined,
       })
       setChangelog("")
       onPublished?.()
@@ -163,7 +121,13 @@ export function ShapeEditor({
       )}
 
       {fields.length === 0 ? (
-        <SeedFromForm forms={forms} onSeed={setFields} />
+        <SeedFromForm
+          forms={forms}
+          onSeed={(seededFields, seededSchema) => {
+            setSeedSchema(seededSchema)
+            setFields(seededFields)
+          }}
+        />
       ) : (
         <ul className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70 bg-card">
           {fields.map((field) => (
@@ -203,7 +167,12 @@ export function ShapeEditor({
                 className="size-8 text-muted-foreground hover:text-destructive"
                 aria-label={`Remove ${field.name}`}
                 onClick={() => {
-                  setFields((current) => current.filter((f) => f.name !== field.name))
+                  const nextFields = fields.filter((candidate) => candidate.name !== field.name)
+                  if (hasUnsafeSchemaFieldRemoval(nextFields, previous ?? seedSchema)) {
+                    toast.error(UNSAFE_SCHEMA_FIELD_REMOVAL_MESSAGE)
+                    return
+                  }
+                  setFields(nextFields)
                 }}
               >
                 <X className="size-4" />
@@ -261,8 +230,8 @@ export function ShapeEditor({
         </div>
       </div>
       <p className="text-xs text-muted-foreground text-pretty">
-        Publishing never edits a version in place — it creates the next one, and every attached form is re-checked against it.
-        Deliveries already sent keep the version they were made with.
+        Publishing never edits a version in place — it creates the next one, and every attached form is re-checked against it. Deliveries already sent keep the
+        version they were made with.
       </p>
     </div>
   )
@@ -273,7 +242,7 @@ function SeedFromForm({
   onSeed,
 }: {
   readonly forms: readonly { readonly id: string; readonly name: string }[]
-  readonly onSeed: (fields: Field[]) => void
+  readonly onSeed: (fields: Field[], schema: Readonly<Record<string, unknown>>) => void
 }) {
   const [formId, setFormId] = useState<string | undefined>(undefined)
   const known = useFormKnownFields(formId)
@@ -299,24 +268,31 @@ function SeedFromForm({
             ))}
           </SelectContent>
         </Select>
-        {formId !== undefined && !known.pending && known.fields.length > 0 && (
+        {formId !== undefined && !known.pending && !known.failed && known.fields.length > 0 && (
           <Button
             size="sm"
             variant="outline"
             onClick={() => {
-              onSeed(known.fields.map((name) => ({ name, type: "string", required: known.required.includes(name) })))
+              const seededSchema = schemaFromKnownFields(known.fields, known.jsonSchema, known.observedProperties)
+              onSeed(editableFieldsFromSchema(seededSchema, undefined), seededSchema)
             }}
           >
             Use {known.fields.length === 1 ? "this field" : `these ${known.fields.length} fields`}
           </Button>
         )}
       </div>
-      {formId !== undefined && !known.pending && (
+      {formId !== undefined && known.failed && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <p role="alert" className="text-xs text-destructive">Couldn't read this Form's fields, so its shape hasn't been copied.</p>
+          <Button type="button" variant="outline" size="sm" onClick={known.retry}>Try again</Button>
+        </div>
+      )}
+      {formId !== undefined && !known.pending && !known.failed && (
         <div className="flex flex-wrap gap-1.5">
           {known.fields.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              That form has no fields yet — it hasn't received a submission and has no published schema. Send it one test
-              submission first, or add fields by hand.
+              That form has no fields yet — it hasn't received a submission and has no published schema. Send it one test submission first, or add fields by
+              hand.
             </p>
           ) : (
             known.fields.map((name) => (

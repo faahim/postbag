@@ -1,4 +1,4 @@
-import { Stamp } from "lucide-react"
+import { Sparkles } from "lucide-react"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -6,9 +6,8 @@ import { cn } from "@/lib/utils"
 /**
  * Job K addendum — a small, playful marker for orgs whose plan_source is
  * "complimentary" (read from /v1/me; never a hardcoded email list). Shown beside the
- * org/user name in the topbar and on Settings → Plan. Wax-seal accent tokens only (no
- * new colours), postmark/stamp motif (docs/DESIGN.md §2 signature motif), and one small
- * bounce-in entrance on first render using the transitions-dev "badge appear" tokens
+ * org/user name in the topbar and on Settings → Plan. It uses existing accent tokens
+ * and one small bounce-in entrance on first render using the transitions-dev "badge appear" tokens
  * (--duration-very-slow / --ease-bounce) — reduced motion is handled globally in
  * styles/tokens.css, so no extra guard is needed here.
  */
@@ -26,8 +25,8 @@ export function VipBadge({ className }: { readonly className?: string }) {
             className,
           )}
         >
-          <Stamp className="size-3" />
-          VIP · postage prepaid
+          <Sparkles className="size-3" />
+          Complimentary
         </span>
       </TooltipTrigger>
       <TooltipContent>Complimentary plan, courtesy of Postbag.</TooltipContent>

@@ -1,16 +1,12 @@
 ---
 import Base from "@/layouts/Base.astro"
-import Postmark from "@/components/Postmark.astro"
 ---
-<Base title="Page not found" description="This page does not exist. Every Postbag error has a hint; here is one." noindex>
-  <section class="container-x flex min-h-[60vh] flex-col items-start justify-center py-20">
-    <Postmark status="dead" size={56} />
-    <p class="mt-6 font-mono text-sm text-muted-foreground">404 · not_found</p>
-    <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">Returned to sender.</h1>
-    <p class="mt-4 max-w-md text-lg text-muted-foreground">Hint: check the address. If a link on this site brought you here, it is a bug; <a href="/about/#contact" class="text-primary underline-offset-4 hover:underline">tell us</a>.</p>
-    <div class="mt-8 flex flex-wrap gap-3">
-      <a href="/" class="btn btn-primary">Home</a>
-      <a href="/docs/" class="btn btn-secondary">Docs</a>
-    </div>
+<Base title="Page not found" description="This page does not exist. Every Postbag error has a useful next step, including this one." noindex>
+  <section class="container-x missing" aria-labelledby="missing-title">
+    <div class="missing-scene" aria-hidden="true" data-reveal><span class="lost-form"><i></i><i></i><i></i></span><span class="route route-left"></span><span class="route route-right"></span><span class="aperture"></span></div>
+    <div class="missing-copy" data-reveal style="--reveal-delay: var(--duration-micro)"><p class="error-code">404 · not_found</p><h1 id="missing-title">This Form took a wrong turn.</h1><p>The page is not here. Check the address, head home, or open the docs. If one of our links sent you here, <a href="/about/#contact">tell us</a>.</p><div class="actions"><a href="/" class="btn btn-primary">Go home</a><a href="/docs/" class="btn btn-secondary">Read the docs</a></div></div>
   </section>
 </Base>
+<style>
+  .missing{display:grid;min-height:70vh;align-items:center;gap:clamp(2rem,7vw,7rem);padding-block:5rem}.missing-scene{position:relative;min-height:21rem;overflow:hidden;border-radius:calc(var(--radius) + 16px);background:linear-gradient(150deg,var(--foreground),var(--ink-code));box-shadow:var(--shadow-xl)}.missing-scene:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,var(--accent),transparent 42%);opacity:.32}.lost-form{position:absolute;left:50%;top:3.5rem;width:8.5rem;height:5.5rem;padding:1.2rem;border-radius:var(--radius);background:var(--primary-foreground);box-shadow:var(--shadow-xl);transform:translateX(-50%) rotate(7deg)}.lost-form i{display:block;width:75%;height:2px;margin:.5rem 0;background:var(--border-strong)}.lost-form i:last-child{width:45%}@keyframes lost-drift{from{transform:translateX(-50%) rotate(7deg)}50%{transform:translate(calc(-50% + 6px),8px) rotate(9deg)}to{transform:translate(calc(-50% - 5px),3px) rotate(5.5deg)}}.lost-form{animation:lost-drift 9s var(--ease-in-out) infinite alternate}@media(prefers-reduced-motion:reduce){.lost-form{animation:none}}.aperture{position:absolute;left:16%;right:16%;bottom:3.25rem;height:4rem;border-radius:50% 50% 15% 15%;background:var(--background);box-shadow:0 -1px 0 var(--primary),var(--shadow-xl)}.route{position:absolute;bottom:5.2rem;width:24%;height:1px;background:var(--primary);opacity:.7}.route-left{left:0}.route-right{right:0}.error-code{font-family:var(--font-mono);font-size:.76rem;color:var(--primary)}h1{max-width:34rem;margin-top:.8rem;font-size:clamp(2.6rem,6vw,5rem);font-weight:600;line-height:.96}.missing-copy>p:not(.error-code){max-width:33rem;margin-top:1.4rem;color:var(--muted-foreground);font-size:1.08rem;line-height:1.7}.missing-copy a:not(.btn){color:var(--foreground);text-decoration:underline;text-underline-offset:4px}.actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:2rem}@media(min-width:48rem){.missing{grid-template-columns:minmax(18rem,.8fr) minmax(0,1fr)}.missing-scene{min-height:28rem}}
+</style>

@@ -39,7 +39,7 @@ export const ERROR_CODES = [
     code: "stream_schema_missing",
     status: 422,
     hint: "Attach a form that has a published schema or at least one submission — Postbag derives the stream's first schema from it — or publish one with POST /v1/streams/{id}/schema.",
-    more: "A stream (Bag in the dashboard) delivers one shared shape, so it needs a schema before sources can be mapped onto it. You rarely have to write one: attaching the first form to a schema-less stream publishes version 1 copied from that form's published schema, its inferred draft, or the fields seen in its recent submissions, with an identity mapping. This error means neither was possible — the source was a selector, or the form has no schema and no submissions yet. Send one test submission, publish the form's schema, or publish the stream schema directly.",
+    more: "A Stream delivers one shared shape, so it needs a Schema before sources can be Mapped onto it. You rarely have to write one: attaching the first Form to a Schema-less Stream publishes version 1 copied from that Form's published Schema, its inferred draft, or the fields seen in its recent Submissions, with an identity Mapping. This error means neither was possible — the source was a selector, or the Form has no Schema and no Submissions yet. Send one test Submission, publish the Form's Schema, or publish the Stream Schema directly.",
   },
   {
     code: "schema_violation",
@@ -129,7 +129,7 @@ export const ERROR_CODES = [
     code: "plan_limit_reached",
     status: 402,
     hint: "Change plan limits or remove an unused resource.",
-    more: "Forms and destinations are checked at creation. Submissions over the monthly limit are still stored and flagged; delivery pauses until the plan allows.",
+    more: "Forms and destinations are checked at creation. Submissions over the monthly limit are still stored and flagged. Once the plan allows, a manager releases each held Submission to queue Delivery.",
   },
   {
     code: "billing_disabled",

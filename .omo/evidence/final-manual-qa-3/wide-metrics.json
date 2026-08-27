@@ -1,0 +1,31 @@
+{
+  "wideHome": {
+    "h1": [
+      {
+        "height": 316,
+        "text": "Your forms have somewhere to go.",
+        "w": 544
+      }
+    ],
+    "innerWidth": 2048,
+    "main": 2048,
+    "overflow": false,
+    "path": "/",
+    "scrollWidth": 2048
+  },
+  "wideFeature": {
+    "article": 740,
+    "h1": [
+      {
+        "height": 119,
+        "text": "Never lose a submission: saved first, sent second",
+        "w": 896
+      }
+    ],
+    "innerWidth": 2048,
+    "main": 2048,
+    "overflow": false,
+    "path": "/features/never-lose-a-submission/",
+    "scrollWidth": 2048
+  }
+}

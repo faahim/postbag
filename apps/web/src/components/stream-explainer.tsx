@@ -1,0 +1,238 @@
+import type { ReactNode } from "react"
+
+import { usePrefersReducedMotion } from "@/lib/motion"
+import { cn } from "@/lib/utils"
+
+/**
+ * The Stream explainer.
+ *
+ * Three forms on the left (their field lines differ a little — that is the point), one
+ * receiving pocket in the middle, one destination on the right. Submissions settle into the pocket as
+ * plain dots; what leaves follows one Route, always the same. Many in, one shape out.
+ *
+ * Quiet on purpose: hairlines, the app's neutrals, and periwinkle only on the routing mark
+ * and the outgoing dot. Motion is SMIL `animateMotion` along the same lines the diagram
+ * already draws, so the still picture (reduced motion, screenshots) tells the same story.
+ * The routing mark brightens on each arrival via CSS (`.stream-explainer-route-mark`, styles/index.css).
+ */
+
+const LOOP_SECONDS = 4.8
+const IN_DELAYS = [0, 0.8, 1.6] as const
+const OUT_OFFSET = 1.3
+
+const FORM_X = 40
+const FORM_W = 88
+const FORM_H = 32
+const FORM_CY = [56, 100, 144] as const
+const FORM_LINES: readonly (readonly [number, number])[] = [
+  [40, 24],
+  [30, 48],
+  [46, 34],
+]
+
+/** The vessel: a pocket. A back panel and a slightly lower front panel, so the opening is a
+ * visible slot things drop into — and the front panel is drawn after the dots, so they go
+ * *behind* it. Rounded bottom, flat top, nothing tapered. */
+const POCKET = { cx: 320, halfW: 36, backTop: 58, frontTop: 70, bottom: 138, radius: 18 }
+const OUT_PATH = `M ${POCKET.cx + POCKET.halfW} 104 L 504 104`
+const DEST = { x: 512, cy: 104 }
+
+function panel(top: number): string {
+  const { cx, halfW, bottom, radius } = POCKET
+  const l = cx - halfW
+  const r = cx + halfW
+  return `M${l} ${top} H${r} V${bottom - radius} Q${r} ${bottom} ${r - radius} ${bottom} H${l + radius} Q${l} ${bottom} ${l} ${bottom - radius} Z`
+}
+
+/** Where each line enters the slot — three distinct points, so the lines read as three
+ * parallel drops rather than one bundle. */
+const ENTRY_X = [POCKET.cx - 10, POCKET.cx, POCKET.cx + 10] as const
+
+/** Arcs over from the form and comes straight down into the slot (vertical tangent at the
+ * end — the last control point sits directly above the entry point). The line runs on past
+ * the front panel's top edge, which is drawn over it, so it visibly goes *in*. */
+function inGuide(cy: number, entryX: number): string {
+  // Two smooth segments: rise to a level well above the pocket's top edge while still left
+  // of it, then turn the corner and drop straight down into the slot.
+  const level = POCKET.backTop - 18
+  const turnX = entryX - 34
+  return (
+    `M ${FORM_X + FORM_W + 4} ${cy} C 220 ${cy}, ${turnX - 50} ${level}, ${turnX} ${level} ` +
+    `C ${entryX - 10} ${level}, ${entryX} ${level + 4}, ${entryX} ${POCKET.frontTop + 6}`
+  )
+}
+/** The animated dot keeps going a little further down inside. */
+function inFlight(cy: number, entryX: number): string {
+  return `${inGuide(cy, entryX)} L ${entryX} ${POCKET.frontTop + 14}`
+}
+
+export function StreamFlowIllustration({ className }: { readonly className?: string }) {
+  const reducedMotion = usePrefersReducedMotion()
+  const dur = `${LOOP_SECONDS}s`
+
+  return (
+    <svg
+      viewBox="0 20 640 156"
+      role="img"
+      aria-label="Three different forms drop into one pocket; one identical, stamped result leaves it for a destination."
+      className={cn("h-auto w-full select-none", className)}
+      fill="none"
+    >
+      {/* forms */}
+      {FORM_CY.map((cy, i) => {
+        const top = cy - FORM_H / 2
+        const [a, b] = FORM_LINES[i] ?? [40, 30]
+        return (
+          <g key={cy}>
+            <rect x={FORM_X} y={top} width={FORM_W} height={FORM_H} rx="6" fill="var(--card)" stroke="var(--border)" strokeWidth="1.25" />
+            <g stroke="var(--muted-foreground)" strokeOpacity="0.45" strokeWidth="2" strokeLinecap="round">
+              <line x1={FORM_X + 12} y1={top + 12} x2={FORM_X + 12 + a} y2={top + 12} />
+              <line x1={FORM_X + 12} y1={top + 20} x2={FORM_X + 12 + b} y2={top + 20} />
+            </g>
+          </g>
+        )
+      })}
+
+      {/* pocket — back panel (dots pass in front of this…) */}
+      <path d={panel(POCKET.backTop)} fill="var(--muted)" stroke="var(--foreground)" strokeOpacity="0.4" strokeWidth="1.25" strokeLinejoin="round" />
+
+      {/* lines — the still version of the story; over the back panel, under the front one */}
+      <g stroke="var(--border)" strokeWidth="1.25">
+        {FORM_CY.map((cy, i) => (
+          <path key={cy} d={inGuide(cy, ENTRY_X[i] ?? POCKET.cx)} />
+        ))}
+        <path d={OUT_PATH} />
+      </g>
+
+      {/* in — dots arc over and drop into the slot */}
+      {!reducedMotion &&
+        FORM_CY.map((cy, i) => (
+          <g key={cy} opacity="0">
+            <circle r="3.5" fill="var(--muted-foreground)" />
+            <animateMotion
+              dur={dur}
+              begin={`${IN_DELAYS[i] ?? 0}s`}
+              repeatCount="indefinite"
+              path={inFlight(cy, ENTRY_X[i] ?? POCKET.cx)}
+              keyPoints="0;1;1"
+              keyTimes="0;0.26;1"
+              calcMode="spline"
+              keySplines="0.3 0.9 0.4 1;0 0 1 1"
+            />
+            <animate attributeName="opacity" dur={dur} begin={`${IN_DELAYS[i] ?? 0}s`} repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;0.03;0.25;0.29;1" />
+          </g>
+        ))}
+
+      {/* …and the front panel sits over them, so they visibly go inside */}
+      <g>
+        <path d={panel(POCKET.frontTop)} fill="var(--card)" stroke="var(--foreground)" strokeOpacity="0.55" strokeWidth="1.5" strokeLinejoin="round" />
+        {/* receiving aperture and Route trace */}
+        <g className="stream-explainer-route-mark" stroke="var(--primary)" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M309 102h5.4l3 3h5.2l3-3h5.4v10.5a2.5 2.5 0 0 1-2.5 2.5h-17a2.5 2.5 0 0 1-2.5-2.5Z" fill="var(--primary)" fillOpacity="0.1" strokeWidth="1.25" />
+          <path d="M321 110h7v-5" strokeWidth="1.45" />
+          <path d="m325.8 107.2 2.2-2.2 2.2 2.2" strokeWidth="1.45" />
+        </g>
+      </g>
+
+      {/* out — one routed result per arrival */}
+      {!reducedMotion &&
+        IN_DELAYS.map((delay) => (
+          <g key={delay} opacity="0">
+            <circle r="3.5" fill="var(--primary)" />
+            <animateMotion
+              dur={dur}
+              begin={`${delay + OUT_OFFSET}s`}
+              repeatCount="indefinite"
+              path={OUT_PATH}
+              keyPoints="0;1;1"
+              keyTimes="0;0.2;1"
+              calcMode="spline"
+              keySplines="0.22 1 0.36 1;0 0 1 1"
+            />
+            <animate attributeName="opacity" dur={dur} begin={`${delay + OUT_OFFSET}s`} repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;0.03;0.17;0.2;1" />
+          </g>
+        ))}
+
+      {/* destination — the one shape, wherever it goes */}
+      <g>
+        <rect x={DEST.x} y={DEST.cy - FORM_H / 2} width={FORM_W} height={FORM_H} rx="6" fill="var(--card)" stroke="var(--border)" strokeWidth="1.25" />
+        <circle cx={DEST.x + 16} cy={DEST.cy} r="3.5" fill="var(--primary)" />
+        <g stroke="var(--muted-foreground)" strokeOpacity="0.45" strokeWidth="2" strokeLinecap="round">
+          <line x1={DEST.x + 26} y1={DEST.cy - 4} x2={DEST.x + 70} y2={DEST.cy - 4} />
+          <line x1={DEST.x + 26} y1={DEST.cy + 4} x2={DEST.x + 56} y2={DEST.cy + 4} />
+        </g>
+      </g>
+    </svg>
+  )
+}
+
+const STEPS: readonly { readonly title: string; readonly body: string }[] = [
+  {
+    title: "Attach a form.",
+    body: "The first one sets the Stream's shape — Postbag copies its fields. Nothing to write.",
+  },
+  {
+    title: "Attach the rest, match the fields.",
+    body: "“name” on one site, “fullName” on another: point them at the same slot. Required fields that are still empty get flagged right away.",
+  },
+  {
+    title: "Send the Stream somewhere.",
+    body: "One route for all of them — email, Telegram, a webhook — instead of one per form.",
+  },
+]
+
+/** The plain-language version of "what is this screen". Used as the empty state of the Streams
+ * list and of a fresh Stream's Sources tab. `action` is the one thing to do next; `aside` is the
+ * honest escape hatch ("you might not need this"). */
+export function StreamExplainer({
+  title,
+  lede,
+  action,
+  aside,
+  className,
+}: {
+  readonly title: string
+  readonly lede: string
+  readonly action?: ReactNode
+  readonly aside?: ReactNode
+  readonly className?: string
+}) {
+  return (
+    <section
+      className={cn(
+        "flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm",
+        "animate-in fade-in-0 slide-in-from-bottom-1 duration-(--duration-medium)",
+        className,
+      )}
+    >
+      <div className="border-b border-border/70 bg-background/60 px-4 py-3 sm:px-8">
+        <StreamFlowIllustration className="mx-auto max-w-xl" />
+      </div>
+      <div className="grid gap-8 px-6 py-6 md:grid-cols-[1.1fr_1fr] md:px-8">
+        <div className="flex flex-col gap-3">
+          <p className="text-xs font-medium tracking-wide text-primary uppercase">What a Stream does</p>
+          <h2 className="text-xl font-semibold tracking-tight text-balance">{title}</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground text-pretty">{lede}</p>
+          {action !== undefined && <div className="mt-2">{action}</div>}
+          {aside !== undefined && <p className="text-xs text-muted-foreground text-pretty">{aside}</p>}
+        </div>
+        <ol className="flex flex-col gap-4">
+          {STEPS.map((step, i) => (
+            <li key={step.title} className="flex gap-3">
+              <span
+                aria-hidden
+                className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent font-mono text-xs font-medium text-accent-foreground tabular-nums"
+              >
+                {i + 1}
+              </span>
+              <div className="flex flex-col gap-0.5">
+                <p className="text-sm font-medium">{step.title}</p>
+                <p className="text-sm text-muted-foreground text-pretty">{step.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  )
+}

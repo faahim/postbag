@@ -1,9 +1,9 @@
 /*
  * The Postbag identity coat (docs/DESIGN.md §2).
  *
- * Accent = wax-seal red. Surfaces are near-neutral with a faint warm tint (a
- * sealed-envelope paper, not a cold dev-tool gray). Radius is tighter than the
- * shadcn default. Everything else — shadcn/ui component code — reads these
+ * Primary = periwinkle. Surfaces use cool Form-white and ink neutrals derived
+ * from the pocket identity. Red is reserved for destructive semantics. Radius
+ * is tighter than the shadcn default. Everything else reads these
  * variables and never hardcodes a color.
  *
  * Motion tokens below are the transitions-dev canonical scale, installed once
@@ -17,27 +17,25 @@
   color-scheme: light;
 
   /* ---- surfaces & text -------------------------------------------------- */
-  --background: oklch(0.985 0.004 80);
-  --foreground: oklch(0.2 0.012 55);
-  --card: oklch(0.995 0.0025 80);
+  --background: oklch(0.982 0.009 275);
+  --foreground: oklch(0.235 0.036 272);
+  --card: oklch(0.995 0.004 275);
   --card-foreground: var(--foreground);
-  --popover: oklch(0.995 0.0025 80);
+  --popover: oklch(0.995 0.004 275);
   --popover-foreground: var(--foreground);
 
-  /* ---- brand -------------------------------------------------------------
-     Wax-seal red. Kept slightly warmer (hue 25) than --destructive (hue 16)
-     so "primary action" and "irreversible action" never read as the same red. */
-  --primary: oklch(0.55 0.19 25);
-  --primary-foreground: oklch(0.99 0.006 80);
+  /* ---- brand ------------------------------------------------------------- */
+  --primary: oklch(0.47 0.16 279);
+  --primary-foreground: oklch(0.99 0.004 275);
 
-  --secondary: oklch(0.95 0.007 65);
-  --secondary-foreground: oklch(0.28 0.014 55);
+  --secondary: oklch(0.95 0.018 274);
+  --secondary-foreground: oklch(0.29 0.055 273);
 
-  --muted: oklch(0.955 0.006 65);
-  --muted-foreground: oklch(0.482 0.014 55);
+  --muted: oklch(0.955 0.018 274);
+  --muted-foreground: oklch(0.47 0.035 273);
 
-  --accent: oklch(0.945 0.024 30);
-  --accent-foreground: oklch(0.4 0.16 25);
+  --accent: oklch(0.93 0.038 278);
+  --accent-foreground: oklch(0.31 0.1 277);
 
   --destructive: oklch(0.55 0.215 16);
   --destructive-foreground: oklch(0.99 0.006 80);
@@ -48,9 +46,36 @@
   --warning: oklch(0.78 0.15 82);
   --warning-foreground: oklch(0.28 0.05 82);
 
-  --border: oklch(0.9 0.008 65);
-  --input: oklch(0.895 0.009 65);
-  --ring: oklch(0.55 0.19 25 / 0.5);
+  --border: oklch(0.9 0.022 274);
+  --input: oklch(0.88 0.025 274);
+  --ring: oklch(0.47 0.16 279 / 0.5);
+
+  /* ---- tactile controls (docs/DESIGN.md §3) ------------------------------
+     The site's button material, carried into the product: light catches the
+     top edge, weight sits under the bottom, and a press physically sinks. */
+  --primary-hover: oklch(0.43 0.155 279);
+  --btn-top-light: oklch(1 0 0 / 0.22);
+  --btn-bottom-shade: oklch(0.2 0.08 275 / 0.42);
+  --btn-drop: 0 1px 2px oklch(0.16 0.05 272 / 0.22), 0 3px 9px oklch(0.2 0.07 274 / 0.16);
+  --btn-drop-hover: 0 2px 3px oklch(0.16 0.05 272 / 0.24), 0 5px 14px oklch(0.2 0.07 274 / 0.2);
+  --btn-press-inset: inset 0 2px 3px oklch(0.12 0.05 272 / 0.35), inset 0 -1px 0 oklch(1 0 0 / 0.08);
+  --btn-press-drop: 0 1px 2px oklch(0.16 0.05 272 / 0.14);
+  --btn-raised-face: linear-gradient(to bottom, oklch(1 0 0 / 0.5), oklch(1 0 0 / 0) 55%);
+  --btn-raised-shadow:
+    0 0 0 1px var(--input) inset, inset 0 1.5px 0 oklch(1 0 0 / 0.6), 0 1px 2px oklch(0.2 0.035 272 / 0.08),
+    0 2px 6px oklch(0.2 0.035 272 / 0.06);
+  --btn-raised-shadow-hover:
+    0 0 0 1px var(--input) inset, inset 0 1.5px 0 oklch(1 0 0 / 0.5), 0 2px 3px oklch(0.2 0.035 272 / 0.09),
+    0 4px 10px oklch(0.2 0.035 272 / 0.08);
+  --btn-raised-press: 0 0 0 1px var(--input) inset, inset 0 2px 3px oklch(0.2 0.035 272 / 0.14);
+  --btn-grain-opacity: 0.5;
+
+  /* ---- material canvas -------------------------------------------------- */
+  --canvas-grain-image: url("/brand/interface-grain-v1.webp");
+  --canvas-grain-size: 40rem;
+  --canvas-grain-opacity: 0.08;
+  --canvas-grain-ink-opacity: 0.105;
+  --canvas-grain-blend: multiply;
 
   /* ---- radius scale — tighter than shadcn default ------------------------ */
   --radius: 0.5rem;
@@ -85,13 +110,22 @@
   --ease-in-out: ease-in-out;
   --ease-out: ease-out;
   --ease-linear: linear;
+  /* brand mark — damped spring (ζ=0.50, one ~16% overshoot), hand-tuned on
+     the motion bench; a deliberate brand-mark exception to the no-bounce rule */
+  --duration-brand-lift: 530ms;
+  --duration-brand-dip: 380ms;
+  --ease-brand-spring: linear(
+    0, 0.292 4.5%, 0.769 9.1%, 1.078 13.6%, 1.163 18.2%, 1.115 22.7%, 1.037 27.3%,
+    0.987 31.8%, 0.973 36.4%, 0.981 40.9%, 0.994 45.5%, 1.002 50%, 1.004 54.5%,
+    1.003 59.1%, 1.001 63.6%, 1 68.2%, 0.999 72.7%, 1
+  );
   --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
   --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
 
-  /* Bag explainer — one loop of forms flowing into a bucket and one shape flowing out.
+  /* Stream explainer — one loop of Forms flowing into a receiving pocket and one shape flowing out.
      Scene-length, not interaction-length, so it doesn't reuse the interaction scale above. */
-  --bag-loop: 4800ms;
-  --bag-ease: var(--ease-smooth-out);
+  --stream-loop: 4800ms;
+  --stream-ease: var(--ease-smooth-out);
   --distance-micro: 4px;
   --distance-small: 6px;
   --distance-base: 8px;
@@ -161,20 +195,6 @@
   --icon-swap-blur: 2px;
   --icon-swap-start-scale: 0.25;
   --icon-swap-ease: ease-in-out;
-  --check-opacity-dur: 500ms;
-  --check-rotate-dur: 500ms;
-  --check-rotate-from: 80deg;
-  --check-bob-dur: 500ms;
-  --check-y-amount: 40px;
-  --check-blur-dur: 500ms;
-  --check-blur-from: 10px;
-  --check-path-dur: 500ms;
-  --check-path-delay: 80ms;
-  --check-ease-out: var(--ease-smooth-out);
-  --check-ease-opacity: var(--ease-smooth-out);
-  --check-ease-rotate: var(--ease-smooth-out);
-  --check-ease-bob: cubic-bezier(0.34, 1.35, 0.64, 1);
-  --check-ease-path: var(--ease-smooth-out);
   --avatar-lift: -4px;
   --avatar-dur: 320ms;
   --avatar-scale: 1.05;
@@ -258,24 +278,24 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --background: oklch(0.165 0.011 55);
-  --foreground: oklch(0.95 0.006 70);
-  --card: oklch(0.198 0.012 55);
+  --background: oklch(0.145 0.04 272);
+  --foreground: oklch(0.95 0.018 278);
+  --card: oklch(0.185 0.045 272);
   --card-foreground: var(--foreground);
-  --popover: oklch(0.208 0.012 55);
+  --popover: oklch(0.198 0.048 272);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.685 0.17 25);
-  --primary-foreground: oklch(0.15 0.014 45);
+  --primary: oklch(0.78 0.13 278);
+  --primary-foreground: oklch(0.18 0.05 272);
 
-  --secondary: oklch(0.255 0.012 55);
+  --secondary: oklch(0.23 0.052 273);
   --secondary-foreground: var(--foreground);
 
-  --muted: oklch(0.255 0.012 55);
-  --muted-foreground: oklch(0.64 0.013 60);
+  --muted: oklch(0.25 0.052 273);
+  --muted-foreground: oklch(0.71 0.04 277);
 
-  --accent: oklch(0.275 0.032 25);
-  --accent-foreground: oklch(0.85 0.06 32);
+  --accent: oklch(0.29 0.085 276);
+  --accent-foreground: oklch(0.9 0.06 278);
 
   --destructive: oklch(0.62 0.205 18);
   --destructive-foreground: oklch(0.98 0.008 20);
@@ -284,11 +304,31 @@
   --success-foreground: oklch(0.15 0.02 152);
 
   --warning: oklch(0.75 0.14 82);
-  --warning-foreground: oklch(0.2 0.03 82);
+  /* Text/icon amber for dark surfaces — never sits on solid --warning, so it must
+     read against the dark background and the translucent warning washes. */
+  --warning-foreground: oklch(0.87 0.1 84);
 
-  --border: oklch(0.31 0.013 55 / 0.7);
-  --input: oklch(0.31 0.013 55);
-  --ring: oklch(0.685 0.17 25 / 0.55);
+  --border: oklch(0.34 0.052 274 / 0.7);
+  --input: oklch(0.34 0.052 274);
+  --ring: oklch(0.78 0.13 278 / 0.55);
+
+  --primary-hover: oklch(0.82 0.125 278);
+  --btn-top-light: oklch(1 0 0 / 0.32);
+  --btn-bottom-shade: oklch(0.14 0.05 273 / 0.5);
+  --btn-drop: 0 1px 2px oklch(0 0 0 / 0.35), 0 3px 9px oklch(0 0 0 / 0.3);
+  --btn-drop-hover: 0 2px 3px oklch(0 0 0 / 0.38), 0 5px 14px oklch(0 0 0 / 0.34);
+  --btn-press-inset: inset 0 2px 3px oklch(0.1 0.04 272 / 0.5), inset 0 -1px 0 oklch(1 0 0 / 0.1);
+  --btn-press-drop: 0 1px 2px oklch(0 0 0 / 0.25);
+  --btn-raised-face: linear-gradient(to bottom, oklch(1 0 0 / 0.06), oklch(1 0 0 / 0) 55%);
+  --btn-raised-shadow:
+    0 0 0 1px var(--input) inset, inset 0 1px 0 oklch(1 0 0 / 0.1), 0 1px 2px oklch(0 0 0 / 0.3),
+    0 2px 6px oklch(0 0 0 / 0.24);
+  --btn-raised-shadow-hover:
+    0 0 0 1px var(--input) inset, inset 0 1px 0 oklch(1 0 0 / 0.12), 0 2px 3px oklch(0 0 0 / 0.32),
+    0 4px 10px oklch(0 0 0 / 0.26);
+  --btn-raised-press: 0 0 0 1px var(--input) inset, inset 0 2px 3px oklch(0 0 0 / 0.4);
+  --canvas-grain-opacity: 0.095;
+  --canvas-grain-blend: screen;
 
   --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.24);
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.28), 0 1px 1px oklch(0 0 0 / 0.22);

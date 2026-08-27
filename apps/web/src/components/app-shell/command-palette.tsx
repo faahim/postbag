@@ -53,7 +53,7 @@ export function CommandPalette() {
             }}
           >
             <FilePlus2 />
-            New form
+            New Form
           </CommandItem>
           <CommandItem
             onSelect={() => {
@@ -62,7 +62,7 @@ export function CommandPalette() {
             }}
           >
             <Plus />
-            New destination
+            New Destination
           </CommandItem>
           <CommandItem
             onSelect={() => {
@@ -71,7 +71,7 @@ export function CommandPalette() {
             }}
           >
             <Send />
-            Quickstart (form + email in one call)
+            Quickstart (Form + email in one call)
           </CommandItem>
         </CommandGroup>
         <CommandSeparator />

@@ -7,7 +7,7 @@ import { API_URL, SITE_CONTACT_FORM_ID } from "@/config"
 interface Props { planId: string; planName: string }
 const { planId, planName } = Astro.props
 const action = `${API_URL}/s/${SITE_CONTACT_FORM_ID}`
-const inputClass = "h-10 min-w-0 flex-1 basis-32 rounded-md bg-background px-3 text-sm font-normal text-foreground shadow-[inset_0_0_0_1px_var(--border-strong)] outline-none transition-shadow duration-150 placeholder:text-muted-foreground/70 focus:shadow-[inset_0_0_0_1px_var(--primary),0_0_0_3px_var(--ring)]"
+const inputClass = "h-10 min-w-0 flex-1 basis-32 rounded-md bg-background px-3 text-sm font-normal text-foreground shadow-[inset_0_0_0_1px_var(--border-strong)] outline-none transition-shadow duration-(--duration-quick) placeholder:text-muted-foreground/70 focus:shadow-[inset_0_0_0_1px_var(--primary),0_0_0_3px_var(--ring)]"
 ---
 <form class="mt-6" action={action} method="POST" novalidate data-notify={planId}>
   <input type="hidden" name="topic" value="pricing-notify" />

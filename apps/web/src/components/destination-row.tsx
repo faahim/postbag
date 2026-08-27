@@ -3,9 +3,10 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { DESTINATION_TYPES, DestinationForm } from "@/components/destination-form"
-import { SuccessCheck } from "@/components/success-check"
+import { SuccessMark } from "@/components/success-mark"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { toastApiError } from "@/lib/api"
@@ -57,6 +58,7 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
   const deleteDestination = useDeleteDestination()
   const [result, setResult] = useState<{ readonly ok: boolean; readonly detail: string } | null>(null)
   const [editing, setEditing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const typeMeta = DESTINATION_TYPES.find((t) => t.value === destination.type)
   const health = HEALTH[destination.health]
   const summary = describeDestination(destination)
@@ -77,7 +79,6 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
   }
 
   async function remove() {
-    if (!window.confirm(`Delete “${destination.name}”? Routes that send here stop working until you point them somewhere else.`)) return
     try {
       await deleteDestination.mutateAsync(destination.id)
       toast.success(`${destination.name} deleted.`)
@@ -89,7 +90,7 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-lg border border-border/70 bg-card px-4 py-3 shadow-xs",
+        "flex flex-col gap-2 rounded-xl border border-border/70 bg-card px-5 py-4 shadow-xs",
         "transition-[transform,box-shadow] duration-(--duration-quick) ease-(--ease-smooth-out)",
         "hover:-translate-y-px hover:shadow-md",
       )}
@@ -102,24 +103,24 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
             </TooltipTrigger>
             <TooltipContent side="top">{health.label}</TooltipContent>
           </Tooltip>
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-            {typeMeta !== undefined && <typeMeta.icon className="size-4" />}
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            {typeMeta !== undefined && <typeMeta.icon className="size-[18px]" />}
           </div>
-          <div className="flex min-w-0 flex-col">
+          <div className="flex min-w-0 flex-col gap-0.5">
             <div className="flex items-center gap-2">
-              <span className="truncate text-sm font-medium">{destination.name}</span>
+              <span className="truncate text-[15px] font-medium">{destination.name}</span>
               <Badge variant="muted" className="shrink-0">
                 {typeMeta?.label ?? destination.type}
               </Badge>
             </div>
-            <span className="truncate text-xs text-muted-foreground" title={summary}>
+            <span className="truncate text-sm text-muted-foreground" title={summary}>
               {summary}
             </span>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <Button variant="outline" size="sm" onClick={() => void runTest()} disabled={test.isPending} className="gap-1.5">
-            {result?.ok === true && <SuccessCheck show size={14} />}
+            {result?.ok === true && <SuccessMark show size={14} />}
             {test.isPending ? "Testing…" : "Test"}
           </Button>
           <Button
@@ -133,9 +134,26 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
             <Pencil className="size-3.5" />
             Edit
           </Button>
-          <Button variant="ghost" size="icon" aria-label={`Delete ${destination.name}`} onClick={() => void remove()} disabled={deleteDestination.isPending}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Delete ${destination.name}`}
+            onClick={() => {
+              setConfirmDelete(true)
+            }}
+            disabled={deleteDestination.isPending}
+          >
             <Trash2 className="size-4 text-muted-foreground" />
           </Button>
+          <ConfirmDialog
+            open={confirmDelete}
+            onOpenChange={setConfirmDelete}
+            title={`Delete “${destination.name}”?`}
+            description="Routes that send here stop delivering until you point them somewhere else. Submissions already saved are untouched."
+            confirmLabel="Delete Destination"
+            pending={deleteDestination.isPending}
+            onConfirm={() => void remove()}
+          />
         </div>
       </div>
       {result !== null && (
@@ -150,7 +168,7 @@ export function DestinationRow({ destination }: { readonly destination: Destinat
             <SheetTitle>Edit destination</SheetTitle>
             <SheetDescription>Changes apply to every route that sends here.</SheetDescription>
           </SheetHeader>
-          <div className="px-6 pb-6">
+          <div className="overflow-y-auto px-6 py-6">
             {editing && (
               <DestinationForm
                 destination={destination}

@@ -6,7 +6,17 @@ import { cn } from "@/lib/utils"
 
 /** Copy-to-clipboard with the "copied" micro-state — icon cross-fades via the
  * transitions-dev icon-swap pattern (docs/DESIGN.md §3). */
-export function CopyButton({ value, label = "Copy", className }: { readonly value: string; readonly label?: string; readonly className?: string }) {
+export function CopyButton({
+  value,
+  label = "Copy",
+  className,
+  variant = "outline",
+}: {
+  readonly value: string
+  readonly label?: string
+  readonly className?: string
+  readonly variant?: "outline" | "ghost"
+}) {
   const [copied, setCopied] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
@@ -22,7 +32,7 @@ export function CopyButton({ value, label = "Copy", className }: { readonly valu
   return (
     <Button
       type="button"
-      variant="outline"
+      variant={variant}
       size="sm"
       className={cn("gap-1.5", className)}
       onClick={() => {
