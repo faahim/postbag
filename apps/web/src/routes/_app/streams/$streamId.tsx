@@ -71,7 +71,35 @@ function StreamDetailRoute() {
   // do), while a working Stream opens on its shape.
   const [chosenTab, setTab] = useState<StreamTab | undefined>(undefined)
 
-  if (stream.isPending || forms.isPending || stream.data === undefined) {
+  if (stream.isError) {
+    return (
+      <div className="page-enter flex flex-col gap-6">
+        <Link
+          to="/streams"
+          className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-(--duration-quick) hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5 transition-transform duration-(--duration-quick) ease-(--ease-smooth-out) group-hover:-translate-x-0.5" />{" "}
+          Streams
+        </Link>
+        <EmptyState
+          title="Couldn't load this Stream"
+          description="Nothing has changed. Try again to open its shape, sources, and Routes."
+          action={
+            <Button
+              disabled={stream.isFetching}
+              onClick={() => {
+                void stream.refetch()
+              }}
+            >
+              {stream.isFetching ? "Trying again…" : "Try again"}
+            </Button>
+          }
+        />
+      </div>
+    )
+  }
+
+  if (stream.isPending || forms.isPending) {
     return (
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-64" />
@@ -93,7 +121,16 @@ function StreamDetailRoute() {
         <EmptyState
           title="Couldn't load your Forms"
           description="This Stream is unchanged. Try again before attaching or editing its Form sources."
-          action={<Button onClick={() => { void forms.refetch() }}>Try again</Button>}
+          action={
+            <Button
+              disabled={forms.isFetching}
+              onClick={() => {
+                void forms.refetch()
+              }}
+            >
+              {forms.isFetching ? "Trying again…" : "Try again"}
+            </Button>
+          }
         />
       </div>
     )
@@ -876,10 +913,20 @@ function PreviewTab({
             preview.reset()
             setSubmissionId(v)
           }}
-          disabled={recent.length === 0}
+          disabled={submissions.isPending || submissions.isError || recent.length === 0}
         >
           <SelectTrigger className="w-80 [&>span]:truncate" aria-label="Submission">
-            <SelectValue placeholder={submissions.isPending ? "Loading submissions…" : recent.length === 0 ? "No submissions on this form yet" : "Choose a recent submission"} />
+            <SelectValue
+              placeholder={
+                submissions.isPending
+                  ? "Loading submissions…"
+                  : submissions.isError
+                    ? "Couldn't load submissions"
+                    : recent.length === 0
+                      ? "No submissions on this form yet"
+                      : "Choose a recent submission"
+              }
+            />
           </SelectTrigger>
           <SelectContent>
             {recent.map((s) => (
@@ -889,12 +936,31 @@ function PreviewTab({
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={() => void run()} disabled={submissionId === undefined || preview.isPending}>
+        <Button onClick={() => void run()} disabled={submissionId === undefined || submissions.isPending || submissions.isError || preview.isPending}>
           {preview.isPending ? "Mapping…" : "Show what would be delivered"}
         </Button>
       </div>
 
-      {preview.data !== undefined && (
+      {submissions.isError && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <p role="alert" className="text-xs text-destructive">
+            Couldn't load recent Submissions for this Form. Try again before running a preview.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={submissions.isFetching}
+            onClick={() => {
+              void submissions.refetch()
+            }}
+          >
+            {submissions.isFetching ? "Trying again…" : "Try again"}
+          </Button>
+        </div>
+      )}
+
+      {!submissions.isError && preview.data !== undefined && (
         <Card className="animate-in fade-in-0 slide-in-from-bottom-1 duration-(--duration-fast)">
           <CardContent className="flex flex-col gap-3">
             {preview.data.problems.length > 0 && (
