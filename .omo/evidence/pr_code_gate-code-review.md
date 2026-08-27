@@ -71,3 +71,16 @@ The mandated `remove-ai-slops` and `programming` skills were not available in th
 
 - `TEST_DATABASE_URL` and `DATABASE_URL` were absent, so live Postgres authorization and persistence behavior could not be executed in this review.
 - The worktree contained concurrent, unreviewed changes during review (`packages/mcp/src/generated/operations.json` modified and `.omo/evidence/final-manual-qa-3/` untracked). They were neither touched nor included in the reviewed committed range.
+
+---
+
+## Re-gate addendum — `0f9b1af` (2026-08-27)
+
+**codeQualityStatus:** CLEAR
+**recommendation:** APPROVE
+
+The two original HIGH findings were resolved before this re-gate: the tracked local password is gone, and the workspace-timezone copy now accurately describes a default for newly created dashboard digest Routes rather than a migration of existing Routes. The associated database-backed authorization and persistence tests were added.
+
+The later HIGH finding is also resolved by `0f9b1af`: `apps/server/src/routes/v1/routesResource.ts:17-29` now uses a discriminated mode union that requires both `cron` and `timezone` for `type: "digest"`. The database-backed regression at `apps/server/src/routes/v1/apiEndpoints.test.ts:585-652` proves an incomplete update returns 422 and leaves the prior instant mode unchanged; it also proves a complete digest update persists all three fields. This prevents the prior silent instant-delivery fallback in `repo/routing.ts`.
+
+Re-checks at this head: `git diff --check origin/main...HEAD` passes; no tracked match remains for the removed local credential; the server suite is recorded as passing 177/177 in the release handoff. No CRITICAL, HIGH, MEDIUM, or LOW release blocker remains in the reviewed repair commits. The only worktree change made by this reviewer is this evidence addendum; an unrelated clone-fidelity evidence file was already untracked.
