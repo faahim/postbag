@@ -129,7 +129,7 @@ export const ERROR_CODES = [
     code: "plan_limit_reached",
     status: 402,
     hint: "Change plan limits or remove an unused resource.",
-    more: "Forms and destinations are checked at creation. Submissions over the monthly limit are still stored and flagged; delivery pauses until the plan allows.",
+    more: "Forms and destinations are checked at creation. Submissions over the monthly limit are still stored and flagged. Once the plan allows, a manager releases each held Submission to queue Delivery.",
   },
   {
     code: "billing_disabled",

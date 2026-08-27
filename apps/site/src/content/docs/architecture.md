@@ -46,7 +46,7 @@ Adding a destination type is adding one file implementing this. Webhook is the r
 
 ## Multi-tenancy
 
-`organization_id` on every tenant table; repositories take an organization scope and refuse to run without one. Row-level security policies and a `postbag_app` role ship in the migrations as a second fence. Public submit runs on a narrow, audited path. Plan limits are checked at creation (forms, destinations) and counted per month (submissions) with soft-fail: over-limit submissions are stored and flagged, delivery pauses until the plan allows.
+`organization_id` on every tenant table; repositories take an organization scope and refuse to run without one. Row-level security policies and a `postbag_app` role ship in the migrations as a second fence. Public submit runs on a narrow, audited path. Plan limits are checked at creation (forms, destinations) and counted per month (submissions) with soft-fail: over-limit Submissions are stored and flagged. After capacity returns, a manager explicitly releases each one to queue Delivery.
 
 ## Observability
 
