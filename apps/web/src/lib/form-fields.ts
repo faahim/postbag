@@ -10,6 +10,8 @@ export function useFormKnownFields(formId: string | undefined): {
   readonly required: readonly string[]
   readonly properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>
   readonly pending: boolean
+  readonly failed: boolean
+  readonly retry: () => void
 } {
   const schema = useFormSchema(formId)
   const submissions = useFormSubmissions(formId)
@@ -25,5 +27,10 @@ export function useFormKnownFields(formId: string | undefined): {
     required: jsonSchema?.required ?? [],
     properties,
     pending: formId !== undefined && (schema.isPending || submissions.isPending),
+    failed: schema.isError || submissions.isError,
+    retry: () => {
+      void schema.refetch()
+      void submissions.refetch()
+    },
   }
 }

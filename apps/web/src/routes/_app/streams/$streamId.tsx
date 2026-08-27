@@ -20,6 +20,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PostbagApiError, toastApiError } from "@/lib/api"
 import { useFormKnownFields } from "@/lib/form-fields"
 import { formatDateTime } from "@/lib/format"
+import {
+  formatMappingConstant,
+  initialMappingConstant,
+  mappingRuleWithConstant,
+  parseMappingConstant,
+  type JsonSchemaProperty,
+} from "@/lib/mapping-constants"
 import { useAllForms } from "@/lib/queries/forms"
 import { useFormSubmissions } from "@/lib/queries/submissions"
 import { formsForSources, selectorDescription, sourceMatchesForm } from "@/lib/stream-sources"
@@ -38,7 +45,7 @@ type Source = {
   readonly id: string
   readonly form_id?: string
   readonly selector?: string
-  readonly mapping: Readonly<Record<string, { readonly from?: string; readonly const?: unknown }>>
+  readonly mapping: Readonly<Record<string, { readonly from?: string; readonly const?: unknown; readonly default?: unknown; readonly expr?: string }>>
   readonly mapping_status: "valid" | "incomplete"
   readonly missing: readonly string[]
 }
@@ -74,8 +81,9 @@ function StreamDetailRoute() {
 
   const streamData = stream.data
   const schema = streamData.schema
-  const schemaProps = schema?.json_schema as { properties?: Record<string, unknown>; required?: string[] } | undefined
-  const streamFields = Object.keys(schemaProps?.properties ?? {})
+  const schemaProps = schema?.json_schema as { properties?: Record<string, JsonSchemaProperty>; required?: string[] } | undefined
+  const streamProperties = schemaProps?.properties ?? {}
+  const streamFields = Object.keys(streamProperties)
   const requiredFields = schemaProps?.required ?? []
   const sources = (streamData.sources ?? []) as unknown as readonly Source[]
   const routeCount = streamData.routes?.length ?? streamData.counts.routes
@@ -179,6 +187,7 @@ function StreamDetailRoute() {
                 streamId={streamId}
                 streamFields={streamFields}
                 requiredFields={requiredFields}
+                streamProperties={streamProperties}
                 sources={sources}
                 formsById={formsById}
                 allForms={allForms}
@@ -399,6 +408,7 @@ function SourcesTab({
   streamId,
   streamFields,
   requiredFields,
+  streamProperties,
   sources,
   formsById,
   allForms,
@@ -406,6 +416,7 @@ function SourcesTab({
   readonly streamId: string
   readonly streamFields: readonly string[]
   readonly requiredFields: readonly string[]
+  readonly streamProperties: Readonly<Record<string, JsonSchemaProperty>>
   readonly sources: readonly Source[]
   readonly formsById: ReadonlyMap<string, string>
   readonly allForms: readonly FormRef[]
@@ -439,12 +450,19 @@ function SourcesTab({
               forms={allForms}
               streamFields={streamFields}
               requiredFields={requiredFields}
+              streamProperties={streamProperties}
             />
           ))}
         </div>
       )}
 
-      <AttachFormPanel streamId={streamId} streamFields={streamFields} requiredFields={requiredFields} attachable={attachable} />
+      <AttachFormPanel
+        streamId={streamId}
+        streamFields={streamFields}
+        requiredFields={requiredFields}
+        streamProperties={streamProperties}
+        attachable={attachable}
+      />
     </div>
   )
 }
@@ -456,6 +474,7 @@ function SourceCard({
   forms,
   streamFields,
   requiredFields,
+  streamProperties,
 }: {
   readonly streamId: string
   readonly source: Source
@@ -463,6 +482,7 @@ function SourceCard({
   readonly forms: readonly FormRef[]
   readonly streamFields: readonly string[]
   readonly requiredFields: readonly string[]
+  readonly streamProperties: Readonly<Record<string, JsonSchemaProperty>>
 }) {
   const known = useFormKnownFields(source.form_id)
   const removeSource = useRemoveStreamSource(streamId)
@@ -527,6 +547,7 @@ function SourceCard({
               sourceId={source.id}
               streamFields={streamFields}
               requiredFields={requiredFields}
+              streamProperties={streamProperties}
               formFields={known.fields}
               initialMapping={source.mapping}
               missing={source.missing}
@@ -559,16 +580,19 @@ function AttachFormPanel({
   streamId,
   streamFields,
   requiredFields,
+  streamProperties,
   attachable,
 }: {
   readonly streamId: string
   readonly streamFields: readonly string[]
   readonly requiredFields: readonly string[]
+  readonly streamProperties: Readonly<Record<string, JsonSchemaProperty>>
   readonly attachable: readonly FormRef[]
 }) {
   const addSource = useAddStreamSource(streamId)
   const [pendingFormId, setPendingFormId] = useState<string | undefined>(undefined)
   const [mapping, setMapping] = useState<MappingDraft>({})
+  const [constDrafts, setConstDrafts] = useState<Record<string, string>>({})
   const [serverMissing, setServerMissing] = useState<readonly string[]>([])
   const known = useFormKnownFields(pendingFormId)
   const seededFor = useRef<string | undefined>(undefined)
@@ -576,15 +600,17 @@ function AttachFormPanel({
 
   // Pre-match same-named fields once the form's fields are known (one-shot per selection).
   useEffect(() => {
-    if (pendingFormId === undefined || known.pending || seededFor.current === pendingFormId) return
+    if (pendingFormId === undefined || known.pending || known.failed || seededFor.current === pendingFormId) return
     seededFor.current = pendingFormId
     setMapping(identityDraft(streamFields, known.fields))
-  }, [pendingFormId, known.pending, known.fields, streamFields])
+  }, [pendingFormId, known.pending, known.failed, known.fields, streamFields])
 
   function selectForm(id: string) {
     setPendingFormId(id)
     setMapping({})
+    setConstDrafts({})
     setServerMissing([])
+    seededFor.current = undefined
   }
 
   function onSelect(field: string, value: string) {
@@ -592,7 +618,10 @@ function AttachFormPanel({
     if (value === UNMAPPED) {
       setMapping((m) => Object.fromEntries(Object.entries(m).filter(([key]) => key !== field)))
     } else if (value === CONST) {
-      setMapping((m) => ({ ...m, [field]: { const: "" } }))
+      const raw = initialMappingConstant(streamProperties[field])
+      const parsed = parseMappingConstant(raw, streamProperties[field])
+      setConstDrafts((drafts) => ({ ...drafts, [field]: raw }))
+      setMapping((m) => ({ ...m, [field]: mappingRuleWithConstant(m[field], parsed.ok ? parsed.value : raw) }))
     } else {
       setMapping((m) => ({ ...m, [field]: { from: value.replace("field:", "") } }))
     }
@@ -607,6 +636,7 @@ function AttachFormPanel({
       })
       setPendingFormId(undefined)
       setMapping({})
+      setConstDrafts({})
       setServerMissing([])
       seededFor.current = undefined
     } catch (error) {
@@ -631,6 +661,15 @@ function AttachFormPanel({
   }
 
   const matched = streamFields.filter((f) => mapping[f] !== undefined).length
+  const fieldsReady = streamFields.length === 0 || (!known.pending && !known.failed && seededFor.current === pendingFormId)
+  const constantErrors = Object.fromEntries(
+    streamFields.flatMap((field) => {
+      if (mapping[field]?.const === undefined) return []
+      const raw = constDrafts[field] ?? formatMappingConstant(mapping[field].const)
+      const parsed = parseMappingConstant(raw, streamProperties[field])
+      return parsed.ok ? [] : [[field, parsed.message]]
+    }),
+  )
 
   return (
     <div className="flex flex-col gap-3">
@@ -650,11 +689,11 @@ function AttachFormPanel({
         <Button
           variant={pendingFormId === undefined ? "outline" : "default"}
           className="gap-1.5"
-          disabled={pendingFormId === undefined || addSource.isPending}
+          disabled={pendingFormId === undefined || !fieldsReady || addSource.isPending || Object.keys(constantErrors).length > 0}
           onClick={() => void attach()}
         >
           <Plus className="size-4" />
-          {addSource.isPending ? "Attaching…" : "Attach form"}
+          {addSource.isPending ? "Attaching…" : known.pending ? "Reading fields…" : "Attach form"}
         </Button>
       </div>
 
@@ -676,6 +715,12 @@ function AttachFormPanel({
               Same-named fields are matched already. Required fields need something pointing at them before the form can join; optional
               ones can stay unmatched and simply arrive empty.
             </p>
+            {known.failed && (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+                <p role="alert" className="text-xs text-destructive">Couldn't read this Form's fields, so it hasn't been attached.</p>
+                <Button type="button" variant="outline" size="sm" onClick={known.retry}>Try again</Button>
+              </div>
+            )}
             <div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
               {streamFields.map((field) => {
                 const required = requiredFields.includes(field)
@@ -683,8 +728,8 @@ function AttachFormPanel({
                 const rule = mapping[field]
                 const current = rule === undefined ? UNMAPPED : rule.const !== undefined ? CONST : rule.from !== undefined ? `field:${rule.from}` : UNMAPPED
                 return (
-                  <div key={field} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                    <div className="flex items-center gap-2">
+                  <div key={field} className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                       <span className="font-mono text-sm">{field}</span>
                       {required && <Badge variant={isMissing ? "destructive" : "outline"}>{isMissing ? "missing" : "required"}</Badge>}
                     </div>
@@ -694,8 +739,13 @@ function AttachFormPanel({
                           className="h-8 w-36"
                           placeholder="value"
                           aria-label={`Fixed value for ${field}`}
+                          aria-invalid={constantErrors[field] !== undefined}
+                          value={constDrafts[field] ?? formatMappingConstant(rule?.const)}
                           onChange={(e) => {
-                            setMapping((m) => ({ ...m, [field]: { const: e.target.value } }))
+                            const raw = e.target.value
+                            const parsed = parseMappingConstant(raw, streamProperties[field])
+                            setConstDrafts((drafts) => ({ ...drafts, [field]: raw }))
+                            setMapping((m) => ({ ...m, [field]: mappingRuleWithConstant(m[field], parsed.ok ? parsed.value : raw) }))
                           }}
                         />
                       )}
@@ -713,6 +763,9 @@ function AttachFormPanel({
                           ))}
                         </SelectContent>
                       </Select>
+                      {constantErrors[field] !== undefined && (
+                        <p role="alert" className="max-w-48 text-xs text-destructive">{constantErrors[field]}</p>
+                      )}
                     </div>
                   </div>
                 )
