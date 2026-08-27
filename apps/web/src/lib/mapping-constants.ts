@@ -15,6 +15,10 @@ export type ParsedConstant =
 
 const mappingSchemaContextKey = "__postbag_mapping_stream_schema"
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
 function matchesType(value: unknown, type: string): boolean {
   if (type === "null") return value === null
   if (type === "array") return Array.isArray(value)
@@ -27,20 +31,22 @@ function escapeJsonPointerSegment(segment: string): string {
   return segment.replaceAll("~", "~0").replaceAll("/", "~1")
 }
 
-function rebaseLocalReferences(value: unknown, prefix: string): unknown {
-  if (Array.isArray(value)) return value.map((item) => rebaseLocalReferences(item, prefix))
-  if (typeof value !== "object" || value === null) return value
+function rebaseLocalReferences(value: unknown, prefix: string, isRoot = true): unknown {
+  if (Array.isArray(value)) return value.map((item) => rebaseLocalReferences(item, prefix, false))
+  if (!isRecord(value)) return value
+
+  if (!isRoot && typeof value["$id"] === "string") return value
 
   return Object.fromEntries(
     Object.entries(value).flatMap(([key, nested]) => {
       // The copied root is an internal subschema, so its original resource identifier must
       // not change where its local references start resolving.
-      if (key === "$id") return []
+      if (isRoot && key === "$id") return []
       if ((key === "$ref" || key === "$dynamicRef") && typeof nested === "string") {
         if (nested === "#") return [[key, prefix]]
         if (nested.startsWith("#/")) return [[key, `${prefix}${nested.slice(1)}`]]
       }
-      return [[key, rebaseLocalReferences(nested, prefix)]]
+      return [[key, rebaseLocalReferences(nested, prefix, false)]]
     }),
   )
 }
@@ -50,6 +56,12 @@ function validationSchema(
   root: JsonSchemaRoot | undefined,
   propertyName: string | undefined,
 ): JsonSchemaRoot {
+  // A property with its own identifier is already a complete Schema resource. Validate
+  // that resource directly so its `#…` references keep their original local boundary.
+  if (typeof property["$id"] === "string") {
+    return Object.fromEntries(Object.entries(property).filter(([key]) => key !== "$id"))
+  }
+
   if (root !== undefined && propertyName !== undefined) {
     const prefix = `#/$defs/${mappingSchemaContextKey}`
     return {

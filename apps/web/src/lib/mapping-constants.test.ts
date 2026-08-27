@@ -56,6 +56,24 @@ describe("mapping constants", () => {
     expect(parseMappingConstant("0", root.properties.alias, root, "alias").ok).toBe(false)
   })
 
+  it("keeps local references inside nested Schema resources", () => {
+    const root = {
+      $id: "https://example.test/stream-schema",
+      $defs: { value: { type: "integer" } },
+      type: "object",
+      properties: {
+        nested: {
+          $id: "nested-value",
+          $defs: { value: { type: "string", minLength: 3 } },
+          $ref: "#/$defs/value",
+        },
+      },
+    }
+
+    expect(parseMappingConstant("ready", root.properties.nested, root, "nested")).toEqual({ ok: true, value: "ready" })
+    expect(parseMappingConstant("2", root.properties.nested, root, "nested").ok).toBe(false)
+  })
+
   it("returns a validation result when a local reference cannot resolve", () => {
     const root = { type: "object", properties: { alias: { $ref: "#/properties/missing" } } }
 
