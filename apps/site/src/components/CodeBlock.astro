@@ -35,8 +35,9 @@ const { code, lang = "text", title, class: className = "", copy = true, dense = 
   <pre class="hidden" data-raw>{code}</pre>
 </figure>
 <script>
-  const copiedHoldRaw = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--duration-copied-hold"))
-  const copiedHold = Number.isFinite(copiedHoldRaw) ? copiedHoldRaw : 1600
+  import { readCssDurationMs } from "@/scripts/css-duration"
+
+  const copiedHold = readCssDurationMs(getComputedStyle(document.documentElement), "--duration-copied-hold", 1600)
   document.querySelectorAll<HTMLElement>("[data-codeblock]").forEach((block) => {
     const btn = block.querySelector<HTMLButtonElement>("[data-copy]")
     const swap = btn?.querySelector<HTMLElement>(".t-icon-swap") ?? null
