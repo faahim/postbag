@@ -189,7 +189,7 @@ Access to production data is limited to the operator, ${LEGAL.operator}, who is 
 
 ## Security measures
 
-TLS in transit; HMAC-SHA256-signed webhook deliveries; API keys stored as hashes, never in plaintext; every tenant row scoped by organization at the application level, with a database-level second fence (Postgres row-level security) being rolled out; daily backups retained for 14 days.
+TLS in transit; HMAC-SHA256 webhook signing when a secret is configured; API keys stored as hashes, never in plaintext; every tenant row scoped by organization at the application level, with a database-level second fence (Postgres row-level security) being rolled out; daily backups retained for 14 days.
 
 ## Sub-processors
 

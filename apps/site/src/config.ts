@@ -104,8 +104,8 @@ export const DESTINATIONS = [
   { id: "telegram", name: "Telegram", blurb: "A message in your chat the moment something arrives. Lovely for the phone-first life." },
   {
     id: "webhook",
-    name: "Signed webhook",
-    blurb: "For everything else: a signed nudge to any URL you own. Your CRM, your Slack bot, your weekend project.",
+    name: "Webhook",
+    blurb: "For everything else: a retried nudge to any URL you own. Add a secret when the receiver should verify it.",
   },
 ] as const
 

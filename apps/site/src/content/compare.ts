@@ -27,7 +27,7 @@ const PB = {
   free: "5 forms, 1,000 submissions/month, 5 destinations, 90-day retention",
   paid: "Pro $15/month ($12/month billed yearly); Team $49/month ($39/month billed yearly)",
   api: "Your agent can create, inspect and manage forms from one API",
-  webhooks: "Yes, signed; retries stay visible and can be sent again",
+  webhooks: "Yes; HMAC-signed when a secret is configured, with visible retries",
   email: "Yes (Resend), Reply-To from the submission",
   chat: "Telegram today; Slack and Discord next",
   spam: "Honeypot, rate limits, approved origins and Cloudflare Turnstile; flagged messages stay available to review",
@@ -47,7 +47,7 @@ export const COMPETITORS: Competitor[] = [
     site: "https://formspree.io/",
     sources: [ { label: "formspree.io/plans", href: "https://formspree.io/plans" }, { label: "Verify webhook signatures", href: "https://help.formspree.io/articles/advanced-features/verify-webhook-signatures" }, { label: "The Formspree CLI", href: "https://help.formspree.io/hc/en-us/articles/360053819114-The-Formspree-CLI" } ],
     title: "Postbag vs Formspree: forms that stay put and go where you need them",
-    description: "Compare Postbag and Formspree: plans, API access, signed webhooks, spam protection, self-hosting, multi-site setup and agent support.",
+    description: "Compare Postbag and Formspree: plans, API access, webhook signing, spam protection, self-hosting, multi-site setup and agent support.",
     lede: "Formspree is a good fit for one site and one inbox. Postbag gives your forms more places to go.",
     summary: "Both accept HTML forms and send email. Formspree keeps its API and webhooks on paid tiers and is closed source. Postbag gives your agent the full setup from the free plan, keeps messages on the record, and can run on your own infrastructure.",
     rows: [
@@ -81,7 +81,7 @@ export const COMPETITORS: Competitor[] = [
     title: "Postbag vs Formspark: signed sending and room to grow",
     description: "Compare Postbag and Formspark: pricing, API access, webhook signing, spam protection, self-hosting, multi-site setup and agent support.",
     lede: "Formspark is a tidy, one-time-price choice for simple forms. Postbag is for forms you want to keep close.",
-    summary: "Formspark has a form API and strong spam options, but its webhooks are explicitly unsigned. Postbag signs them, keeps sending attempts visible, helps many sites feed one place, and can run on your own infrastructure.",
+    summary: "Formspark has a form API and strong spam options, but its webhooks are explicitly unsigned. Postbag can sign them when you configure a secret, keeps sending attempts visible, helps many sites feed one place, and can run on your own infrastructure.",
     rows: [
       { label: "Free tier", postbag: PB.free, them: "250 submissions, 10 forms (Formspark pricing)" },
       { label: "Entry paid", postbag: PB.paid, them: "One-time bundle: 50,000 submissions / 100 forms (currently $25)" },
@@ -143,7 +143,7 @@ export const COMPETITORS: Competitor[] = [
     site: "https://usebasin.com/",
     sources: [ { label: "usebasin.com/pricing", href: "https://usebasin.com/pricing" }, { label: "API reference", href: "https://docs.usebasin.com/developer-features/api-reference/" }, { label: "Webhooks (signed)", href: "https://docs.usebasin.com/integrations/webhooks/" } ],
     title: "Postbag vs Basin: form messages that have a place to land",
-    description: "Compare Postbag and Basin: free tiers, APIs, signed webhooks, spam filters, uploads, agency features, self-hosting and agent support.",
+    description: "Compare Postbag and Basin: free tiers, APIs, webhook signing, spam filters, uploads, agency features, self-hosting and agent support.",
     lede: "Basin is a mature lead-capture platform. Postbag gives your agent the full form setup from the start.",
     summary: "Basin signs webhooks and has projects and an API, which makes it a close comparison. Postbag keeps every message and sending attempt together, lets an agent run the setup from the free plan, and can run on your own infrastructure.",
     rows: [
@@ -161,7 +161,7 @@ export const COMPETITORS: Competitor[] = [
       { label: "For AI agents", postbag: PB.agents, them: "llms.txt; AI lead features; no MCP or CLI found" },
     ],
     whenThem: ["You want SMS alerts and lead-qualification features out of the box.", "You need uploads and many captcha options."],
-    whenUs: ["You want signed webhooks and an API on the free tier.", "Many forms with different field names should arrive neatly in one place, on a schedule that suits you.", "You need self-hosting or agent-run setup."],
+    whenUs: ["You want webhook signing and an API on the free tier.", "Many forms with different field names should arrive neatly in one place, on a schedule that suits you.", "You need self-hosting or agent-run setup."],
     faqs: [
       { q: "Do both sign webhooks?", a: "Yes. Basin uses X-Basin-Signature on its Growth+ tiers; Postbag uses Postbag-Signature (t=…,v1=…) on every plan." },
     ],
@@ -224,7 +224,7 @@ export const COMPETITORS: Competitor[] = [
       { label: "For AI agents", postbag: PB.agents, them: "No forms-specific agent surface found" },
     ],
     whenThem: ["Every site you run is on Netlify and you want zero extra services.", "You need uploads and Akismet with no setup."],
-    whenUs: ["Your sites live on different hosts, or might move.", "You need a management API, signed webhooks, or routing across sites.", "An agent is building the site and should wire the form itself.", "You want to self-host."],
+    whenUs: ["Your sites live on different hosts, or might move.", "You need a management API, webhook signing, or routing across sites.", "An agent is building the site and should wire the form itself.", "You want to self-host."],
     faqs: [
       { q: "Can I use Postbag on a Netlify site?", a: "Yes. Point the form's action at your Postbag submit URL. Postbag does not care where the site is hosted." },
     ],

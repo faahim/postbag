@@ -94,7 +94,7 @@ Turning public creation off stops new sandboxes. Existing claim and retention cl
 Receiving a Submission does not require an outbound provider. Delivery does. Configure the relevant provider, then create both a Destination and a Route.
 
 - Email uses `RESEND_API_KEY` and `MAIL_FROM`.
-- Telegram and signed webhooks store their own Destination configuration.
+- Telegram and webhook secrets store their own Destination configuration.
 - A Destination without a Route can be tested directly, but it receives no Form Submissions.
 - A Form without a Destination and Route still stores incoming Submissions.
 

@@ -16,7 +16,7 @@ const terms = [
   { t: "Stream", label: "Stream", d: "A named group of Forms with one shared, versioned output shape. It lets many Forms feed the same downstream contract." },
   { t: "Stream Schema", label: "What gets delivered", d: "The immutable outbound contract shared by a Stream. A new version revalidates every Mapping." },
   { t: "Mapping", label: "Match fields", d: "The assignment from Form fields to Stream fields. Unmapped values can travel under extras; a Mapping is either valid or incomplete." },
-  { t: "Destination", d: "Somewhere Submissions can be sent, such as email, Telegram or a signed webhook. A Destination belongs to the Organization and can be reused." },
+  { t: "Destination", d: "Somewhere Submissions can be sent, such as email, Telegram or a webhook. Add a secret when the receiver should verify its HMAC signature. A Destination belongs to the Organization and can be reused." },
   { t: "Route", label: "Send to", d: "The connection from a Form or Stream to a Destination, with mode, timing, quality rules and an enabled state." },
   { t: "Delivery", d: "One attempt-tracked send of one Submission through one Route. It keeps its payload snapshot, status, attempts, last error and provider response." },
   { t: "Digest", d: "For a digest Route, one Delivery that groups a period's Submissions. It is unique for that Route and period." },

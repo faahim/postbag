@@ -85,4 +85,4 @@ func verifyPostbag(secret, header string, rawBody []byte, tolerance time.Duratio
 
 ## Organization system webhooks
 
-Separate from route destinations, `POST /v1/webhooks { url, events[], secret? }` subscribes to organization events (`submission.received`, `delivery.dead`, `form.schema.changed`, `stream.schema.changed`, `drift.detected`, `destination.failing`, …). Dispatch is triggered from Postgres; deliveries are listed at `GET /v1/webhooks/{id}/deliveries` and signed the same way.
+Separate from route destinations, `POST /v1/webhooks { url, events[], secret? }` subscribes to organization events (`submission.received`, `delivery.dead`, `form.schema.changed`, `stream.schema.changed`, `drift.detected`, `destination.failing`, …). Dispatch is triggered from Postgres; deliveries are listed at `GET /v1/webhooks/{id}/deliveries` and signed the same way when a secret is configured.

@@ -9,6 +9,7 @@ export function useFormKnownFields(formId: string | undefined): {
   readonly fields: readonly string[]
   readonly required: readonly string[]
   readonly properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>
+  readonly jsonSchema: Readonly<Record<string, unknown>> | undefined
   readonly pending: boolean
   readonly failed: boolean
   readonly retry: () => void
@@ -26,6 +27,7 @@ export function useFormKnownFields(formId: string | undefined): {
     fields: Array.from(new Set([...fromSchema, ...fromSubmission])),
     required: jsonSchema?.required ?? [],
     properties,
+    jsonSchema,
     pending: formId !== undefined && (schema.isPending || submissions.isPending),
     failed: schema.isError || submissions.isError,
     retry: () => {

@@ -6,10 +6,12 @@ describe("dashboard schema editing", () => {
   it("seeds a Stream with published Form property constraints intact", () => {
     const seeded = schemaFromKnownFields(
       ["age", "email", "observed"],
-      ["email"],
       {
-        age: { type: "integer", minimum: 0 },
-        email: { type: "string", format: "email" },
+        properties: {
+          age: { type: "integer", minimum: 0 },
+          email: { type: "string", format: "email" },
+        },
+        required: ["email"],
       },
     )
 
@@ -19,6 +21,24 @@ describe("dashboard schema editing", () => {
       observed: { type: "string" },
     })
     expect(buildEditedSchema(editableFieldsFromSchema(seeded, undefined), seeded)["properties"]).toEqual(seeded["properties"])
+  })
+
+  it("carries definitions referenced by published Form properties", () => {
+    const published = {
+      $defs: { email: { type: "string", format: "email" } },
+      properties: { email: { $ref: "#/$defs/email" } },
+      required: ["email"],
+      additionalProperties: false,
+    }
+
+    const seeded = schemaFromKnownFields(["email", "observed"], published)
+
+    expect(seeded).toMatchObject({
+      $defs: published.$defs,
+      properties: { email: published.properties.email, observed: { type: "string" } },
+      required: ["email"],
+      additionalProperties: false,
+    })
   })
 
   it("replaces editable fields without dropping advanced top-level constraints", () => {

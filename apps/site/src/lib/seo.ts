@@ -45,7 +45,7 @@ export function softwareLd() {
     featureList: [
       "One Form submit URL accepting JSON, urlencoded and multipart",
       "Every submission stored with a status before delivery; nothing is dropped",
-      "Email, Telegram and HMAC-signed webhook destinations",
+      "Email, Telegram and webhook destinations with optional HMAC signing",
       "Routes with digest mode, delivery windows and quality rules",
       "Streams: many forms mapped onto one versioned output schema",
       "Schema versions, drift detection and inference",

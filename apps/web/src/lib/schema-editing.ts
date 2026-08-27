@@ -90,14 +90,17 @@ export function retainUiHints(
  * Fields known only from observed Submissions receive the minimal string fallback. */
 export function schemaFromKnownFields(
   fields: readonly string[],
-  required: readonly string[],
-  properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>,
+  published: Readonly<Record<string, unknown>> | undefined,
 ): Record<string, unknown> {
+  const properties = (published?.["properties"] ?? {}) as Readonly<
+    Record<string, Readonly<Record<string, unknown>>>
+  >
   return {
-    $schema: "https://json-schema.org/draft/2020-12/schema",
+    ...published,
+    $schema: published?.["$schema"] ?? "https://json-schema.org/draft/2020-12/schema",
     type: "object",
     properties: Object.fromEntries(fields.map((name) => [name, properties[name] ?? { type: "string" }])),
-    required,
-    additionalProperties: true,
+    required: published?.["required"] ?? [],
+    additionalProperties: published?.["additionalProperties"] ?? true,
   }
 }

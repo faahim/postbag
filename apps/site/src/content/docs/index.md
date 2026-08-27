@@ -6,7 +6,7 @@ section: Start
 modified: "2026-08-24"
 ---
 
-Postbag is the open-source form backend built for agents. A website posts to a stable Form URL. Postbag saves every Submission first, then Routes it to email, Telegram, a signed webhook, or another Destination.
+Postbag is the open-source form backend built for agents. A website posts to a stable Form URL. Postbag saves every Submission first, then Routes it to email, Telegram, a webhook, or another Destination. Add a secret when the receiver should verify an HMAC signature.
 
 An agent can create and test a bounded sandbox Form before you sign up. When the work is ready to keep, claim the same Form, add a Destination and Route, and send a new Submission to verify Delivery.
 
