@@ -21,15 +21,16 @@ the rules and `docs/` for the design.
   anonymous sandbox/claim contract, public GitHub repository and
   published npm clients. Static gates, 164 tests, production builds and settled browser checks at desktop/tablet/mobile
   are green on the branch; merge and production deployment remain intentionally pending.
-- **Attachments in progress 2026-08-30:** the attachment release is being implemented
-  end to end: bounded multipart receipt, tenant-scoped metadata, private
-  S3-compatible object storage, authenticated download, signed Delivery links,
-  retained-storage limits and durable deletion retry. Hosted limits are Free 2 MiB
-  per attachment / 3 per Submission / 100 MiB retained; Pro 10 MiB / 10 / 10 GiB;
-  Team 15 MiB / 20 / 100 GiB. Every multipart request has a 16 MiB aggregate body
-  ceiling; self-host limits are configurable. No attachment
-  path, storage configuration, migration, client contract, deployment or live
-  canary is claimed complete until its final verification is recorded.
+- **Attachments live 2026-08-30:** PR #11 / merge `74be72f` shipped bounded multipart
+  receipt, tenant-scoped metadata, private S3-compatible object storage, authenticated
+  download, signed Delivery links, retained-storage limits and durable deletion retry.
+  Hosted limits are Free 2 MiB per attachment / 3 per Submission / 100 MiB retained;
+  Pro 10 MiB / 10 / 10 GiB; Team 15 MiB / 20 / 100 GiB. Every multipart request has a
+  16 MiB aggregate body ceiling; self-host limits are configurable. CI, a full local
+  DB-backed 384-test suite, migration, generated contracts and production builds passed;
+  Coolify deployment `equipskvrvi5fksstibepeck` became healthy on the exact merge SHA.
+  The live canary proved multipart receipt -> `fl_` metadata -> authenticated signed R2
+  download -> exact byte match -> Submission/Form deletion -> scheduled object removal.
 - **Anonymous claimable quickstart live 2026-08-23 (ADR-008/009):** `ANONYMOUS_QUICKSTART_ENABLED=true`. Merge `54c4fd8`
   shipped the bounded 24-hour sandbox flow; closeout `b273d46` and API-key-name validation fix `bed1ebd` are deployed
   (`loqdcusasbxdn106nvgrsgu7`, `wqahvskwleapheboflsy0bin`, `mi1vbrf4wdgurxlgldp9hbuh`). Local Postgres, 308 tests,
