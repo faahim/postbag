@@ -20,6 +20,7 @@ import { createLogger, type Logger } from "./logger.js"
 import type { AppEnv } from "./lib/scope.js"
 import type { AnyDestinationAdapter } from "./destinations/types.js"
 import type { BillingProvider } from "./lib/billingProvider.js"
+import type { ObjectStorage } from "./lib/objectStorage.js"
 
 export const TEST_DATABASE_URL = process.env["DATABASE_URL"]
 
@@ -39,6 +40,8 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     ANONYMOUS_SANDBOX_GLOBAL_LIMIT: 1000,
     POLAR_SERVER: "sandbox",
     POLAR_ACCESS_TOKEN: "polar_test",
+    STORAGE_REGION: "auto",
+    STORAGE_FORCE_PATH_STYLE: false,
     LEGACY_HOSTS: [],
     PLATFORM_ADMIN_EMAILS: [],
     ...overrides,
@@ -60,6 +63,7 @@ export function buildHarness(
   envOverrides: Partial<Env> = {},
   authOverrides: BuildAuthOverrides = {},
   billing?: BillingProvider | null,
+  storage?: ObjectStorage | null,
 ): TestHarness {
   const env = testEnv(envOverrides)
   const client = createDb(env.DATABASE_URL)
@@ -73,6 +77,7 @@ export function buildHarness(
     auth,
     destinations,
     ...(billing === undefined ? {} : { billing }),
+    ...(storage === undefined ? {} : { storage }),
   }
   const app = createApp(deps)
   return {

@@ -57,6 +57,13 @@
       "when": 1787875200000,
       "tag": "0007_luxuriant_la_nuit",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788030776751,
+      "tag": "0008_lean_junta",
+      "breakpoints": true
     }
   ]
 }

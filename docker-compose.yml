@@ -33,6 +33,9 @@ services:
       TZ: UTC
       MIGRATE_ON_BOOT: "true"
       MAIL_FROM: "Postbag <postbag@updates.withfaahim.com>"
+      # To enable attachments, add STORAGE_ENDPOINT, STORAGE_REGION, STORAGE_BUCKET,
+      # STORAGE_ACCESS_KEY_ID and STORAGE_SECRET_ACCESS_KEY for a private
+      # S3-compatible bucket. MinIO users usually also set STORAGE_FORCE_PATH_STYLE=true.
     ports:
       - "3000:3000"
 

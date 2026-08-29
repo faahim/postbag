@@ -698,6 +698,10 @@ components:
         - $ref: "#/components/schemas/Submission"
         - type: object
           properties:
+            attachments:
+              type: array
+              items:
+                $ref: "#/components/schemas/SubmissionAttachment"
             deliveries:
               type: array
               items:
@@ -707,6 +711,45 @@ components:
               items:
                 type: object
                 additionalProperties: {}
+    SubmissionAttachment:
+      type: object
+      properties:
+        id:
+          type: string
+          example: fm_8f3kq2
+        form_id:
+          type: string
+          example: fm_8f3kq2
+        submission_id:
+          type: string
+          example: fm_8f3kq2
+        field_name:
+          type: string
+        filename:
+          type: string
+        content_type:
+          type: string
+        size_bytes:
+          type: integer
+          minimum: 0
+        sha256:
+          type: string
+        download_url:
+          type: string
+        created_at:
+          type: string
+          example: 2026-08-21T09:00:00.000Z
+      required:
+        - id
+        - form_id
+        - submission_id
+        - field_name
+        - filename
+        - content_type
+        - size_bytes
+        - sha256
+        - download_url
+        - created_at
     Delivery:
       type: object
       properties:
@@ -982,6 +1025,86 @@ components:
         - sent_at
   parameters: {}
 paths:
+  /s/{formId}:
+    post:
+      operationId: submissions_submit
+      tags:
+        - submissions
+      summary: Receive a public Submission
+      description: Accepts JSON, URL-encoded data, or multipart form data. Multipart
+        file fields become fl_ references in Submission data. Anonymous sandbox
+        Forms do not accept files.
+      security: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: formId
+          in: path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      responses:
+        "200":
+          description: Submission accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  submission_id:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - received
+                      - quarantined
+                      - spam
+                  idempotent:
+                    type: boolean
+                  deliveries:
+                    type: array
+                    items:
+                      type: string
+                  attachments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                      required:
+                        - id
+                required:
+                  - ok
+                  - submission_id
+                  - status
+        "303":
+          description: Browser form redirect after acceptance
+        "400":
+          description: Malformed request
+        "402":
+          description: Retained attachment storage limit reached
+        "413":
+          description: Body, attachment size, or attachment count limit exceeded
+        "422":
+          description: Validation failed
+        "503":
+          description: Attachment storage unavailable
   /v1/auth/providers:
     get:
       operationId: auth_providers
@@ -1760,6 +1883,12 @@ paths:
                         type: integer
                       retention_days:
                         type: integer
+                      attachment_max_bytes:
+                        type: integer
+                      attachments_per_submission:
+                        type: integer
+                      attachment_storage_bytes:
+                        type: integer
                       used:
                         type: object
                         properties:
@@ -1767,14 +1896,20 @@ paths:
                             type: integer
                           submissions_this_month:
                             type: integer
+                          attachment_storage_bytes:
+                            type: integer
                         required:
                           - forms
                           - submissions_this_month
+                          - attachment_storage_bytes
                     required:
                       - forms
                       - submissions_per_month
                       - destinations
                       - retention_days
+                      - attachment_max_bytes
+                      - attachments_per_submission
+                      - attachment_storage_bytes
                       - used
                   next:
                     type: array
@@ -4622,6 +4757,69 @@ paths:
                 $ref: "#/components/schemas/ErrorEnvelope"
         "422":
           description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/attachments/{attachmentId}/download:
+    get:
+      operationId: attachments_download
+      tags:
+        - submissions
+      summary: Download a Submission attachment
+      description: Authorizes the organization, then redirects to a private URL valid
+        for 15 minutes.
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: attachmentId
+          in: path
+      responses:
+        "302":
+          description: Temporary private download URL
+          headers:
+            Location:
+              schema:
+                type: string
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "503":
+          description: Attachment storage unavailable
           content:
             application/json:
               schema:

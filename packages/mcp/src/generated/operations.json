@@ -1,5 +1,29 @@
 [
   {
+    "operationId": "submissions_submit",
+    "method": "post",
+    "path": "/s/{formId}",
+    "summary": "Receive a public Submission",
+    "description": "Accepts JSON, URL-encoded data, or multipart form data. Multipart file fields become fl_ references in Submission data. Anonymous sandbox Forms do not accept files.",
+    "tags": [
+      "submissions"
+    ],
+    "params": [
+      {
+        "name": "formId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "body": {
+      "type": "object",
+      "additionalProperties": {}
+    }
+  },
+  {
     "operationId": "auth_providers",
     "method": "get",
     "path": "/v1/auth/providers",
@@ -1727,6 +1751,27 @@
     "params": [
       {
         "name": "submissionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "body": null
+  },
+  {
+    "operationId": "attachments_download",
+    "method": "get",
+    "path": "/v1/attachments/{attachmentId}/download",
+    "summary": "Download a Submission attachment",
+    "description": "Authorizes the organization, then redirects to a private URL valid for 15 minutes.",
+    "tags": [
+      "submissions"
+    ],
+    "params": [
+      {
+        "name": "attachmentId",
         "in": "path",
         "required": true,
         "schema": {

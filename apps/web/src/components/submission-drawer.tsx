@@ -1,4 +1,12 @@
-import { AlertTriangle, ChevronDown, ShieldCheck, ShieldOff, Trash2 } from "lucide-react"
+import {
+  AlertTriangle,
+  ChevronDown,
+  Download,
+  Paperclip,
+  ShieldCheck,
+  ShieldOff,
+  Trash2,
+} from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -8,18 +16,31 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { headline } from "@/components/submissions-table"
 import { formatDateTime, formatRelativeTime, splitPrefixedId } from "@/lib/format"
 import { quarantineReasonDetail } from "@/lib/quarantine"
 import { toastApiError } from "@/lib/api"
 import type { Delivery } from "@/lib/queries/deliveries"
-import { type SubmissionDetail, useDeleteSubmission, useSubmission, useUpdateSubmissionStatus } from "@/lib/queries/submissions"
+import {
+  type SubmissionDetail,
+  useDeleteSubmission,
+  useSubmission,
+  useUpdateSubmissionStatus,
+} from "@/lib/queries/submissions"
 
 // A switch (rather than an object-literal lookup) so narrowing stays reliable even
 // though `status` comes off `SubmissionDetail`, an intersection type.
-function statusVariant(status: "received" | "quarantined" | "spam"): "success" | "warning" | "destructive" {
+function statusVariant(
+  status: "received" | "quarantined" | "spam",
+): "success" | "warning" | "destructive" {
   switch (status) {
     case "received":
       return "success"
@@ -28,6 +49,17 @@ function statusVariant(status: "received" | "quarantined" | "spam"): "success" |
     case "spam":
       return "destructive"
   }
+}
+
+const BYTE_UNITS = ["B", "KiB", "MiB", "GiB"] as const
+
+/** Compact binary size for the attachment list; limits and storage usage use binary units too. */
+export function formatAttachmentSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes.toString()} B`
+
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), BYTE_UNITS.length - 1)
+  const value = bytes / 1024 ** unitIndex
+  return `${value.toLocaleString("en", { maximumFractionDigits: value < 10 ? 1 : 0 })} ${BYTE_UNITS[unitIndex]}`
 }
 
 export function SubmissionDrawer({
@@ -45,7 +77,9 @@ export function SubmissionDrawer({
     <Sheet open={submissionId !== null} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle className="text-lg tracking-tight text-balance">{head ?? "Submission"}</SheetTitle>
+          <SheetTitle className="text-lg tracking-tight text-balance">
+            {head ?? "Submission"}
+          </SheetTitle>
           <SheetDescription className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             {idParts !== null && (
               <span className="font-mono text-xs">
@@ -53,7 +87,11 @@ export function SubmissionDrawer({
                 {idParts.rest}
               </span>
             )}
-            <span>{submission !== undefined ? `Received ${formatDateTime(submission.received_at)}` : "Loading Submission…"}</span>
+            <span>
+              {submission !== undefined
+                ? `Received ${formatDateTime(submission.received_at)}`
+                : "Loading Submission…"}
+            </span>
           </SheetDescription>
         </SheetHeader>
 
@@ -78,7 +116,13 @@ export function SubmissionDrawer({
   )
 }
 
-function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: SubmissionDetail; readonly onDeleted: () => void }) {
+function SubmissionDetailBody({
+  submission,
+  onDeleted,
+}: {
+  readonly submission: SubmissionDetail
+  readonly onDeleted: () => void
+}) {
   const updateStatus = useUpdateSubmissionStatus()
   const deleteSubmission = useDeleteSubmission()
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -129,20 +173,31 @@ function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: 
       </div>
 
       {submission.status === "quarantined" && (
-        <section className="rounded-lg border border-warning/30 bg-warning/10 p-4" aria-labelledby="quarantine-heading">
+        <section
+          className="rounded-lg border border-warning/30 bg-warning/10 p-4"
+          aria-labelledby="quarantine-heading"
+        >
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning-foreground" aria-hidden />
             <div className="flex min-w-0 flex-col gap-1">
-              <h3 id="quarantine-heading" className="text-sm font-semibold text-foreground">Held from delivery</h3>
-              <p className="text-sm font-medium text-warning-foreground">{quarantineReason.label}</p>
-              <p className="text-sm leading-5 text-muted-foreground">{quarantineReason.description}</p>
+              <h3 id="quarantine-heading" className="text-sm font-semibold text-foreground">
+                Held from delivery
+              </h3>
+              <p className="text-sm font-medium text-warning-foreground">
+                {quarantineReason.label}
+              </p>
+              <p className="text-sm leading-5 text-muted-foreground">
+                {quarantineReason.description}
+              </p>
             </div>
           </div>
         </section>
       )}
 
       <section className="flex flex-col gap-2">
-        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Fields</h3>
+        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Fields
+        </h3>
         <dl className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/70">
           {Object.entries(submission.data).length === 0 ? (
             <p className="px-3 py-3 text-sm text-muted-foreground">No fields.</p>
@@ -150,15 +205,70 @@ function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: 
             Object.entries(submission.data).map(([key, value]) => (
               <div key={key} className="flex flex-col gap-1 px-4 py-3">
                 <dt className="font-mono text-xs text-muted-foreground">{key}</dt>
-                <dd className="text-[15px] leading-relaxed break-words text-foreground">{String(value)}</dd>
+                <dd className="text-[15px] leading-relaxed break-words text-foreground">
+                  {String(value)}
+                </dd>
               </div>
             ))
           )}
         </dl>
       </section>
 
+      {submission.attachments !== undefined && submission.attachments.length > 0 && (
+        <section className="flex flex-col gap-2" aria-labelledby="attachments-heading">
+          <div className="flex items-center justify-between gap-3">
+            <h3
+              id="attachments-heading"
+              className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+            >
+              Attachments
+            </h3>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {submission.attachments.length.toString()}
+            </span>
+          </div>
+          <ul className="overflow-hidden rounded-lg border border-border/70 divide-y divide-border/60">
+            {submission.attachments.map((attachment) => (
+              <li key={attachment.id} className="flex min-w-0 items-center gap-3 px-3 py-2.5">
+                <span
+                  className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
+                  aria-hidden="true"
+                >
+                  <Paperclip className="size-4" />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span
+                    className="truncate text-sm font-medium text-foreground"
+                    title={attachment.filename}
+                  >
+                    {attachment.filename}
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {attachment.content_type} <span aria-hidden="true">·</span>{" "}
+                    <span className="tabular-nums">
+                      {formatAttachmentSize(attachment.size_bytes)}
+                    </span>
+                  </span>
+                </div>
+                <Button asChild variant="outline" size="icon" className="shrink-0">
+                  <a
+                    href={attachment.download_url}
+                    aria-label={`Download ${attachment.filename}`}
+                    title={`Download ${attachment.filename}`}
+                  >
+                    <Download />
+                  </a>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="flex flex-col gap-2">
-        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Deliveries</h3>
+        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Deliveries
+        </h3>
         {deliveries.length === 0 ? (
           <p className="text-sm text-muted-foreground">No routes matched this submission yet.</p>
         ) : (
@@ -174,8 +284,12 @@ function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: 
                 <div className="flex flex-1 items-start justify-between gap-3 rounded-lg border border-border/70 px-3 py-2.5">
                   <div className="flex flex-col gap-0.5">
                     <DeliveryStatusBadge status={delivery.status as RoutingMarkStatus} />
-                    <span className="font-mono text-xs text-muted-foreground">{delivery.destination_id}</span>
-                    {delivery.last_error !== null && <span className="text-xs text-destructive">{delivery.last_error}</span>}
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {delivery.destination_id}
+                    </span>
+                    {delivery.last_error !== null && (
+                      <span className="text-xs text-destructive">{delivery.last_error}</span>
+                    )}
                   </div>
                   <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                     {delivery.sent_at !== null
@@ -219,16 +333,30 @@ function SubmissionDetailBody({ submission, onDeleted }: { readonly submission: 
         </Button>
         <div className="flex flex-wrap justify-end gap-2">
           {submission.status === "spam" ? (
-            <Button variant="outline" size="sm" onClick={() => void releaseForDelivery()} disabled={updateStatus.isPending}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void releaseForDelivery()}
+              disabled={updateStatus.isPending}
+            >
               <ShieldCheck /> Not spam
             </Button>
           ) : (
             <>
-              <Button variant="outline" size="sm" onClick={() => void markSpam()} disabled={updateStatus.isPending}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void markSpam()}
+                disabled={updateStatus.isPending}
+              >
                 <ShieldOff /> Mark spam
               </Button>
               {submission.status === "quarantined" && (
-                <Button size="sm" onClick={() => void releaseForDelivery()} disabled={updateStatus.isPending}>
+                <Button
+                  size="sm"
+                  onClick={() => void releaseForDelivery()}
+                  disabled={updateStatus.isPending}
+                >
                   <ShieldCheck /> Release for delivery
                 </Button>
               )}

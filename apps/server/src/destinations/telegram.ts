@@ -1,7 +1,12 @@
 import { renderTemplate } from "@postbag/core"
 import { z } from "zod"
 
-import { templateContext, type DestinationAdapter, type DigestSubmission, type Payload } from "./types.js"
+import {
+  templateContext,
+  type DestinationAdapter,
+  type DigestSubmission,
+  type Payload,
+} from "./types.js"
 
 export const TelegramConfigSchema = z.object({
   bot_token: z.string().min(1),
@@ -11,10 +16,7 @@ export const TelegramConfigSchema = z.object({
 export type TelegramConfig = z.infer<typeof TelegramConfigSchema>
 
 function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
 }
 
 function defaultMessage(formSlug: string, payload: Payload): string {
@@ -35,12 +37,20 @@ function summarizeFields(data: Payload, max = 3): string {
 }
 
 function digestMessage(displayName: string, submissions: readonly DigestSubmission[]): string {
-  const lines = submissions.map(
-    (submission, index) => `${String(index + 1)}. ${escapeHtml(submission.received_at)} — ${escapeHtml(summarizeFields(submission.data))}`,
-  )
-  return [`<b>Digest — ${String(submissions.length)} submission(s) — ${escapeHtml(displayName)}</b>`, "", ...lines].join(
-    "\n",
-  )
+  const lines = submissions.map((submission, index) => {
+    const links = submission.attachments
+      .map(
+        (attachment) =>
+          `<a href="${escapeHtml(attachment.download_url)}">${escapeHtml(attachment.filename)}</a>`,
+      )
+      .join(", ")
+    return `${String(index + 1)}. ${escapeHtml(submission.received_at)} — ${escapeHtml(summarizeFields(submission.data))}${links.length === 0 ? "" : ` — ${links}`}`
+  })
+  return [
+    `<b>Digest — ${String(submissions.length)} submission(s) — ${escapeHtml(displayName)}</b>`,
+    "",
+    ...lines,
+  ].join("\n")
 }
 
 export function createTelegramAdapter(): DestinationAdapter<TelegramConfig> {
@@ -51,17 +61,30 @@ export function createTelegramAdapter(): DestinationAdapter<TelegramConfig> {
       config.template === undefined
         ? defaultMessage(displayName, payload)
         : renderTemplate(config.template, templateContext(ctx, payload))
+    const attachmentLines = ctx.attachments.map(
+      (attachment) =>
+        `<a href="${escapeHtml(attachment.download_url)}">${escapeHtml(attachment.filename)}</a> (${String(attachment.size_bytes)} bytes)`,
+    )
+    const message =
+      attachmentLines.length === 0
+        ? text
+        : `${text}\n\n<b>Attachments</b>\n${attachmentLines.join("\n")}`
     try {
       const response = await fetch(`https://api.telegram.org/bot${config.bot_token}/sendMessage`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ chat_id: config.chat_id, text, parse_mode: "HTML" }),
+        body: JSON.stringify({ chat_id: config.chat_id, text: message, parse_mode: "HTML" }),
         signal: AbortSignal.timeout(10_000),
       })
       const latency_ms = Date.now() - start
       const bodyText = await response.text()
       if (response.ok) {
-        return { ok: true, status_code: response.status, latency_ms, response_excerpt: bodyText.slice(0, 500) }
+        return {
+          ok: true,
+          status_code: response.status,
+          latency_ms,
+          response_excerpt: bodyText.slice(0, 500),
+        }
       }
       return {
         ok: false,
@@ -80,7 +103,11 @@ export function createTelegramAdapter(): DestinationAdapter<TelegramConfig> {
     }
   }
 
-  const deliverDigest: DestinationAdapter<TelegramConfig>["deliverDigest"] = async (config, submissions, ctx) => {
+  const deliverDigest: DestinationAdapter<TelegramConfig>["deliverDigest"] = async (
+    config,
+    submissions,
+    ctx,
+  ) => {
     const start = Date.now()
     const displayName = ctx.form?.name ?? ctx.stream?.name ?? "submission"
     const text = digestMessage(displayName, submissions)
@@ -94,7 +121,12 @@ export function createTelegramAdapter(): DestinationAdapter<TelegramConfig> {
       const latency_ms = Date.now() - start
       const bodyText = await response.text()
       if (response.ok) {
-        return { ok: true, status_code: response.status, latency_ms, response_excerpt: bodyText.slice(0, 500) }
+        return {
+          ok: true,
+          status_code: response.status,
+          latency_ms,
+          response_excerpt: bodyText.slice(0, 500),
+        }
       }
       return {
         ok: false,
@@ -128,6 +160,7 @@ export function createTelegramAdapter(): DestinationAdapter<TelegramConfig> {
         submission: null,
         extras: {},
         meta: {},
+        attachments: [],
       }),
     deliver,
     deliverDigest,

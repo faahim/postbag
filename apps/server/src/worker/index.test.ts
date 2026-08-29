@@ -1,12 +1,27 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http"
 
 import { newId, verifyWebhookSignature } from "@postbag/core"
-import { deliveries, destinations, forms, organization, routes, submissions } from "@postbag/db"
+import {
+  deliveries,
+  destinations,
+  forms,
+  organization,
+  routes,
+  submissionAttachments,
+  submissions,
+} from "@postbag/db"
 import { and, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 
-import { buildHarness, seedOrganization, TEST_DATABASE_URL, type TestHarness } from "../testUtils.js"
+import {
+  buildHarness,
+  seedOrganization,
+  TEST_DATABASE_URL,
+  type TestHarness,
+} from "../testUtils.js"
 import { startWorker, type WorkerHandle } from "./index.js"
+import type { ObjectStorage } from "../lib/objectStorage.js"
+import { runObjectDeletionSweep } from "./objectDeletion.js"
 
 const integration = describe.skipIf(TEST_DATABASE_URL === undefined)
 
@@ -33,6 +48,11 @@ integration("worker webhook delivery", () => {
   const harness: TestHarness = buildHarness()
   const workers: WorkerHandle[] = []
   const seededOrganizationIds: string[] = []
+  const workerStorage: ObjectStorage = {
+    put: () => Promise.resolve(),
+    delete: () => Promise.resolve(),
+    signedDownloadUrl: (key) => Promise.resolve(`https://storage.example/${key}?signed=true`),
+  }
 
   // Job D 1d: `claimDeliveries` claims globally, not per-org. A dirty DB — leftover
   // pending/failed rows from a crashed prior run, or another test file that seeded
@@ -56,6 +76,7 @@ integration("worker webhook delivery", () => {
         await harness.db.delete(organization).where(eq(organization.id, organizationId))
       }
     }
+    await runObjectDeletionSweep(harness.db, workerStorage, harness.logger)
   })
 
   afterAll(async () => {
@@ -63,32 +84,76 @@ integration("worker webhook delivery", () => {
   })
 
   function runWorker(): void {
-    workers.push(startWorker(harness.db, harness.env, harness.logger, harness.destinations))
+    workers.push(
+      startWorker(harness.db, harness.env, harness.logger, harness.destinations, workerStorage),
+    )
   }
 
-  async function seedFixture(config: Readonly<Record<string, unknown>>, attempts = 0) {
+  async function seedFixture(
+    config: Readonly<Record<string, unknown>>,
+    attempts = 0,
+    withAttachment = false,
+  ) {
     const org = await seedOrganization(harness.db, "Worker Fixture")
     seededOrganizationIds.push(org.organizationId)
     const [form] = await harness.db
       .insert(forms)
-      .values({ id: newId("fm"), organizationId: org.organizationId, projectId: org.projectId, slug: `wf-${newId("fm").slice(-8)}`, name: "wf" })
+      .values({
+        id: newId("fm"),
+        organizationId: org.organizationId,
+        projectId: org.projectId,
+        slug: `wf-${newId("fm").slice(-8)}`,
+        name: "wf",
+      })
       .returning()
     if (form === undefined) throw new Error("failed to create form")
     const [destination] = await harness.db
       .insert(destinations)
-      .values({ id: newId("ds"), organizationId: org.organizationId, type: "webhook", name: "Hook", config, verified: true })
+      .values({
+        id: newId("ds"),
+        organizationId: org.organizationId,
+        type: "webhook",
+        name: "Hook",
+        config,
+        verified: true,
+      })
       .returning()
     if (destination === undefined) throw new Error("failed to create destination")
     const [route] = await harness.db
       .insert(routes)
-      .values({ id: newId("rt"), organizationId: org.organizationId, formId: form.id, destinationId: destination.id })
+      .values({
+        id: newId("rt"),
+        organizationId: org.organizationId,
+        formId: form.id,
+        destinationId: destination.id,
+      })
       .returning()
     if (route === undefined) throw new Error("failed to create route")
     const [submission] = await harness.db
       .insert(submissions)
-      .values({ id: newId("sb"), organizationId: org.organizationId, formId: form.id, data: { email: "a@example.com" } })
+      .values({
+        id: newId("sb"),
+        organizationId: org.organizationId,
+        formId: form.id,
+        data: { email: "a@example.com" },
+      })
       .returning()
     if (submission === undefined) throw new Error("failed to create submission")
+    if (withAttachment) {
+      const attachmentId = newId("fl")
+      await harness.db.insert(submissionAttachments).values({
+        id: attachmentId,
+        organizationId: org.organizationId,
+        formId: form.id,
+        submissionId: submission.id,
+        fieldName: "screenshot",
+        filename: "screen.png",
+        contentType: "image/png",
+        sizeBytes: 42,
+        sha256: "0".repeat(64),
+        storageKey: `attachments/${attachmentId}`,
+      })
+    }
     const [delivery] = await harness.db
       .insert(deliveries)
       .values({
@@ -105,7 +170,12 @@ integration("worker webhook delivery", () => {
       })
       .returning()
     if (delivery === undefined) throw new Error("failed to create delivery")
-    return { organizationId: org.organizationId, destinationId: destination.id, routeId: route.id, deliveryId: delivery.id }
+    return {
+      organizationId: org.organizationId,
+      destinationId: destination.id,
+      routeId: route.id,
+      deliveryId: delivery.id,
+    }
   }
 
   /**
@@ -117,7 +187,12 @@ integration("worker webhook delivery", () => {
   // apps/web's Vite transform and every other package's suite; a short deadline here was
   // observed to trip under that contention even though the worker behaves correctly.
   // 18s leaves margin under the file's 20s hook/test timeout.
-  async function waitForOutcome(organizationId: string, deliveryId: string, initialAttempts: number, timeoutMs = 18_000) {
+  async function waitForOutcome(
+    organizationId: string,
+    deliveryId: string,
+    initialAttempts: number,
+    timeoutMs = 18_000,
+  ) {
     const deadline = Date.now() + timeoutMs
     for (;;) {
       const [row] = await harness.db
@@ -126,7 +201,9 @@ integration("worker webhook delivery", () => {
         .where(and(eq(deliveries.organizationId, organizationId), eq(deliveries.id, deliveryId)))
       if (
         row !== undefined &&
-        (row.status === "sent" || row.status === "dead" || (row.status === "failed" && row.attempts > initialAttempts))
+        (row.status === "sent" ||
+          row.status === "dead" ||
+          (row.status === "failed" && row.attempts > initialAttempts))
       ) {
         return row
       }
@@ -139,14 +216,20 @@ integration("worker webhook delivery", () => {
     let capturedHeaders: Record<string, string> | undefined
     let capturedBody: string | undefined
     const { server, port } = await startCatcher((req, res, body) => {
-      capturedHeaders = Object.fromEntries(Object.entries(req.headers).map(([key, value]) => [key, String(value)]))
+      capturedHeaders = Object.fromEntries(
+        Object.entries(req.headers).map(([key, value]) => [key, String(value)]),
+      )
       capturedBody = body
       res.writeHead(200, { "content-type": "application/json" })
       res.end(JSON.stringify({ ok: true }))
     })
     try {
       const secret = "whsec_test"
-      const fixture = await seedFixture({ url: `http://127.0.0.1:${String(port)}/hook`, secret, headers: {} })
+      const fixture = await seedFixture({
+        url: `http://127.0.0.1:${String(port)}/hook`,
+        secret,
+        headers: {},
+      })
       runWorker()
       const row = await waitForOutcome(fixture.organizationId, fixture.deliveryId, 0)
       expect(row?.status).toBe("sent")
@@ -161,13 +244,44 @@ integration("worker webhook delivery", () => {
     }
   })
 
+  it("delivers attachment metadata with a short-lived signed link", async () => {
+    let capturedBody: string | undefined
+    const { server, port } = await startCatcher((_req, res, body) => {
+      capturedBody = body
+      res.writeHead(200)
+      res.end("ok")
+    })
+    try {
+      const fixture = await seedFixture(
+        { url: `http://127.0.0.1:${String(port)}/hook`, headers: {} },
+        0,
+        true,
+      )
+      runWorker()
+      const row = await waitForOutcome(fixture.organizationId, fixture.deliveryId, 0)
+      expect(row?.status).toBe("sent")
+      const body = JSON.parse(capturedBody ?? "{}") as {
+        attachments?: { filename: string; download_url: string; expires_at: string }[]
+      }
+      expect(body.attachments).toHaveLength(1)
+      expect(body.attachments?.[0]).toMatchObject({ filename: "screen.png" })
+      expect(body.attachments?.[0]?.download_url).toContain("?signed=true")
+      expect(new Date(body.attachments?.[0]?.expires_at ?? 0).getTime()).toBeGreaterThan(Date.now())
+    } finally {
+      server.close()
+    }
+  })
+
   it("retries on a 500 response and schedules a future next_attempt_at", async () => {
     const { server, port } = await startCatcher((_req, res) => {
       res.writeHead(500)
       res.end("boom")
     })
     try {
-      const fixture = await seedFixture({ url: `http://127.0.0.1:${String(port)}/hook`, headers: {} })
+      const fixture = await seedFixture({
+        url: `http://127.0.0.1:${String(port)}/hook`,
+        headers: {},
+      })
       runWorker()
       const row = await waitForOutcome(fixture.organizationId, fixture.deliveryId, 0)
       expect(row?.status).toBe("failed")
@@ -186,7 +300,10 @@ integration("worker webhook delivery", () => {
     })
     try {
       // maxAttemptsFor('webhook') is 10; claimDeliveries increments attempts to 10 on claim.
-      const fixture = await seedFixture({ url: `http://127.0.0.1:${String(port)}/hook`, headers: {} }, 9)
+      const fixture = await seedFixture(
+        { url: `http://127.0.0.1:${String(port)}/hook`, headers: {} },
+        9,
+      )
       runWorker()
       const row = await waitForOutcome(fixture.organizationId, fixture.deliveryId, 9)
       expect(row?.status).toBe("dead")
@@ -201,19 +318,29 @@ integration("worker webhook delivery", () => {
       res.end("gone")
     })
     try {
-      const fixture = await seedFixture({ url: `http://127.0.0.1:${String(port)}/hook`, headers: {} })
+      const fixture = await seedFixture({
+        url: `http://127.0.0.1:${String(port)}/hook`,
+        headers: {},
+      })
       runWorker()
       const row = await waitForOutcome(fixture.organizationId, fixture.deliveryId, 0)
       expect(row?.status).toBe("dead")
       const [destination] = await harness.db
         .select()
         .from(destinations)
-        .where(and(eq(destinations.organizationId, fixture.organizationId), eq(destinations.id, fixture.destinationId)))
+        .where(
+          and(
+            eq(destinations.organizationId, fixture.organizationId),
+            eq(destinations.id, fixture.destinationId),
+          ),
+        )
       expect(destination?.health).toBe("failing")
       const [route] = await harness.db
         .select()
         .from(routes)
-        .where(and(eq(routes.organizationId, fixture.organizationId), eq(routes.id, fixture.routeId)))
+        .where(
+          and(eq(routes.organizationId, fixture.organizationId), eq(routes.id, fixture.routeId)),
+        )
       expect(route?.enabled).toBe(false)
     } finally {
       server.close()

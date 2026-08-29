@@ -1,11 +1,18 @@
 import { PostbagError } from "@postbag/core"
-import { destinations, forms, organizationSettings, submissions, type Database } from "@postbag/db"
+import {
+  destinations,
+  forms,
+  organizationSettings,
+  submissionAttachments,
+  submissions,
+  type Database,
+} from "@postbag/db"
 import { and, count, eq, gte, sql } from "drizzle-orm"
 
 import { limitsFor } from "./plan.js"
 
 export type LimitedResource = "forms" | "destinations"
-export type PlanLockResource = LimitedResource | "submissions"
+export type PlanLockResource = LimitedResource | "submissions" | "attachments"
 type PlanUsageDatabase = Pick<Database, "execute" | "select">
 
 export async function organizationLimits(db: PlanUsageDatabase, organizationId: string) {
@@ -17,7 +24,11 @@ export async function organizationLimits(db: PlanUsageDatabase, organizationId: 
   return limitsFor(settings?.plan ?? "free", settings?.limits ?? {})
 }
 
-export async function countMonthlySubmissions(db: PlanUsageDatabase, organizationId: string, now = new Date()): Promise<number> {
+export async function countMonthlySubmissions(
+  db: PlanUsageDatabase,
+  organizationId: string,
+  now = new Date(),
+): Promise<number> {
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
   const [row] = await db
     .select({ value: count() })
@@ -32,12 +43,27 @@ export async function countMonthlySubmissions(db: PlanUsageDatabase, organizatio
   return row?.value ?? 0
 }
 
+/** Total retained object bytes for one organization. Object deletion is asynchronous,
+ * so deleting attachments stop counting as soon as their metadata rows are removed. */
+export async function retainedAttachmentStorageBytes(
+  db: PlanUsageDatabase,
+  organizationId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ value: sql<string>`coalesce(sum(${submissionAttachments.sizeBytes}), 0)` })
+    .from(submissionAttachments)
+    .where(eq(submissionAttachments.organizationId, organizationId))
+  return Number(row?.value ?? 0)
+}
+
 export async function lockPlanCapacity(
   db: PlanUsageDatabase,
   organizationId: string,
   resource: PlanLockResource,
 ): Promise<void> {
-  await db.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${organizationId}), hashtext(${resource}))`)
+  await db.execute(
+    sql`SELECT pg_advisory_xact_lock(hashtext(${organizationId}), hashtext(${resource}))`,
+  )
 }
 
 export async function assertLockedPlanCapacity(
@@ -48,15 +74,22 @@ export async function assertLockedPlanCapacity(
 ): Promise<void> {
   const limits = await organizationLimits(db, organizationId)
   const table = resource === "forms" ? forms : destinations
-  const [row] = await db.select({ value: count() }).from(table).where(eq(table.organizationId, organizationId))
+  const [row] = await db
+    .select({ value: count() })
+    .from(table)
+    .where(eq(table.organizationId, organizationId))
   const used = row?.value ?? 0
   if (used + requested > limits[resource]) {
-    throw new PostbagError("plan_limit_reached", `This organization has reached its ${resource} limit.`, {
-      resource,
-      limit: limits[resource],
-      used,
-      requested,
-    })
+    throw new PostbagError(
+      "plan_limit_reached",
+      `This organization has reached its ${resource} limit.`,
+      {
+        resource,
+        limit: limits[resource],
+        used,
+        requested,
+      },
+    )
   }
 }
 
@@ -68,4 +101,26 @@ export async function assertPlanCapacity(
 ): Promise<void> {
   await lockPlanCapacity(db, organizationId, resource)
   await assertLockedPlanCapacity(db, organizationId, resource, requested)
+}
+
+/** Call inside a transaction after lockPlanCapacity(db, org, "attachments"). */
+export async function assertLockedAttachmentStorageCapacity(
+  db: PlanUsageDatabase,
+  organizationId: string,
+  requestedBytes: number,
+): Promise<void> {
+  const limits = await organizationLimits(db, organizationId)
+  const used = await retainedAttachmentStorageBytes(db, organizationId)
+  if (used + requestedBytes > limits.attachment_storage_bytes) {
+    throw new PostbagError(
+      "attachment_storage_limit_reached",
+      "This organization has reached its attachment storage limit.",
+      {
+        resource: "attachment_storage_bytes",
+        limit: limits.attachment_storage_bytes,
+        used,
+        requested: requestedBytes,
+      },
+    )
+  }
 }

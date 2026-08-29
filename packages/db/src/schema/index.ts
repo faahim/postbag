@@ -1,4 +1,5 @@
 export * from "./auth.js"
+export * from "./attachments.js"
 export * from "./anonymous.js"
 export * from "./billing.js"
 export * from "./deliveries.js"

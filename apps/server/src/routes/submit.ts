@@ -7,9 +7,11 @@ import {
   validateAgainstSchema,
   PayloadTooLarge,
   PostbagError,
+  newId,
   type Mapping,
 } from "@postbag/core"
 import { and, eq } from "drizzle-orm"
+import { createHash } from "node:crypto"
 import {
   acceptAnonymousSubmission,
   anonymousSandboxes,
@@ -18,19 +20,29 @@ import {
   forms,
   formSchemas,
   notifyDeliveries,
+  objectDeletions,
+  submissionAttachments,
   submissions,
   type Database,
 } from "@postbag/db"
-import type { Context, Hono } from "hono"
+import type { Context } from "hono"
+import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
 
 import type { Env } from "../env.js"
 import { clientIp } from "../lib/clientIp.js"
 import { jsonDepth, sandboxSubmissionIdempotencyHash } from "../lib/anonymousSandbox.js"
 import { decideCors } from "../lib/cors.js"
 import { envelope } from "../lib/errors.js"
-import { countMonthlySubmissions, lockPlanCapacity, organizationLimits } from "../lib/planUsage.js"
+import {
+  assertLockedAttachmentStorageCapacity,
+  countMonthlySubmissions,
+  lockPlanCapacity,
+  organizationLimits,
+  retainedAttachmentStorageBytes,
+} from "../lib/planUsage.js"
 import type { Logger } from "../logger.js"
 import type { TokenBucketLimiter } from "../lib/rateLimit.js"
+import type { ObjectStorage } from "../lib/objectStorage.js"
 import type { AppEnv } from "../lib/scope.js"
 import {
   getDirectRoutesForForm,
@@ -40,6 +52,10 @@ import {
 
 const MAX_BODY_BYTES = 256 * 1_024
 const MAX_ANONYMOUS_BODY_BYTES = 16 * 1_024
+// Multipart parsing is deliberately bounded because the platform parser buffers the
+// request. Keep this conservative until uploads move to a genuinely streaming parser.
+const MAX_MULTIPART_BODY_BYTES = 16 * 1_024 * 1_024
+const MULTIPART_OVERHEAD_BYTES = 1 * 1_024 * 1_024
 // See the digest TODO near the delivery insert below.
 const DIGEST_PARKED_UNTIL = new Date("9999-01-01T00:00:00.000Z")
 
@@ -56,6 +72,18 @@ export type SubmitDeps = {
   readonly env: Env
   readonly logger: Logger
   readonly rateLimiter: TokenBucketLimiter
+  readonly storage: ObjectStorage | null
+}
+
+type ParsedAttachment = {
+  readonly id: string
+  readonly fieldName: string
+  readonly filename: string
+  readonly contentType: string
+  readonly sizeBytes: number
+  readonly sha256: string
+  readonly storageKey: string
+  readonly body: Uint8Array
 }
 
 type FormSettings = {
@@ -67,16 +95,80 @@ type FormSettings = {
   readonly turnstile?: { readonly secret?: string; readonly enabled?: boolean }
 }
 
+const PublicSubmitReceiptSchema = z.object({
+  ok: z.boolean(),
+  submission_id: z.string(),
+  status: z.enum(["received", "quarantined", "spam"]),
+  idempotent: z.boolean().optional(),
+  deliveries: z.array(z.string()).optional(),
+  attachments: z.array(z.object({ id: z.string() })).optional(),
+})
+
+const publicSubmitContract = createRoute({
+  method: "post",
+  path: "/s/{formId}",
+  operationId: "submissions_submit",
+  tags: ["submissions"],
+  summary: "Receive a public Submission",
+  description:
+    "Accepts JSON, URL-encoded data, or multipart form data. Multipart file fields become fl_ references in Submission data. Anonymous sandbox Forms do not accept files.",
+  security: [],
+  request: {
+    params: z.object({ formId: z.string() }),
+    body: {
+      required: true,
+      content: {
+        "application/json": { schema: z.record(z.string(), z.unknown()) },
+        "application/x-www-form-urlencoded": { schema: z.record(z.string(), z.unknown()) },
+        "multipart/form-data": { schema: z.record(z.string(), z.unknown()) },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Submission accepted",
+      content: { "application/json": { schema: PublicSubmitReceiptSchema } },
+    },
+    303: { description: "Browser form redirect after acceptance" },
+    400: { description: "Malformed request" },
+    402: { description: "Retained attachment storage limit reached" },
+    413: { description: "Body, attachment size, or attachment count limit exceeded" },
+    422: { description: "Validation failed" },
+    503: { description: "Attachment storage unavailable" },
+  },
+})
+
 async function readBoundedBody(
   request: Request,
   maxBytes = MAX_BODY_BYTES,
 ): Promise<{ raw: ArrayBuffer; contentType: string }> {
-  const contentType = (request.headers.get("content-type") ?? "").split(";")[0]?.trim() ?? ""
-  const raw = await request.arrayBuffer()
-  if (raw.byteLength > maxBytes) {
+  const contentType = request.headers.get("content-type")?.trim() ?? ""
+  const declaredLength = Number(request.headers.get("content-length"))
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
     throw new PayloadTooLarge(`The submission body exceeds ${String(maxBytes)} bytes.`)
   }
-  return { raw, contentType }
+  if (request.body === null) return { raw: new ArrayBuffer(0), contentType }
+
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  let next = await reader.read()
+  while (!next.done) {
+    total += next.value.byteLength
+    if (total > maxBytes) {
+      await reader.cancel()
+      throw new PayloadTooLarge(`The submission body exceeds ${String(maxBytes)} bytes.`)
+    }
+    chunks.push(next.value)
+    next = await reader.read()
+  }
+  const joined = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    joined.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return { raw: joined.buffer, contentType }
 }
 
 function parseUrlEncoded(text: string): Record<string, unknown> {
@@ -92,59 +184,158 @@ function parseUrlEncoded(text: string): Record<string, unknown> {
 async function parseMultipart(
   raw: ArrayBuffer,
   contentType: string,
-): Promise<Record<string, unknown>> {
+  limits: { readonly maxFileBytes: number; readonly maxFiles: number },
+): Promise<{
+  readonly input: Record<string, unknown>
+  readonly attachments: readonly ParsedAttachment[]
+}> {
   const request = new Request("http://local/multipart", {
     method: "POST",
     headers: { "content-type": contentType },
     body: raw,
   })
-  const form = await request.formData()
+  let form: FormData
+  try {
+    form = await request.formData()
+  } catch (error) {
+    throw new PostbagError(
+      "validation_failed",
+      "The multipart Submission body is malformed.",
+      undefined,
+      { cause: error },
+    )
+  }
   const grouped = new Map<string, unknown[]>()
-  form.forEach((value, key) => {
+  const attachments: ParsedAttachment[] = []
+  const entries: { readonly key: string; readonly value: FormDataEntryValue }[] = []
+  form.forEach((value, key) => entries.push({ key, value }))
+  for (const { key, value } of entries) {
     if (value instanceof File) {
-      throw new PostbagError("unsupported_media_type", "File uploads are not supported yet.", {
-        field: key,
+      if (value.size === 0 && value.name.length === 0) continue
+      if (attachments.length >= limits.maxFiles) {
+        throw new PostbagError(
+          "attachment_limit_reached",
+          "This Submission has too many attachments.",
+          {
+            limit: limits.maxFiles,
+          },
+        )
+      }
+      if (value.size > limits.maxFileBytes) {
+        throw new PostbagError(
+          "attachment_too_large",
+          "An attachment exceeds this organization's per-file limit.",
+          {
+            field: key,
+            size_bytes: value.size,
+            limit_bytes: limits.maxFileBytes,
+          },
+        )
+      }
+      const id = newId("fl")
+      const body = new Uint8Array(await value.arrayBuffer())
+      const filename = sanitizeFilename(value.name)
+      attachments.push({
+        id,
+        fieldName: key,
+        filename,
+        contentType: value.type || "application/octet-stream",
+        sizeBytes: body.byteLength,
+        sha256: createHash("sha256").update(body).digest("hex"),
+        storageKey: `attachments/${id}`,
+        body,
       })
+      const existing = grouped.get(key) ?? []
+      existing.push(id)
+      grouped.set(key, existing)
+      continue
     }
     const existing = grouped.get(key) ?? []
     existing.push(value)
     grouped.set(key, existing)
-  })
+  }
   const result: Record<string, unknown> = {}
   for (const [key, values] of grouped) {
     result[key] = values.length > 1 ? values : values[0]
   }
-  return result
+  return { input: result, attachments }
+}
+
+function sanitizeFilename(value: string): string {
+  const basename = value.replace(/\\/g, "/").split("/").at(-1) ?? ""
+  let withoutControls = ""
+  for (const character of basename) {
+    const code = character.codePointAt(0) ?? 0
+    if (code > 31 && code !== 127) withoutControls += character
+  }
+  const cleaned = withoutControls.trim()
+  return (cleaned || "attachment").slice(0, 180)
+}
+
+async function cleanupUploadedAttachments(
+  db: Database,
+  storage: ObjectStorage,
+  attachments: readonly ParsedAttachment[],
+): Promise<void> {
+  for (const attachment of attachments) {
+    try {
+      await storage.delete(attachment.storageKey)
+    } catch {
+      await db
+        .insert(objectDeletions)
+        .values({ storageKey: attachment.storageKey })
+        .onConflictDoNothing()
+    }
+  }
 }
 
 async function parseBody(
   request: Request,
   maxBytes = MAX_BODY_BYTES,
+  fileLimits: { readonly maxFileBytes: number; readonly maxFiles: number } | null = null,
 ): Promise<{
   readonly input: Record<string, unknown>
   readonly contentType: string
   readonly isForm: boolean
+  readonly attachments: readonly ParsedAttachment[]
 }> {
   const { raw, contentType } = await readBoundedBody(request, maxBytes)
-  const text = new TextDecoder().decode(raw)
-  if (contentType === "application/json") {
-    if (text.trim().length === 0) return { input: {}, contentType, isForm: false }
+  const mediaType = contentType.split(";", 1)[0]?.trim().toLowerCase() ?? ""
+  if (mediaType === "application/json") {
+    const text = new TextDecoder().decode(raw)
+    if (text.trim().length === 0)
+      return { input: {}, contentType: mediaType, isForm: false, attachments: [] }
     const parsed: unknown = JSON.parse(text)
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
       throw new PayloadTooLarge("The JSON submission body must be an object.")
     }
-    return { input: parsed as Record<string, unknown>, contentType, isForm: false }
+    return {
+      input: parsed as Record<string, unknown>,
+      contentType: mediaType,
+      isForm: false,
+      attachments: [],
+    }
   }
-  if (contentType === "application/x-www-form-urlencoded") {
-    return { input: parseUrlEncoded(text), contentType, isForm: true }
+  if (mediaType === "application/x-www-form-urlencoded") {
+    const text = new TextDecoder().decode(raw)
+    return { input: parseUrlEncoded(text), contentType: mediaType, isForm: true, attachments: [] }
   }
-  if (contentType.startsWith("multipart/form-data")) {
-    return { input: await parseMultipart(raw, contentType), contentType, isForm: true }
+  if (mediaType === "multipart/form-data") {
+    if (fileLimits === null) {
+      throw new PostbagError(
+        "unsupported_media_type",
+        "File uploads are not available for this Form.",
+      )
+    }
+    const parsed = await parseMultipart(raw, contentType, fileLimits)
+    return { ...parsed, contentType: mediaType, isForm: true }
   }
+  const text = new TextDecoder().decode(raw)
   return {
     input: parseUrlEncoded(text),
-    contentType: contentType.length > 0 ? contentType : "application/x-www-form-urlencoded",
+    contentType: mediaType.length > 0 ? mediaType : "application/x-www-form-urlencoded",
     isForm: true,
+    attachments: [],
   }
 }
 
@@ -190,8 +381,10 @@ function respond(
   return c.json(body, 200)
 }
 
-export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void {
+export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps): void {
   const { db, logger, rateLimiter } = deps
+
+  app.openAPIRegistry.registerPath(publicSubmitContract)
 
   app.options("/s/:formId", (c) => {
     const origin = c.req.header("origin")
@@ -244,6 +437,7 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
           readonly input: Record<string, unknown>
           readonly contentType: string
           readonly isForm: boolean
+          readonly attachments: readonly ParsedAttachment[]
         }
       | undefined
 
@@ -271,7 +465,10 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
         )
       }
 
-      parsedBody = await parseBody(c.req.raw, MAX_ANONYMOUS_BODY_BYTES)
+      parsedBody = await parseBody(c.req.raw, MAX_ANONYMOUS_BODY_BYTES, {
+        maxFileBytes: 0,
+        maxFiles: 0,
+      })
       const normalized = normalizeBody(parsedBody.input, parsedBody.contentType)
       if (jsonDepth(normalized.data) > 4) {
         throw new PayloadTooLarge(
@@ -350,7 +547,31 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
     c.header("Vary", "Origin")
     if (cors.allowOrigin !== null) c.header("Access-Control-Allow-Origin", cors.allowOrigin)
 
-    const { input, contentType, isForm } = parsedBody ?? (await parseBody(c.req.raw))
+    const limits = await organizationLimits(db, form.organizationId)
+    const requestMediaType = (c.req.header("content-type") ?? "")
+      .split(";", 1)[0]
+      ?.trim()
+      .toLowerCase()
+    const multipartBodyLimit = Math.min(
+      MAX_MULTIPART_BODY_BYTES,
+      limits.attachment_max_bytes * limits.attachments_per_submission + MULTIPART_OVERHEAD_BYTES,
+    )
+    const { input, contentType, isForm, attachments } =
+      parsedBody ??
+      (await parseBody(
+        c.req.raw,
+        requestMediaType === "multipart/form-data" ? multipartBodyLimit : MAX_BODY_BYTES,
+        {
+          maxFileBytes: limits.attachment_max_bytes,
+          maxFiles: limits.attachments_per_submission,
+        },
+      ))
+    if (attachments.length > 0 && deps.storage === null) {
+      throw new PostbagError(
+        "attachment_storage_unavailable",
+        "This Postbag instance is not configured to accept file attachments.",
+      )
+    }
     const { data, control } = normalizeBody(input, contentType)
     const ctrl = control as ControlFields
     const isTest = ctrl._test === true || ctrl._test === "true"
@@ -366,12 +587,24 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
         .where(and(eq(submissions.formId, formId), eq(submissions.idempotencyKey, idempotencyKey)))
         .limit(1)
       if (existing !== undefined) {
+        const existingAttachments = await db
+          .select({ id: submissionAttachments.id })
+          .from(submissionAttachments)
+          .where(eq(submissionAttachments.submissionId, existing.id))
         return respond(
           c,
           form,
           settings,
           redirectOverride,
-          { ok: true, submission_id: existing.id, status: existing.status, idempotent: true },
+          {
+            ok: true,
+            submission_id: existing.id,
+            status: existing.status,
+            idempotent: true,
+            ...(existingAttachments.length === 0
+              ? {}
+              : { attachments: existingAttachments.map((attachment) => ({ id: attachment.id })) }),
+          },
           isForm,
         )
       }
@@ -490,113 +723,232 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
       if (schemaJson !== null) schemaJsonByStream.set(membership.streamId, schemaJson)
     }
 
-    const result = await db.transaction(async (tx) => {
-      if (status === "received" && !isTest) {
-        await lockPlanCapacity(tx, form.organizationId, "submissions")
-        const limit = (await organizationLimits(tx, form.organizationId)).submissions_per_month
-        if (Number.isFinite(limit)) {
-          const used = await countMonthlySubmissions(tx, form.organizationId)
-          if (used >= limit) {
-            status = "quarantined"
-            quarantineReason = "over_quota"
-          }
+    const requestedAttachmentBytes = attachments.reduce(
+      (total, attachment) => total + attachment.sizeBytes,
+      0,
+    )
+    if (requestedAttachmentBytes > 0) {
+      const usedAttachmentBytes = await retainedAttachmentStorageBytes(db, form.organizationId)
+      if (usedAttachmentBytes + requestedAttachmentBytes > limits.attachment_storage_bytes) {
+        throw new PostbagError(
+          "attachment_storage_limit_reached",
+          "This organization has reached its attachment storage limit.",
+          {
+            resource: "attachment_storage_bytes",
+            limit: limits.attachment_storage_bytes,
+            used: usedAttachmentBytes,
+            requested: requestedAttachmentBytes,
+          },
+        )
+      }
+    }
+
+    const uploaded: ParsedAttachment[] = []
+    let result: {
+      readonly submissionId: string
+      readonly hasPendingDelivery: boolean
+      readonly status: string
+    }
+    try {
+      if (attachments.length > 0) {
+        const storage = deps.storage
+        if (storage === null) throw new Error("Attachment storage became unavailable.")
+        for (const attachment of attachments) {
+          await storage.put({
+            key: attachment.storageKey,
+            body: attachment.body,
+            contentType: attachment.contentType,
+            filename: attachment.filename,
+            sha256: attachment.sha256,
+          })
+          uploaded.push(attachment)
         }
       }
 
-      const plans = planDeliveries({
-        submission: { id: "pending", status, receivedAt },
-        form: {
-          status: form.status as "active" | "paused",
-          schemaVersion: form.currentSchemaVersion,
-        },
-        directRoutes,
-        streamMemberships,
-      })
-      const [inserted] = await tx
-        .insert(submissions)
-        .values({
-          organizationId: form.organizationId,
-          formId,
-          data,
-          formSchemaVersion,
-          status,
-          quarantineReason,
-          spam,
-          meta,
-          idempotencyKey: idempotencyKey ?? null,
-          test: isTest,
-          receivedAt,
-        })
-        .returning({ id: submissions.id })
-      const newSubmissionId = inserted?.id
-      if (newSubmissionId === undefined) throw new Error("Failed to insert submission.")
+      result = await db.transaction(async (tx) => {
+        if (requestedAttachmentBytes > 0) {
+          await lockPlanCapacity(tx, form.organizationId, "attachments")
+          await assertLockedAttachmentStorageCapacity(
+            tx,
+            form.organizationId,
+            requestedAttachmentBytes,
+          )
+        }
+        if (status === "received" && !isTest) {
+          await lockPlanCapacity(tx, form.organizationId, "submissions")
+          const limit = (await organizationLimits(tx, form.organizationId)).submissions_per_month
+          if (Number.isFinite(limit)) {
+            const used = await countMonthlySubmissions(tx, form.organizationId)
+            if (used >= limit) {
+              status = "quarantined"
+              quarantineReason = "over_quota"
+            }
+          }
+        }
 
-      if (driftFindings.length > 0) {
-        await tx.insert(driftEvents).values(
-          driftFindings.map((finding) => ({
+        const plans = planDeliveries({
+          submission: { id: "pending", status, receivedAt },
+          form: {
+            status: form.status as "active" | "paused",
+            schemaVersion: form.currentSchemaVersion,
+          },
+          directRoutes,
+          streamMemberships,
+        })
+        const [inserted] = await tx
+          .insert(submissions)
+          .values({
             organizationId: form.organizationId,
             formId,
-            submissionId: newSubmissionId,
-            kind: finding.kind,
-            field: finding.field,
-            details: finding.details,
-          })),
-        )
-      }
+            data,
+            formSchemaVersion,
+            status,
+            quarantineReason,
+            spam,
+            meta,
+            idempotencyKey: idempotencyKey ?? null,
+            test: isTest,
+            receivedAt,
+          })
+          .returning({ id: submissions.id })
+        const newSubmissionId = inserted?.id
+        if (newSubmissionId === undefined) throw new Error("Failed to insert submission.")
 
-      for (const plan of plans) {
-        if (plan.status === "skipped") {
+        if (attachments.length > 0) {
+          await tx.insert(submissionAttachments).values(
+            attachments.map((attachment) => ({
+              id: attachment.id,
+              organizationId: form.organizationId,
+              formId,
+              submissionId: newSubmissionId,
+              fieldName: attachment.fieldName,
+              filename: attachment.filename,
+              contentType: attachment.contentType,
+              sizeBytes: attachment.sizeBytes,
+              sha256: attachment.sha256,
+              storageKey: attachment.storageKey,
+              createdAt: receivedAt,
+            })),
+          )
+        }
+
+        if (driftFindings.length > 0) {
+          await tx.insert(driftEvents).values(
+            driftFindings.map((finding) => ({
+              organizationId: form.organizationId,
+              formId,
+              submissionId: newSubmissionId,
+              kind: finding.kind,
+              field: finding.field,
+              details: finding.details,
+            })),
+          )
+        }
+
+        for (const plan of plans) {
+          if (plan.status === "skipped") {
+            await tx.insert(deliveries).values({
+              organizationId: form.organizationId,
+              submissionId: newSubmissionId,
+              routeId: plan.routeId,
+              destinationId: plan.destinationId,
+              status: "skipped",
+              skipReason: plan.skipReason ?? null,
+              attempts: 0,
+              payload: {},
+              schemaVersion: plan.schemaVersion,
+              dedupeKey: `${newSubmissionId}:${plan.routeId}`,
+            })
+            continue
+          }
+          let payload: Readonly<Record<string, unknown>> = data
+          if (plan.streamId !== null) {
+            const membership = mappingByStream.get(plan.streamId)
+            const schemaJson = schemaJsonByStream.get(plan.streamId)
+            if (membership !== undefined && schemaJson !== undefined) {
+              const mapped = applyMapping(
+                data,
+                membership.mapping as unknown as Mapping,
+                schemaJson,
+              )
+              payload = mapped.payload
+            }
+          }
+          // Digest-route deliveries (job D §3): the digest worker loop groups these by
+          // (route_id, digest_period_key) once the period closes and sends one payload per
+          // destination — it never claims them through the instant path. Parking
+          // next_attempt_at far in the future keeps the instant worker's claim query
+          // (`next_attempt_at <= now()`) from ever picking them up directly.
           await tx.insert(deliveries).values({
             organizationId: form.organizationId,
             submissionId: newSubmissionId,
             routeId: plan.routeId,
             destinationId: plan.destinationId,
-            status: "skipped",
-            skipReason: plan.skipReason ?? null,
+            status: "pending",
             attempts: 0,
-            payload: {},
+            payload,
             schemaVersion: plan.schemaVersion,
+            nextAttemptAt: plan.digestPeriodKey === undefined ? new Date() : DIGEST_PARKED_UNTIL,
+            digestPeriodKey: plan.digestPeriodKey ?? null,
             dedupeKey: `${newSubmissionId}:${plan.routeId}`,
           })
-          continue
         }
-        let payload: Readonly<Record<string, unknown>> = data
-        if (plan.streamId !== null) {
-          const membership = mappingByStream.get(plan.streamId)
-          const schemaJson = schemaJsonByStream.get(plan.streamId)
-          if (membership !== undefined && schemaJson !== undefined) {
-            const mapped = applyMapping(data, membership.mapping as unknown as Mapping, schemaJson)
-            payload = mapped.payload
-          }
-        }
-        // Digest-route deliveries (job D §3): the digest worker loop groups these by
-        // (route_id, digest_period_key) once the period closes and sends one payload per
-        // destination — it never claims them through the instant path. Parking
-        // next_attempt_at far in the future keeps the instant worker's claim query
-        // (`next_attempt_at <= now()`) from ever picking them up directly.
-        await tx.insert(deliveries).values({
-          organizationId: form.organizationId,
-          submissionId: newSubmissionId,
-          routeId: plan.routeId,
-          destinationId: plan.destinationId,
-          status: "pending",
-          attempts: 0,
-          payload,
-          schemaVersion: plan.schemaVersion,
-          nextAttemptAt: plan.digestPeriodKey === undefined ? new Date() : DIGEST_PARKED_UNTIL,
-          digestPeriodKey: plan.digestPeriodKey ?? null,
-          dedupeKey: `${newSubmissionId}:${plan.routeId}`,
-        })
-      }
 
-      return {
-        submissionId: newSubmissionId,
-        hasPendingDelivery: plans.some(
-          (plan) => plan.status === "pending" && plan.digestPeriodKey === undefined,
-        ),
-        status,
+        return {
+          submissionId: newSubmissionId,
+          hasPendingDelivery: plans.some(
+            (plan) => plan.status === "pending" && plan.digestPeriodKey === undefined,
+          ),
+          status,
+        }
+      })
+    } catch (error) {
+      if (uploaded.length > 0 && deps.storage !== null) {
+        await cleanupUploadedAttachments(db, deps.storage, uploaded)
       }
-    })
+      if (idempotencyKey !== undefined) {
+        const [existing] = await db
+          .select({ id: submissions.id, status: submissions.status })
+          .from(submissions)
+          .where(
+            and(eq(submissions.formId, formId), eq(submissions.idempotencyKey, idempotencyKey)),
+          )
+          .limit(1)
+        if (existing !== undefined) {
+          const existingAttachments = await db
+            .select({ id: submissionAttachments.id })
+            .from(submissionAttachments)
+            .where(eq(submissionAttachments.submissionId, existing.id))
+          return respond(
+            c,
+            form,
+            settings,
+            redirectOverride,
+            {
+              ok: true,
+              submission_id: existing.id,
+              status: existing.status,
+              idempotent: true,
+              ...(existingAttachments.length === 0
+                ? {}
+                : {
+                    attachments: existingAttachments.map((attachment) => ({ id: attachment.id })),
+                  }),
+            },
+            isForm,
+          )
+        }
+      }
+      if (uploaded.length < attachments.length) {
+        throw new PostbagError(
+          "attachment_storage_unavailable",
+          "Postbag could not store every attachment safely. No Submission was accepted.",
+          undefined,
+          { cause: error },
+        )
+      }
+      throw error
+    }
 
     if (result.hasPendingDelivery) {
       await notifyDeliveries(db)
@@ -616,6 +968,9 @@ export function registerSubmitRoutes(app: Hono<AppEnv>, deps: SubmitDeps): void 
       ok: true,
       submission_id: result.submissionId,
       status: result.status,
+      ...(attachments.length === 0
+        ? {}
+        : { attachments: attachments.map((attachment) => ({ id: attachment.id })) }),
     }
     if (isTest) {
       const rows = await db

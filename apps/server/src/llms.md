@@ -74,7 +74,7 @@ dropped**.
    verification recipe.
 3. `POST /s/{formId}` — submit to a form. No auth. Accepts
    `application/json`, `application/x-www-form-urlencoded`, and
-   `multipart/form-data` (text fields only in Phase 1). Pass `_test: true` to get a
+   `multipart/form-data` (including file attachments on configured Forms). Pass `_test: true` to get a
    `submission_id` and `deliveries[]` back so you can poll
    `GET /v1/deliveries/{id}` and see `sent` — this is how you verify a destination
    without a browser or a human.

@@ -38,6 +38,8 @@ export async function generateOpenapiDocument(): Promise<Record<string, unknown>
     POLAR_SERVER: "production",
     LEGACY_HOSTS: [],
     PLATFORM_ADMIN_EMAILS: [],
+    STORAGE_REGION: "auto",
+    STORAGE_FORCE_PATH_STYLE: false,
   }
   const logger = createLogger(env)
   const client = createDb(env.DATABASE_URL)

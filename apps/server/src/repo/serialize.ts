@@ -7,6 +7,7 @@ import type {
   routes,
   streams,
   submissions,
+  submissionAttachments,
   systemWebhookDeliveries,
   systemWebhooks,
 } from "@postbag/db"
@@ -24,6 +25,7 @@ export function asJson(value: unknown): Record<string, Json> {
 export type ProjectRow = typeof projects.$inferSelect
 export type FormRow = typeof forms.$inferSelect
 export type SubmissionRow = typeof submissions.$inferSelect
+export type SubmissionAttachmentRow = typeof submissionAttachments.$inferSelect
 export type DeliveryRow = typeof deliveries.$inferSelect
 export type StreamRow = typeof streams.$inferSelect
 export type DestinationRow = typeof destinations.$inferSelect
@@ -33,10 +35,20 @@ export type SystemWebhookRow = typeof systemWebhooks.$inferSelect
 export type SystemWebhookDeliveryRow = typeof systemWebhookDeliveries.$inferSelect
 
 export function serializeProject(row: ProjectRow) {
-  return { id: row.id, slug: row.slug, name: row.name, tags: row.tags, created_at: row.createdAt.toISOString() }
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    tags: row.tags,
+    created_at: row.createdAt.toISOString(),
+  }
 }
 
-export type FormStreamInfo = { readonly id: string; readonly slug: string; readonly mappingStatus: "valid" | "incomplete" }
+export type FormStreamInfo = {
+  readonly id: string
+  readonly slug: string
+  readonly mappingStatus: "valid" | "incomplete"
+}
 export type FormCounts = { readonly submissions: number; readonly lastSubmissionAt: Date | null }
 export type FormStatus = "active" | "paused"
 export type SchemaMode = "observe" | "enforce" | "managed"
@@ -84,6 +96,21 @@ export function serializeSubmission(row: SubmissionRow) {
   }
 }
 
+export function serializeSubmissionAttachment(row: SubmissionAttachmentRow) {
+  return {
+    id: row.id,
+    form_id: row.formId,
+    submission_id: row.submissionId,
+    field_name: row.fieldName,
+    filename: row.filename,
+    content_type: row.contentType,
+    size_bytes: row.sizeBytes,
+    sha256: row.sha256,
+    download_url: `/v1/attachments/${row.id}/download`,
+    created_at: row.createdAt.toISOString(),
+  }
+}
+
 export type DeliveryStatus = "pending" | "sending" | "sent" | "failed" | "dead" | "skipped"
 
 export function serializeDelivery(row: DeliveryRow) {
@@ -105,7 +132,11 @@ export function serializeDelivery(row: DeliveryRow) {
   }
 }
 
-export type StreamCounts = { readonly sources: number; readonly routes: number; readonly submissions30d: number }
+export type StreamCounts = {
+  readonly sources: number
+  readonly routes: number
+  readonly submissions30d: number
+}
 
 export function serializeStream(row: StreamRow, counts: StreamCounts) {
   return {
@@ -113,7 +144,11 @@ export function serializeStream(row: StreamRow, counts: StreamCounts) {
     slug: row.slug,
     name: row.name,
     current_schema_version: row.currentSchemaVersion,
-    counts: { sources: counts.sources, routes: counts.routes, submissions_30d: counts.submissions30d },
+    counts: {
+      sources: counts.sources,
+      routes: counts.routes,
+      submissions_30d: counts.submissions30d,
+    },
     created_at: row.createdAt.toISOString(),
   }
 }
@@ -160,7 +195,13 @@ export function serializeEvent(row: EventRow) {
 }
 
 export function serializeSystemWebhook(row: SystemWebhookRow) {
-  return { id: row.id, url: row.url, events: row.events, enabled: row.enabled, health: row.health as Health }
+  return {
+    id: row.id,
+    url: row.url,
+    events: row.events,
+    enabled: row.enabled,
+    health: row.health as Health,
+  }
 }
 
 export function serializeSystemWebhookDelivery(row: SystemWebhookDeliveryRow) {

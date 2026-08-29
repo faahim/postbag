@@ -41,7 +41,7 @@ curl -X POST {API}/v1/public/sandboxes \
 
 The response contains `sandbox.submit_url`, embed snippets, `sandbox_token`, `claim_url`, verification calls, and `next[]`.
 
-The capability is shown only in this creation response. Keep it secret. It can be reused to read and claim this sandbox until the sandbox is claimed or expires. The sandbox lasts 24 hours, accepts at most five 16 KiB test Submissions, and cannot create Destinations, Routes, Deliveries, Events, or outbound traffic.
+The capability is shown only in this creation response. Keep it secret. It can be reused to read and claim this sandbox until the sandbox is claimed or expires. The sandbox lasts 24 hours, accepts at most five 16 KiB test Submissions, never accepts attachments, and cannot create Destinations, Routes, Deliveries, Events, or outbound traffic.
 
 Set `claim_email` only when the user explicitly supplied the email they will use for Postbag. Never infer it from Git metadata or another account.
 
@@ -75,6 +75,25 @@ The HTTP flow is `POST /v1/auth/request-code`, `POST /v1/auth/verify-code`, then
 Google and GitHub OAuth are optional. They are browser alternatives only when the instance operator configured both credentials for a provider. The email-code and API-key path remains the portable agent path.
 
 Claiming preserves the Form id and submit URL. It copies anonymous rows as test Submissions, but those tests never deliver retroactively.
+
+## Submit an attachment after claim
+
+Use multipart only after the Form belongs to an Organization. Keep the field name
+meaningful; the resulting Submission replaces it with an `fl_…` reference and exposes
+attachment metadata alongside `data`.
+
+```bash
+curl -X POST "$SUBMIT_URL" \
+  -H "Idempotency-Key: <uuidv4>" \
+  -F 'message=Feedback from the settings screen' \
+  -F 'screenshot=@./settings.png;type=image/png'
+```
+
+Free allows 2 MiB per attachment, 3 per Submission and 100 MiB retained; Pro allows
+10 MiB, 10 and 10 GiB; Team allows 15 MiB, 20 and 100 GiB. The multipart request as
+a whole is capped at 16 MiB. Do not put a storage credential, public object URL or
+binary content in a Route configuration: authenticated Postbag reads issue downloads,
+and Delivery adapters receive only short-lived signed links.
 
 ## Configure and verify Delivery
 
@@ -126,7 +145,7 @@ Never store an API key or sandbox capability in the repository.
 
 - Send `Idempotency-Key` on POST requests you may retry. Use `if_exists: "return"` on supported creates.
 - Every error is `{ code, message, hint, docs }`. Read `hint` before improvising a recovery.
-- Id prefixes are part of the contract: `fm_`, `sb_`, `st_`, `ds_`, `rt_`, `dl_`, and `prj_`.
+- Id prefixes are part of the contract: `fm_`, `sb_`, `fl_`, `st_`, `ds_`, `rt_`, `dl_`, and `prj_`.
 - Spam and quarantine are stored statuses. A `200` with `"status": "quarantined"` means Postbag kept the Submission but did not queue Delivery.
 - Include the configured site `Origin` header in verification requests. A curl request without it does not test browser-origin policy.
 - After fixing a quarantine cause, release the stored Submission with `PATCH /v1/submissions/{id}` and `{ "status": "received" }`.

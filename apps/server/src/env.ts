@@ -40,6 +40,12 @@ const EnvSchema = z
     POLAR_PRO_YEARLY_PRODUCT_ID: z.string().optional(),
     POLAR_TEAM_MONTHLY_PRODUCT_ID: z.string().optional(),
     POLAR_TEAM_YEARLY_PRODUCT_ID: z.string().optional(),
+    STORAGE_ENDPOINT: z.url().optional(),
+    STORAGE_REGION: z.string().default("auto"),
+    STORAGE_BUCKET: z.string().optional(),
+    STORAGE_ACCESS_KEY_ID: z.string().optional(),
+    STORAGE_SECRET_ACCESS_KEY: z.string().optional(),
+    STORAGE_FORCE_PATH_STYLE: BooleanFlagDefaultFalse,
     // Social login (job G): optional, self-host parity. See the pair check below.
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
@@ -106,6 +112,24 @@ const EnvSchema = z
         })
       }
     }
+
+    const storageValues = [
+      data.STORAGE_ENDPOINT,
+      data.STORAGE_BUCKET,
+      data.STORAGE_ACCESS_KEY_ID,
+      data.STORAGE_SECRET_ACCESS_KEY,
+    ]
+    const configuredStorageValues = storageValues.filter(
+      (value) => value !== undefined && value.length > 0,
+    ).length
+    if (configuredStorageValues !== 0 && configuredStorageValues !== storageValues.length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["STORAGE_ENDPOINT"],
+        message:
+          "File storage requires STORAGE_ENDPOINT, STORAGE_BUCKET, STORAGE_ACCESS_KEY_ID and STORAGE_SECRET_ACCESS_KEY together.",
+      })
+    }
   })
 
 export type Env = {
@@ -129,6 +153,12 @@ export type Env = {
   readonly POLAR_PRO_YEARLY_PRODUCT_ID?: string | undefined
   readonly POLAR_TEAM_MONTHLY_PRODUCT_ID?: string | undefined
   readonly POLAR_TEAM_YEARLY_PRODUCT_ID?: string | undefined
+  readonly STORAGE_ENDPOINT?: string | undefined
+  readonly STORAGE_REGION: string
+  readonly STORAGE_BUCKET?: string | undefined
+  readonly STORAGE_ACCESS_KEY_ID?: string | undefined
+  readonly STORAGE_SECRET_ACCESS_KEY?: string | undefined
+  readonly STORAGE_FORCE_PATH_STYLE: boolean
   readonly GOOGLE_CLIENT_ID?: string | undefined
   readonly GOOGLE_CLIENT_SECRET?: string | undefined
   readonly GITHUB_CLIENT_ID?: string | undefined

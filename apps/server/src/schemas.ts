@@ -89,9 +89,7 @@ export const SafeStreamSourceInputSchema = z.object({
   form_id: z
     .string()
     .optional()
-    .describe(
-      "One Form feeding this Stream. Mutually exclusive with `selector`.",
-    ),
+    .describe("One Form feeding this Stream. Mutually exclusive with `selector`."),
   selector: StreamSelectorSchema.optional(),
   mapping: SafeMappingSchema.optional().describe(
     "Keyed by the stream schema's field names. Each entry is exactly one of `from` (copy a field from the form's data), " +
@@ -191,6 +189,21 @@ export const SubmissionSchema = z
   })
   .openapi("Submission")
 
+export const SubmissionAttachmentSchema = z
+  .object({
+    id: IdSchema,
+    form_id: IdSchema,
+    submission_id: IdSchema,
+    field_name: z.string(),
+    filename: z.string(),
+    content_type: z.string(),
+    size_bytes: z.number().int().nonnegative(),
+    sha256: z.string(),
+    download_url: z.string(),
+    created_at: TimestampSchema,
+  })
+  .openapi("SubmissionAttachment")
+
 export const DeliveryResultSchema = z
   .object({
     ok: z.boolean().optional(),
@@ -221,6 +234,7 @@ export const DeliverySchema = z
   .openapi("Delivery")
 
 export const SubmissionDetailSchema = SubmissionSchema.extend({
+  attachments: z.array(SubmissionAttachmentSchema).optional(),
   deliveries: z.array(DeliverySchema).optional(),
   drift: z.array(JsonRecord).optional(),
 }).openapi("SubmissionDetail")

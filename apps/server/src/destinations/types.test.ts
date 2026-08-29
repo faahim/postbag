@@ -13,6 +13,7 @@ const baseCtx: DeliveryContext = {
   submission: { id: "sb_abc", received_at: "2026-08-21T09:00:00.000Z" },
   extras: {},
   meta: { ip: "203.0.113.9" },
+  attachments: [],
 }
 
 describe("templateContext", () => {
@@ -26,6 +27,7 @@ describe("templateContext", () => {
       data: { email: "ada@example.com" },
       extras: {},
       meta: { ip: "203.0.113.9" },
+      attachments: [],
     })
   })
 

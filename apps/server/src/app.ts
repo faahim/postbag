@@ -12,6 +12,7 @@ import type { Logger } from "./logger.js"
 import { buildErrorHandler } from "./lib/onError.js"
 import { TokenBucketLimiter } from "./lib/rateLimit.js"
 import type { AppEnv } from "./lib/scope.js"
+import { createObjectStorage, type ObjectStorage } from "./lib/objectStorage.js"
 import { idempotency } from "./middleware/idempotency.js"
 import { legacyHostRedirect } from "./middleware/legacyHostRedirect.js"
 import { requestId } from "./middleware/requestId.js"
@@ -56,12 +57,14 @@ export type AppDeps = {
   readonly auth: Auth
   readonly destinations: ReadonlyMap<string, AnyDestinationAdapter>
   readonly billing?: BillingProvider | null
+  readonly storage?: ObjectStorage | null
 }
 
 export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   const { db, env, logger, auth } = deps
   const billing = deps.billing === undefined ? buildBillingProvider(env) : deps.billing
   const rateLimiter = new TokenBucketLimiter()
+  const storage = deps.storage === undefined ? createObjectStorage(env) : deps.storage
 
   const app = new OpenAPIHono<AppEnv>({
     defaultHook: (result, c) => {
@@ -82,7 +85,7 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   app.use("*", requestId())
 
   // Public submit path — no auth, no /v1 middleware.
-  registerSubmitRoutes(app, { db, env, logger, rateLimiter })
+  registerSubmitRoutes(app, { db, env, logger, rateLimiter, storage })
 
   // Public discovery endpoint — no auth, registered before requireOrg like the submit path
   // above, even though its path is under /v1/*: the SPA calls this before sign-in to decide
@@ -119,7 +122,7 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   registerAuthenticatedAnonymousSandboxRoutes(app, db, env)
   registerProjectRoutes(app, db)
   registerFormRoutes(app, db, env.APP_URL)
-  registerSubmissionRoutes(app, db)
+  registerSubmissionRoutes(app, db, storage)
   registerStreamRoutes(app, db)
   registerDestinationRoutes(app, db, deps.destinations)
   registerRouteResourceRoutes(app, db)

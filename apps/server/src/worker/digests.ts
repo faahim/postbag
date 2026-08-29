@@ -9,11 +9,17 @@ import {
   routes,
   streams,
   submissions,
+  submissionAttachments,
   type Database,
 } from "@postbag/db"
 
-import type { AnyDestinationAdapter, DigestContext, DigestSubmission } from "../destinations/types.js"
+import type {
+  AnyDestinationAdapter,
+  DigestContext,
+  DigestSubmission,
+} from "../destinations/types.js"
 import type { Logger } from "../logger.js"
+import type { ObjectStorage } from "../lib/objectStorage.js"
 import { recordEvent } from "./shared.js"
 
 /**
@@ -27,7 +33,11 @@ import { recordEvent } from "./shared.js"
  * automatic.
  */
 
-type PendingGroup = { readonly organizationId: string; readonly routeId: string; readonly periodKey: string }
+type PendingGroup = {
+  readonly organizationId: string
+  readonly routeId: string
+  readonly periodKey: string
+}
 
 async function findPendingGroups(db: Database): Promise<readonly PendingGroup[]> {
   return db.execute<PendingGroup>(sql`
@@ -77,8 +87,13 @@ async function processGroup(
   logger: Logger,
   registry: ReadonlyMap<string, AnyDestinationAdapter>,
   group: PendingGroup,
+  storage: ObjectStorage | null,
 ): Promise<void> {
-  const log = logger.child({ org_id: group.organizationId, route_id: group.routeId, period_key: group.periodKey })
+  const log = logger.child({
+    org_id: group.organizationId,
+    route_id: group.routeId,
+    period_key: group.periodKey,
+  })
 
   const [route] = await db
     .select()
@@ -119,14 +134,22 @@ async function processGroup(
     )
 
   if (memberDeliveries.length === 0) {
-    await db.update(digests).set({ status: "sent", sentAt: new Date() }).where(eq(digests.id, digestId))
+    await db
+      .update(digests)
+      .set({ status: "sent", sentAt: new Date() })
+      .where(eq(digests.id, digestId))
     return
   }
 
   const [destination] = await db
     .select()
     .from(destinations)
-    .where(and(eq(destinations.organizationId, group.organizationId), eq(destinations.id, route.destinationId)))
+    .where(
+      and(
+        eq(destinations.organizationId, group.organizationId),
+        eq(destinations.id, route.destinationId),
+      ),
+    )
     .limit(1)
   const adapter = destination === undefined ? undefined : registry.get(destination.type)
 
@@ -134,19 +157,71 @@ async function processGroup(
   const submissionRows = await db
     .select({ id: submissions.id, receivedAt: submissions.receivedAt })
     .from(submissions)
-    .where(and(eq(submissions.organizationId, group.organizationId), inArray(submissions.id, submissionIds)))
+    .where(
+      and(
+        eq(submissions.organizationId, group.organizationId),
+        inArray(submissions.id, submissionIds),
+      ),
+    )
   const receivedAtById = new Map(submissionRows.map((row) => [row.id, row.receivedAt]))
+  const attachmentRows = await db
+    .select()
+    .from(submissionAttachments)
+    .where(
+      and(
+        eq(submissionAttachments.organizationId, group.organizationId),
+        inArray(submissionAttachments.submissionId, submissionIds),
+      ),
+    )
+  if (attachmentRows.length > 0 && storage === null) {
+    throw new Error("Attachment storage is not configured on this worker.")
+  }
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1_000).toISOString()
+  const attachmentLinks =
+    storage === null
+      ? []
+      : await Promise.all(
+          attachmentRows.map(async (attachment) => ({
+            submissionId: attachment.submissionId,
+            link: {
+              id: attachment.id,
+              field_name: attachment.fieldName,
+              filename: attachment.filename,
+              content_type: attachment.contentType,
+              size_bytes: attachment.sizeBytes,
+              sha256: attachment.sha256,
+              download_url: await storage.signedDownloadUrl(
+                attachment.storageKey,
+                attachment.filename,
+                24 * 60 * 60,
+              ),
+              expires_at: expiresAt,
+            },
+          })),
+        )
+  const attachmentsBySubmission = new Map<string, (typeof attachmentLinks)[number]["link"][]>()
+  for (const attachment of attachmentLinks) {
+    const existing = attachmentsBySubmission.get(attachment.submissionId) ?? []
+    existing.push(attachment.link)
+    attachmentsBySubmission.set(attachment.submissionId, existing)
+  }
 
   const digestSubmissions: DigestSubmission[] = memberDeliveries
     .map((delivery) => ({
       id: delivery.submissionId,
       received_at: (receivedAtById.get(delivery.submissionId) ?? new Date()).toISOString(),
       data: delivery.payload,
+      attachments: attachmentsBySubmission.get(delivery.submissionId) ?? [],
     }))
     .sort((a, b) => a.received_at.localeCompare(b.received_at))
 
   const context = await buildDigestContext(db, group.organizationId, route)
-  const ctx: DigestContext = { digestId, routeId: group.routeId, periodKey: group.periodKey, ...context }
+  const ctx: DigestContext = {
+    digestId,
+    routeId: group.routeId,
+    periodKey: group.periodKey,
+    ...context,
+  }
 
   const result =
     adapter === undefined || destination === undefined
@@ -158,11 +233,13 @@ async function processGroup(
               ? "Destination no longer exists."
               : `No adapter registered for '${destination.type}'.`,
         }
-      : await adapter.deliverDigest(destination.config, digestSubmissions, ctx).catch((error: unknown) => ({
-          ok: false as const,
-          status_code: null,
-          error: error instanceof Error ? error.message : "Unknown digest delivery error.",
-        }))
+      : await adapter
+          .deliverDigest(destination.config, digestSubmissions, ctx)
+          .catch((error: unknown) => ({
+            ok: false as const,
+            status_code: null,
+            error: error instanceof Error ? error.message : "Unknown digest delivery error.",
+          }))
 
   if (!result.ok) {
     // Left `status: 'open'` and the member deliveries ungrouped/pending — the next sweep
@@ -196,13 +273,17 @@ export async function runDigestSweep(
   db: Database,
   logger: Logger,
   registry: ReadonlyMap<string, AnyDestinationAdapter>,
+  storage: ObjectStorage | null = null,
 ): Promise<void> {
   const groups = await findPendingGroups(db)
   for (const group of groups) {
     try {
-      await processGroup(db, logger, registry, group)
+      await processGroup(db, logger, registry, group, storage)
     } catch (error) {
-      logger.warn({ err: error, route_id: group.routeId, period_key: group.periodKey }, "digest sweep failed for group")
+      logger.warn(
+        { err: error, route_id: group.routeId, period_key: group.periodKey },
+        "digest sweep failed for group",
+      )
     }
   }
 }

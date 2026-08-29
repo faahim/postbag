@@ -1,14 +1,27 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi"
 import { PostbagError } from "@postbag/core"
 import { and, desc, eq, lt, or, type SQL } from "drizzle-orm"
-import { deliveries, driftEvents, submissions, type Database } from "@postbag/db"
+import {
+  deliveries,
+  driftEvents,
+  submissionAttachments,
+  submissions,
+  type Database,
+} from "@postbag/db"
 
 import { decodeCursor, page, parseLimit } from "../../lib/pagination.js"
 import { assertScope, type AppEnv } from "../../lib/scope.js"
+import type { ObjectStorage } from "../../lib/objectStorage.js"
 import { restoreSubmission } from "../../repo/submissionRecovery.js"
-import { asJson, serializeDelivery, serializeSubmission } from "../../repo/serialize.js"
+import {
+  asJson,
+  serializeDelivery,
+  serializeSubmission,
+  serializeSubmissionAttachment,
+} from "../../repo/serialize.js"
 import {
   CursorQuerySchema,
+  ErrorEnvelopeSchema,
   errorResponses,
   SubmissionDetailSchema,
   SubmissionSchema,
@@ -90,7 +103,32 @@ const deleteRoute = createRoute({
   responses: { 204: { description: "deleted" }, ...errorResponses },
 })
 
-export function registerSubmissionRoutes(app: OpenAPIHono<AppEnv>, db: Database): void {
+const downloadAttachmentRoute = createRoute({
+  method: "get",
+  path: "/v1/attachments/{attachmentId}/download",
+  operationId: "attachments_download",
+  tags: ["submissions"],
+  summary: "Download a Submission attachment",
+  description: "Authorizes the organization, then redirects to a private URL valid for 15 minutes.",
+  request: { params: z.object({ attachmentId: z.string() }) },
+  responses: {
+    302: {
+      description: "Temporary private download URL",
+      headers: { Location: { schema: { type: "string" } } },
+    },
+    ...errorResponses,
+    503: {
+      description: "Attachment storage unavailable",
+      content: { "application/json": { schema: ErrorEnvelopeSchema } },
+    },
+  },
+})
+
+export function registerSubmissionRoutes(
+  app: OpenAPIHono<AppEnv>,
+  db: Database,
+  storage: ObjectStorage | null,
+): void {
   app.openapi(searchRoute, async (c) => {
     const scope = c.var.scope
     assertScope(scope, "read")
@@ -152,8 +190,18 @@ export function registerSubmissionRoutes(app: OpenAPIHono<AppEnv>, db: Database)
           eq(driftEvents.submissionId, submissionId),
         ),
       )
+    const attachmentRows = await db
+      .select()
+      .from(submissionAttachments)
+      .where(
+        and(
+          eq(submissionAttachments.organizationId, scope.organizationId),
+          eq(submissionAttachments.submissionId, submissionId),
+        ),
+      )
     const body: z.infer<typeof SubmissionDetailSchema> = {
       ...serializeSubmission(row),
+      attachments: attachmentRows.map(serializeSubmissionAttachment),
       deliveries: deliveryRows.map(serializeDelivery),
       drift: driftRows.map((drift) => ({
         id: drift.id,
@@ -228,5 +276,31 @@ export function registerSubmissionRoutes(app: OpenAPIHono<AppEnv>, db: Database)
         and(eq(submissions.organizationId, scope.organizationId), eq(submissions.id, submissionId)),
       )
     return c.body(null, 204)
+  })
+
+  app.openapi(downloadAttachmentRoute, async (c) => {
+    const scope = c.var.scope
+    assertScope(scope, "read")
+    if (storage === null) {
+      throw new PostbagError(
+        "attachment_storage_unavailable",
+        "Attachment storage is not configured for this Postbag instance.",
+      )
+    }
+    const { attachmentId } = c.req.valid("param")
+    const [row] = await db
+      .select()
+      .from(submissionAttachments)
+      .where(
+        and(
+          eq(submissionAttachments.organizationId, scope.organizationId),
+          eq(submissionAttachments.id, attachmentId),
+        ),
+      )
+      .limit(1)
+    if (row === undefined) throw new PostbagError("not_found", "No attachment with that id.")
+    const url = await storage.signedDownloadUrl(row.storageKey, row.filename, 900)
+    c.header("Cache-Control", "private, no-store")
+    return c.redirect(url, 302)
   })
 }

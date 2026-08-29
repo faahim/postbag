@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/s/{formId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Receive a public Submission
+         * @description Accepts JSON, URL-encoded data, or multipart form data. Multipart file fields become fl_ references in Submission data. Anonymous sandbox Forms do not accept files.
+         */
+        post: operations["submissions_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/providers": {
         parameters: {
             query?: never;
@@ -743,6 +763,26 @@ export interface paths {
         patch: operations["submissions_update"];
         trace?: never;
     };
+    "/v1/attachments/{attachmentId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download a Submission attachment
+         * @description Authorizes the organization, then redirects to a private URL valid for 15 minutes.
+         */
+        get: operations["attachments_download"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/streams": {
         parameters: {
             query?: never;
@@ -1400,10 +1440,27 @@ export interface components {
             received_at: string;
         };
         SubmissionDetail: components["schemas"]["Submission"] & {
+            attachments?: components["schemas"]["SubmissionAttachment"][];
             deliveries?: components["schemas"]["Delivery"][];
             drift?: {
                 [key: string]: unknown;
             }[];
+        };
+        SubmissionAttachment: {
+            /** @example fm_8f3kq2 */
+            id: string;
+            /** @example fm_8f3kq2 */
+            form_id: string;
+            /** @example fm_8f3kq2 */
+            submission_id: string;
+            field_name: string;
+            filename: string;
+            content_type: string;
+            size_bytes: number;
+            sha256: string;
+            download_url: string;
+            /** @example 2026-08-21T09:00:00.000Z */
+            created_at: string;
         };
         Delivery: {
             /** @example fm_8f3kq2 */
@@ -1526,6 +1583,92 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    submissions_submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+                "multipart/form-data": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Submission accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok: boolean;
+                        submission_id: string;
+                        /** @enum {string} */
+                        status: "received" | "quarantined" | "spam";
+                        idempotent?: boolean;
+                        deliveries?: string[];
+                        attachments?: {
+                            id: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Browser form redirect after acceptance */
+            303: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Malformed request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Retained attachment storage limit reached */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Body, attachment size, or attachment count limit exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Attachment storage unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     auth_providers: {
         parameters: {
             query?: never;
@@ -2139,9 +2282,13 @@ export interface operations {
                             submissions_per_month: number;
                             destinations: number;
                             retention_days: number;
+                            attachment_max_bytes: number;
+                            attachments_per_submission: number;
+                            attachment_storage_bytes: number;
                             used: {
                                 forms: number;
                                 submissions_this_month: number;
+                                attachment_storage_bytes: number;
                             };
                         };
                         next: {
@@ -5170,6 +5317,90 @@ export interface operations {
             };
             /** @description Error */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    attachments_download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Temporary private download URL */
+            302: {
+                headers: {
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Attachment storage unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

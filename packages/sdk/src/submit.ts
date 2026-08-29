@@ -12,6 +12,7 @@ export type SubmitResult = {
   readonly submissionId: string
   readonly status: "received" | "quarantined" | "spam"
   readonly deliveries?: readonly string[] | undefined
+  readonly attachmentIds?: readonly string[] | undefined
 }
 
 /**
@@ -21,18 +22,22 @@ export type SubmitResult = {
  */
 export async function submit(
   formIdOrUrl: string,
-  data: Readonly<Record<string, unknown>>,
+  data: Readonly<Record<string, unknown>> | FormData,
   opts: SubmitOptions = {},
 ): Promise<SubmitResult> {
   const fetchImpl = opts.fetch ?? globalThis.fetch
   const url = resolveSubmitUrl(formIdOrUrl, opts.baseUrl)
-  const body = opts.test === true ? { ...data, _test: true } : data
-
-  const response = await fetchImpl(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  })
+  const response =
+    data instanceof FormData
+      ? await fetchImpl(url, {
+          method: "POST",
+          body: opts.test === true ? withTestFlag(data) : data,
+        })
+      : await fetchImpl(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(opts.test === true ? { ...data, _test: true } : data),
+        })
 
   if (!response.ok) {
     const text = await response.text()
@@ -44,13 +49,24 @@ export async function submit(
     readonly submission_id: string
     readonly status: "received" | "quarantined" | "spam"
     readonly deliveries?: readonly string[]
+    readonly attachments?: readonly { readonly id: string }[]
   }
   return {
     ok: json.ok,
     submissionId: json.submission_id,
     status: json.status,
     deliveries: json.deliveries,
+    attachmentIds: json.attachments?.map((attachment) => attachment.id),
   }
+}
+
+function withTestFlag(data: FormData): FormData {
+  const clone = new FormData()
+  data.forEach((value, key) => {
+    clone.append(key, value)
+  })
+  clone.set("_test", "true")
+  return clone
 }
 
 function resolveSubmitUrl(formIdOrUrl: string, baseUrl: string | undefined): string {

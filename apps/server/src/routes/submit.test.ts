@@ -1,9 +1,27 @@
 import { newId } from "@postbag/core"
-import { deliveries, destinations, forms, organization, organizationSettings, routes, submissions, type Database } from "@postbag/db"
+import {
+  deliveries,
+  destinations,
+  forms,
+  objectDeletions,
+  organization,
+  organizationSettings,
+  routes,
+  submissionAttachments,
+  submissions,
+  type Database,
+} from "@postbag/db"
 import { eq, inArray } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
-import { buildHarness, seedOrganization, TEST_DATABASE_URL, type TestHarness } from "../testUtils.js"
+import {
+  buildHarness,
+  seedOrganization,
+  TEST_DATABASE_URL,
+  type TestHarness,
+} from "../testUtils.js"
+import type { ObjectStorage, StoredFile } from "../lib/objectStorage.js"
+import { retainedAttachmentStorageBytes } from "../lib/planUsage.js"
 
 const integration = describe.skipIf(TEST_DATABASE_URL === undefined)
 
@@ -12,9 +30,29 @@ integration("submit path", () => {
   let db: Database
   let organizationId: string
   let projectId: string
+  const storedObjects = new Map<string, StoredFile>()
+  let failNextStorageWrite = false
+  let storageWriteGate: Promise<void> | null = null
+  const storage: ObjectStorage = {
+    async put(file) {
+      if (failNextStorageWrite) {
+        failNextStorageWrite = false
+        throw new Error("simulated storage outage")
+      }
+      storedObjects.set(file.key, file)
+      if (storageWriteGate !== null) await storageWriteGate
+    },
+    delete(key) {
+      storedObjects.delete(key)
+      return Promise.resolve()
+    },
+    signedDownloadUrl(key) {
+      return Promise.resolve(`https://storage.example/${key}?signed=true`)
+    },
+  }
 
   beforeAll(async () => {
-    harness = buildHarness()
+    harness = buildHarness({}, {}, undefined, storage)
     db = harness.db
     const seeded = await seedOrganization(db, "Submit Org")
     organizationId = seeded.organizationId
@@ -23,6 +61,10 @@ integration("submit path", () => {
 
   afterAll(async () => {
     await db.delete(organization).where(eq(organization.id, organizationId))
+    for (const storageKey of storedObjects.keys()) {
+      await db.delete(objectDeletions).where(eq(objectDeletions.storageKey, storageKey))
+    }
+    storedObjects.clear()
     await harness.close()
   })
 
@@ -44,6 +86,14 @@ integration("submit path", () => {
 
   function concurrentRequest(path: string, init: RequestInit): Promise<Response> {
     return Promise.resolve().then(() => harness.app.request(path, init))
+  }
+
+  async function waitForStoredObjects(expected: number): Promise<void> {
+    const deadline = Date.now() + 5_000
+    while (storedObjects.size < expected) {
+      if (Date.now() > deadline) throw new Error("Timed out waiting for storage writes.")
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
   }
 
   async function submissionResponseBody(response: Response): Promise<{
@@ -91,6 +141,302 @@ integration("submit path", () => {
     expect(response.headers.get("location")).toBe(`/s/${form.id}/thanks`)
   })
 
+  it("stores multipart text and file fields with durable metadata", async () => {
+    const form = await createForm()
+    const multipart = new FormData()
+    multipart.set("email", "files@example.com")
+    multipart.set("screenshot", new File(["image bytes"], "screen.png", { type: "image/png" }))
+    const response = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+      body: multipart,
+    })
+    expect(response.status).toBe(200)
+    const body = (await response.json()) as {
+      submission_id: string
+      attachments: { id: string }[]
+    }
+    expect(body.attachments).toHaveLength(1)
+    const [submission] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, body.submission_id))
+    expect(submission?.data).toEqual({
+      email: "files@example.com",
+      screenshot: body.attachments[0]?.id,
+    })
+    const attachmentId = body.attachments[0]?.id
+    if (attachmentId === undefined) throw new Error("missing attachment id")
+    const [attachment] = await db
+      .select()
+      .from(submissionAttachments)
+      .where(eq(submissionAttachments.id, attachmentId))
+    if (attachment === undefined) throw new Error("missing attachment row")
+    expect(attachment).toMatchObject({
+      submissionId: body.submission_id,
+      fieldName: "screenshot",
+      filename: "screen.png",
+      contentType: "image/png",
+      sizeBytes: 11,
+    })
+    expect(storedObjects.has(attachment.storageKey)).toBe(true)
+  })
+
+  it("rejects an oversized attachment before accepting a Submission", async () => {
+    const form = await createForm()
+    const multipart = new FormData()
+    multipart.set(
+      "file",
+      new File([new Uint8Array(2 * 1024 * 1024 + 1)], "too-large.bin", {
+        type: "application/octet-stream",
+      }),
+    )
+    const before = await db.select().from(submissions).where(eq(submissions.formId, form.id))
+    const response = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+      body: multipart,
+    })
+    expect(response.status).toBe(413)
+    expect(await response.json()).toMatchObject({ error: { code: "attachment_too_large" } })
+    const after = await db.select().from(submissions).where(eq(submissions.formId, form.id))
+    expect(after).toHaveLength(before.length)
+  })
+
+  it("does not issue a receipt when private storage fails", async () => {
+    const form = await createForm()
+    const multipart = new FormData()
+    multipart.set("file", new File(["important"], "important.txt", { type: "text/plain" }))
+    failNextStorageWrite = true
+    const response = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+      body: multipart,
+    })
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({
+      error: { code: "attachment_storage_unavailable" },
+    })
+    const rows = await db.select().from(submissions).where(eq(submissions.formId, form.id))
+    expect(rows).toHaveLength(0)
+  })
+
+  it("returns the same file receipt for an idempotent multipart replay", async () => {
+    const form = await createForm()
+    const makeBody = () => {
+      const multipart = new FormData()
+      multipart.set("file", new File(["same"], "same.txt", { type: "text/plain" }))
+      return multipart
+    }
+    const first = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { accept: "application/json", "idempotency-key": "file-replay" },
+      body: makeBody(),
+    })
+    const firstBody = (await first.json()) as {
+      submission_id: string
+      attachments: { id: string }[]
+    }
+    const second = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { accept: "application/json", "idempotency-key": "file-replay" },
+      body: makeBody(),
+    })
+    const secondBody = (await second.json()) as {
+      submission_id: string
+      idempotent: boolean
+      attachments: { id: string }[]
+    }
+    expect(secondBody).toMatchObject({ submission_id: firstBody.submission_id, idempotent: true })
+    expect(secondBody.attachments).toEqual(firstBody.attachments)
+    const rows = await db
+      .select()
+      .from(submissionAttachments)
+      .where(eq(submissionAttachments.submissionId, firstBody.submission_id))
+    expect(rows).toHaveLength(1)
+  })
+
+  it("cleans the losing upload from concurrent idempotent multipart requests", async () => {
+    const form = await createForm()
+    const makeBody = () => {
+      const multipart = new FormData()
+      multipart.set("file", new File(["same"], "same.txt", { type: "text/plain" }))
+      return multipart
+    }
+    let releaseWrites: (() => void) | undefined
+    storageWriteGate = new Promise<void>((resolve) => {
+      releaseWrites = resolve
+    })
+    const beforeObjects = storedObjects.size
+    const requests = [
+      concurrentRequest(`/s/${form.id}`, {
+        method: "POST",
+        headers: { accept: "application/json", "idempotency-key": "file-race" },
+        body: makeBody(),
+      }),
+      concurrentRequest(`/s/${form.id}`, {
+        method: "POST",
+        headers: { accept: "application/json", "idempotency-key": "file-race" },
+        body: makeBody(),
+      }),
+    ]
+    try {
+      await waitForStoredObjects(beforeObjects + 2)
+    } finally {
+      releaseWrites?.()
+      storageWriteGate = null
+    }
+    const responses = await Promise.all(requests)
+    expect(responses.map((response) => response.status)).toEqual([200, 200])
+    const bodies = (await Promise.all(responses.map((response) => response.json()))) as {
+      submission_id: string
+      idempotent?: boolean
+      attachments: { id: string }[]
+    }[]
+    expect(new Set(bodies.map((body) => body.submission_id)).size).toBe(1)
+    expect(bodies.some((body) => body.idempotent === true)).toBe(true)
+    expect(storedObjects.size).toBe(beforeObjects + 1)
+    const winningSubmissionId = bodies[0]?.submission_id
+    if (winningSubmissionId === undefined) throw new Error("missing winning submission")
+    const rows = await db
+      .select()
+      .from(submissionAttachments)
+      .where(eq(submissionAttachments.submissionId, winningSubmissionId))
+    expect(rows).toHaveLength(1)
+  })
+
+  it("rejects retained-byte overage without leaving an object", async () => {
+    const form = await createForm()
+    await db
+      .update(organizationSettings)
+      .set({ limits: { attachment_storage_bytes: 1 } })
+      .where(eq(organizationSettings.organizationId, organizationId))
+    const objectsBefore = storedObjects.size
+    const multipart = new FormData()
+    multipart.set("file", new File(["too many bytes"], "over.txt", { type: "text/plain" }))
+    const response = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+      body: multipart,
+    })
+    expect(response.status).toBe(402)
+    expect(await response.json()).toMatchObject({
+      error: { code: "attachment_storage_limit_reached" },
+    })
+    expect(storedObjects.size).toBe(objectsBefore)
+    await db
+      .update(organizationSettings)
+      .set({ limits: {} })
+      .where(eq(organizationSettings.organizationId, organizationId))
+  })
+
+  it("serializes concurrent retained-byte admission", async () => {
+    const form = await createForm()
+    const usedBytes = await retainedAttachmentStorageBytes(db, organizationId)
+    await db
+      .update(organizationSettings)
+      .set({ limits: { attachment_storage_bytes: usedBytes + 10 } })
+      .where(eq(organizationSettings.organizationId, organizationId))
+    const makeBody = (name: string) => {
+      const multipart = new FormData()
+      multipart.set("file", new File(["123456"], name, { type: "text/plain" }))
+      return multipart
+    }
+    let releaseWrites: (() => void) | undefined
+    storageWriteGate = new Promise<void>((resolve) => {
+      releaseWrites = resolve
+    })
+    const beforeObjects = storedObjects.size
+    const requests = [
+      concurrentRequest(`/s/${form.id}`, {
+        method: "POST",
+        headers: { accept: "application/json" },
+        body: makeBody("one.txt"),
+      }),
+      concurrentRequest(`/s/${form.id}`, {
+        method: "POST",
+        headers: { accept: "application/json" },
+        body: makeBody("two.txt"),
+      }),
+    ]
+    try {
+      try {
+        await waitForStoredObjects(beforeObjects + 2)
+      } finally {
+        releaseWrites?.()
+        storageWriteGate = null
+      }
+      const responses = await Promise.all(requests)
+      expect(responses.map((response) => response.status).sort()).toEqual([200, 402])
+      expect(storedObjects.size).toBe(beforeObjects + 1)
+    } finally {
+      await db
+        .update(organizationSettings)
+        .set({ limits: {} })
+        .where(eq(organizationSettings.organizationId, organizationId))
+    }
+  })
+
+  it(
+    "accepts a multipart request near the aggregate ceiling on Team",
+    async () => {
+      const form = await createForm()
+      await db
+        .update(organizationSettings)
+        .set({ plan: "team", limits: {} })
+        .where(eq(organizationSettings.organizationId, organizationId))
+      try {
+        const multipart = new FormData()
+        multipart.set(
+          "file",
+          new File([new Uint8Array(15 * 1024 * 1024)], "maximum.bin", {
+            type: "application/octet-stream",
+          }),
+        )
+        const response = await harness.app.request(`/s/${form.id}`, {
+          method: "POST",
+          headers: { accept: "application/json" },
+          body: multipart,
+        })
+        expect(response.status).toBe(200)
+      } finally {
+        await db
+          .update(organizationSettings)
+          .set({ plan: "free", limits: {} })
+          .where(eq(organizationSettings.organizationId, organizationId))
+      }
+    },
+    30_000,
+  )
+
+  it("enqueues object deletion when a Submission with a file is deleted", async () => {
+    const form = await createForm()
+    const multipart = new FormData()
+    multipart.set("file", new File(["delete me"], "delete.txt", { type: "text/plain" }))
+    const response = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+      body: multipart,
+    })
+    const body = (await response.json()) as {
+      submission_id: string
+      attachments: { id: string }[]
+    }
+    const attachmentId = body.attachments[0]?.id
+    if (attachmentId === undefined) throw new Error("missing attachment id")
+    const [attachment] = await db
+      .select()
+      .from(submissionAttachments)
+      .where(eq(submissionAttachments.id, attachmentId))
+    if (attachment === undefined) throw new Error("missing attachment row")
+    await db.delete(submissions).where(eq(submissions.id, body.submission_id))
+    const [queued] = await db
+      .select()
+      .from(objectDeletions)
+      .where(eq(objectDeletions.storageKey, attachment.storageKey))
+    expect(queued).toBeDefined()
+  })
+
   it("marks honeypot-filled submissions as spam but still stores them", async () => {
     const form = await createForm()
     const response = await harness.app.request(`/s/${form.id}`, {
@@ -110,11 +456,23 @@ integration("submit path", () => {
     const form = await createForm({ status: "paused" })
     const destination = await db
       .insert(destinations)
-      .values({ id: newId("ds"), organizationId, type: "webhook", name: "Hook", config: { url: "https://example.com" }, verified: true })
+      .values({
+        id: newId("ds"),
+        organizationId,
+        type: "webhook",
+        name: "Hook",
+        config: { url: "https://example.com" },
+        verified: true,
+      })
       .returning()
     const destinationRow = destination[0]
     if (destinationRow === undefined) throw new Error("failed to create destination")
-    await db.insert(routes).values({ id: newId("rt"), organizationId, formId: form.id, destinationId: destinationRow.id })
+    await db.insert(routes).values({
+      id: newId("rt"),
+      organizationId,
+      formId: form.id,
+      destinationId: destinationRow.id,
+    })
 
     const response = await harness.app.request(`/s/${form.id}`, {
       method: "POST",
@@ -168,7 +526,10 @@ integration("submit path", () => {
     })
     const rejectedBody = (await rejected.json()) as { status: string; submission_id: string }
     expect(rejectedBody.status).toBe("quarantined")
-    const [row] = await db.select().from(submissions).where(eq(submissions.id, rejectedBody.submission_id))
+    const [row] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, rejectedBody.submission_id))
     expect(row?.quarantineReason).toBe("origin_rejected")
   })
 
@@ -210,7 +571,10 @@ integration("submit path", () => {
       body: JSON.stringify({ email: "cf@example.com" }),
     })
     const cfBody = (await cfResponse.json()) as { submission_id: string }
-    const [cfRow] = await db.select().from(submissions).where(eq(submissions.id, cfBody.submission_id))
+    const [cfRow] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, cfBody.submission_id))
     expect((cfRow?.meta as { ip?: string } | undefined)?.ip).toBe("203.0.113.9")
 
     const formXff = await createForm()
@@ -220,7 +584,10 @@ integration("submit path", () => {
       body: JSON.stringify({ email: "xff@example.com" }),
     })
     const xffBody = (await xffResponse.json()) as { submission_id: string }
-    const [xffRow] = await db.select().from(submissions).where(eq(submissions.id, xffBody.submission_id))
+    const [xffRow] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, xffBody.submission_id))
     expect((xffRow?.meta as { ip?: string } | undefined)?.ip).toBe("198.51.100.7")
 
     const formNone = await createForm()
@@ -230,7 +597,10 @@ integration("submit path", () => {
       body: JSON.stringify({ email: "none@example.com" }),
     })
     const noneBody = (await noneResponse.json()) as { submission_id: string }
-    const [noneRow] = await db.select().from(submissions).where(eq(submissions.id, noneBody.submission_id))
+    const [noneRow] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, noneBody.submission_id))
     expect((noneRow?.meta as { ip?: string } | undefined)?.ip).toBe("unknown")
   })
 
@@ -253,7 +623,11 @@ integration("submit path", () => {
       "cf-connecting-ip": "203.0.113.55",
       "x-forwarded-for": "10.0.0.1",
     }
-    const first = await harness.app.request(`/s/${form.id}`, { method: "POST", headers, body: JSON.stringify({ email: "1@example.com" }) })
+    const first = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ email: "1@example.com" }),
+    })
     const firstBody = (await first.json()) as { status: string }
     expect(firstBody.status).toBe("received")
 
@@ -264,7 +638,10 @@ integration("submit path", () => {
     })
     const secondBody = (await second.json()) as { status: string; submission_id: string }
     expect(secondBody.status).toBe("quarantined")
-    const [row] = await db.select().from(submissions).where(eq(submissions.id, secondBody.submission_id))
+    const [row] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, secondBody.submission_id))
     expect(row?.quarantineReason).toBe("rate_limited")
   })
 
@@ -333,7 +710,8 @@ integration("submit path", () => {
           verified: true,
         })
         .returning()
-      if (destination === undefined) throw new Error("Failed to create submission-capacity destination.")
+      if (destination === undefined)
+        throw new Error("Failed to create submission-capacity destination.")
       await db.insert(routes).values({
         id: newId("rt"),
         organizationId: limited.organizationId,
@@ -353,7 +731,10 @@ integration("submit path", () => {
       const responseBodies = await Promise.all(responses.map(submissionResponseBody))
       expect(responseBodies.map((body) => body.status).sort()).toEqual(["quarantined", "received"])
 
-      const submissionRows = await db.select().from(submissions).where(eq(submissions.formId, form.id))
+      const submissionRows = await db
+        .select()
+        .from(submissions)
+        .where(eq(submissions.formId, form.id))
       expect(submissionRows).toHaveLength(2)
       expect(submissionRows.filter((row) => row.status === "received")).toHaveLength(1)
       const quarantined = submissionRows.filter((row) => row.status === "quarantined")
@@ -361,7 +742,10 @@ integration("submit path", () => {
       expect(quarantined[0]?.quarantineReason).toBe("over_quota")
 
       const submissionIds = responseBodies.map((body) => body.submission_id)
-      const deliveryRows = await db.select().from(deliveries).where(inArray(deliveries.submissionId, submissionIds))
+      const deliveryRows = await db
+        .select()
+        .from(deliveries)
+        .where(inArray(deliveries.submissionId, submissionIds))
       expect(deliveryRows).toHaveLength(2)
       expect(new Set(deliveryRows.map((row) => row.submissionId))).toEqual(new Set(submissionIds))
     } finally {

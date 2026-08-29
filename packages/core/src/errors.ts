@@ -21,7 +21,23 @@ export const ERROR_DEFINITIONS = {
   },
   unsupported_media_type: {
     status: 415,
-    hint: "File uploads are not supported yet; send text fields only.",
+    hint: "Send JSON, URL-encoded data, or multipart form data supported by this endpoint.",
+  },
+  attachment_too_large: {
+    status: 413,
+    hint: "Use a smaller file or increase the organization's attachment limit.",
+  },
+  attachment_limit_reached: {
+    status: 413,
+    hint: "Remove attachments or increase the organization's per-Submission limit.",
+  },
+  attachment_storage_limit_reached: {
+    status: 402,
+    hint: "Delete old Submissions with attachments, or upgrade the organization's plan.",
+  },
+  attachment_storage_unavailable: {
+    status: 503,
+    hint: "Configure an S3-compatible private bucket, then retry the Submission.",
   },
   rate_limited: { status: 429, hint: "Retry after the indicated delay." },
   origin_rejected: { status: 403, hint: "Add the site origin to the Form allowed origins." },

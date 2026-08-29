@@ -32,19 +32,27 @@ describe("loadEnv — social login (job G)", () => {
   })
 
   it("rejects a Google id with no secret, naming the missing variable", () => {
-    expect(() => loadEnv({ ...BASE, GOOGLE_CLIENT_ID: "google-id" })).toThrow(/GOOGLE_CLIENT_SECRET/)
+    expect(() => loadEnv({ ...BASE, GOOGLE_CLIENT_ID: "google-id" })).toThrow(
+      /GOOGLE_CLIENT_SECRET/,
+    )
   })
 
   it("rejects a Google secret with no id, naming the missing variable", () => {
-    expect(() => loadEnv({ ...BASE, GOOGLE_CLIENT_SECRET: "google-secret" })).toThrow(/GOOGLE_CLIENT_ID/)
+    expect(() => loadEnv({ ...BASE, GOOGLE_CLIENT_SECRET: "google-secret" })).toThrow(
+      /GOOGLE_CLIENT_ID/,
+    )
   })
 
   it("rejects a GitHub id with no secret, naming the missing variable", () => {
-    expect(() => loadEnv({ ...BASE, GITHUB_CLIENT_ID: "github-id" })).toThrow(/GITHUB_CLIENT_SECRET/)
+    expect(() => loadEnv({ ...BASE, GITHUB_CLIENT_ID: "github-id" })).toThrow(
+      /GITHUB_CLIENT_SECRET/,
+    )
   })
 
   it("rejects a GitHub secret with no id, naming the missing variable", () => {
-    expect(() => loadEnv({ ...BASE, GITHUB_CLIENT_SECRET: "github-secret" })).toThrow(/GITHUB_CLIENT_ID/)
+    expect(() => loadEnv({ ...BASE, GITHUB_CLIENT_SECRET: "github-secret" })).toThrow(
+      /GITHUB_CLIENT_ID/,
+    )
   })
 })
 
@@ -54,7 +62,36 @@ describe("loadEnv — PLATFORM_ADMIN_EMAILS (job K)", () => {
   })
 
   it("splits, trims and lowercases a comma-separated list", () => {
-    const env = loadEnv({ ...BASE, PLATFORM_ADMIN_EMAILS: " Fahim@Example.com, friend@example.com ,," })
+    const env = loadEnv({
+      ...BASE,
+      PLATFORM_ADMIN_EMAILS: " Fahim@Example.com, friend@example.com ,,",
+    })
     expect(env.PLATFORM_ADMIN_EMAILS).toEqual(["fahim@example.com", "friend@example.com"])
+  })
+})
+
+describe("loadEnv — attachment storage", () => {
+  it("keeps attachment storage disabled when every storage variable is absent", () => {
+    const env = loadEnv(BASE)
+    expect(env.STORAGE_ENDPOINT).toBeUndefined()
+    expect(env.STORAGE_REGION).toBe("auto")
+  })
+
+  it("loads a complete S3-compatible configuration", () => {
+    const env = loadEnv({
+      ...BASE,
+      STORAGE_ENDPOINT: "https://storage.example",
+      STORAGE_BUCKET: "attachments",
+      STORAGE_ACCESS_KEY_ID: "key",
+      STORAGE_SECRET_ACCESS_KEY: "secret",
+    })
+    expect(env.STORAGE_BUCKET).toBe("attachments")
+    expect(env.STORAGE_FORCE_PATH_STYLE).toBe(false)
+  })
+
+  it("rejects a partial storage configuration", () => {
+    expect(() => loadEnv({ ...BASE, STORAGE_ENDPOINT: "https://storage.example" })).toThrow(
+      /STORAGE_BUCKET/,
+    )
   })
 })

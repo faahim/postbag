@@ -6,14 +6,44 @@ import { PostbagError, type Plan, type PlanLimits } from "@postbag/core"
 export const PLAN_ORDER: Record<Plan, number> = { free: 0, pro: 1, team: 2, selfhost: 3 }
 
 export const DEFAULT_PLAN_LIMITS: Record<Plan, Omit<PlanLimits, "used">> = {
-  free: { forms: 5, submissions_per_month: 1_000, destinations: 5, retention_days: 90 },
-  pro: { forms: 50, submissions_per_month: 50_000, destinations: 50, retention_days: 365 },
-  team: { forms: 500, submissions_per_month: 500_000, destinations: 500, retention_days: 730 },
+  free: {
+    forms: 5,
+    submissions_per_month: 1_000,
+    destinations: 5,
+    retention_days: 90,
+    attachment_max_bytes: 2 * 1024 * 1024,
+    attachments_per_submission: 3,
+    attachment_storage_bytes: 100 * 1024 * 1024,
+  },
+  pro: {
+    forms: 50,
+    submissions_per_month: 50_000,
+    destinations: 50,
+    retention_days: 365,
+    attachment_max_bytes: 10 * 1024 * 1024,
+    attachments_per_submission: 10,
+    attachment_storage_bytes: 10 * 1024 * 1024 * 1024,
+  },
+  team: {
+    forms: 500,
+    submissions_per_month: 500_000,
+    destinations: 500,
+    retention_days: 730,
+    attachment_max_bytes: 15 * 1024 * 1024,
+    attachments_per_submission: 20,
+    attachment_storage_bytes: 100 * 1024 * 1024 * 1024,
+  },
   selfhost: {
     forms: 1_000_000,
     submissions_per_month: 1_000_000_000,
     destinations: 1_000_000,
     retention_days: 36_500,
+    // The per-request 16 MiB safety ceiling still applies. Retained capacity is
+    // effectively unlimited by default; operators can narrow every value through
+    // organization_settings.limits for their own storage budget.
+    attachment_max_bytes: 15 * 1024 * 1024,
+    attachments_per_submission: 20,
+    attachment_storage_bytes: Number.MAX_SAFE_INTEGER,
   },
 }
 
@@ -21,13 +51,21 @@ function isPlan(value: string): value is Plan {
   return value === "free" || value === "pro" || value === "team" || value === "selfhost"
 }
 
-export function limitsFor(plan: string, stored: Readonly<Record<string, number>>): Omit<PlanLimits, "used"> {
+export function limitsFor(
+  plan: string,
+  stored: Readonly<Record<string, number>>,
+): Omit<PlanLimits, "used"> {
   const defaults = isPlan(plan) ? DEFAULT_PLAN_LIMITS[plan] : DEFAULT_PLAN_LIMITS.free
   return {
     forms: stored["forms"] ?? defaults.forms,
     submissions_per_month: stored["submissions_per_month"] ?? defaults.submissions_per_month,
     destinations: stored["destinations"] ?? defaults.destinations,
     retention_days: stored["retention_days"] ?? defaults.retention_days,
+    attachment_max_bytes: stored["attachment_max_bytes"] ?? defaults.attachment_max_bytes,
+    attachments_per_submission:
+      stored["attachments_per_submission"] ?? defaults.attachments_per_submission,
+    attachment_storage_bytes:
+      stored["attachment_storage_bytes"] ?? defaults.attachment_storage_bytes,
   }
 }
 
