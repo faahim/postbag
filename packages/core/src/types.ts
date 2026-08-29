@@ -42,7 +42,14 @@ export type PlanLimits = {
   readonly submissions_per_month: number
   readonly destinations: number
   readonly retention_days: number
-  readonly used: { readonly forms: number; readonly submissions_this_month: number }
+  readonly attachment_max_bytes: number
+  readonly attachments_per_submission: number
+  readonly attachment_storage_bytes: number
+  readonly used: {
+    readonly forms: number
+    readonly submissions_this_month: number
+    readonly attachment_storage_bytes: number
+  }
 }
 export type User = { readonly id: Id; readonly name: string; readonly email: string }
 export type Membership = {
@@ -173,7 +180,19 @@ export type Submission = {
   }
   readonly received_at: Timestamp
 }
+export type SubmissionAttachment = {
+  readonly id: Id
+  readonly form_id: Id
+  readonly submission_id: Id
+  readonly field_name: string
+  readonly filename: string
+  readonly content_type: string
+  readonly size_bytes: number
+  readonly sha256: string
+  readonly created_at: Timestamp
+}
 export type SubmissionDetail = Submission & {
+  readonly attachments?: readonly SubmissionAttachment[]
   readonly deliveries?: readonly Delivery[]
   readonly drift?: readonly DriftEvent[]
 }
@@ -410,10 +429,12 @@ const MappingEntrySchema = z
       })
   })
 const MappingSchema = z.record(z.string(), MappingEntrySchema)
-const StreamSourceSelectorSchema = z.string().regex(
-  /^(?:tag|project):\S(?:.*\S)?$/,
-  "Selector must be a non-empty `tag:<tag>` or `project:<project_id>` value.",
-)
+const StreamSourceSelectorSchema = z
+  .string()
+  .regex(
+    /^(?:tag|project):\S(?:.*\S)?$/,
+    "Selector must be a non-empty `tag:<tag>` or `project:<project_id>` value.",
+  )
 
 export const StreamSourceInputSchema = z
   .object({

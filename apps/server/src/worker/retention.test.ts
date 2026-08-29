@@ -1,10 +1,25 @@
 import { newId } from "@postbag/core"
-import { forms, organization, organizationSettings, submissions, type Database } from "@postbag/db"
+import {
+  forms,
+  objectDeletions,
+  organization,
+  organizationSettings,
+  submissionAttachments,
+  submissions,
+  type Database,
+} from "@postbag/db"
 import { eq } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
-import { buildHarness, seedOrganization, TEST_DATABASE_URL, type TestHarness } from "../testUtils.js"
+import {
+  buildHarness,
+  seedOrganization,
+  TEST_DATABASE_URL,
+  type TestHarness,
+} from "../testUtils.js"
 import { runRetentionSweep } from "./housekeeping.js"
+import { runObjectDeletionSweep } from "./objectDeletion.js"
+import type { ObjectStorage } from "../lib/objectStorage.js"
 
 const integration = describe.skipIf(TEST_DATABASE_URL === undefined)
 
@@ -32,6 +47,8 @@ integration("runRetentionSweep", () => {
     const expiredTestId = newId("sb")
     const retainedTestId = newId("sb")
     const otherOrgSubmissionId = newId("sb")
+    const expiredAttachmentId = newId("fl")
+    const expiredStorageKey = `attachments/${expiredAttachmentId}`
 
     try {
       await db
@@ -93,6 +110,18 @@ integration("runRetentionSweep", () => {
           receivedAt: new Date(Date.now() - 3 * 24 * 60 * 60_000),
         },
       ])
+      await db.insert(submissionAttachments).values({
+        id: expiredAttachmentId,
+        organizationId: shortRetention.organizationId,
+        formId: shortFormId,
+        submissionId: expiredRegularId,
+        fieldName: "file",
+        filename: "expired.txt",
+        contentType: "text/plain",
+        sizeBytes: 7,
+        sha256: "0".repeat(64),
+        storageKey: expiredStorageKey,
+      })
 
       // When: the housekeeping retention sweep runs.
       await runRetentionSweep(db, harness.logger)
@@ -113,9 +142,64 @@ integration("runRetentionSweep", () => {
         .from(submissions)
         .where(eq(submissions.organizationId, defaultRetention.organizationId))
       expect(otherRows.map((row) => row.id)).toContain(otherOrgSubmissionId)
+
+      const [queued] = await db
+        .select()
+        .from(objectDeletions)
+        .where(eq(objectDeletions.storageKey, expiredStorageKey))
+      expect(queued).toBeDefined()
+      const deletedKeys: string[] = []
+      const storage: ObjectStorage = {
+        put: () => Promise.resolve(),
+        signedDownloadUrl: () => Promise.resolve("https://storage.example/signed"),
+        delete(key) {
+          deletedKeys.push(key)
+          return Promise.resolve()
+        },
+      }
+      await runObjectDeletionSweep(db, storage, harness.logger)
+      expect(deletedKeys).toContain(expiredStorageKey)
+      const remaining = await db
+        .select()
+        .from(objectDeletions)
+        .where(eq(objectDeletions.storageKey, expiredStorageKey))
+      expect(remaining).toHaveLength(0)
     } finally {
       await db.delete(organization).where(eq(organization.id, shortRetention.organizationId))
       await db.delete(organization).where(eq(organization.id, defaultRetention.organizationId))
     }
+  })
+
+  it("retains a failed object deletion and succeeds on retry", async () => {
+    const storageKey = `attachments/${newId("fl")}`
+    await db.insert(objectDeletions).values({ storageKey })
+    let shouldFail = true
+    const storage: ObjectStorage = {
+      put: () => Promise.resolve(),
+      signedDownloadUrl: () => Promise.resolve("https://storage.example/signed"),
+      delete() {
+        if (shouldFail) return Promise.reject(new Error("temporary storage outage"))
+        return Promise.resolve()
+      },
+    }
+
+    await runObjectDeletionSweep(db, storage, harness.logger)
+    const [deferred] = await db
+      .select()
+      .from(objectDeletions)
+      .where(eq(objectDeletions.storageKey, storageKey))
+    expect(deferred).toMatchObject({ attempts: 1, lastError: "temporary storage outage" })
+
+    shouldFail = false
+    await db
+      .update(objectDeletions)
+      .set({ nextAttemptAt: new Date(0) })
+      .where(eq(objectDeletions.storageKey, storageKey))
+    await runObjectDeletionSweep(db, storage, harness.logger)
+    const remaining = await db
+      .select()
+      .from(objectDeletions)
+      .where(eq(objectDeletions.storageKey, storageKey))
+    expect(remaining).toHaveLength(0)
   })
 })

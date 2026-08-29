@@ -8,13 +8,18 @@ import { breadcrumbLd, faqLd, softwareLd, webPageLd } from "@/lib/seo"
 const crumbs = [ { name: "Home", href: "/" }, { name: "Pricing", href: "/pricing/" } ]
 const pro = PLANS.find((p) => p.id === "pro")!
 const team = PLANS.find((p) => p.id === "team")!
+const attachmentLimits: Record<string, { perFile: string; perSubmission: number; retained: string }> = {
+  free: { perFile: "2 MiB", perSubmission: 3, retained: "100 MiB" },
+  pro: { perFile: "10 MiB", perSubmission: 10, retained: "10 GiB" },
+  team: { perFile: "15 MiB", perSubmission: 20, retained: "100 GiB" },
+}
 const faqs = [
-  { q: "Is Postbag free?", a: "Yes. Free includes 5 forms, 1,000 messages a month and 90 days of history — and everything else the product does, agents included. It's a smaller room, not a smaller product." },
+  { q: "Is Postbag free?", a: "Yes. Free includes 5 forms, 1,000 messages a month, 90 days of history, and attachment support up to 2 MiB each, 3 per Submission and 100 MiB retained. It's a smaller room, not a smaller product." },
   { q: "What happens over the message limit?", a: "We still keep the message, marked as over quota. Once there is room again, you or your agent can release it for sending. Nothing already received is ever dropped — and test messages don't count against you." },
-  { q: "Do paid plans unlock product features?", a: "No — that's a promise, not a coincidence. Plans differ by room. Team adds seats, an audit log and compliance paperwork, because those only make sense when we're the ones hosting." },
+  { q: "Do paid plans unlock product features?", a: "No — that's a promise, not a coincidence. Every plan accepts attachments; paid plans only raise attachment capacity. Team adds seats, an audit log and compliance paperwork, because those only make sense when we're the ones hosting." },
   { q: `Why is Pro $${pro.monthly} a month?`, a: "You're paying for the running of it: sending, retries, history, backups, and one less thing on your plate. The product itself is on every plan — and in the open-source repository." },
   { q: "Who handles payment and invoices?", a: "Polar, as the Merchant of Record. They're the seller on the receipt, they work out the tax, and they issue the invoice." },
-  { q: "What does self-hosting cost?", a: "Nothing from us, ever — no licence fee, no strings. The server is AGPL-3.0 and the SDK, CLI and MCP server are MIT. You bring the machine; the product is the same one we run." },
+  { q: "What does self-hosting cost?", a: "Nothing from us, ever — no licence fee, no strings. The server is AGPL-3.0 and the SDK, CLI and MCP server are MIT. You bring the machine, Postgres and S3-compatible attachment storage; the product is the same one we run." },
 ]
 const fmt = (n: number) => n.toLocaleString("en-US")
 const description = `Postbag pricing: Free with 5 forms and 1,000 messages a month, Pro at $${pro.monthly}/month, Team at $${team.monthly}/month — the whole product on every plan.`
@@ -34,17 +39,17 @@ const ld = [ softwareLd(), webPageLd({ url: `${SITE_URL}/pricing/`, name: "Postb
         <article class:list={["plan-row", { featured: plan.id === "pro" }]} data-reveal style={`--reveal-delay: calc(var(--duration-quick) * ${index * 0.42})`} data-plan-card={plan.id === "free" ? undefined : ""} data-monthly={plan.monthly} data-yearly={plan.yearly} data-yearly-total={plan.yearly * 12}>
           <header><div><p class="plan-index">0{index + 1} · cloud</p><h3>{plan.name}</h3></div>{plan.id === "pro" && <span class="plan-note">A comfortable default</span>}</header>
           <div class="price"><p>$<span data-price>{plan.monthly}</span></p><span>/ month</span><small data-price-detail={plan.id === "free" ? undefined : ""}>{plan.monthly === 0 ? "No card needed." : "Billed monthly."}</small></div>
-          <dl><div><dt>Forms</dt><dd>{fmt(plan.forms)}</dd></div><div><dt>Messages / month</dt><dd>{fmt(plan.submissions)}</dd></div><div><dt>Destinations</dt><dd>{fmt(plan.destinations)}</dd></div><div><dt>Retention</dt><dd>{plan.retention} days</dd></div><div><dt>Seats, audit log, DPA</dt><dd>{plan.id === "team" ? "Included" : "Not included"}</dd></div></dl>
+          <dl><div><dt>Forms</dt><dd>{fmt(plan.forms)}</dd></div><div><dt>Messages / month</dt><dd>{fmt(plan.submissions)}</dd></div><div><dt>Destinations</dt><dd>{fmt(plan.destinations)}</dd></div><div><dt>Retention</dt><dd>{plan.retention} days</dd></div><div><dt>Attachments / Submission</dt><dd>{attachmentLimits[plan.id]!.perFile} · {attachmentLimits[plan.id]!.perSubmission}</dd></div><div><dt>Attachment storage</dt><dd>{attachmentLimits[plan.id]!.retained}</dd></div><div><dt>Seats, audit log, DPA</dt><dd>{plan.id === "team" ? "Included" : "Not included"}</dd></div></dl>
           <div class="plan-action">{plan.id === "free" ? <a href={SIGNUP_URL} class="btn btn-secondary">Start free</a> : <a href={`${APP_URL}/settings?plan=${plan.id}&interval=month&checkout=1`} data-checkout data-checkout-base={`${APP_URL}/settings`} data-plan={plan.id} class="btn btn-primary">Choose {plan.name}</a>}</div>
         </article>
       ))}
     </div>
-    <p class="included">Every plan includes the whole product: unlimited projects and routing, email, Telegram and webhooks with optional HMAC signing, drift alerts, the full API, the agent clients and the dashboard. Prices are in USD; applicable tax is added at checkout.</p>
+    <p class="included">Every plan includes the whole product: private attachment storage with authenticated downloads, unlimited projects and routing, email, Telegram and webhooks with optional HMAC signing, drift alerts, the full API, the agent clients and the dashboard. Prices are in USD; applicable tax is added at checkout.</p>
   </section>
 
   <section class="container-x self-host" aria-labelledby="self-host-heading" data-reveal>
     <div class="self-host-scene" aria-hidden="true"><span class="source-plane">source</span><span class="route-line"></span><span class="instance">your instance</span></div>
-    <div class="self-host-copy"><p class="section-label">The other first-class path</p><h2 id="self-host-heading">Run the same product yourself.</h2><p>No licence fee and no reduced community edition. Bring a container and Postgres. You own operation, upgrades, backups and delivery configuration.</p><dl><div><dt>Product limits</dt><dd>Effectively unlimited</dd></div><div><dt>Retention</dt><dd>Your policy</dd></div><div><dt>Licence</dt><dd>AGPL-3.0 server, MIT clients</dd></div></dl><div class="self-actions"><a href="/docs/self-hosting/" class="btn btn-primary">Self-host guide</a><a href={GITHUB_URL} class="btn btn-secondary" rel="noopener">Source on GitHub</a></div></div>
+    <div class="self-host-copy"><p class="section-label">The other first-class path</p><h2 id="self-host-heading">Run the same product yourself.</h2><p>No licence fee and no reduced community edition. Bring a container, Postgres and private S3-compatible storage for attachments. You own operation, upgrades, backups and delivery configuration.</p><dl><div><dt>Product limits</dt><dd>Configurable</dd></div><div><dt>Attachment storage</dt><dd>Your storage policy</dd></div><div><dt>Retention</dt><dd>Your policy</dd></div><div><dt>Licence</dt><dd>AGPL-3.0 server, MIT clients</dd></div></dl><div class="self-actions"><a href="/docs/self-hosting/" class="btn btn-primary">Self-host guide</a><a href={GITHUB_URL} class="btn btn-secondary" rel="noopener">Source on GitHub</a></div></div>
   </section>
   <Faq items={faqs} class="mt-20" title="Pricing questions" />
   <CtaBand title="Start with the room you need." body="Nothing changes as you grow — same form, same product, just a bigger room." />

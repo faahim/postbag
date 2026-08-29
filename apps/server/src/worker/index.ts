@@ -10,6 +10,7 @@ import {
   routes,
   streams,
   submissions,
+  submissionAttachments,
   workerHeartbeats,
   type ClaimedDelivery,
   type Database,
@@ -18,6 +19,7 @@ import {
 import type { AnyDestinationAdapter, DeliveryContext } from "../destinations/types.js"
 import type { Env } from "../env.js"
 import type { Logger } from "../logger.js"
+import type { ObjectStorage } from "../lib/objectStorage.js"
 import { runBillingEventSweep } from "./billing.js"
 import { runDigestSweep } from "./digests.js"
 import {
@@ -26,6 +28,7 @@ import {
   runRetentionSweep,
   runSchemaInferenceSweep,
 } from "./housekeeping.js"
+import { runObjectDeletionSweep } from "./objectDeletion.js"
 import { recordEvent } from "./shared.js"
 import { processSystemWebhookDeliveries } from "./systemWebhooks.js"
 
@@ -52,6 +55,7 @@ async function heartbeat(db: Database, workerId: string): Promise<void> {
 async function buildContext(
   db: Database,
   claimed: ClaimedDelivery,
+  storage: ObjectStorage | null,
 ): Promise<DeliveryContext | null> {
   const [route] = await db
     .select()
@@ -108,6 +112,39 @@ async function buildContext(
     if (row !== undefined) stream = row
   }
 
+  const attachmentRows = await db
+    .select()
+    .from(submissionAttachments)
+    .where(
+      and(
+        eq(submissionAttachments.organizationId, claimed.organizationId),
+        eq(submissionAttachments.submissionId, claimed.submissionId),
+      ),
+    )
+  if (attachmentRows.length > 0 && storage === null) {
+    throw new Error("Attachment storage is not configured on this worker.")
+  }
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1_000).toISOString()
+  const attachments =
+    storage === null
+      ? []
+      : await Promise.all(
+          attachmentRows.map(async (attachment) => ({
+            id: attachment.id,
+            field_name: attachment.fieldName,
+            filename: attachment.filename,
+            content_type: attachment.contentType,
+            size_bytes: attachment.sizeBytes,
+            sha256: attachment.sha256,
+            download_url: await storage.signedDownloadUrl(
+              attachment.storageKey,
+              attachment.filename,
+              24 * 60 * 60,
+            ),
+            expires_at: expiresAt,
+          })),
+        )
+
   return {
     deliveryId: claimed.id,
     eventType: "submission.received",
@@ -121,6 +158,7 @@ async function buildContext(
         : { id: submission.id, received_at: submission.receivedAt.toISOString() },
     extras: {},
     meta: submission?.meta ?? {},
+    attachments,
   }
 }
 
@@ -271,6 +309,7 @@ async function processDelivery(
   logger: Logger,
   registry: ReadonlyMap<string, AnyDestinationAdapter>,
   claimed: ClaimedDelivery,
+  storage: ObjectStorage | null,
 ): Promise<void> {
   const log = logger.child({
     org_id: claimed.organizationId,
@@ -305,7 +344,19 @@ async function processDelivery(
     return
   }
 
-  const ctx = await buildContext(db, claimed)
+  let ctx: DeliveryContext | null
+  try {
+    ctx = await buildContext(db, claimed, storage)
+  } catch (error) {
+    await failDelivery(
+      db,
+      log,
+      claimed,
+      destination.type,
+      error instanceof Error ? error.message : "Failed to prepare attachment links.",
+    )
+    return
+  }
   if (ctx === null) {
     await failDelivery(db, log, claimed, destination.type, "Route no longer exists.")
     return
@@ -379,6 +430,7 @@ export function startWorker(
   env: Env,
   logger: Logger,
   registry: ReadonlyMap<string, AnyDestinationAdapter>,
+  storage: ObjectStorage | null = null,
 ): WorkerHandle {
   const workerId = `wrk_${globalThis.crypto.randomUUID()}`
   const log = logger.child({ worker_id: workerId })
@@ -393,7 +445,7 @@ export function startWorker(
   }, HEARTBEAT_INTERVAL_MS)
 
   const digestTimer = setInterval(() => {
-    runDigestSweep(db, log, registry).catch((error: unknown) => {
+    runDigestSweep(db, log, registry, storage).catch((error: unknown) => {
       log.error({ err: error }, "digest sweep failed")
     })
   }, DIGEST_INTERVAL_MS)
@@ -414,6 +466,9 @@ export function startWorker(
     runBillingEventSweep(db, env, log).catch((error: unknown) => {
       log.error({ err: error }, "billing event sweep failed")
     })
+    runObjectDeletionSweep(db, storage, log).catch((error: unknown) => {
+      log.error({ err: error }, "object deletion sweep failed")
+    })
   }, HOUSEKEEPING_INTERVAL_MS)
 
   listenDeliveries(env.DATABASE_URL, () => wake?.())
@@ -430,7 +485,9 @@ export function startWorker(
       const claimed = await claimDeliveries(db, { limit: CONCURRENCY, workerId })
       const claimedWebhooks = await processSystemWebhookDeliveries(db, log, workerId)
       if (claimed.length > 0) {
-        await Promise.all(claimed.map((delivery) => processDelivery(db, log, registry, delivery)))
+        await Promise.all(
+          claimed.map((delivery) => processDelivery(db, log, registry, delivery, storage)),
+        )
       }
       if (claimed.length > 0 || claimedWebhooks > 0) continue
       await new Promise<void>((resolve) => {

@@ -5,6 +5,17 @@ export type Payload = Readonly<Record<string, unknown>>
 
 export type NamedRef = { readonly id: string; readonly name: string; readonly slug: string }
 
+export type AttachmentLink = {
+  readonly id: string
+  readonly field_name: string
+  readonly filename: string
+  readonly content_type: string
+  readonly size_bytes: number
+  readonly sha256: string
+  readonly download_url: string
+  readonly expires_at: string
+}
+
 export type DeliveryContext = {
   readonly deliveryId: string
   readonly eventType: string
@@ -15,6 +26,7 @@ export type DeliveryContext = {
   readonly submission: { readonly id: string; readonly received_at: string } | null
   readonly extras: Payload
   readonly meta: Payload
+  readonly attachments: readonly AttachmentLink[]
 }
 
 /**
@@ -31,6 +43,7 @@ export function templateContext(ctx: DeliveryContext, payload: Payload): Payload
     data: payload,
     extras: ctx.extras,
     meta: ctx.meta,
+    attachments: ctx.attachments,
   }
 }
 
@@ -38,6 +51,7 @@ export type DigestSubmission = {
   readonly id: string
   readonly received_at: string
   readonly data: Payload
+  readonly attachments: readonly AttachmentLink[]
 }
 
 export type DigestContext = {
@@ -58,7 +72,11 @@ export type DestinationAdapter<Config> = {
   deliver(config: Config, payload: Payload, ctx: DeliveryContext): Promise<DeliveryResult>
   /** Job D §3: one payload per destination for a closed digest period — never one send
    * per submission. Email gets a table, Telegram a compact list, webhooks `digest.ready`. */
-  deliverDigest(config: Config, submissions: readonly DigestSubmission[], ctx: DigestContext): Promise<DeliveryResult>
+  deliverDigest(
+    config: Config,
+    submissions: readonly DigestSubmission[],
+    ctx: DigestContext,
+  ): Promise<DeliveryResult>
 }
 
 /** Type-erased view used by the registry so it can hold adapters of different configs. */
@@ -68,7 +86,11 @@ export type AnyDestinationAdapter = {
   redactConfig(config: unknown): unknown
   test(config: unknown, sample: Payload): Promise<DeliveryResult>
   deliver(config: unknown, payload: Payload, ctx: DeliveryContext): Promise<DeliveryResult>
-  deliverDigest(config: unknown, submissions: readonly DigestSubmission[], ctx: DigestContext): Promise<DeliveryResult>
+  deliverDigest(
+    config: unknown,
+    submissions: readonly DigestSubmission[],
+    ctx: DigestContext,
+  ): Promise<DeliveryResult>
 }
 
 export function eraseAdapter<Config>(adapter: DestinationAdapter<Config>): AnyDestinationAdapter {
@@ -77,7 +99,8 @@ export function eraseAdapter<Config>(adapter: DestinationAdapter<Config>): AnyDe
     configSchema: adapter.configSchema,
     redactConfig: (config) => adapter.redactConfig(adapter.configSchema.parse(config)),
     test: (config, sample) => adapter.test(adapter.configSchema.parse(config), sample),
-    deliver: (config, payload, ctx) => adapter.deliver(adapter.configSchema.parse(config), payload, ctx),
+    deliver: (config, payload, ctx) =>
+      adapter.deliver(adapter.configSchema.parse(config), payload, ctx),
     deliverDigest: (config, submissions, ctx) =>
       adapter.deliverDigest(adapter.configSchema.parse(config), submissions, ctx),
   }

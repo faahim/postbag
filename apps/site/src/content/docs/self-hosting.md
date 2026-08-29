@@ -1,12 +1,12 @@
 ---
-title: "Self-hosting: one application and Postgres"
-description: "Run the same open-source Postbag yourself with Postgres 16, explicit environment settings, health checks, and optional agent provisioning."
+title: "Self-hosting Postbag"
+description: "Run the same open-source Postbag yourself with Postgres 16, optional private attachment storage, explicit environment settings, and health checks."
 order: 32
 section: Operate
 modified: "2026-08-24"
 ---
 
-Postbag Cloud and self-hosted Postbag share the same code and core capabilities. A small installation is one application container plus Postgres 16. Run the API and worker together, or split the same image by role when you need independent scaling.
+Postbag Cloud and self-hosted Postbag share the same code and core capabilities. A small text-only installation is one application container plus Postgres 16. File attachments additionally require a private S3-compatible bucket such as MinIO, Cloudflare R2, AWS S3, or Backblaze B2. Run the API and worker together, or split the same image by role when you need independent scaling.
 
 ## Start with Docker Compose
 
@@ -63,6 +63,21 @@ Keep the database on a persistent volume and replace every example secret before
 | `POSTBAG_ROLE`           | `api`, `worker`, or `all`. Multiple workers are safe.                           |
 | `PORT`, `TZ`, `NODE_ENV` | Defaults are `3000`, `UTC`, and `production`.                                   |
 | `MIGRATE_ON_BOOT`        | Runs committed Drizzle migrations before the process starts.                    |
+
+## Private attachment storage
+
+Set these variables together to enable multipart file attachments:
+
+| Variable                    | What it controls                                                      |
+| --------------------------- | --------------------------------------------------------------------- |
+| `STORAGE_ENDPOINT`          | HTTPS endpoint for the S3-compatible service.                         |
+| `STORAGE_REGION`            | Provider region; defaults to `auto` for R2-compatible services.       |
+| `STORAGE_BUCKET`            | Private bucket name. Public bucket access must remain disabled.       |
+| `STORAGE_ACCESS_KEY_ID`     | Bucket-scoped access key.                                             |
+| `STORAGE_SECRET_ACCESS_KEY` | Bucket-scoped secret key.                                             |
+| `STORAGE_FORCE_PATH_STYLE`  | Set `true` for providers such as local MinIO that require path style. |
+
+Postbag refuses file parts with `503 attachment_storage_unavailable` when storage is not configured; JSON, URL-encoded, and multipart text Submissions continue to work. Self-host attachment limits are configurable through the same organization limit fields reported by `GET /v1/me`.
 
 ## Email and sign-in
 

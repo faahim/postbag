@@ -67,11 +67,16 @@ export function createWebhookAdapter(): DestinationAdapter<WebhookConfig> {
       data: payload,
       extras: ctx.extras,
       meta: ctx.meta,
+      attachments: ctx.attachments,
     })
     return postWebhook(config, ctx.eventType, ctx.deliveryId, body)
   }
 
-  const deliverDigest: DestinationAdapter<WebhookConfig>["deliverDigest"] = (config, submissions, ctx) => {
+  const deliverDigest: DestinationAdapter<WebhookConfig>["deliverDigest"] = (
+    config,
+    submissions,
+    ctx,
+  ) => {
     const body = JSON.stringify({
       digest: {
         id: ctx.digestId,
@@ -100,6 +105,7 @@ export function createWebhookAdapter(): DestinationAdapter<WebhookConfig> {
         submission: null,
         extras: {},
         meta: {},
+        attachments: [],
       }),
     deliver,
     deliverDigest,

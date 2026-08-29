@@ -4,7 +4,8 @@
 Organization ─┬─ Membership ── User
               ├─ ApiKey
               ├─ Project ── Form ─┬─ FormSchema (v1, v2, …)
-              │                   └─ Submission ── Delivery ─┐
+              │                   └─ Submission ── attachment metadata
+              │                                  └─ Delivery ─┐
               ├─ Stream ─┬─ StreamSchema (v1, v2, …)          │
               │          ├─ StreamSource (form ↔ stream + Mapping)
               │          └─ Route ── Destination ◄────────────┘
@@ -23,7 +24,7 @@ Tenancy: **every tenant-owned row carries `organization_id`** and every query is
 scoped by it. Anonymous sandbox staging rows are deliberately non-tenant and can
 only be addressed with their hashed capability token; claiming moves their data
 into tenant-owned rows atomically.
-IDs are prefixed public ids (`fm_…`, `sb_…`, `st_…`, `ds_…`, `rt_…`, `dl_…`) so an
+IDs are prefixed public ids (`fm_…`, `sb_…`, `fl_…`, `st_…`, `ds_…`, `rt_…`, `dl_…`) so an
 id is self-describing in logs, URLs, and agent conversations.
 
 ---
@@ -31,7 +32,8 @@ id is self-describing in logs, URLs, and agent conversations.
 ## Organization
 
 The tenant. Owns everything below. Has a `slug`, a `plan`, and limits derived from
-the plan (forms, submissions/month, retention days, destinations). `plan_source`
+the plan (forms, submissions/month, retention days, destinations, attachment size,
+attachments per Submission and retained attachment storage). `plan_source`
 records whether access is free, billed, complimentary, or self-hosted. Polar customer,
 subscription, status, renewal date, and cancellation state are stored on the settings
 row; only a processed, signed Polar subscription webhook may change a billed plan.
@@ -113,18 +115,28 @@ Modes, set on the form:
 
 One received payload.
 
-| Field                 | Notes                                                                                                                                      |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `public_id`           | `sb_…`                                                                                                                                     |
-| `data`                | JSON object of submitted fields, after stripping control fields (`_redirect`, `_gotcha`, …). Files are referenced by `fl_…` ids (Phase 2). |
-| `form_schema_version` | Version validated against, or null.                                                                                                        |
-| `status`              | `received` · `quarantined` · `spam`. All three are stored and visible.                                                                     |
-| `quarantine_reason`   | `schema_violation` · `rate_limited` · `origin_rejected` · `turnstile_failed` · `over_quota`.                                               |
-| `spam`                | `{ score, reasons[] }` — honeypot, heuristics, later ML.                                                                                   |
-| `meta`                | `ip`, `user_agent`, `origin`, `referer`, `country`, `received_at`, `content_type`.                                                         |
-| `idempotency_key`     | From the `Idempotency-Key` header or `_idempotency` field. Unique per form.                                                                |
+| Field                 | Notes                                                                                                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `public_id`           | `sb_…`                                                                                                                                                                                                 |
+| `data`                | JSON object of submitted fields, after stripping control fields (`_redirect`, `_gotcha`, …). A multipart attachment is replaced at its field by its `fl_…` id (or ids for repeated fields).            |
+| `attachments`         | Additive metadata for each referenced `fl_…`: field, display filename, content type, byte size and checksum. It is tenant-scoped; the private object key is never part of `data` or a public response. |
+| `form_schema_version` | Version validated against, or null.                                                                                                                                                                    |
+| `status`              | `received` · `quarantined` · `spam`. All three are stored and visible.                                                                                                                                 |
+| `quarantine_reason`   | `schema_violation` · `rate_limited` · `origin_rejected` · `turnstile_failed` · `over_quota`.                                                                                                           |
+| `spam`                | `{ score, reasons[] }` — honeypot, heuristics, later ML.                                                                                                                                               |
+| `meta`                | `ip`, `user_agent`, `origin`, `referer`, `country`, `received_at`, `content_type`.                                                                                                                     |
+| `idempotency_key`     | From the `Idempotency-Key` header or `_idempotency` field. Unique per form.                                                                                                                            |
 
 Unique: `(form_id, idempotency_key)`.
+
+Attachment bytes live in private S3-compatible object storage, while their metadata is
+stored with the owning Organization and Submission. An authenticated API or dashboard
+request resolves an attachment to a short-lived signed download URL. Email, Telegram
+and webhook Deliveries receive the same short-lived links rather than binary files.
+Attachments are deleted with their Submission; a durable retry queue removes an
+object if the first deletion attempt fails. Anonymous sandboxes do not accept
+attachments. The first release deliberately excludes previews, scanning, resumable
+uploads and client-direct uploads.
 
 ## Stream
 
@@ -203,14 +215,14 @@ payload — this is the agent's verification step.
 The **outbox**. One row per (submission, route), created transactionally with the
 submission's routing, drained by the worker.
 
-| Field                                       | Notes                                                                                                                        |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `status`                                    | `pending` · `sending` · `sent` · `failed` (will retry) · `dead` (gave up, alert raised) · `skipped` (filter/window/quality). |
-| `attempts`, `next_attempt_at`, `last_error` | Exponential backoff with jitter; max attempts per destination type.                                                          |
-| `payload`                                   | Snapshot of exactly what was (or will be) sent, after mapping + transform.                                                   |
-| `schema_version`                            | Stream schema version (or form schema version for direct routes) the payload conforms to.                                    |
-| `response`                                  | Status, truncated body, latency of the last attempt.                                                                         |
-| `dedupe_key`                                | `"{submission_id}:{route_id}"` — **unique**.                                                                                 |
+| Field                                       | Notes                                                                                                                                                                               |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `status`                                    | `pending` · `sending` · `sent` · `failed` (will retry) · `dead` (gave up, alert raised) · `skipped` (filter/window/quality).                                                        |
+| `attempts`, `next_attempt_at`, `last_error` | Exponential backoff with jitter; max attempts per destination type.                                                                                                                 |
+| `payload`                                   | Snapshot of exactly what was (or will be) sent, after mapping + transform. Attachment references remain `fl_…`; adapters add short-lived signed download links, never binary files. |
+| `schema_version`                            | Stream schema version (or form schema version for direct routes) the payload conforms to.                                                                                           |
+| `response`                                  | Status, truncated body, latency of the last attempt.                                                                                                                                |
+| `dedupe_key`                                | `"{submission_id}:{route_id}"` — **unique**.                                                                                                                                        |
 
 Digest routes create a **Digest** row keyed `(route_id, period_key)` — unique — and
 deliveries are grouped under it.
@@ -236,5 +248,8 @@ once a human or agent has published a new schema version or dismissed it.
 3. `digests (route_id, period_key)` unique.
 4. `form_schemas (form_id, version)` and `stream_schemas (stream_id, version)` unique; rows never updated.
 5. Every tenant-owned row has a non-null `organization_id`, and every foreign key across tenant tables is checked to be within the same organization (composite FK or trigger).
-6. Anonymous sandbox rows are non-tenant staging rows; capability-token checks and
+6. Attachment metadata is tenant-scoped and may only reference a Submission in that
+   same Organization. Object keys are opaque and private.
+7. Attachment-object deletion retries are durable and survive Submission deletion.
+8. Anonymous sandbox rows are non-tenant staging rows; capability-token checks and
    the atomic claim transaction are their ownership boundary.

@@ -6,6 +6,7 @@ import { buildAuth } from "./authSetup.js"
 import { createDestinationRegistry } from "./destinations/registry.js"
 import { loadEnv } from "./env.js"
 import { createLogger } from "./logger.js"
+import { createObjectStorage } from "./lib/objectStorage.js"
 import { startWorker, type WorkerHandle } from "./worker/index.js"
 
 async function main(): Promise<void> {
@@ -20,19 +21,20 @@ async function main(): Promise<void> {
   const client = createDb(env.DATABASE_URL)
   const auth = buildAuth(client.db, env)
   const destinations = createDestinationRegistry(env)
+  const storage = createObjectStorage(env)
 
   let server: ServerType | undefined
   let worker: WorkerHandle | undefined
 
   if (env.POSTBAG_ROLE === "api" || env.POSTBAG_ROLE === "all") {
-    const app = createApp({ db: client.db, env, logger, auth, destinations })
+    const app = createApp({ db: client.db, env, logger, auth, destinations, storage })
     server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
       logger.info({ port: info.port, role: env.POSTBAG_ROLE }, "postbag api listening")
     })
   }
 
   if (env.POSTBAG_ROLE === "worker" || env.POSTBAG_ROLE === "all") {
-    worker = startWorker(client.db, env, logger, destinations)
+    worker = startWorker(client.db, env, logger, destinations, storage)
     logger.info({ role: env.POSTBAG_ROLE }, "postbag worker started")
   }
 
