@@ -137,7 +137,9 @@ Attachments are deleted with their Submission; a durable retry queue removes an
 object if the first deletion attempt fails. The same queue records active upload
 reservations before object storage is written; expired reservations become deletion
 work, while Submission finalization commits only reservations the worker has not
-claimed. Anonymous sandboxes do not accept attachments. The first release deliberately
+claimed. Active reservations also carry a one-way hash of a supplied Submission
+idempotency key so concurrent retries share the winning receipt without duplicating
+objects. Anonymous sandboxes do not accept attachments. The first release deliberately
 excludes previews, scanning, resumable uploads and client-direct uploads.
 
 ## Stream

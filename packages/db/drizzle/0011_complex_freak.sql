@@ -1,0 +1,2 @@
+ALTER TABLE "object_deletions" ADD COLUMN "upload_idempotency_hash" text;--> statement-breakpoint
+CREATE INDEX "object_deletions_upload_idempotency_idx" ON "object_deletions" USING btree ("organization_id","upload_idempotency_hash");

@@ -57,6 +57,7 @@ const MAX_ANONYMOUS_BODY_BYTES = 16 * 1_024
 const MAX_MULTIPART_BODY_BYTES = 16 * 1_024 * 1_024
 const MULTIPART_OVERHEAD_BYTES = 1 * 1_024 * 1_024
 const UPLOAD_RESERVATION_DELAY_MS = 60 * 60_000
+const IDEMPOTENT_UPLOAD_WAIT_MS = 10_000
 // See the digest TODO near the delivery insert below.
 const DIGEST_PARKED_UNTIL = new Date("9999-01-01T00:00:00.000Z")
 
@@ -299,6 +300,7 @@ async function cleanupUploadedAttachments(
             organizationId,
             sizeBytes: attachment.sizeBytes,
             uploadReservation: false,
+            uploadIdempotencyHash: null,
             nextAttemptAt: new Date(),
           },
         })
@@ -804,32 +806,64 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
     let result: AcceptedSubmission | undefined
     let transactionFailed = false
     let transactionError: unknown
+    const uploadIdempotencyHash =
+      idempotencyKey === undefined
+        ? null
+        : createHash("sha256").update(`${form.id}\0${idempotencyKey}`).digest("hex")
     if (attachments.length > 0) {
       // Serialize only the small reservation transaction. Once committed, the row
       // itself makes capacity durable while object storage I/O runs concurrently.
-      if (idempotencyKey !== undefined) {
-        const existingReceipt = await existingSubmissionReceipt(db, form, idempotencyKey)
-        if (existingReceipt !== null) {
-          return respond(c, form, settings, redirectOverride, existingReceipt, isForm)
+      const waitDeadline = Date.now() + IDEMPOTENT_UPLOAD_WAIT_MS
+      for (;;) {
+        const admission = await db.transaction(async (tx) => {
+          await lockPlanCapacity(tx, form.organizationId, "attachments")
+          if (idempotencyKey !== undefined) {
+            const existingReceipt = await existingSubmissionReceipt(tx, form, idempotencyKey)
+            if (existingReceipt !== null) return { kind: "replay" as const, existingReceipt }
+          }
+          if (uploadIdempotencyHash !== null) {
+            const [pending] = await tx
+              .select({ storageKey: objectDeletions.storageKey })
+              .from(objectDeletions)
+              .where(
+                and(
+                  eq(objectDeletions.organizationId, form.organizationId),
+                  eq(objectDeletions.uploadReservation, true),
+                  eq(objectDeletions.uploadIdempotencyHash, uploadIdempotencyHash),
+                ),
+              )
+              .limit(1)
+            if (pending !== undefined) return { kind: "pending" as const }
+          }
+          await assertLockedAttachmentStorageCapacity(
+            tx,
+            form.organizationId,
+            requestedAttachmentBytes,
+          )
+          await tx.insert(objectDeletions).values(
+            attachments.map((attachment) => ({
+              storageKey: attachment.storageKey,
+              organizationId: form.organizationId,
+              sizeBytes: attachment.sizeBytes,
+              uploadReservation: true,
+              uploadIdempotencyHash,
+              nextAttemptAt: new Date(Date.now() + UPLOAD_RESERVATION_DELAY_MS),
+            })),
+          )
+          return { kind: "reserved" as const }
+        })
+        if (admission.kind === "replay") {
+          return respond(c, form, settings, redirectOverride, admission.existingReceipt, isForm)
         }
+        if (admission.kind === "reserved") break
+        if (Date.now() >= waitDeadline) {
+          throw new PostbagError(
+            "attachment_storage_unavailable",
+            "An upload with this idempotency key is still in progress. Retry the same request.",
+          )
+        }
+        await new Promise((resolve) => setTimeout(resolve, 25))
       }
-      await db.transaction(async (tx) => {
-        await lockPlanCapacity(tx, form.organizationId, "attachments")
-        await assertLockedAttachmentStorageCapacity(
-          tx,
-          form.organizationId,
-          requestedAttachmentBytes,
-        )
-        await tx.insert(objectDeletions).values(
-          attachments.map((attachment) => ({
-            storageKey: attachment.storageKey,
-            organizationId: form.organizationId,
-            sizeBytes: attachment.sizeBytes,
-            uploadReservation: true,
-            nextAttemptAt: new Date(Date.now() + UPLOAD_RESERVATION_DELAY_MS),
-          })),
-        )
-      })
     }
 
     try {

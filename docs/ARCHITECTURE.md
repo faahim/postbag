@@ -134,6 +134,9 @@ commits. Reservation creation is serialized in a short transaction, so uploads d
 hold scarce database connections while waiting for one another. Expired reservations
 are atomically claimed by the deletion worker; finalization renews and verifies every
 reservation before committing, so the worker can never delete an accepted attachment.
+Concurrent multipart retries share a hashed idempotency marker on those reservations;
+followers wait without holding a database connection and replay the winning receipt
+instead of consuming quota or writing duplicate objects.
 The bound is documented in ADR-010.
 
 Polar billing follows the same durability rule. `POST /v1/billing/webhook` verifies the

@@ -66,6 +66,7 @@ export const objectDeletions = pgTable(
     organizationId: text("organization_id").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
     uploadReservation: boolean("upload_reservation").default(false).notNull(),
+    uploadIdempotencyHash: text("upload_idempotency_hash"),
     attempts: integer("attempts").default(0).notNull(),
     nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true, mode: "date" })
       .defaultNow()
@@ -76,5 +77,9 @@ export const objectDeletions = pgTable(
   (table) => [
     index("object_deletions_pending_idx").on(table.nextAttemptAt),
     index("object_deletions_organization_id_idx").on(table.organizationId),
+    index("object_deletions_upload_idempotency_idx").on(
+      table.organizationId,
+      table.uploadIdempotencyHash,
+    ),
   ],
 )

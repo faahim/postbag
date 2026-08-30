@@ -78,6 +78,13 @@
       "when": 1788082438484,
       "tag": "0010_tough_mentallo",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788083118937,
+      "tag": "0011_complex_freak",
+      "breakpoints": true
     }
   ]
 }

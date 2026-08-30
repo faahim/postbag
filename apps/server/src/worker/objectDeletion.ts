@@ -22,6 +22,7 @@ export async function runObjectDeletionSweep(
       .update(objectDeletions)
       .set({
         uploadReservation: false,
+        uploadIdempotencyHash: null,
         nextAttemptAt: new Date(Date.now() + 5 * 60_000),
       })
       .where(

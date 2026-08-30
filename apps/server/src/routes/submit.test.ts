@@ -36,8 +36,10 @@ integration("submit path", () => {
   let persistThenFailNextStorageWrite = false
   let failNextStorageDelete = false
   let storageWriteGate: Promise<void> | null = null
+  let storagePutCount = 0
   const storage: ObjectStorage = {
     async put(file) {
+      storagePutCount += 1
       if (failNextStorageWrite) {
         failNextStorageWrite = false
         throw new Error("simulated storage outage")
@@ -398,6 +400,7 @@ integration("submit path", () => {
       releaseWrites = resolve
     })
     const beforeObjects = storedObjects.size
+    const putsBefore = storagePutCount
     const requests = [
       concurrentRequest(`/s/${form.id}`, {
         method: "POST",
@@ -426,6 +429,7 @@ integration("submit path", () => {
     expect(new Set(bodies.map((body) => body.submission_id)).size).toBe(1)
     expect(bodies.some((body) => body.idempotent === true)).toBe(true)
     expect(storedObjects.size).toBe(beforeObjects + 1)
+    expect(storagePutCount).toBe(putsBefore + 1)
     const winningSubmissionId = bodies[0]?.submission_id
     if (winningSubmissionId === undefined) throw new Error("missing winning submission")
     const rows = await db
