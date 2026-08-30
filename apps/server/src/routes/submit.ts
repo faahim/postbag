@@ -837,6 +837,17 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
               .onConflictDoNothing()
               .returning({ storageKey: objectDeletions.storageKey })
             if (claimed.length === 0) return { kind: "pending" as const }
+            // The insert may have waited for a winner to delete its reservation. Under
+            // READ COMMITTED this fresh statement sees that winner's committed Submission.
+            if (idempotencyKey !== undefined) {
+              const existingReceipt = await existingSubmissionReceipt(tx, form, idempotencyKey)
+              if (existingReceipt !== null) {
+                await tx
+                  .delete(objectDeletions)
+                  .where(eq(objectDeletions.storageKey, leader.storageKey))
+                return { kind: "replay" as const, existingReceipt }
+              }
+            }
           }
           await assertLockedAttachmentStorageCapacity(
             tx,
