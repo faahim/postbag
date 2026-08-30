@@ -3,7 +3,7 @@ import postgres, { type Sql } from "postgres"
 
 import * as schema from "./schema/index.js"
 
-export type Database = PostgresJsDatabase<typeof schema>
+export type Database = PostgresJsDatabase<typeof schema> & { readonly $client: Sql }
 export type DatabaseClient = {
   readonly db: Database
   readonly sql: Sql

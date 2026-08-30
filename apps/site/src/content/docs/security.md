@@ -30,6 +30,8 @@ size, attachment count and retained storage. File names and declared content typ
 display metadata, not a trust decision. A Submission's retention or explicit deletion
 also enqueues its object for durable deletion retry. Anonymous sandboxes are file-free.
 Queued objects continue counting toward retained storage until deletion succeeds.
+Postbag reserves that capacity durably before writing a new object and removes the
+reservation atomically when its Submission commits.
 The first release has no previews, malware scanning, resumable uploads or
 client-direct storage uploads.
 

@@ -22,7 +22,10 @@ None.
 
 ### HIGH
 
-None remaining.
+None remaining. The strict durable reservation and session-level lock remove the
+previous outer-COMMIT accounting window: the reservation is committed before
+`PutObject`, removed atomically with attachment metadata on acceptance, and retained
+for cleanup/retry otherwise.
 
 The previously discovered ambiguous-success `PutObject` hole is fixed:
 `apps/server/src/routes/submit.ts:798-816` records each cleanup candidate before
@@ -32,7 +35,9 @@ persist-then-throw case.
 
 ### MEDIUM
 
-None.
+None. The session-level lock now keys on `attachments.length > 0`
+(`apps/server/src/routes/submit.ts:805-808`), and the actual concurrent losing-replay
+test uses a named zero-byte File (`apps/server/src/routes/submit.test.ts:388-435`).
 
 ### LOW
 
@@ -93,6 +98,19 @@ None.
   `apps/server/src/routes/submit.test.ts:154-177`.
 - I independently reran the DB-backed server suite after these changes: 32 files /
   201 tests passed. Server typecheck and `git diff --check` passed.
+- Final reservation review: a dedicated session-level advisory lock spans the
+  committed pre-upload `object_deletions` reservation, object storage I/O, accepted
+  transaction reconciliation, and cleanup (`apps/server/src/routes/submit.ts:805-1074`).
+  The reservation is deleted atomically with attachment metadata (`:909-931`) and
+  retained or made immediately due if cleanup must retry (`:275-301`). This closes
+  the prior ambiguous-commit capacity window without an untyped escape hatch or
+  needless abstraction.
+- I independently confirmed the zero-byte concurrent test content and reran the
+  targeted server suite; the attachment paths passed. A separate local billing test
+  currently fails unchanged from this diff (expected `pro`, received `free`), so it
+  is recorded as an unrelated baseline/environment issue rather than attributed to
+  the attachment changes. The supplied clean full-suite result should remain the
+  release gate for this unrelated test.
 
 ## Skill-perspective check
 

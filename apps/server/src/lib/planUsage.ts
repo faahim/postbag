@@ -76,6 +76,29 @@ export async function lockPlanCapacity(
   )
 }
 
+/** Hold the same advisory lock across multiple transactions and external storage I/O.
+ * The caller must always release it in a finally block. */
+export async function reservePlanCapacityLock(
+  db: Database,
+  organizationId: string,
+  resource: PlanLockResource,
+): Promise<() => Promise<void>> {
+  const connection = await db.$client.reserve()
+  try {
+    await connection`SELECT pg_advisory_lock(hashtext(${organizationId}), hashtext(${resource}))`
+  } catch (error) {
+    connection.release()
+    throw error
+  }
+  return async () => {
+    try {
+      await connection`SELECT pg_advisory_unlock(hashtext(${organizationId}), hashtext(${resource}))`
+    } finally {
+      connection.release()
+    }
+  }
+}
+
 export async function assertLockedPlanCapacity(
   db: PlanUsageDatabase,
   organizationId: string,

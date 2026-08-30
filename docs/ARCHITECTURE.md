@@ -128,7 +128,9 @@ until the plan allows. Attachment bytes are a separate aggregate-storage admissi
 boundary: a request that cannot fit in durable retained capacity never becomes a
 Submission. Objects awaiting confirmed deletion remain in that capacity calculation,
 so a storage outage cannot turn the deletion queue into an unbounded quota bypass. The
-bound is documented in ADR-010.
+submit path durably reserves each object in that queue before writing bytes, then
+atomically replaces the reservation with attachment metadata when the Submission
+commits. The bound is documented in ADR-010.
 
 Polar billing follows the same durability rule. `POST /v1/billing/webhook` verifies the
 Standard Webhooks signature, stores one `billing_events` row per provider event id, and

@@ -329,7 +329,7 @@ integration("submit path", () => {
     const form = await createForm()
     const makeBody = () => {
       const multipart = new FormData()
-      multipart.set("file", new File(["same"], "same.txt", { type: "text/plain" }))
+      multipart.set("file", new File([], "same.txt", { type: "text/plain" }))
       return multipart
     }
     const first = await harness.app.request(`/s/${form.id}`, {
@@ -389,7 +389,7 @@ integration("submit path", () => {
     const form = await createForm()
     const makeBody = () => {
       const multipart = new FormData()
-      multipart.set("file", new File(["same"], "same.txt", { type: "text/plain" }))
+      multipart.set("file", new File([], "same.txt", { type: "text/plain" }))
       return multipart
     }
     let releaseWrites: (() => void) | undefined
