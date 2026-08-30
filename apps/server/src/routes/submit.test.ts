@@ -458,6 +458,15 @@ integration("submit path", () => {
     })
     try {
       await waitForStoredObjects(beforeObjects + 10)
+      const probe = await Promise.race([
+        db.select({ id: forms.id }).from(forms).where(eq(forms.id, form.id)),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(() => {
+            reject(new Error("Database pool was exhausted by uploads."))
+          }, 1_000)
+        }),
+      ])
+      expect(probe).toEqual([{ id: form.id }])
     } finally {
       releaseWrites?.()
       storageWriteGate = null

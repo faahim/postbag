@@ -38,8 +38,10 @@ the rules and `docs/` for the design.
   deletion worker atomically claims expired reservations and Submission finalization
   refuses any reservation already claimed. A database-unique hashed leader claim makes
   concurrent multipart idempotency followers wait for and replay the winner without
-  holding a database connection or writing duplicate objects. Upgrade and fresh-database
-  migrations and builds are green; final CI and re-review are pending.
+  holding a database connection or writing duplicate objects. Object writes occur
+  between short reservation and finalization transactions, so slow storage cannot
+  exhaust the database pool. Upgrade and fresh-database migrations and builds are
+  green; final CI and re-review are pending.
 - **Anonymous claimable quickstart live 2026-08-23 (ADR-008/009):** `ANONYMOUS_QUICKSTART_ENABLED=true`. Merge `54c4fd8`
   shipped the bounded 24-hour sandbox flow; closeout `b273d46` and API-key-name validation fix `bed1ebd` are deployed
   (`loqdcusasbxdn106nvgrsgu7`, `wqahvskwleapheboflsy0bin`, `mi1vbrf4wdgurxlgldp9hbuh`). Local Postgres, 308 tests,

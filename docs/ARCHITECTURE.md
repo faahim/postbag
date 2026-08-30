@@ -131,7 +131,8 @@ so a storage outage cannot turn the deletion queue into an unbounded quota bypas
 submit path durably reserves each object in that queue before writing bytes, then
 atomically replaces the reservation with attachment metadata when the Submission
 commits. Reservation creation is serialized in a short transaction, so uploads do not
-hold scarce database connections while waiting for one another. Expired reservations
+hold scarce database connections during object-storage I/O or while waiting for one
+another. Expired reservations
 are atomically claimed by the deletion worker; finalization renews and verifies every
 reservation before committing, so the worker can never delete an accepted attachment.
 Concurrent multipart retries share a database-unique hashed idempotency claim on the
