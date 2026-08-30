@@ -2,6 +2,7 @@ import { PostbagError } from "@postbag/core"
 import {
   destinations,
   forms,
+  objectDeletions,
   organizationSettings,
   submissionAttachments,
   submissions,
@@ -43,17 +44,21 @@ export async function countMonthlySubmissions(
   return row?.value ?? 0
 }
 
-/** Total retained object bytes for one organization. Object deletion is asynchronous,
- * so deleting attachments stop counting as soon as their metadata rows are removed. */
+/** Total retained object bytes for one organization, including objects queued for
+ * asynchronous deletion. Capacity is released only after storage confirms deletion. */
 export async function retainedAttachmentStorageBytes(
   db: PlanUsageDatabase,
   organizationId: string,
 ): Promise<number> {
-  const [row] = await db
+  const [retained] = await db
     .select({ value: sql<string>`coalesce(sum(${submissionAttachments.sizeBytes}), 0)` })
     .from(submissionAttachments)
     .where(eq(submissionAttachments.organizationId, organizationId))
-  return Number(row?.value ?? 0)
+  const [queued] = await db
+    .select({ value: sql<string>`coalesce(sum(${objectDeletions.sizeBytes}), 0)` })
+    .from(objectDeletions)
+    .where(eq(objectDeletions.organizationId, organizationId))
+  return Number(retained?.value ?? 0) + Number(queued?.value ?? 0)
 }
 
 export async function lockPlanCapacity(

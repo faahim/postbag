@@ -64,6 +64,13 @@
       "when": 1788030776751,
       "tag": "0008_lean_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788078853189,
+      "tag": "0009_quick_zuras",
+      "breakpoints": true
     }
   ]
 }

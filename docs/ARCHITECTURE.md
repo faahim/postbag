@@ -126,7 +126,9 @@ and counted per month (submissions) with soft-fail: over-limit submissions are
 stored and flagged `over_quota`, not dropped (Principle 4), and delivery is paused
 until the plan allows. Attachment bytes are a separate aggregate-storage admission
 boundary: a request that cannot fit in durable retained capacity never becomes a
-Submission. The bound is documented in ADR-010.
+Submission. Objects awaiting confirmed deletion remain in that capacity calculation,
+so a storage outage cannot turn the deletion queue into an unbounded quota bypass. The
+bound is documented in ADR-010.
 
 Polar billing follows the same durability rule. `POST /v1/billing/webhook` verifies the
 Standard Webhooks signature, stores one `billing_events` row per provider event id, and

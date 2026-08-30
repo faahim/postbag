@@ -275,6 +275,7 @@ function sanitizeFilename(value: string): string {
 async function cleanupUploadedAttachments(
   db: Database,
   storage: ObjectStorage,
+  organizationId: string,
   attachments: readonly ParsedAttachment[],
 ): Promise<void> {
   for (const attachment of attachments) {
@@ -283,7 +284,11 @@ async function cleanupUploadedAttachments(
     } catch {
       await db
         .insert(objectDeletions)
-        .values({ storageKey: attachment.storageKey })
+        .values({
+          storageKey: attachment.storageKey,
+          organizationId,
+          sizeBytes: attachment.sizeBytes,
+        })
         .onConflictDoNothing()
     }
   }
@@ -340,6 +345,44 @@ async function parseBody(
 }
 
 type FormRow = typeof forms.$inferSelect
+
+async function existingSubmissionReceipt(
+  db: Database,
+  form: FormRow,
+  idempotencyKey: string,
+): Promise<Record<string, unknown> | null> {
+  const [existing] = await db
+    .select({ id: submissions.id, status: submissions.status })
+    .from(submissions)
+    .where(
+      and(
+        eq(submissions.organizationId, form.organizationId),
+        eq(submissions.formId, form.id),
+        eq(submissions.idempotencyKey, idempotencyKey),
+      ),
+    )
+    .limit(1)
+  if (existing === undefined) return null
+
+  const existingAttachments = await db
+    .select({ id: submissionAttachments.id })
+    .from(submissionAttachments)
+    .where(
+      and(
+        eq(submissionAttachments.organizationId, form.organizationId),
+        eq(submissionAttachments.submissionId, existing.id),
+      ),
+    )
+  return {
+    ok: true,
+    submission_id: existing.id,
+    status: existing.status,
+    idempotent: true,
+    ...(existingAttachments.length === 0
+      ? {}
+      : { attachments: existingAttachments.map((attachment) => ({ id: attachment.id })) }),
+  }
+}
 
 async function getForm(db: Database, formId: string): Promise<FormRow | null> {
   const [row] = await db.select().from(forms).where(eq(forms.id, formId)).limit(1)
@@ -547,11 +590,26 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
     c.header("Vary", "Origin")
     if (cors.allowOrigin !== null) c.header("Access-Control-Allow-Origin", cors.allowOrigin)
 
-    const limits = await organizationLimits(db, form.organizationId)
     const requestMediaType = (c.req.header("content-type") ?? "")
       .split(";", 1)[0]
       ?.trim()
       .toLowerCase()
+    const headerIdempotencyKey = c.req.header("idempotency-key")
+    if (headerIdempotencyKey !== undefined) {
+      const existingReceipt = await existingSubmissionReceipt(db, form, headerIdempotencyKey)
+      if (existingReceipt !== null) {
+        return respond(
+          c,
+          form,
+          settings,
+          undefined,
+          existingReceipt,
+          requestMediaType !== "application/json",
+        )
+      }
+    }
+
+    const limits = await organizationLimits(db, form.organizationId)
     const multipartBodyLimit = Math.min(
       MAX_MULTIPART_BODY_BYTES,
       limits.attachment_max_bytes * limits.attachments_per_submission + MULTIPART_OVERHEAD_BYTES,
@@ -578,33 +636,17 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
     const redirectOverride = typeof ctrl._redirect === "string" ? ctrl._redirect : undefined
 
     const idempotencyKey =
-      c.req.header("idempotency-key") ??
+      headerIdempotencyKey ??
       (typeof ctrl._idempotency === "string" ? ctrl._idempotency : undefined)
     if (idempotencyKey !== undefined) {
-      const [existing] = await db
-        .select({ id: submissions.id, status: submissions.status })
-        .from(submissions)
-        .where(and(eq(submissions.formId, formId), eq(submissions.idempotencyKey, idempotencyKey)))
-        .limit(1)
-      if (existing !== undefined) {
-        const existingAttachments = await db
-          .select({ id: submissionAttachments.id })
-          .from(submissionAttachments)
-          .where(eq(submissionAttachments.submissionId, existing.id))
+      const existingReceipt = await existingSubmissionReceipt(db, form, idempotencyKey)
+      if (existingReceipt !== null) {
         return respond(
           c,
           form,
           settings,
           redirectOverride,
-          {
-            ok: true,
-            submission_id: existing.id,
-            status: existing.status,
-            idempotent: true,
-            ...(existingAttachments.length === 0
-              ? {}
-              : { attachments: existingAttachments.map((attachment) => ({ id: attachment.id })) }),
-          },
+          existingReceipt,
           isForm,
         )
       }
@@ -754,14 +796,25 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
         const storage = deps.storage
         if (storage === null) throw new Error("Attachment storage became unavailable.")
         for (const attachment of attachments) {
-          await storage.put({
-            key: attachment.storageKey,
-            body: attachment.body,
-            contentType: attachment.contentType,
-            filename: attachment.filename,
-            sha256: attachment.sha256,
-          })
+          // Track before PutObject: a transport error can arrive after storage committed
+          // the object. DeleteObject is idempotent, so cleanup must assume it may exist.
           uploaded.push(attachment)
+          try {
+            await storage.put({
+              key: attachment.storageKey,
+              body: attachment.body,
+              contentType: attachment.contentType,
+              filename: attachment.filename,
+              sha256: attachment.sha256,
+            })
+          } catch (error) {
+            throw new PostbagError(
+              "attachment_storage_unavailable",
+              "Postbag could not store every attachment safely. No Submission was accepted.",
+              undefined,
+              { cause: error },
+            )
+          }
         }
       }
 
@@ -904,48 +957,20 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
       })
     } catch (error) {
       if (uploaded.length > 0 && deps.storage !== null) {
-        await cleanupUploadedAttachments(db, deps.storage, uploaded)
+        await cleanupUploadedAttachments(db, deps.storage, form.organizationId, uploaded)
       }
       if (idempotencyKey !== undefined) {
-        const [existing] = await db
-          .select({ id: submissions.id, status: submissions.status })
-          .from(submissions)
-          .where(
-            and(eq(submissions.formId, formId), eq(submissions.idempotencyKey, idempotencyKey)),
-          )
-          .limit(1)
-        if (existing !== undefined) {
-          const existingAttachments = await db
-            .select({ id: submissionAttachments.id })
-            .from(submissionAttachments)
-            .where(eq(submissionAttachments.submissionId, existing.id))
+        const existingReceipt = await existingSubmissionReceipt(db, form, idempotencyKey)
+        if (existingReceipt !== null) {
           return respond(
             c,
             form,
             settings,
             redirectOverride,
-            {
-              ok: true,
-              submission_id: existing.id,
-              status: existing.status,
-              idempotent: true,
-              ...(existingAttachments.length === 0
-                ? {}
-                : {
-                    attachments: existingAttachments.map((attachment) => ({ id: attachment.id })),
-                  }),
-            },
+            existingReceipt,
             isForm,
           )
         }
-      }
-      if (uploaded.length < attachments.length) {
-        throw new PostbagError(
-          "attachment_storage_unavailable",
-          "Postbag could not store every attachment safely. No Submission was accepted.",
-          undefined,
-          { cause: error },
-        )
       }
       throw error
     }

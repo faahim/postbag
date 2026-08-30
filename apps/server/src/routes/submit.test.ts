@@ -32,6 +32,7 @@ integration("submit path", () => {
   let projectId: string
   const storedObjects = new Map<string, StoredFile>()
   let failNextStorageWrite = false
+  let persistThenFailNextStorageWrite = false
   let storageWriteGate: Promise<void> | null = null
   const storage: ObjectStorage = {
     async put(file) {
@@ -40,6 +41,10 @@ integration("submit path", () => {
         throw new Error("simulated storage outage")
       }
       storedObjects.set(file.key, file)
+      if (persistThenFailNextStorageWrite) {
+        persistThenFailNextStorageWrite = false
+        throw new Error("simulated ambiguous storage outcome")
+      }
       if (storageWriteGate !== null) await storageWriteGate
     },
     delete(key) {
@@ -221,6 +226,26 @@ integration("submit path", () => {
     expect(rows).toHaveLength(0)
   })
 
+  it("cleans an object when storage persists it before reporting failure", async () => {
+    const form = await createForm()
+    const multipart = new FormData()
+    multipart.set("file", new File(["ambiguous"], "ambiguous.txt", { type: "text/plain" }))
+    const objectsBefore = storedObjects.size
+    persistThenFailNextStorageWrite = true
+    const response = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+      body: multipart,
+    })
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({
+      error: { code: "attachment_storage_unavailable" },
+    })
+    expect(storedObjects.size).toBe(objectsBefore)
+    const rows = await db.select().from(submissions).where(eq(submissions.formId, form.id))
+    expect(rows).toHaveLength(0)
+  })
+
   it("returns the same file receipt for an idempotent multipart replay", async () => {
     const form = await createForm()
     const makeBody = () => {
@@ -254,6 +279,31 @@ integration("submit path", () => {
       .from(submissionAttachments)
       .where(eq(submissionAttachments.submissionId, firstBody.submission_id))
     expect(rows).toHaveLength(1)
+
+    await db
+      .update(organizationSettings)
+      .set({ limits: { attachment_max_bytes: 1 } })
+      .where(eq(organizationSettings.organizationId, organizationId))
+    const noStorageHarness = buildHarness({}, {}, undefined, null)
+    try {
+      const afterLimitChange = await noStorageHarness.app.request(`/s/${form.id}`, {
+        method: "POST",
+        headers: { accept: "application/json", "idempotency-key": "file-replay" },
+        body: makeBody(),
+      })
+      expect(afterLimitChange.status).toBe(200)
+      expect(await afterLimitChange.json()).toMatchObject({
+        submission_id: firstBody.submission_id,
+        idempotent: true,
+        attachments: firstBody.attachments,
+      })
+    } finally {
+      await noStorageHarness.close()
+      await db
+        .update(organizationSettings)
+        .set({ limits: {} })
+        .where(eq(organizationSettings.organizationId, organizationId))
+    }
   })
 
   it("cleans the losing upload from concurrent idempotent multipart requests", async () => {
@@ -429,12 +479,17 @@ integration("submit path", () => {
       .from(submissionAttachments)
       .where(eq(submissionAttachments.id, attachmentId))
     if (attachment === undefined) throw new Error("missing attachment row")
+    const retainedBefore = await retainedAttachmentStorageBytes(db, organizationId)
     await db.delete(submissions).where(eq(submissions.id, body.submission_id))
     const [queued] = await db
       .select()
       .from(objectDeletions)
       .where(eq(objectDeletions.storageKey, attachment.storageKey))
-    expect(queued).toBeDefined()
+    expect(queued).toMatchObject({
+      organizationId,
+      sizeBytes: attachment.sizeBytes,
+    })
+    expect(await retainedAttachmentStorageBytes(db, organizationId)).toBe(retainedBefore)
   })
 
   it("marks honeypot-filled submissions as spam but still stores them", async () => {

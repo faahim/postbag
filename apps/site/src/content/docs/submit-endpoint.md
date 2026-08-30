@@ -84,5 +84,6 @@ Every error body is `{ "error": { "code", "message", "hint", "docs" } }`. See [E
 Attachment metadata is tenant-scoped. The dashboard and authenticated API issue
 short-lived downloads; email, Telegram and webhook Deliveries receive short-lived
 signed links rather than binary files. Attachments are deleted with their Submission,
-with failed object deletions retried durably. The first release does not scan,
+with failed object deletions retried durably and still counted toward retained storage
+until deletion succeeds. The first release does not scan,
 preview, resume or accept direct-to-storage uploads.
