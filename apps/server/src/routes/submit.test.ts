@@ -33,6 +33,7 @@ integration("submit path", () => {
   let projectId: string
   const storedObjects = new Map<string, StoredFile>()
   let failNextStorageWrite = false
+  let failStorageWriteAtCount: number | null = null
   let persistThenFailNextStorageWrite = false
   let failNextStorageDelete = false
   let storageWriteGate: Promise<void> | null = null
@@ -40,6 +41,10 @@ integration("submit path", () => {
   const storage: ObjectStorage = {
     async put(file) {
       storagePutCount += 1
+      if (storagePutCount === failStorageWriteAtCount) {
+        failStorageWriteAtCount = null
+        throw new Error("simulated later storage outage")
+      }
       if (failNextStorageWrite) {
         failNextStorageWrite = false
         throw new Error("simulated storage outage")
@@ -273,6 +278,28 @@ integration("submit path", () => {
       error: { code: "attachment_storage_unavailable" },
     })
     expect(storedObjects.size).toBe(objectsBefore)
+    const rows = await db.select().from(submissions).where(eq(submissions.formId, form.id))
+    expect(rows).toHaveLength(0)
+  })
+
+  it("releases reservations for files not attempted after a later upload fails", async () => {
+    const form = await createForm()
+    const retainedBefore = await retainedAttachmentStorageBytes(db, organizationId)
+    const objectsBefore = storedObjects.size
+    const multipart = new FormData()
+    multipart.set("first", new File(["first"], "first.txt", { type: "text/plain" }))
+    multipart.set("second", new File(["second"], "second.txt", { type: "text/plain" }))
+    multipart.set("third", new File(["third"], "third.txt", { type: "text/plain" }))
+    failStorageWriteAtCount = storagePutCount + 2
+
+    const response = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+      body: multipart,
+    })
+    expect(response.status).toBe(503)
+    expect(storedObjects.size).toBe(objectsBefore)
+    expect(await retainedAttachmentStorageBytes(db, organizationId)).toBe(retainedBefore)
     const rows = await db.select().from(submissions).where(eq(submissions.formId, form.id))
     expect(rows).toHaveLength(0)
   })

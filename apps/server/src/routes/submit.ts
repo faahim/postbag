@@ -308,6 +308,30 @@ async function cleanupUploadedAttachments(
   }
 }
 
+async function cleanupRejectedAttachments(
+  db: Pick<Database, "delete" | "insert">,
+  storage: ObjectStorage,
+  organizationId: string,
+  attachments: readonly ParsedAttachment[],
+  attemptedCount: number,
+): Promise<void> {
+  const unattempted = attachments.slice(attemptedCount)
+  if (unattempted.length > 0) {
+    await db.delete(objectDeletions).where(
+      inArray(
+        objectDeletions.storageKey,
+        unattempted.map((attachment) => attachment.storageKey),
+      ),
+    )
+  }
+  await cleanupUploadedAttachments(
+    db,
+    storage,
+    organizationId,
+    attachments.slice(0, attemptedCount),
+  )
+}
+
 async function parseBody(
   request: Request,
   maxBytes = MAX_BODY_BYTES,
@@ -1101,7 +1125,13 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
         } else if (uploaded.length > 0) {
           const storage = deps.storage
           if (storage !== null) {
-            await cleanupUploadedAttachments(db, storage, form.organizationId, uploaded)
+            await cleanupRejectedAttachments(
+              db,
+              storage,
+              form.organizationId,
+              attachments,
+              uploaded.length,
+            )
             uploaded.length = 0
           }
         }
@@ -1110,7 +1140,13 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
         // uses the durable reservations without holding a DB connection during storage I/O.
         const storage = deps.storage
         if (storage !== null) {
-          await cleanupUploadedAttachments(db, storage, form.organizationId, uploaded)
+          await cleanupRejectedAttachments(
+            db,
+            storage,
+            form.organizationId,
+            attachments,
+            uploaded.length,
+          )
           uploaded.length = 0
         }
       }
