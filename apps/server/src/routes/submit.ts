@@ -822,34 +822,48 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
             if (existingReceipt !== null) return { kind: "replay" as const, existingReceipt }
           }
           if (uploadIdempotencyHash !== null) {
-            const [pending] = await tx
-              .select({ storageKey: objectDeletions.storageKey })
-              .from(objectDeletions)
-              .where(
-                and(
-                  eq(objectDeletions.organizationId, form.organizationId),
-                  eq(objectDeletions.uploadReservation, true),
-                  eq(objectDeletions.uploadIdempotencyHash, uploadIdempotencyHash),
-                ),
-              )
-              .limit(1)
-            if (pending !== undefined) return { kind: "pending" as const }
+            const leader = attachments[0]
+            if (leader === undefined) throw new Error("Attachment reservation has no leader.")
+            const claimed = await tx
+              .insert(objectDeletions)
+              .values({
+                storageKey: leader.storageKey,
+                organizationId: form.organizationId,
+                sizeBytes: 0,
+                uploadReservation: true,
+                uploadIdempotencyHash,
+                nextAttemptAt: new Date(Date.now() + UPLOAD_RESERVATION_DELAY_MS),
+              })
+              .onConflictDoNothing()
+              .returning({ storageKey: objectDeletions.storageKey })
+            if (claimed.length === 0) return { kind: "pending" as const }
           }
           await assertLockedAttachmentStorageCapacity(
             tx,
             form.organizationId,
             requestedAttachmentBytes,
           )
-          await tx.insert(objectDeletions).values(
-            attachments.map((attachment) => ({
-              storageKey: attachment.storageKey,
-              organizationId: form.organizationId,
-              sizeBytes: attachment.sizeBytes,
-              uploadReservation: true,
-              uploadIdempotencyHash,
-              nextAttemptAt: new Date(Date.now() + UPLOAD_RESERVATION_DELAY_MS),
-            })),
-          )
+          const reservations = uploadIdempotencyHash === null ? attachments : attachments.slice(1)
+          if (uploadIdempotencyHash !== null) {
+            const leader = attachments[0]
+            if (leader === undefined) throw new Error("Attachment reservation has no leader.")
+            await tx
+              .update(objectDeletions)
+              .set({ sizeBytes: leader.sizeBytes })
+              .where(eq(objectDeletions.storageKey, leader.storageKey))
+          }
+          if (reservations.length > 0) {
+            await tx.insert(objectDeletions).values(
+              reservations.map((attachment) => ({
+                storageKey: attachment.storageKey,
+                organizationId: form.organizationId,
+                sizeBytes: attachment.sizeBytes,
+                uploadReservation: true,
+                uploadIdempotencyHash: null,
+                nextAttemptAt: new Date(Date.now() + UPLOAD_RESERVATION_DELAY_MS),
+              })),
+            )
+          }
           return { kind: "reserved" as const }
         })
         if (admission.kind === "replay") {

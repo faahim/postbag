@@ -1,0 +1,2 @@
+DROP INDEX "object_deletions_upload_idempotency_idx";--> statement-breakpoint
+CREATE UNIQUE INDEX "object_deletions_upload_idempotency_unique" ON "object_deletions" USING btree ("organization_id","upload_idempotency_hash");

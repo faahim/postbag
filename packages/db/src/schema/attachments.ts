@@ -77,7 +77,7 @@ export const objectDeletions = pgTable(
   (table) => [
     index("object_deletions_pending_idx").on(table.nextAttemptAt),
     index("object_deletions_organization_id_idx").on(table.organizationId),
-    index("object_deletions_upload_idempotency_idx").on(
+    uniqueIndex("object_deletions_upload_idempotency_unique").on(
       table.organizationId,
       table.uploadIdempotencyHash,
     ),

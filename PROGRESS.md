@@ -36,9 +36,9 @@ the rules and `docs/` for the design.
   fences explicit, and cleans ambiguous object-storage writes. Durable pre-upload
   reservations serialize quota admission without holding session connections; the
   deletion worker atomically claims expired reservations and Submission finalization
-  refuses any reservation already claimed. Hashed reservation markers make concurrent
-  multipart idempotency followers wait for and replay the winner without holding a
-  database connection or writing duplicate objects. Upgrade and fresh-database
+  refuses any reservation already claimed. A database-unique hashed leader claim makes
+  concurrent multipart idempotency followers wait for and replay the winner without
+  holding a database connection or writing duplicate objects. Upgrade and fresh-database
   migrations and builds are green; final CI and re-review are pending.
 - **Anonymous claimable quickstart live 2026-08-23 (ADR-008/009):** `ANONYMOUS_QUICKSTART_ENABLED=true`. Merge `54c4fd8`
   shipped the bounded 24-hour sandbox flow; closeout `b273d46` and API-key-name validation fix `bed1ebd` are deployed

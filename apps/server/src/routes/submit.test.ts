@@ -393,6 +393,7 @@ integration("submit path", () => {
     const makeBody = () => {
       const multipart = new FormData()
       multipart.set("file", new File([], "same.txt", { type: "text/plain" }))
+      multipart.set("preview", new File(["x"], "preview.txt", { type: "text/plain" }))
       return multipart
     }
     let releaseWrites: (() => void) | undefined
@@ -428,15 +429,15 @@ integration("submit path", () => {
     }[]
     expect(new Set(bodies.map((body) => body.submission_id)).size).toBe(1)
     expect(bodies.some((body) => body.idempotent === true)).toBe(true)
-    expect(storedObjects.size).toBe(beforeObjects + 1)
-    expect(storagePutCount).toBe(putsBefore + 1)
+    expect(storedObjects.size).toBe(beforeObjects + 2)
+    expect(storagePutCount).toBe(putsBefore + 2)
     const winningSubmissionId = bodies[0]?.submission_id
     if (winningSubmissionId === undefined) throw new Error("missing winning submission")
     const rows = await db
       .select()
       .from(submissionAttachments)
       .where(eq(submissionAttachments.submissionId, winningSubmissionId))
-    expect(rows).toHaveLength(1)
+    expect(rows).toHaveLength(2)
   })
 
   it("does not deadlock the database pool during concurrent attachment uploads", async () => {
