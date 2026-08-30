@@ -1,0 +1,1 @@
+ALTER TABLE "object_deletions" ADD COLUMN "upload_reservation" boolean DEFAULT false NOT NULL;

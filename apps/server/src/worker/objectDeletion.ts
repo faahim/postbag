@@ -1,5 +1,5 @@
 import { objectDeletions, type Database } from "@postbag/db"
-import { asc, eq, lte } from "drizzle-orm"
+import { asc, and, eq, lte } from "drizzle-orm"
 
 import type { ObjectStorage } from "../lib/objectStorage.js"
 import type { Logger } from "../logger.js"
@@ -18,6 +18,20 @@ export async function runObjectDeletionSweep(
     .limit(50)
 
   for (const pending of due) {
+    const [claimed] = await db
+      .update(objectDeletions)
+      .set({
+        uploadReservation: false,
+        nextAttemptAt: new Date(Date.now() + 5 * 60_000),
+      })
+      .where(
+        and(
+          eq(objectDeletions.storageKey, pending.storageKey),
+          lte(objectDeletions.nextAttemptAt, new Date()),
+        ),
+      )
+      .returning({ storageKey: objectDeletions.storageKey })
+    if (claimed === undefined) continue
     try {
       await storage.delete(pending.storageKey)
       await db.delete(objectDeletions).where(eq(objectDeletions.storageKey, pending.storageKey))

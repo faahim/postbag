@@ -1,6 +1,7 @@
 import { newId } from "@postbag/core"
 import {
   foreignKey,
+  boolean,
   index,
   integer,
   pgTable,
@@ -64,6 +65,7 @@ export const objectDeletions = pgTable(
     storageKey: text("storage_key").primaryKey(),
     organizationId: text("organization_id").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
+    uploadReservation: boolean("upload_reservation").default(false).notNull(),
     attempts: integer("attempts").default(0).notNull(),
     nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true, mode: "date" })
       .defaultNow()

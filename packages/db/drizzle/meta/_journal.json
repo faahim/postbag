@@ -71,6 +71,13 @@
       "when": 1788080055769,
       "tag": "0009_chief_angel",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788082438484,
+      "tag": "0010_tough_mentallo",
+      "breakpoints": true
     }
   ]
 }

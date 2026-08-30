@@ -1098,7 +1098,7 @@ paths:
         "400":
           description: Malformed request
         "402":
-          description: Retained attachment storage limit reached
+          description: Retained attachment storage limit reached, including pending work
         "413":
           description: Body, attachment size, or attachment count limit exceeded
         "422":

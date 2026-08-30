@@ -130,7 +130,11 @@ Submission. Objects awaiting confirmed deletion remain in that capacity calculat
 so a storage outage cannot turn the deletion queue into an unbounded quota bypass. The
 submit path durably reserves each object in that queue before writing bytes, then
 atomically replaces the reservation with attachment metadata when the Submission
-commits. The bound is documented in ADR-010.
+commits. Reservation creation is serialized in a short transaction, so uploads do not
+hold scarce database connections while waiting for one another. Expired reservations
+are atomically claimed by the deletion worker; finalization renews and verifies every
+reservation before committing, so the worker can never delete an accepted attachment.
+The bound is documented in ADR-010.
 
 Polar billing follows the same durability rule. `POST /v1/billing/webhook` verifies the
 Standard Webhooks signature, stores one `billing_events` row per provider event id, and

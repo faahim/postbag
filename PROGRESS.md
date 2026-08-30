@@ -33,8 +33,11 @@ the rules and `docs/` for the design.
   download -> exact byte match -> Submission/Form deletion -> scheduled object removal.
   Review follow-up PR #13 keeps pending deletions in retained-byte accounting, returns
   existing header-idempotency receipts before current upload checks, makes replay tenant
-  fences explicit, and cleans ambiguous object-storage writes. Upgrade and fresh-database
-  migrations, the full 387-test suite, builds, and independent re-review are green.
+  fences explicit, and cleans ambiguous object-storage writes. Durable pre-upload
+  reservations serialize quota admission without holding session connections; the
+  deletion worker atomically claims expired reservations and Submission finalization
+  refuses any reservation already claimed. Upgrade and fresh-database migrations,
+  builds, and independent re-review are green.
 - **Anonymous claimable quickstart live 2026-08-23 (ADR-008/009):** `ANONYMOUS_QUICKSTART_ENABLED=true`. Merge `54c4fd8`
   shipped the bounded 24-hour sandbox flow; closeout `b273d46` and API-key-name validation fix `bed1ebd` are deployed
   (`loqdcusasbxdn106nvgrsgu7`, `wqahvskwleapheboflsy0bin`, `mi1vbrf4wdgurxlgldp9hbuh`). Local Postgres, 308 tests,

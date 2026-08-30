@@ -38,7 +38,6 @@ import {
   countMonthlySubmissions,
   lockPlanCapacity,
   organizationLimits,
-  reservePlanCapacityLock,
   retainedAttachmentStorageBytes,
 } from "../lib/planUsage.js"
 import type { Logger } from "../logger.js"
@@ -133,7 +132,9 @@ const publicSubmitContract = createRoute({
     },
     303: { description: "Browser form redirect after acceptance" },
     400: { description: "Malformed request" },
-    402: { description: "Retained attachment storage limit reached" },
+    402: {
+      description: "Retained attachment storage limit reached, including pending work",
+    },
     413: { description: "Body, attachment size, or attachment count limit exceeded" },
     422: { description: "Validation failed" },
     503: { description: "Attachment storage unavailable" },
@@ -297,6 +298,7 @@ async function cleanupUploadedAttachments(
           set: {
             organizationId,
             sizeBytes: attachment.sizeBytes,
+            uploadReservation: false,
             nextAttemptAt: new Date(),
           },
         })
@@ -802,256 +804,261 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
     let result: AcceptedSubmission | undefined
     let transactionFailed = false
     let transactionError: unknown
-    const releaseAttachmentLock =
-      attachments.length > 0
-        ? await reservePlanCapacityLock(db, form.organizationId, "attachments")
-        : undefined
-    try {
-      if (attachments.length > 0) {
-        // The session lock spans reservation, object storage, commit reconciliation,
-        // and cleanup. A committed reservation makes bytes durable before PutObject.
-        if (idempotencyKey !== undefined) {
-          const existingReceipt = await existingSubmissionReceipt(db, form, idempotencyKey)
-          if (existingReceipt !== null) {
-            return respond(c, form, settings, redirectOverride, existingReceipt, isForm)
-          }
+    if (attachments.length > 0) {
+      // Serialize only the small reservation transaction. Once committed, the row
+      // itself makes capacity durable while object storage I/O runs concurrently.
+      if (idempotencyKey !== undefined) {
+        const existingReceipt = await existingSubmissionReceipt(db, form, idempotencyKey)
+        if (existingReceipt !== null) {
+          return respond(c, form, settings, redirectOverride, existingReceipt, isForm)
         }
-        await db.transaction(async (tx) => {
-          await assertLockedAttachmentStorageCapacity(
-            tx,
-            form.organizationId,
-            requestedAttachmentBytes,
-          )
-          await tx.insert(objectDeletions).values(
-            attachments.map((attachment) => ({
-              storageKey: attachment.storageKey,
-              organizationId: form.organizationId,
-              sizeBytes: attachment.sizeBytes,
-              nextAttemptAt: new Date(Date.now() + UPLOAD_RESERVATION_DELAY_MS),
-            })),
-          )
-        })
       }
+      await db.transaction(async (tx) => {
+        await lockPlanCapacity(tx, form.organizationId, "attachments")
+        await assertLockedAttachmentStorageCapacity(
+          tx,
+          form.organizationId,
+          requestedAttachmentBytes,
+        )
+        await tx.insert(objectDeletions).values(
+          attachments.map((attachment) => ({
+            storageKey: attachment.storageKey,
+            organizationId: form.organizationId,
+            sizeBytes: attachment.sizeBytes,
+            uploadReservation: true,
+            nextAttemptAt: new Date(Date.now() + UPLOAD_RESERVATION_DELAY_MS),
+          })),
+        )
+      })
+    }
 
-      try {
-        const outcome = await db.transaction(async (tx) => {
-          try {
-            if (attachments.length > 0) {
-              const storage = deps.storage
-              if (storage === null) throw new Error("Attachment storage became unavailable.")
-              for (const attachment of attachments) {
-                // Track before PutObject: a transport error can arrive after storage committed
-                // the object. DeleteObject is idempotent, so cleanup must assume it may exist.
-                uploaded.push(attachment)
-                try {
-                  await storage.put({
-                    key: attachment.storageKey,
-                    body: attachment.body,
-                    contentType: attachment.contentType,
-                    filename: attachment.filename,
-                    sha256: attachment.sha256,
-                  })
-                } catch (error) {
-                  throw new PostbagError(
-                    "attachment_storage_unavailable",
-                    "Postbag could not store every attachment safely. No Submission was accepted.",
-                    undefined,
-                    { cause: error },
-                  )
+    try {
+      const outcome = await db.transaction(async (tx) => {
+        try {
+          if (attachments.length > 0) {
+            const storage = deps.storage
+            if (storage === null) throw new Error("Attachment storage became unavailable.")
+            for (const attachment of attachments) {
+              // Track before PutObject: a transport error can arrive after storage committed
+              // the object. DeleteObject is idempotent, so cleanup must assume it may exist.
+              uploaded.push(attachment)
+              try {
+                await storage.put({
+                  key: attachment.storageKey,
+                  body: attachment.body,
+                  contentType: attachment.contentType,
+                  filename: attachment.filename,
+                  sha256: attachment.sha256,
+                })
+              } catch (error) {
+                throw new PostbagError(
+                  "attachment_storage_unavailable",
+                  "Postbag could not store every attachment safely. No Submission was accepted.",
+                  undefined,
+                  { cause: error },
+                )
+              }
+            }
+          }
+
+          // A savepoint keeps the parent transaction usable for durable cleanup if a
+          // later Submission/outbox write fails while the attachment lock is held.
+          return await tx.transaction(async (submissionTx) => {
+            if (status === "received" && !isTest) {
+              await lockPlanCapacity(submissionTx, form.organizationId, "submissions")
+              const limit = (await organizationLimits(submissionTx, form.organizationId))
+                .submissions_per_month
+              if (Number.isFinite(limit)) {
+                const used = await countMonthlySubmissions(submissionTx, form.organizationId)
+                if (used >= limit) {
+                  status = "quarantined"
+                  quarantineReason = "over_quota"
                 }
               }
             }
 
-            // A savepoint keeps the parent transaction usable for durable cleanup if a
-            // later Submission/outbox write fails while the attachment lock is held.
-            return await tx.transaction(async (submissionTx) => {
-              if (status === "received" && !isTest) {
-                await lockPlanCapacity(submissionTx, form.organizationId, "submissions")
-                const limit = (await organizationLimits(submissionTx, form.organizationId))
-                  .submissions_per_month
-                if (Number.isFinite(limit)) {
-                  const used = await countMonthlySubmissions(submissionTx, form.organizationId)
-                  if (used >= limit) {
-                    status = "quarantined"
-                    quarantineReason = "over_quota"
-                  }
-                }
-              }
-
-              const plans = planDeliveries({
-                submission: { id: "pending", status, receivedAt },
-                form: {
-                  status: form.status as "active" | "paused",
-                  schemaVersion: form.currentSchemaVersion,
-                },
-                directRoutes,
-                streamMemberships,
+            const plans = planDeliveries({
+              submission: { id: "pending", status, receivedAt },
+              form: {
+                status: form.status as "active" | "paused",
+                schemaVersion: form.currentSchemaVersion,
+              },
+              directRoutes,
+              streamMemberships,
+            })
+            const [inserted] = await submissionTx
+              .insert(submissions)
+              .values({
+                organizationId: form.organizationId,
+                formId,
+                data,
+                formSchemaVersion,
+                status,
+                quarantineReason,
+                spam,
+                meta,
+                idempotencyKey: idempotencyKey ?? null,
+                test: isTest,
+                receivedAt,
               })
-              const [inserted] = await submissionTx
-                .insert(submissions)
-                .values({
-                  organizationId: form.organizationId,
-                  formId,
-                  data,
-                  formSchemaVersion,
-                  status,
-                  quarantineReason,
-                  spam,
-                  meta,
-                  idempotencyKey: idempotencyKey ?? null,
-                  test: isTest,
-                  receivedAt,
-                })
-                .returning({ id: submissions.id })
-              const newSubmissionId = inserted?.id
-              if (newSubmissionId === undefined) throw new Error("Failed to insert submission.")
+              .returning({ id: submissions.id })
+            const newSubmissionId = inserted?.id
+            if (newSubmissionId === undefined) throw new Error("Failed to insert submission.")
 
-              if (attachments.length > 0) {
-                await submissionTx.insert(submissionAttachments).values(
-                  attachments.map((attachment) => ({
-                    id: attachment.id,
-                    organizationId: form.organizationId,
-                    formId,
-                    submissionId: newSubmissionId,
-                    fieldName: attachment.fieldName,
-                    filename: attachment.filename,
-                    contentType: attachment.contentType,
-                    sizeBytes: attachment.sizeBytes,
-                    sha256: attachment.sha256,
-                    storageKey: attachment.storageKey,
-                    createdAt: receivedAt,
-                  })),
-                )
-                await submissionTx.delete(objectDeletions).where(
-                  inArray(
-                    objectDeletions.storageKey,
-                    attachments.map((attachment) => attachment.storageKey),
+            if (attachments.length > 0) {
+              const renewedReservations = await submissionTx
+                .update(objectDeletions)
+                .set({ nextAttemptAt: new Date(Date.now() + UPLOAD_RESERVATION_DELAY_MS) })
+                .where(
+                  and(
+                    inArray(
+                      objectDeletions.storageKey,
+                      attachments.map((attachment) => attachment.storageKey),
+                    ),
+                    eq(objectDeletions.uploadReservation, true),
                   ),
                 )
-              }
-
-              if (driftFindings.length > 0) {
-                await submissionTx.insert(driftEvents).values(
-                  driftFindings.map((finding) => ({
-                    organizationId: form.organizationId,
-                    formId,
-                    submissionId: newSubmissionId,
-                    kind: finding.kind,
-                    field: finding.field,
-                    details: finding.details,
-                  })),
+                .returning({ storageKey: objectDeletions.storageKey })
+              if (renewedReservations.length !== attachments.length) {
+                throw new PostbagError(
+                  "attachment_storage_unavailable",
+                  "Postbag could not finalize every attachment safely. No Submission was accepted.",
                 )
               }
+              await submissionTx.insert(submissionAttachments).values(
+                attachments.map((attachment) => ({
+                  id: attachment.id,
+                  organizationId: form.organizationId,
+                  formId,
+                  submissionId: newSubmissionId,
+                  fieldName: attachment.fieldName,
+                  filename: attachment.filename,
+                  contentType: attachment.contentType,
+                  sizeBytes: attachment.sizeBytes,
+                  sha256: attachment.sha256,
+                  storageKey: attachment.storageKey,
+                  createdAt: receivedAt,
+                })),
+              )
+              await submissionTx.delete(objectDeletions).where(
+                inArray(
+                  objectDeletions.storageKey,
+                  attachments.map((attachment) => attachment.storageKey),
+                ),
+              )
+            }
 
-              for (const plan of plans) {
-                if (plan.status === "skipped") {
-                  await submissionTx.insert(deliveries).values({
-                    organizationId: form.organizationId,
-                    submissionId: newSubmissionId,
-                    routeId: plan.routeId,
-                    destinationId: plan.destinationId,
-                    status: "skipped",
-                    skipReason: plan.skipReason ?? null,
-                    attempts: 0,
-                    payload: {},
-                    schemaVersion: plan.schemaVersion,
-                    dedupeKey: `${newSubmissionId}:${plan.routeId}`,
-                  })
-                  continue
-                }
-                let payload: Readonly<Record<string, unknown>> = data
-                if (plan.streamId !== null) {
-                  const membership = mappingByStream.get(plan.streamId)
-                  const schemaJson = schemaJsonByStream.get(plan.streamId)
-                  if (membership !== undefined && schemaJson !== undefined) {
-                    const mapped = applyMapping(
-                      data,
-                      membership.mapping as unknown as Mapping,
-                      schemaJson,
-                    )
-                    payload = mapped.payload
-                  }
-                }
-                // Digest-route deliveries (job D §3): the digest worker loop groups these by
-                // (route_id, digest_period_key) once the period closes and sends one payload per
-                // destination — it never claims them through the instant path. Parking
-                // next_attempt_at far in the future keeps the instant worker's claim query
-                // (`next_attempt_at <= now()`) from ever picking them up directly.
+            if (driftFindings.length > 0) {
+              await submissionTx.insert(driftEvents).values(
+                driftFindings.map((finding) => ({
+                  organizationId: form.organizationId,
+                  formId,
+                  submissionId: newSubmissionId,
+                  kind: finding.kind,
+                  field: finding.field,
+                  details: finding.details,
+                })),
+              )
+            }
+
+            for (const plan of plans) {
+              if (plan.status === "skipped") {
                 await submissionTx.insert(deliveries).values({
                   organizationId: form.organizationId,
                   submissionId: newSubmissionId,
                   routeId: plan.routeId,
                   destinationId: plan.destinationId,
-                  status: "pending",
+                  status: "skipped",
+                  skipReason: plan.skipReason ?? null,
                   attempts: 0,
-                  payload,
+                  payload: {},
                   schemaVersion: plan.schemaVersion,
-                  nextAttemptAt:
-                    plan.digestPeriodKey === undefined ? new Date() : DIGEST_PARKED_UNTIL,
-                  digestPeriodKey: plan.digestPeriodKey ?? null,
                   dedupeKey: `${newSubmissionId}:${plan.routeId}`,
                 })
+                continue
               }
-
-              const accepted: AcceptedSubmission = {
-                kind: "accepted" as const,
+              let payload: Readonly<Record<string, unknown>> = data
+              if (plan.streamId !== null) {
+                const membership = mappingByStream.get(plan.streamId)
+                const schemaJson = schemaJsonByStream.get(plan.streamId)
+                if (membership !== undefined && schemaJson !== undefined) {
+                  const mapped = applyMapping(
+                    data,
+                    membership.mapping as unknown as Mapping,
+                    schemaJson,
+                  )
+                  payload = mapped.payload
+                }
+              }
+              // Digest-route deliveries (job D §3): the digest worker loop groups these by
+              // (route_id, digest_period_key) once the period closes and sends one payload per
+              // destination — it never claims them through the instant path. Parking
+              // next_attempt_at far in the future keeps the instant worker's claim query
+              // (`next_attempt_at <= now()`) from ever picking them up directly.
+              await submissionTx.insert(deliveries).values({
+                organizationId: form.organizationId,
                 submissionId: newSubmissionId,
-                hasPendingDelivery: plans.some(
-                  (plan) => plan.status === "pending" && plan.digestPeriodKey === undefined,
-                ),
-                status,
-              }
-              acceptedCandidate = accepted
-              return accepted
-            })
-          } catch (error) {
-            if (uploaded.length > 0 && deps.storage !== null) {
-              await cleanupUploadedAttachments(tx, deps.storage, form.organizationId, uploaded)
-            }
-            return { kind: "failed" as const, error }
-          }
-        })
-
-        if (outcome.kind === "failed") {
-          // The transaction committed its cleanup row (or confirmed object deletion).
-          uploaded.length = 0
-          throw outcome.error
-        }
-        result = outcome
-      } catch (error) {
-        transactionFailed = true
-        transactionError = error
-      }
-
-      if (transactionFailed) {
-        // COMMIT errors are ambiguous: PostgreSQL may have committed before the client
-        // lost the connection. Only clean up after confirming the candidate row is absent.
-        if (acceptedCandidate !== undefined) {
-          const [committed] = await db
-            .select({ id: submissions.id })
-            .from(submissions)
-            .where(
-              and(
-                eq(submissions.organizationId, form.organizationId),
-                eq(submissions.id, acceptedCandidate.submissionId),
-              ),
-            )
-            .limit(1)
-          if (committed !== undefined) {
-            result = acceptedCandidate
-            transactionFailed = false
-          } else if (uploaded.length > 0) {
-            const storage = deps.storage
-            if (storage !== null) {
-              await db.transaction(async (tx) => {
-                await cleanupUploadedAttachments(tx, storage, form.organizationId, uploaded)
+                routeId: plan.routeId,
+                destinationId: plan.destinationId,
+                status: "pending",
+                attempts: 0,
+                payload,
+                schemaVersion: plan.schemaVersion,
+                nextAttemptAt:
+                  plan.digestPeriodKey === undefined ? new Date() : DIGEST_PARKED_UNTIL,
+                digestPeriodKey: plan.digestPeriodKey ?? null,
+                dedupeKey: `${newSubmissionId}:${plan.routeId}`,
               })
-              uploaded.length = 0
             }
+
+            const accepted: AcceptedSubmission = {
+              kind: "accepted" as const,
+              submissionId: newSubmissionId,
+              hasPendingDelivery: plans.some(
+                (plan) => plan.status === "pending" && plan.digestPeriodKey === undefined,
+              ),
+              status,
+            }
+            acceptedCandidate = accepted
+            return accepted
+          })
+        } catch (error) {
+          if (uploaded.length > 0 && deps.storage !== null) {
+            await cleanupUploadedAttachments(tx, deps.storage, form.organizationId, uploaded)
           }
+          return { kind: "failed" as const, error }
+        }
+      })
+
+      if (outcome.kind === "failed") {
+        // The transaction committed its cleanup row (or confirmed object deletion).
+        uploaded.length = 0
+        throw outcome.error
+      }
+      result = outcome
+    } catch (error) {
+      transactionFailed = true
+      transactionError = error
+    }
+
+    if (transactionFailed) {
+      // COMMIT errors are ambiguous: PostgreSQL may have committed before the client
+      // lost the connection. Only clean up after confirming the candidate row is absent.
+      if (acceptedCandidate !== undefined) {
+        const [committed] = await db
+          .select({ id: submissions.id })
+          .from(submissions)
+          .where(
+            and(
+              eq(submissions.organizationId, form.organizationId),
+              eq(submissions.id, acceptedCandidate.submissionId),
+            ),
+          )
+          .limit(1)
+        if (committed !== undefined) {
+          result = acceptedCandidate
+          transactionFailed = false
         } else if (uploaded.length > 0) {
-          // The savepoint failed before an accepted candidate existed. No Submission can
-          // have committed, so cleanup is unambiguous even if the parent COMMIT failed.
           const storage = deps.storage
           if (storage !== null) {
             await db.transaction(async (tx) => {
@@ -1060,17 +1067,25 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
             uploaded.length = 0
           }
         }
-
-        if (transactionFailed && idempotencyKey !== undefined) {
-          const existingReceipt = await existingSubmissionReceipt(db, form, idempotencyKey)
-          if (existingReceipt !== null) {
-            return respond(c, form, settings, redirectOverride, existingReceipt, isForm)
-          }
+      } else if (uploaded.length > 0) {
+        // The savepoint failed before an accepted candidate existed. No Submission can
+        // have committed, so cleanup is unambiguous even if the parent COMMIT failed.
+        const storage = deps.storage
+        if (storage !== null) {
+          await db.transaction(async (tx) => {
+            await cleanupUploadedAttachments(tx, storage, form.organizationId, uploaded)
+          })
+          uploaded.length = 0
         }
-        if (transactionFailed) throw transactionError
       }
-    } finally {
-      await releaseAttachmentLock?.()
+
+      if (transactionFailed && idempotencyKey !== undefined) {
+        const existingReceipt = await existingSubmissionReceipt(db, form, idempotencyKey)
+        if (existingReceipt !== null) {
+          return respond(c, form, settings, redirectOverride, existingReceipt, isForm)
+        }
+      }
+      if (transactionFailed) throw transactionError
     }
 
     if (result === undefined) {

@@ -22,6 +22,7 @@ import {
 } from "../testUtils.js"
 import type { ObjectStorage, StoredFile } from "../lib/objectStorage.js"
 import { retainedAttachmentStorageBytes } from "../lib/planUsage.js"
+import { runObjectDeletionSweep } from "../worker/objectDeletion.js"
 
 const integration = describe.skipIf(TEST_DATABASE_URL === undefined)
 
@@ -432,6 +433,75 @@ integration("submit path", () => {
       .from(submissionAttachments)
       .where(eq(submissionAttachments.submissionId, winningSubmissionId))
     expect(rows).toHaveLength(1)
+  })
+
+  it("does not deadlock the database pool during concurrent attachment uploads", async () => {
+    const form = await createForm()
+    let releaseWrites: (() => void) | undefined
+    storageWriteGate = new Promise<void>((resolve) => {
+      releaseWrites = resolve
+    })
+    const beforeObjects = storedObjects.size
+    const requests = Array.from({ length: 10 }, (_, index) => {
+      const multipart = new FormData()
+      multipart.set("file", new File([], `pool-${String(index)}.txt`, { type: "text/plain" }))
+      return concurrentRequest(`/s/${form.id}`, {
+        method: "POST",
+        headers: { accept: "application/json" },
+        body: multipart,
+      })
+    })
+    try {
+      await waitForStoredObjects(beforeObjects + 10)
+    } finally {
+      releaseWrites?.()
+      storageWriteGate = null
+    }
+    const responses = await Promise.all(requests)
+    expect(responses.every((response) => response.status === 200)).toBe(true)
+  })
+
+  it("refuses to commit when a deletion sweep claims an expired upload reservation", async () => {
+    const form = await createForm()
+    const multipart = new FormData()
+    multipart.set("file", new File(["slow upload"], "slow.txt", { type: "text/plain" }))
+    let releaseWrite: (() => void) | undefined
+    storageWriteGate = new Promise<void>((resolve) => {
+      releaseWrite = resolve
+    })
+    const beforeObjects = storedObjects.size
+    const request = concurrentRequest(`/s/${form.id}`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+      body: multipart,
+    })
+    try {
+      await waitForStoredObjects(beforeObjects + 1)
+      const [reservation] = await db
+        .select()
+        .from(objectDeletions)
+        .where(eq(objectDeletions.organizationId, organizationId))
+        .orderBy(desc(objectDeletions.createdAt))
+        .limit(1)
+      expect(reservation?.uploadReservation).toBe(true)
+      if (reservation === undefined) throw new Error("missing active upload reservation")
+      await db
+        .update(objectDeletions)
+        .set({ nextAttemptAt: new Date(0) })
+        .where(eq(objectDeletions.storageKey, reservation.storageKey))
+      await runObjectDeletionSweep(db, storage, harness.logger)
+    } finally {
+      releaseWrite?.()
+      storageWriteGate = null
+    }
+    const response = await request
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({
+      error: { code: "attachment_storage_unavailable" },
+    })
+    expect(storedObjects.size).toBe(beforeObjects)
+    const rows = await db.select().from(submissions).where(eq(submissions.formId, form.id))
+    expect(rows).toHaveLength(0)
   })
 
   it("rejects retained-byte overage without leaving an object", async () => {
