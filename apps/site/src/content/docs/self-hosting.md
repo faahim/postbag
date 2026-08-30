@@ -119,6 +119,11 @@ Receiving a Submission does not require an outbound provider. Delivery does. Con
 
 Logs are structured JSON. Migrations live in `packages/db/drizzle` and run in order. Never edit a migration that has already been applied.
 
+When upgrading from the first attachment release, keep the old worker running until
+`object_deletions` is empty. Migration 0009 deliberately refuses to run while legacy
+deletion work is pending because those rows predate retained-byte accounting; once the
+queue drains, retry the normal deployment.
+
 Back up Postgres independently of the application container. A restore rehearsal matters more than a backup job that has never been opened.
 
 ## Upgrade safely

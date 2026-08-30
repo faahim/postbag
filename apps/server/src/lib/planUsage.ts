@@ -50,15 +50,20 @@ export async function retainedAttachmentStorageBytes(
   db: PlanUsageDatabase,
   organizationId: string,
 ): Promise<number> {
-  const [retained] = await db
-    .select({ value: sql<string>`coalesce(sum(${submissionAttachments.sizeBytes}), 0)` })
-    .from(submissionAttachments)
-    .where(eq(submissionAttachments.organizationId, organizationId))
-  const [queued] = await db
-    .select({ value: sql<string>`coalesce(sum(${objectDeletions.sizeBytes}), 0)` })
-    .from(objectDeletions)
-    .where(eq(objectDeletions.organizationId, organizationId))
-  return Number(retained?.value ?? 0) + Number(queued?.value ?? 0)
+  const [row] = await db.execute<{ value: string }>(sql`
+    select (
+      coalesce((
+        select sum(${submissionAttachments.sizeBytes})
+        from ${submissionAttachments}
+        where ${submissionAttachments.organizationId} = ${organizationId}
+      ), 0) + coalesce((
+        select sum(${objectDeletions.sizeBytes})
+        from ${objectDeletions}
+        where ${objectDeletions.organizationId} = ${organizationId}
+      ), 0)
+    )::text as value
+  `)
+  return Number(row?.value ?? 0)
 }
 
 export async function lockPlanCapacity(

@@ -62,10 +62,8 @@ export const objectDeletions = pgTable(
   "object_deletions",
   {
     storageKey: text("storage_key").primaryKey(),
-    // Nullable only for cleanup rows created before migration 0009. Every new queue
-    // entry records both values so pending objects remain in retained-byte accounting.
-    organizationId: text("organization_id"),
-    sizeBytes: integer("size_bytes"),
+    organizationId: text("organization_id").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
     attempts: integer("attempts").default(0).notNull(),
     nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true, mode: "date" })
       .defaultNow()

@@ -1,5 +1,5 @@
 {
-  "id": "f426c72a-2373-41da-ac30-aa7123db8304",
+  "id": "092d40b5-d5e6-4b15-9a2c-068cb1837800",
   "prevId": "b52ad79d-cc9c-430e-9fbc-868cee0aa633",
   "version": "7",
   "dialect": "postgresql",
@@ -907,13 +907,13 @@
           "name": "organization_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "size_bytes": {
           "name": "size_bytes",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "attempts": {
           "name": "attempts",

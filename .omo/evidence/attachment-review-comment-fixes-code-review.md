@@ -3,8 +3,10 @@
 **Reviewed branch:** `codex/attachment-review-fixes` (worktree state reviewed 2026-08-30)
 
 **Scope:** the three GitHub PR #11 findings: queued-object retained-byte accounting,
-header-based idempotent multipart replays, and explicit organization fences. Also
-reviewed the related ambiguous `PutObject` cleanup path fixed during this review.
+header-based idempotent multipart replays, and explicit organization fences. This
+update also reviews the two subsequent P2 changes: migration safety for legacy queue
+rows and a single-statement usage snapshot. It also covers the related ambiguous
+`PutObject` cleanup path fixed during this review.
 
 ## Result
 
@@ -38,11 +40,17 @@ None.
 
 ## Verification and assessment
 
-- The P1 quota fix is correct: deletion-trigger queue rows and failed-upload
-  cleanup rows carry `organization_id` and `size_bytes`; retained usage sums both
-  live metadata and queued work. See `packages/db/drizzle/0009_quick_zuras.sql:7-17`,
-  `apps/server/src/routes/submit.ts:275-294`, and
-  `apps/server/src/lib/planUsage.ts:47-61`.
+- The P1 quota fix is correct and migration-safe. Migration
+  `packages/db/drizzle/0009_chief_angel.sql:1-14` fails before any mutation when a
+  legacy queue row exists, then adds required `organization_id` and `size_bytes`
+  columns. The trigger and failed-upload cleanup rows both supply those values;
+  retained usage sums live metadata and queued work. See
+  `apps/server/src/routes/submit.ts:275-294` and
+  `apps/server/src/lib/planUsage.ts:49-69`.
+- Retained usage now obtains both sums in a single SQL statement
+  (`apps/server/src/lib/planUsage.ts:53-67`), giving PostgreSQL's statement-level
+  snapshot rather than two independently timed reads. The query is limited to the
+  requested organization in both subqueries.
 - Queue accounting is behaviorally covered on both explicit deletion and retention
   deletion, including release only after the object-deletion sweep:
   `apps/server/src/routes/submit.test.ts:450-488` and
@@ -56,13 +64,16 @@ None.
   `apps/server/src/routes/submit.ts:349-384`. Other attachment consumers already
   carry matching organization predicates; authenticated cross-tenant download is
   covered in `apps/server/src/routes/v1/apiEndpoints.test.ts:174-178`.
-- Local upgrade state had migration 0009 applied with the new function definition
-  and an empty legacy queue. Integration suite result: 32 files / 199 tests passed;
-  database integration/RLS result: 2 files / 12 tests passed; lint and typecheck
-  passed. `git diff --check` passed.
-- Production preflight also succeeded: a read-only in-container query established
-  that `object_deletions` contains zero pre-0009 rows. The nullable legacy-row
-  migration edge case therefore cannot affect the deployed accounting guarantee.
+- Fresh PostgreSQL 16 migration proof supplied with this review established that
+  migration 0009 rejects a seeded legacy row with its actionable hint, succeeds
+  after the queue is drained, and creates both metadata columns as NOT NULL.
+- I independently reran the focused DB-backed submission and retention suite:
+  32 files / 199 tests passed. Workspace typecheck and `git diff --check` passed.
+  The wider fresh-PG migration proof and the previously completed DB/RLS suite
+  remain valid supporting evidence.
+- Production preflight succeeded: a read-only in-container query established that
+  `object_deletions` is empty before the new migration. This satisfies the
+  migration's explicit upgrade precondition.
 
 ## Skill-perspective check
 
