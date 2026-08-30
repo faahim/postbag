@@ -10,7 +10,7 @@ import {
   newId,
   type Mapping,
 } from "@postbag/core"
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { createHash } from "node:crypto"
 import {
   acceptAnonymousSubmission,
@@ -38,7 +38,6 @@ import {
   countMonthlySubmissions,
   lockPlanCapacity,
   organizationLimits,
-  retainedAttachmentStorageBytes,
 } from "../lib/planUsage.js"
 import type { Logger } from "../logger.js"
 import type { TokenBucketLimiter } from "../lib/rateLimit.js"
@@ -56,6 +55,8 @@ const MAX_ANONYMOUS_BODY_BYTES = 16 * 1_024
 // request. Keep this conservative until uploads move to a genuinely streaming parser.
 const MAX_MULTIPART_BODY_BYTES = 16 * 1_024 * 1_024
 const MULTIPART_OVERHEAD_BYTES = 1 * 1_024 * 1_024
+const UPLOAD_RESERVATION_DELAY_MS = 60 * 60_000
+const IDEMPOTENT_UPLOAD_WAIT_MS = 10_000
 // See the digest TODO near the delivery insert below.
 const DIGEST_PARKED_UNTIL = new Date("9999-01-01T00:00:00.000Z")
 
@@ -131,7 +132,9 @@ const publicSubmitContract = createRoute({
     },
     303: { description: "Browser form redirect after acceptance" },
     400: { description: "Malformed request" },
-    402: { description: "Retained attachment storage limit reached" },
+    402: {
+      description: "Retained attachment storage limit reached, including pending work",
+    },
     413: { description: "Body, attachment size, or attachment count limit exceeded" },
     422: { description: "Validation failed" },
     503: { description: "Attachment storage unavailable" },
@@ -273,20 +276,59 @@ function sanitizeFilename(value: string): string {
 }
 
 async function cleanupUploadedAttachments(
-  db: Database,
+  db: Pick<Database, "delete" | "insert">,
   storage: ObjectStorage,
+  organizationId: string,
   attachments: readonly ParsedAttachment[],
 ): Promise<void> {
   for (const attachment of attachments) {
     try {
       await storage.delete(attachment.storageKey)
+      await db.delete(objectDeletions).where(eq(objectDeletions.storageKey, attachment.storageKey))
     } catch {
       await db
         .insert(objectDeletions)
-        .values({ storageKey: attachment.storageKey })
-        .onConflictDoNothing()
+        .values({
+          storageKey: attachment.storageKey,
+          organizationId,
+          sizeBytes: attachment.sizeBytes,
+        })
+        .onConflictDoUpdate({
+          target: objectDeletions.storageKey,
+          set: {
+            organizationId,
+            sizeBytes: attachment.sizeBytes,
+            uploadReservation: false,
+            uploadIdempotencyHash: null,
+            nextAttemptAt: new Date(),
+          },
+        })
     }
   }
+}
+
+async function cleanupRejectedAttachments(
+  db: Pick<Database, "delete" | "insert">,
+  storage: ObjectStorage,
+  organizationId: string,
+  attachments: readonly ParsedAttachment[],
+  attemptedCount: number,
+): Promise<void> {
+  const unattempted = attachments.slice(attemptedCount)
+  if (unattempted.length > 0) {
+    await db.delete(objectDeletions).where(
+      inArray(
+        objectDeletions.storageKey,
+        unattempted.map((attachment) => attachment.storageKey),
+      ),
+    )
+  }
+  await cleanupUploadedAttachments(
+    db,
+    storage,
+    organizationId,
+    attachments.slice(0, attemptedCount),
+  )
 }
 
 async function parseBody(
@@ -340,6 +382,44 @@ async function parseBody(
 }
 
 type FormRow = typeof forms.$inferSelect
+
+async function existingSubmissionReceipt(
+  db: Pick<Database, "select">,
+  form: FormRow,
+  idempotencyKey: string,
+): Promise<Record<string, unknown> | null> {
+  const [existing] = await db
+    .select({ id: submissions.id, status: submissions.status })
+    .from(submissions)
+    .where(
+      and(
+        eq(submissions.organizationId, form.organizationId),
+        eq(submissions.formId, form.id),
+        eq(submissions.idempotencyKey, idempotencyKey),
+      ),
+    )
+    .limit(1)
+  if (existing === undefined) return null
+
+  const existingAttachments = await db
+    .select({ id: submissionAttachments.id })
+    .from(submissionAttachments)
+    .where(
+      and(
+        eq(submissionAttachments.organizationId, form.organizationId),
+        eq(submissionAttachments.submissionId, existing.id),
+      ),
+    )
+  return {
+    ok: true,
+    submission_id: existing.id,
+    status: existing.status,
+    idempotent: true,
+    ...(existingAttachments.length === 0
+      ? {}
+      : { attachments: existingAttachments.map((attachment) => ({ id: attachment.id })) }),
+  }
+}
 
 async function getForm(db: Database, formId: string): Promise<FormRow | null> {
   const [row] = await db.select().from(forms).where(eq(forms.id, formId)).limit(1)
@@ -547,11 +627,29 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
     c.header("Vary", "Origin")
     if (cors.allowOrigin !== null) c.header("Access-Control-Allow-Origin", cors.allowOrigin)
 
-    const limits = await organizationLimits(db, form.organizationId)
     const requestMediaType = (c.req.header("content-type") ?? "")
       .split(";", 1)[0]
       ?.trim()
       .toLowerCase()
+    const headerIdempotencyKey = c.req.header("idempotency-key")
+    const bodyIndependentReplay =
+      requestMediaType === "application/json" ||
+      (c.req.header("accept") ?? "").includes("application/json")
+    if (headerIdempotencyKey !== undefined && bodyIndependentReplay) {
+      const existingReceipt = await existingSubmissionReceipt(db, form, headerIdempotencyKey)
+      if (existingReceipt !== null) {
+        return respond(
+          c,
+          form,
+          settings,
+          undefined,
+          existingReceipt,
+          requestMediaType !== "application/json",
+        )
+      }
+    }
+
+    const limits = await organizationLimits(db, form.organizationId)
     const multipartBodyLimit = Math.min(
       MAX_MULTIPART_BODY_BYTES,
       limits.attachment_max_bytes * limits.attachments_per_submission + MULTIPART_OVERHEAD_BYTES,
@@ -578,35 +676,12 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
     const redirectOverride = typeof ctrl._redirect === "string" ? ctrl._redirect : undefined
 
     const idempotencyKey =
-      c.req.header("idempotency-key") ??
+      headerIdempotencyKey ??
       (typeof ctrl._idempotency === "string" ? ctrl._idempotency : undefined)
     if (idempotencyKey !== undefined) {
-      const [existing] = await db
-        .select({ id: submissions.id, status: submissions.status })
-        .from(submissions)
-        .where(and(eq(submissions.formId, formId), eq(submissions.idempotencyKey, idempotencyKey)))
-        .limit(1)
-      if (existing !== undefined) {
-        const existingAttachments = await db
-          .select({ id: submissionAttachments.id })
-          .from(submissionAttachments)
-          .where(eq(submissionAttachments.submissionId, existing.id))
-        return respond(
-          c,
-          form,
-          settings,
-          redirectOverride,
-          {
-            ok: true,
-            submission_id: existing.id,
-            status: existing.status,
-            idempotent: true,
-            ...(existingAttachments.length === 0
-              ? {}
-              : { attachments: existingAttachments.map((attachment) => ({ id: attachment.id })) }),
-          },
-          isForm,
-        )
+      const existingReceipt = await existingSubmissionReceipt(db, form, idempotencyKey)
+      if (existingReceipt !== null) {
+        return respond(c, form, settings, redirectOverride, existingReceipt, isForm)
       }
     }
 
@@ -727,58 +802,137 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
       (total, attachment) => total + attachment.sizeBytes,
       0,
     )
-    if (requestedAttachmentBytes > 0) {
-      const usedAttachmentBytes = await retainedAttachmentStorageBytes(db, form.organizationId)
-      if (usedAttachmentBytes + requestedAttachmentBytes > limits.attachment_storage_bytes) {
-        throw new PostbagError(
-          "attachment_storage_limit_reached",
-          "This organization has reached its attachment storage limit.",
-          {
-            resource: "attachment_storage_bytes",
-            limit: limits.attachment_storage_bytes,
-            used: usedAttachmentBytes,
-            requested: requestedAttachmentBytes,
-          },
-        )
-      }
-    }
 
-    const uploaded: ParsedAttachment[] = []
-    let result: {
+    type AcceptedSubmission = {
+      readonly kind: "accepted"
       readonly submissionId: string
       readonly hasPendingDelivery: boolean
       readonly status: string
     }
-    try {
-      if (attachments.length > 0) {
-        const storage = deps.storage
-        if (storage === null) throw new Error("Attachment storage became unavailable.")
-        for (const attachment of attachments) {
-          await storage.put({
-            key: attachment.storageKey,
-            body: attachment.body,
-            contentType: attachment.contentType,
-            filename: attachment.filename,
-            sha256: attachment.sha256,
-          })
-          uploaded.push(attachment)
-        }
-      }
-
-      result = await db.transaction(async (tx) => {
-        if (requestedAttachmentBytes > 0) {
+    const uploaded: ParsedAttachment[] = []
+    let acceptedCandidate: AcceptedSubmission | undefined
+    let result: AcceptedSubmission | undefined
+    let transactionFailed = false
+    let transactionError: unknown
+    const uploadIdempotencyHash =
+      idempotencyKey === undefined
+        ? null
+        : createHash("sha256").update(`${form.id}\0${idempotencyKey}`).digest("hex")
+    if (attachments.length > 0) {
+      // Serialize only the small reservation transaction. Once committed, the row
+      // itself makes capacity durable while object storage I/O runs concurrently.
+      const waitDeadline = Date.now() + IDEMPOTENT_UPLOAD_WAIT_MS
+      for (;;) {
+        const admission = await db.transaction(async (tx) => {
           await lockPlanCapacity(tx, form.organizationId, "attachments")
+          if (idempotencyKey !== undefined) {
+            const existingReceipt = await existingSubmissionReceipt(tx, form, idempotencyKey)
+            if (existingReceipt !== null) return { kind: "replay" as const, existingReceipt }
+          }
+          if (uploadIdempotencyHash !== null) {
+            const leader = attachments[0]
+            if (leader === undefined) throw new Error("Attachment reservation has no leader.")
+            const claimed = await tx
+              .insert(objectDeletions)
+              .values({
+                storageKey: leader.storageKey,
+                organizationId: form.organizationId,
+                sizeBytes: 0,
+                uploadReservation: true,
+                uploadIdempotencyHash,
+                nextAttemptAt: new Date(Date.now() + UPLOAD_RESERVATION_DELAY_MS),
+              })
+              .onConflictDoNothing()
+              .returning({ storageKey: objectDeletions.storageKey })
+            if (claimed.length === 0) return { kind: "pending" as const }
+            // The insert may have waited for a winner to delete its reservation. Under
+            // READ COMMITTED this fresh statement sees that winner's committed Submission.
+            if (idempotencyKey !== undefined) {
+              const existingReceipt = await existingSubmissionReceipt(tx, form, idempotencyKey)
+              if (existingReceipt !== null) {
+                await tx
+                  .delete(objectDeletions)
+                  .where(eq(objectDeletions.storageKey, leader.storageKey))
+                return { kind: "replay" as const, existingReceipt }
+              }
+            }
+          }
           await assertLockedAttachmentStorageCapacity(
             tx,
             form.organizationId,
             requestedAttachmentBytes,
           )
+          const reservations = uploadIdempotencyHash === null ? attachments : attachments.slice(1)
+          if (uploadIdempotencyHash !== null) {
+            const leader = attachments[0]
+            if (leader === undefined) throw new Error("Attachment reservation has no leader.")
+            await tx
+              .update(objectDeletions)
+              .set({ sizeBytes: leader.sizeBytes })
+              .where(eq(objectDeletions.storageKey, leader.storageKey))
+          }
+          if (reservations.length > 0) {
+            await tx.insert(objectDeletions).values(
+              reservations.map((attachment) => ({
+                storageKey: attachment.storageKey,
+                organizationId: form.organizationId,
+                sizeBytes: attachment.sizeBytes,
+                uploadReservation: true,
+                uploadIdempotencyHash: null,
+                nextAttemptAt: new Date(Date.now() + UPLOAD_RESERVATION_DELAY_MS),
+              })),
+            )
+          }
+          return { kind: "reserved" as const }
+        })
+        if (admission.kind === "replay") {
+          return respond(c, form, settings, redirectOverride, admission.existingReceipt, isForm)
         }
+        if (admission.kind === "reserved") break
+        if (Date.now() >= waitDeadline) {
+          throw new PostbagError(
+            "attachment_storage_unavailable",
+            "An upload with this idempotency key is still in progress. Retry the same request.",
+          )
+        }
+        await new Promise((resolve) => setTimeout(resolve, 25))
+      }
+    }
+
+    try {
+      if (attachments.length > 0) {
+        const storage = deps.storage
+        if (storage === null) throw new Error("Attachment storage became unavailable.")
+        for (const attachment of attachments) {
+          // Track before PutObject: a transport error can arrive after storage committed
+          // the object. DeleteObject is idempotent, so cleanup must assume it may exist.
+          uploaded.push(attachment)
+          try {
+            await storage.put({
+              key: attachment.storageKey,
+              body: attachment.body,
+              contentType: attachment.contentType,
+              filename: attachment.filename,
+              sha256: attachment.sha256,
+            })
+          } catch (error) {
+            throw new PostbagError(
+              "attachment_storage_unavailable",
+              "Postbag could not store every attachment safely. No Submission was accepted.",
+              undefined,
+              { cause: error },
+            )
+          }
+        }
+      }
+
+      result = await db.transaction(async (submissionTx) => {
         if (status === "received" && !isTest) {
-          await lockPlanCapacity(tx, form.organizationId, "submissions")
-          const limit = (await organizationLimits(tx, form.organizationId)).submissions_per_month
+          await lockPlanCapacity(submissionTx, form.organizationId, "submissions")
+          const limit = (await organizationLimits(submissionTx, form.organizationId))
+            .submissions_per_month
           if (Number.isFinite(limit)) {
-            const used = await countMonthlySubmissions(tx, form.organizationId)
+            const used = await countMonthlySubmissions(submissionTx, form.organizationId)
             if (used >= limit) {
               status = "quarantined"
               quarantineReason = "over_quota"
@@ -795,7 +949,7 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
           directRoutes,
           streamMemberships,
         })
-        const [inserted] = await tx
+        const [inserted] = await submissionTx
           .insert(submissions)
           .values({
             organizationId: form.organizationId,
@@ -815,7 +969,26 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
         if (newSubmissionId === undefined) throw new Error("Failed to insert submission.")
 
         if (attachments.length > 0) {
-          await tx.insert(submissionAttachments).values(
+          const renewedReservations = await submissionTx
+            .update(objectDeletions)
+            .set({ nextAttemptAt: new Date(Date.now() + UPLOAD_RESERVATION_DELAY_MS) })
+            .where(
+              and(
+                inArray(
+                  objectDeletions.storageKey,
+                  attachments.map((attachment) => attachment.storageKey),
+                ),
+                eq(objectDeletions.uploadReservation, true),
+              ),
+            )
+            .returning({ storageKey: objectDeletions.storageKey })
+          if (renewedReservations.length !== attachments.length) {
+            throw new PostbagError(
+              "attachment_storage_unavailable",
+              "Postbag could not finalize every attachment safely. No Submission was accepted.",
+            )
+          }
+          await submissionTx.insert(submissionAttachments).values(
             attachments.map((attachment) => ({
               id: attachment.id,
               organizationId: form.organizationId,
@@ -830,10 +1003,16 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
               createdAt: receivedAt,
             })),
           )
+          await submissionTx.delete(objectDeletions).where(
+            inArray(
+              objectDeletions.storageKey,
+              attachments.map((attachment) => attachment.storageKey),
+            ),
+          )
         }
 
         if (driftFindings.length > 0) {
-          await tx.insert(driftEvents).values(
+          await submissionTx.insert(driftEvents).values(
             driftFindings.map((finding) => ({
               organizationId: form.organizationId,
               formId,
@@ -847,7 +1026,7 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
 
         for (const plan of plans) {
           if (plan.status === "skipped") {
-            await tx.insert(deliveries).values({
+            await submissionTx.insert(deliveries).values({
               organizationId: form.organizationId,
               submissionId: newSubmissionId,
               routeId: plan.routeId,
@@ -879,7 +1058,7 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
           // destination — it never claims them through the instant path. Parking
           // next_attempt_at far in the future keeps the instant worker's claim query
           // (`next_attempt_at <= now()`) from ever picking them up directly.
-          await tx.insert(deliveries).values({
+          await submissionTx.insert(deliveries).values({
             organizationId: form.organizationId,
             submissionId: newSubmissionId,
             routeId: plan.routeId,
@@ -894,60 +1073,73 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
           })
         }
 
-        return {
+        const accepted: AcceptedSubmission = {
+          kind: "accepted" as const,
           submissionId: newSubmissionId,
           hasPendingDelivery: plans.some(
             (plan) => plan.status === "pending" && plan.digestPeriodKey === undefined,
           ),
           status,
         }
+        acceptedCandidate = accepted
+        return accepted
       })
     } catch (error) {
-      if (uploaded.length > 0 && deps.storage !== null) {
-        await cleanupUploadedAttachments(db, deps.storage, uploaded)
-      }
-      if (idempotencyKey !== undefined) {
-        const [existing] = await db
-          .select({ id: submissions.id, status: submissions.status })
+      transactionFailed = true
+      transactionError = error
+    }
+
+    if (transactionFailed) {
+      // COMMIT errors are ambiguous: PostgreSQL may have committed before the client
+      // lost the connection. Only clean up after confirming the candidate row is absent.
+      if (acceptedCandidate !== undefined) {
+        const [committed] = await db
+          .select({ id: submissions.id })
           .from(submissions)
           .where(
-            and(eq(submissions.formId, formId), eq(submissions.idempotencyKey, idempotencyKey)),
+            and(
+              eq(submissions.organizationId, form.organizationId),
+              eq(submissions.id, acceptedCandidate.submissionId),
+            ),
           )
           .limit(1)
-        if (existing !== undefined) {
-          const existingAttachments = await db
-            .select({ id: submissionAttachments.id })
-            .from(submissionAttachments)
-            .where(eq(submissionAttachments.submissionId, existing.id))
-          return respond(
-            c,
-            form,
-            settings,
-            redirectOverride,
-            {
-              ok: true,
-              submission_id: existing.id,
-              status: existing.status,
-              idempotent: true,
-              ...(existingAttachments.length === 0
-                ? {}
-                : {
-                    attachments: existingAttachments.map((attachment) => ({ id: attachment.id })),
-                  }),
-            },
-            isForm,
+        if (committed !== undefined) {
+          result = acceptedCandidate
+          transactionFailed = false
+        } else {
+          // An absent row does not prove a failed COMMIT: the server may still be
+          // completing it after the client lost the connection. Keep the durable
+          // reservations so the expiry worker, rather than this request, decides
+          // whether the objects are orphaned.
+          uploaded.length = 0
+        }
+      } else if (uploaded.length > 0) {
+        // No accepted candidate existed, so no Submission can have committed. Cleanup
+        // uses the durable reservations without holding a DB connection during storage I/O.
+        const storage = deps.storage
+        if (storage !== null) {
+          await cleanupRejectedAttachments(
+            db,
+            storage,
+            form.organizationId,
+            attachments,
+            uploaded.length,
           )
+          uploaded.length = 0
         }
       }
-      if (uploaded.length < attachments.length) {
-        throw new PostbagError(
-          "attachment_storage_unavailable",
-          "Postbag could not store every attachment safely. No Submission was accepted.",
-          undefined,
-          { cause: error },
-        )
+
+      if (transactionFailed && idempotencyKey !== undefined) {
+        const existingReceipt = await existingSubmissionReceipt(db, form, idempotencyKey)
+        if (existingReceipt !== null) {
+          return respond(c, form, settings, redirectOverride, existingReceipt, isForm)
+        }
       }
-      throw error
+      if (transactionFailed) throw transactionError
+    }
+
+    if (result === undefined) {
+      throw new Error("Submission transaction completed without a result.")
     }
 
     if (result.hasPendingDelivery) {

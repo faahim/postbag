@@ -20,6 +20,7 @@ import {
 import { runRetentionSweep } from "./housekeeping.js"
 import { runObjectDeletionSweep } from "./objectDeletion.js"
 import type { ObjectStorage } from "../lib/objectStorage.js"
+import { retainedAttachmentStorageBytes } from "../lib/planUsage.js"
 
 const integration = describe.skipIf(TEST_DATABASE_URL === undefined)
 
@@ -148,6 +149,7 @@ integration("runRetentionSweep", () => {
         .from(objectDeletions)
         .where(eq(objectDeletions.storageKey, expiredStorageKey))
       expect(queued).toBeDefined()
+      expect(await retainedAttachmentStorageBytes(db, shortRetention.organizationId)).toBe(7)
       const deletedKeys: string[] = []
       const storage: ObjectStorage = {
         put: () => Promise.resolve(),
@@ -164,6 +166,7 @@ integration("runRetentionSweep", () => {
         .from(objectDeletions)
         .where(eq(objectDeletions.storageKey, expiredStorageKey))
       expect(remaining).toHaveLength(0)
+      expect(await retainedAttachmentStorageBytes(db, shortRetention.organizationId)).toBe(0)
     } finally {
       await db.delete(organization).where(eq(organization.id, shortRetention.organizationId))
       await db.delete(organization).where(eq(organization.id, defaultRetention.organizationId))
@@ -172,7 +175,14 @@ integration("runRetentionSweep", () => {
 
   it("retains a failed object deletion and succeeds on retry", async () => {
     const storageKey = `attachments/${newId("fl")}`
-    await db.insert(objectDeletions).values({ storageKey })
+    await db
+      .insert(objectDeletions)
+      .values({
+        storageKey,
+        organizationId: "org_deletion_retry",
+        sizeBytes: 0,
+        nextAttemptAt: new Date(0),
+      })
     let shouldFail = true
     const storage: ObjectStorage = {
       put: () => Promise.resolve(),

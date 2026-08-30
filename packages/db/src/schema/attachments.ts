@@ -1,6 +1,7 @@
 import { newId } from "@postbag/core"
 import {
   foreignKey,
+  boolean,
   index,
   integer,
   pgTable,
@@ -62,6 +63,10 @@ export const objectDeletions = pgTable(
   "object_deletions",
   {
     storageKey: text("storage_key").primaryKey(),
+    organizationId: text("organization_id").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    uploadReservation: boolean("upload_reservation").default(false).notNull(),
+    uploadIdempotencyHash: text("upload_idempotency_hash"),
     attempts: integer("attempts").default(0).notNull(),
     nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true, mode: "date" })
       .defaultNow()
@@ -69,5 +74,12 @@ export const objectDeletions = pgTable(
     lastError: text("last_error"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },
-  (table) => [index("object_deletions_pending_idx").on(table.nextAttemptAt)],
+  (table) => [
+    index("object_deletions_pending_idx").on(table.nextAttemptAt),
+    index("object_deletions_organization_id_idx").on(table.organizationId),
+    uniqueIndex("object_deletions_upload_idempotency_unique").on(
+      table.organizationId,
+      table.uploadIdempotencyHash,
+    ),
+  ],
 )

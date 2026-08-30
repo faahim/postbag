@@ -2,6 +2,7 @@ import { PostbagError } from "@postbag/core"
 import {
   destinations,
   forms,
+  objectDeletions,
   organizationSettings,
   submissionAttachments,
   submissions,
@@ -43,16 +44,25 @@ export async function countMonthlySubmissions(
   return row?.value ?? 0
 }
 
-/** Total retained object bytes for one organization. Object deletion is asynchronous,
- * so deleting attachments stop counting as soon as their metadata rows are removed. */
+/** Total retained object bytes for one organization, including objects queued for
+ * asynchronous deletion. Capacity is released only after storage confirms deletion. */
 export async function retainedAttachmentStorageBytes(
   db: PlanUsageDatabase,
   organizationId: string,
 ): Promise<number> {
-  const [row] = await db
-    .select({ value: sql<string>`coalesce(sum(${submissionAttachments.sizeBytes}), 0)` })
-    .from(submissionAttachments)
-    .where(eq(submissionAttachments.organizationId, organizationId))
+  const [row] = await db.execute<{ value: string }>(sql`
+    select (
+      coalesce((
+        select sum(${submissionAttachments.sizeBytes})
+        from ${submissionAttachments}
+        where ${submissionAttachments.organizationId} = ${organizationId}
+      ), 0) + coalesce((
+        select sum(${objectDeletions.sizeBytes})
+        from ${objectDeletions}
+        where ${objectDeletions.organizationId} = ${organizationId}
+      ), 0)
+    )::text as value
+  `)
   return Number(row?.value ?? 0)
 }
 

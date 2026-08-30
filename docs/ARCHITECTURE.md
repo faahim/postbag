@@ -126,7 +126,19 @@ and counted per month (submissions) with soft-fail: over-limit submissions are
 stored and flagged `over_quota`, not dropped (Principle 4), and delivery is paused
 until the plan allows. Attachment bytes are a separate aggregate-storage admission
 boundary: a request that cannot fit in durable retained capacity never becomes a
-Submission. The bound is documented in ADR-010.
+Submission. Objects awaiting confirmed deletion remain in that capacity calculation,
+so a storage outage cannot turn the deletion queue into an unbounded quota bypass. The
+submit path durably reserves each object in that queue before writing bytes, then
+atomically replaces the reservation with attachment metadata when the Submission
+commits. Reservation creation is serialized in a short transaction, so uploads do not
+hold scarce database connections during object-storage I/O or while waiting for one
+another. Expired reservations
+are atomically claimed by the deletion worker; finalization renews and verifies every
+reservation before committing, so the worker can never delete an accepted attachment.
+Concurrent multipart retries share a database-unique hashed idempotency claim on the
+leader reservation; followers wait without holding a database connection and replay
+the winning receipt instead of consuming quota or writing duplicate objects.
+The bound is documented in ADR-010.
 
 Polar billing follows the same durability rule. `POST /v1/billing/webhook` verifies the
 Standard Webhooks signature, stores one `billing_events` row per provider event id, and

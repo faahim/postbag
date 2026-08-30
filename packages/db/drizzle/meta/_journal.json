@@ -64,6 +64,34 @@
       "when": 1788030776751,
       "tag": "0008_lean_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788080055769,
+      "tag": "0009_chief_angel",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788082438484,
+      "tag": "0010_tough_mentallo",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788083118937,
+      "tag": "0011_complex_freak",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788083443282,
+      "tag": "0012_previous_runaways",
+      "breakpoints": true
     }
   ]
 }

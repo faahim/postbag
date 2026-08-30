@@ -134,9 +134,13 @@ stored with the owning Organization and Submission. An authenticated API or dash
 request resolves an attachment to a short-lived signed download URL. Email, Telegram
 and webhook Deliveries receive the same short-lived links rather than binary files.
 Attachments are deleted with their Submission; a durable retry queue removes an
-object if the first deletion attempt fails. Anonymous sandboxes do not accept
-attachments. The first release deliberately excludes previews, scanning, resumable
-uploads and client-direct uploads.
+object if the first deletion attempt fails. The same queue records active upload
+reservations before object storage is written; expired reservations become deletion
+work, while Submission finalization commits only reservations the worker has not
+claimed. One leader reservation carries a database-unique, one-way hash of a supplied
+Submission idempotency key so concurrent retries share the winning receipt without
+duplicating objects. Anonymous sandboxes do not accept attachments. The first release
+deliberately excludes previews, scanning, resumable uploads and client-direct uploads.
 
 ## Stream
 
