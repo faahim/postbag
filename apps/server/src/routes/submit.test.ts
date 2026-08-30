@@ -11,7 +11,7 @@ import {
   submissions,
   type Database,
 } from "@postbag/db"
-import { eq, inArray } from "drizzle-orm"
+import { desc, eq, inArray } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 import {
@@ -33,6 +33,7 @@ integration("submit path", () => {
   const storedObjects = new Map<string, StoredFile>()
   let failNextStorageWrite = false
   let persistThenFailNextStorageWrite = false
+  let failNextStorageDelete = false
   let storageWriteGate: Promise<void> | null = null
   const storage: ObjectStorage = {
     async put(file) {
@@ -48,6 +49,10 @@ integration("submit path", () => {
       if (storageWriteGate !== null) await storageWriteGate
     },
     delete(key) {
+      if (failNextStorageDelete) {
+        failNextStorageDelete = false
+        return Promise.reject(new Error("simulated deletion outage"))
+      }
       storedObjects.delete(key)
       return Promise.resolve()
     },
@@ -144,6 +149,29 @@ integration("submit path", () => {
     })
     expect(response.status).toBe(303)
     expect(response.headers.get("location")).toBe(`/s/${form.id}/thanks`)
+  })
+
+  it("preserves a body redirect on an HTML header-key replay", async () => {
+    const form = await createForm()
+    const headers = {
+      "content-type": "application/x-www-form-urlencoded",
+      "idempotency-key": "html-redirect-replay",
+    }
+    const first = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers,
+      body: new URLSearchParams({ message: "first", _redirect: "https://example.com/first" }),
+    })
+    expect(first.status).toBe(303)
+    expect(first.headers.get("location")).toBe("https://example.com/first")
+
+    const replay = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers,
+      body: new URLSearchParams({ message: "ignored", _redirect: "https://example.com/replay" }),
+    })
+    expect(replay.status).toBe(303)
+    expect(replay.headers.get("location")).toBe("https://example.com/replay")
   })
 
   it("stores multipart text and file fields with durable metadata", async () => {
@@ -246,6 +274,57 @@ integration("submit path", () => {
     expect(rows).toHaveLength(0)
   })
 
+  it("charges a failed cleanup before another upload can use the capacity", async () => {
+    const form = await createForm()
+    const retainedBefore = await retainedAttachmentStorageBytes(db, organizationId)
+    const multipart = new FormData()
+    multipart.set("file", new File(["ambiguous"], "ambiguous.txt", { type: "text/plain" }))
+    persistThenFailNextStorageWrite = true
+    failNextStorageDelete = true
+
+    const failed = await harness.app.request(`/s/${form.id}`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+      body: multipart,
+    })
+    expect(failed.status).toBe(503)
+
+    const [queued] = await db
+      .select()
+      .from(objectDeletions)
+      .where(eq(objectDeletions.organizationId, organizationId))
+      .orderBy(desc(objectDeletions.createdAt))
+      .limit(1)
+    expect(queued).toMatchObject({ organizationId, sizeBytes: 9 })
+    if (queued === undefined) throw new Error("missing cleanup reservation")
+    expect(await retainedAttachmentStorageBytes(db, organizationId)).toBe(retainedBefore + 9)
+
+    try {
+      await db
+        .update(organizationSettings)
+        .set({ limits: { attachment_storage_bytes: retainedBefore + 9 } })
+        .where(eq(organizationSettings.organizationId, organizationId))
+      const next = new FormData()
+      next.set("file", new File(["x"], "next.txt", { type: "text/plain" }))
+      const rejected = await harness.app.request(`/s/${form.id}`, {
+        method: "POST",
+        headers: { accept: "application/json" },
+        body: next,
+      })
+      expect(rejected.status).toBe(402)
+      expect(await rejected.json()).toMatchObject({
+        error: { code: "attachment_storage_limit_reached" },
+      })
+    } finally {
+      storedObjects.delete(queued.storageKey)
+      await db.delete(objectDeletions).where(eq(objectDeletions.storageKey, queued.storageKey))
+      await db
+        .update(organizationSettings)
+        .set({ limits: {} })
+        .where(eq(organizationSettings.organizationId, organizationId))
+    }
+  })
+
   it("returns the same file receipt for an idempotent multipart replay", async () => {
     const form = await createForm()
     const makeBody = () => {
@@ -306,7 +385,7 @@ integration("submit path", () => {
     }
   })
 
-  it("cleans the losing upload from concurrent idempotent multipart requests", async () => {
+  it("does not upload a losing concurrent idempotent multipart replay", async () => {
     const form = await createForm()
     const makeBody = () => {
       const multipart = new FormData()
@@ -331,7 +410,7 @@ integration("submit path", () => {
       }),
     ]
     try {
-      await waitForStoredObjects(beforeObjects + 2)
+      await waitForStoredObjects(beforeObjects + 1)
     } finally {
       releaseWrites?.()
       storageWriteGate = null
@@ -411,7 +490,7 @@ integration("submit path", () => {
     ]
     try {
       try {
-        await waitForStoredObjects(beforeObjects + 2)
+        await waitForStoredObjects(beforeObjects + 1)
       } finally {
         releaseWrites?.()
         storageWriteGate = null
@@ -427,37 +506,33 @@ integration("submit path", () => {
     }
   })
 
-  it(
-    "accepts a multipart request near the aggregate ceiling on Team",
-    async () => {
-      const form = await createForm()
+  it("accepts a multipart request near the aggregate ceiling on Team", async () => {
+    const form = await createForm()
+    await db
+      .update(organizationSettings)
+      .set({ plan: "team", limits: {} })
+      .where(eq(organizationSettings.organizationId, organizationId))
+    try {
+      const multipart = new FormData()
+      multipart.set(
+        "file",
+        new File([new Uint8Array(15 * 1024 * 1024)], "maximum.bin", {
+          type: "application/octet-stream",
+        }),
+      )
+      const response = await harness.app.request(`/s/${form.id}`, {
+        method: "POST",
+        headers: { accept: "application/json" },
+        body: multipart,
+      })
+      expect(response.status).toBe(200)
+    } finally {
       await db
         .update(organizationSettings)
-        .set({ plan: "team", limits: {} })
+        .set({ plan: "free", limits: {} })
         .where(eq(organizationSettings.organizationId, organizationId))
-      try {
-        const multipart = new FormData()
-        multipart.set(
-          "file",
-          new File([new Uint8Array(15 * 1024 * 1024)], "maximum.bin", {
-            type: "application/octet-stream",
-          }),
-        )
-        const response = await harness.app.request(`/s/${form.id}`, {
-          method: "POST",
-          headers: { accept: "application/json" },
-          body: multipart,
-        })
-        expect(response.status).toBe(200)
-      } finally {
-        await db
-          .update(organizationSettings)
-          .set({ plan: "free", limits: {} })
-          .where(eq(organizationSettings.organizationId, organizationId))
-      }
-    },
-    30_000,
-  )
+    }
+  }, 30_000)
 
   it("enqueues object deletion when a Submission with a file is deleted", async () => {
     const form = await createForm()

@@ -273,7 +273,7 @@ function sanitizeFilename(value: string): string {
 }
 
 async function cleanupUploadedAttachments(
-  db: Database,
+  db: Pick<Database, "insert">,
   storage: ObjectStorage,
   organizationId: string,
   attachments: readonly ParsedAttachment[],
@@ -347,7 +347,7 @@ async function parseBody(
 type FormRow = typeof forms.$inferSelect
 
 async function existingSubmissionReceipt(
-  db: Database,
+  db: Pick<Database, "select">,
   form: FormRow,
   idempotencyKey: string,
 ): Promise<Record<string, unknown> | null> {
@@ -595,7 +595,10 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
       ?.trim()
       .toLowerCase()
     const headerIdempotencyKey = c.req.header("idempotency-key")
-    if (headerIdempotencyKey !== undefined) {
+    const bodyIndependentReplay =
+      requestMediaType === "application/json" ||
+      (c.req.header("accept") ?? "").includes("application/json")
+    if (headerIdempotencyKey !== undefined && bodyIndependentReplay) {
       const existingReceipt = await existingSubmissionReceipt(db, form, headerIdempotencyKey)
       if (existingReceipt !== null) {
         return respond(
@@ -641,14 +644,7 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
     if (idempotencyKey !== undefined) {
       const existingReceipt = await existingSubmissionReceipt(db, form, idempotencyKey)
       if (existingReceipt !== null) {
-        return respond(
-          c,
-          form,
-          settings,
-          redirectOverride,
-          existingReceipt,
-          isForm,
-        )
+        return respond(c, form, settings, redirectOverride, existingReceipt, isForm)
       }
     }
 
@@ -785,40 +781,13 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
       }
     }
 
-    const uploaded: ParsedAttachment[] = []
     let result: {
       readonly submissionId: string
       readonly hasPendingDelivery: boolean
       readonly status: string
     }
     try {
-      if (attachments.length > 0) {
-        const storage = deps.storage
-        if (storage === null) throw new Error("Attachment storage became unavailable.")
-        for (const attachment of attachments) {
-          // Track before PutObject: a transport error can arrive after storage committed
-          // the object. DeleteObject is idempotent, so cleanup must assume it may exist.
-          uploaded.push(attachment)
-          try {
-            await storage.put({
-              key: attachment.storageKey,
-              body: attachment.body,
-              contentType: attachment.contentType,
-              filename: attachment.filename,
-              sha256: attachment.sha256,
-            })
-          } catch (error) {
-            throw new PostbagError(
-              "attachment_storage_unavailable",
-              "Postbag could not store every attachment safely. No Submission was accepted.",
-              undefined,
-              { cause: error },
-            )
-          }
-        }
-      }
-
-      result = await db.transaction(async (tx) => {
+      const outcome = await db.transaction(async (tx) => {
         if (requestedAttachmentBytes > 0) {
           await lockPlanCapacity(tx, form.organizationId, "attachments")
           await assertLockedAttachmentStorageCapacity(
@@ -827,149 +796,196 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
             requestedAttachmentBytes,
           )
         }
-        if (status === "received" && !isTest) {
-          await lockPlanCapacity(tx, form.organizationId, "submissions")
-          const limit = (await organizationLimits(tx, form.organizationId)).submissions_per_month
-          if (Number.isFinite(limit)) {
-            const used = await countMonthlySubmissions(tx, form.organizationId)
-            if (used >= limit) {
-              status = "quarantined"
-              quarantineReason = "over_quota"
-            }
+
+        // Attachment requests serialize on the capacity lock before any object write.
+        // Recheck idempotency here so a concurrent replay never uploads a losing copy.
+        if (idempotencyKey !== undefined && attachments.length > 0) {
+          const existingReceipt = await existingSubmissionReceipt(tx, form, idempotencyKey)
+          if (existingReceipt !== null) {
+            return { kind: "replay" as const, receipt: existingReceipt }
           }
         }
 
-        const plans = planDeliveries({
-          submission: { id: "pending", status, receivedAt },
-          form: {
-            status: form.status as "active" | "paused",
-            schemaVersion: form.currentSchemaVersion,
-          },
-          directRoutes,
-          streamMemberships,
-        })
-        const [inserted] = await tx
-          .insert(submissions)
-          .values({
-            organizationId: form.organizationId,
-            formId,
-            data,
-            formSchemaVersion,
-            status,
-            quarantineReason,
-            spam,
-            meta,
-            idempotencyKey: idempotencyKey ?? null,
-            test: isTest,
-            receivedAt,
-          })
-          .returning({ id: submissions.id })
-        const newSubmissionId = inserted?.id
-        if (newSubmissionId === undefined) throw new Error("Failed to insert submission.")
+        const uploaded: ParsedAttachment[] = []
+        try {
+          if (attachments.length > 0) {
+            const storage = deps.storage
+            if (storage === null) throw new Error("Attachment storage became unavailable.")
+            for (const attachment of attachments) {
+              // Track before PutObject: a transport error can arrive after storage committed
+              // the object. DeleteObject is idempotent, so cleanup must assume it may exist.
+              uploaded.push(attachment)
+              try {
+                await storage.put({
+                  key: attachment.storageKey,
+                  body: attachment.body,
+                  contentType: attachment.contentType,
+                  filename: attachment.filename,
+                  sha256: attachment.sha256,
+                })
+              } catch (error) {
+                throw new PostbagError(
+                  "attachment_storage_unavailable",
+                  "Postbag could not store every attachment safely. No Submission was accepted.",
+                  undefined,
+                  { cause: error },
+                )
+              }
+            }
+          }
 
-        if (attachments.length > 0) {
-          await tx.insert(submissionAttachments).values(
-            attachments.map((attachment) => ({
-              id: attachment.id,
-              organizationId: form.organizationId,
-              formId,
-              submissionId: newSubmissionId,
-              fieldName: attachment.fieldName,
-              filename: attachment.filename,
-              contentType: attachment.contentType,
-              sizeBytes: attachment.sizeBytes,
-              sha256: attachment.sha256,
-              storageKey: attachment.storageKey,
-              createdAt: receivedAt,
-            })),
-          )
-        }
+          // A savepoint keeps the parent transaction usable for durable cleanup if a
+          // later Submission/outbox write fails while the attachment lock is held.
+          return await tx.transaction(async (submissionTx) => {
+            if (status === "received" && !isTest) {
+              await lockPlanCapacity(submissionTx, form.organizationId, "submissions")
+              const limit = (await organizationLimits(submissionTx, form.organizationId))
+                .submissions_per_month
+              if (Number.isFinite(limit)) {
+                const used = await countMonthlySubmissions(submissionTx, form.organizationId)
+                if (used >= limit) {
+                  status = "quarantined"
+                  quarantineReason = "over_quota"
+                }
+              }
+            }
 
-        if (driftFindings.length > 0) {
-          await tx.insert(driftEvents).values(
-            driftFindings.map((finding) => ({
-              organizationId: form.organizationId,
-              formId,
-              submissionId: newSubmissionId,
-              kind: finding.kind,
-              field: finding.field,
-              details: finding.details,
-            })),
-          )
-        }
-
-        for (const plan of plans) {
-          if (plan.status === "skipped") {
-            await tx.insert(deliveries).values({
-              organizationId: form.organizationId,
-              submissionId: newSubmissionId,
-              routeId: plan.routeId,
-              destinationId: plan.destinationId,
-              status: "skipped",
-              skipReason: plan.skipReason ?? null,
-              attempts: 0,
-              payload: {},
-              schemaVersion: plan.schemaVersion,
-              dedupeKey: `${newSubmissionId}:${plan.routeId}`,
+            const plans = planDeliveries({
+              submission: { id: "pending", status, receivedAt },
+              form: {
+                status: form.status as "active" | "paused",
+                schemaVersion: form.currentSchemaVersion,
+              },
+              directRoutes,
+              streamMemberships,
             })
-            continue
-          }
-          let payload: Readonly<Record<string, unknown>> = data
-          if (plan.streamId !== null) {
-            const membership = mappingByStream.get(plan.streamId)
-            const schemaJson = schemaJsonByStream.get(plan.streamId)
-            if (membership !== undefined && schemaJson !== undefined) {
-              const mapped = applyMapping(
+            const [inserted] = await submissionTx
+              .insert(submissions)
+              .values({
+                organizationId: form.organizationId,
+                formId,
                 data,
-                membership.mapping as unknown as Mapping,
-                schemaJson,
-              )
-              payload = mapped.payload
-            }
-          }
-          // Digest-route deliveries (job D §3): the digest worker loop groups these by
-          // (route_id, digest_period_key) once the period closes and sends one payload per
-          // destination — it never claims them through the instant path. Parking
-          // next_attempt_at far in the future keeps the instant worker's claim query
-          // (`next_attempt_at <= now()`) from ever picking them up directly.
-          await tx.insert(deliveries).values({
-            organizationId: form.organizationId,
-            submissionId: newSubmissionId,
-            routeId: plan.routeId,
-            destinationId: plan.destinationId,
-            status: "pending",
-            attempts: 0,
-            payload,
-            schemaVersion: plan.schemaVersion,
-            nextAttemptAt: plan.digestPeriodKey === undefined ? new Date() : DIGEST_PARKED_UNTIL,
-            digestPeriodKey: plan.digestPeriodKey ?? null,
-            dedupeKey: `${newSubmissionId}:${plan.routeId}`,
-          })
-        }
+                formSchemaVersion,
+                status,
+                quarantineReason,
+                spam,
+                meta,
+                idempotencyKey: idempotencyKey ?? null,
+                test: isTest,
+                receivedAt,
+              })
+              .returning({ id: submissions.id })
+            const newSubmissionId = inserted?.id
+            if (newSubmissionId === undefined) throw new Error("Failed to insert submission.")
 
-        return {
-          submissionId: newSubmissionId,
-          hasPendingDelivery: plans.some(
-            (plan) => plan.status === "pending" && plan.digestPeriodKey === undefined,
-          ),
-          status,
+            if (attachments.length > 0) {
+              await submissionTx.insert(submissionAttachments).values(
+                attachments.map((attachment) => ({
+                  id: attachment.id,
+                  organizationId: form.organizationId,
+                  formId,
+                  submissionId: newSubmissionId,
+                  fieldName: attachment.fieldName,
+                  filename: attachment.filename,
+                  contentType: attachment.contentType,
+                  sizeBytes: attachment.sizeBytes,
+                  sha256: attachment.sha256,
+                  storageKey: attachment.storageKey,
+                  createdAt: receivedAt,
+                })),
+              )
+            }
+
+            if (driftFindings.length > 0) {
+              await submissionTx.insert(driftEvents).values(
+                driftFindings.map((finding) => ({
+                  organizationId: form.organizationId,
+                  formId,
+                  submissionId: newSubmissionId,
+                  kind: finding.kind,
+                  field: finding.field,
+                  details: finding.details,
+                })),
+              )
+            }
+
+            for (const plan of plans) {
+              if (plan.status === "skipped") {
+                await submissionTx.insert(deliveries).values({
+                  organizationId: form.organizationId,
+                  submissionId: newSubmissionId,
+                  routeId: plan.routeId,
+                  destinationId: plan.destinationId,
+                  status: "skipped",
+                  skipReason: plan.skipReason ?? null,
+                  attempts: 0,
+                  payload: {},
+                  schemaVersion: plan.schemaVersion,
+                  dedupeKey: `${newSubmissionId}:${plan.routeId}`,
+                })
+                continue
+              }
+              let payload: Readonly<Record<string, unknown>> = data
+              if (plan.streamId !== null) {
+                const membership = mappingByStream.get(plan.streamId)
+                const schemaJson = schemaJsonByStream.get(plan.streamId)
+                if (membership !== undefined && schemaJson !== undefined) {
+                  const mapped = applyMapping(
+                    data,
+                    membership.mapping as unknown as Mapping,
+                    schemaJson,
+                  )
+                  payload = mapped.payload
+                }
+              }
+              // Digest-route deliveries (job D §3): the digest worker loop groups these by
+              // (route_id, digest_period_key) once the period closes and sends one payload per
+              // destination — it never claims them through the instant path. Parking
+              // next_attempt_at far in the future keeps the instant worker's claim query
+              // (`next_attempt_at <= now()`) from ever picking them up directly.
+              await submissionTx.insert(deliveries).values({
+                organizationId: form.organizationId,
+                submissionId: newSubmissionId,
+                routeId: plan.routeId,
+                destinationId: plan.destinationId,
+                status: "pending",
+                attempts: 0,
+                payload,
+                schemaVersion: plan.schemaVersion,
+                nextAttemptAt:
+                  plan.digestPeriodKey === undefined ? new Date() : DIGEST_PARKED_UNTIL,
+                digestPeriodKey: plan.digestPeriodKey ?? null,
+                dedupeKey: `${newSubmissionId}:${plan.routeId}`,
+              })
+            }
+
+            return {
+              kind: "accepted" as const,
+              submissionId: newSubmissionId,
+              hasPendingDelivery: plans.some(
+                (plan) => plan.status === "pending" && plan.digestPeriodKey === undefined,
+              ),
+              status,
+            }
+          })
+        } catch (error) {
+          if (uploaded.length > 0 && deps.storage !== null) {
+            await cleanupUploadedAttachments(tx, deps.storage, form.organizationId, uploaded)
+          }
+          return { kind: "failed" as const, error }
         }
       })
-    } catch (error) {
-      if (uploaded.length > 0 && deps.storage !== null) {
-        await cleanupUploadedAttachments(db, deps.storage, form.organizationId, uploaded)
+
+      if (outcome.kind === "replay") {
+        return respond(c, form, settings, redirectOverride, outcome.receipt, isForm)
       }
+      if (outcome.kind === "failed") throw outcome.error
+      result = outcome
+    } catch (error) {
       if (idempotencyKey !== undefined) {
         const existingReceipt = await existingSubmissionReceipt(db, form, idempotencyKey)
         if (existingReceipt !== null) {
-          return respond(
-            c,
-            form,
-            settings,
-            redirectOverride,
-            existingReceipt,
-            isForm,
-          )
+          return respond(c, form, settings, redirectOverride, existingReceipt, isForm)
         }
       }
       throw error

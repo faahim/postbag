@@ -74,6 +74,25 @@ None.
 - Production preflight succeeded: a read-only in-container query established that
   `object_deletions` is empty before the new migration. This satisfies the
   migration's explicit upgrade precondition.
+- Final P1 review: attachment admission now takes the organization attachment lock
+  and performs the exact capacity check before the first object write
+  (`apps/server/src/routes/submit.ts:787-797`). It rechecks attachment idempotency
+  under that same lock (`:799-805`), preventing a concurrent loser from uploading.
+  Upload, the savepoint-backed Submission/outbox write, and either delete or durable
+  cleanup-queue insertion all complete before the parent transaction returns
+  (`:807-989`), so the lock covers the full capacity-sensitive saga.
+- The new failure regression persists an object, forces deletion to fail, verifies
+  the committed cleanup reservation, and proves a following upload is rejected at
+  capacity (`apps/server/src/routes/submit.test.ts:277-326`). The concurrent
+  idempotency and capacity tests now assert only one object is written
+  (`:388-435`, `:462-507`). These are behavioral concurrency tests, not
+  implementation-mirroring tests.
+- Final P2 review: the early header replay is used only when response behavior is
+  body-independent (`apps/server/src/routes/submit.ts:593-612`). HTML form replays
+  parse the body and retain its `_redirect`; covered at
+  `apps/server/src/routes/submit.test.ts:154-177`.
+- I independently reran the DB-backed server suite after these changes: 32 files /
+  201 tests passed. Server typecheck and `git diff --check` passed.
 
 ## Skill-perspective check
 
