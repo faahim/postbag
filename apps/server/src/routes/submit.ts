@@ -38,7 +38,6 @@ import {
   countMonthlySubmissions,
   lockPlanCapacity,
   organizationLimits,
-  retainedAttachmentStorageBytes,
 } from "../lib/planUsage.js"
 import type { Logger } from "../logger.js"
 import type { TokenBucketLimiter } from "../lib/rateLimit.js"
@@ -803,21 +802,6 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
       (total, attachment) => total + attachment.sizeBytes,
       0,
     )
-    if (requestedAttachmentBytes > 0) {
-      const usedAttachmentBytes = await retainedAttachmentStorageBytes(db, form.organizationId)
-      if (usedAttachmentBytes + requestedAttachmentBytes > limits.attachment_storage_bytes) {
-        throw new PostbagError(
-          "attachment_storage_limit_reached",
-          "This organization has reached its attachment storage limit.",
-          {
-            resource: "attachment_storage_bytes",
-            limit: limits.attachment_storage_bytes,
-            used: usedAttachmentBytes,
-            requested: requestedAttachmentBytes,
-          },
-        )
-      }
-    }
 
     type AcceptedSubmission = {
       readonly kind: "accepted"
@@ -1122,18 +1106,12 @@ export function registerSubmitRoutes(app: OpenAPIHono<AppEnv>, deps: SubmitDeps)
         if (committed !== undefined) {
           result = acceptedCandidate
           transactionFailed = false
-        } else if (uploaded.length > 0) {
-          const storage = deps.storage
-          if (storage !== null) {
-            await cleanupRejectedAttachments(
-              db,
-              storage,
-              form.organizationId,
-              attachments,
-              uploaded.length,
-            )
-            uploaded.length = 0
-          }
+        } else {
+          // An absent row does not prove a failed COMMIT: the server may still be
+          // completing it after the client lost the connection. Keep the durable
+          // reservations so the expiry worker, rather than this request, decides
+          // whether the objects are orphaned.
+          uploaded.length = 0
         }
       } else if (uploaded.length > 0) {
         // No accepted candidate existed, so no Submission can have committed. Cleanup

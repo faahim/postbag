@@ -417,6 +417,7 @@ integration("submit path", () => {
 
   it("does not upload a losing concurrent idempotent multipart replay", async () => {
     const form = await createForm()
+    const retainedBefore = await retainedAttachmentStorageBytes(db, organizationId)
     const makeBody = () => {
       const multipart = new FormData()
       multipart.set("file", new File([], "same.txt", { type: "text/plain" }))
@@ -429,6 +430,10 @@ integration("submit path", () => {
     })
     const beforeObjects = storedObjects.size
     const putsBefore = storagePutCount
+    await db
+      .update(organizationSettings)
+      .set({ limits: { attachment_storage_bytes: retainedBefore + 1 } })
+      .where(eq(organizationSettings.organizationId, organizationId))
     const requests = [
       concurrentRequest(`/s/${form.id}`, {
         method: "POST",
@@ -447,24 +452,31 @@ integration("submit path", () => {
       releaseWrites?.()
       storageWriteGate = null
     }
-    const responses = await Promise.all(requests)
-    expect(responses.map((response) => response.status)).toEqual([200, 200])
-    const bodies = (await Promise.all(responses.map((response) => response.json()))) as {
-      submission_id: string
-      idempotent?: boolean
-      attachments: { id: string }[]
-    }[]
-    expect(new Set(bodies.map((body) => body.submission_id)).size).toBe(1)
-    expect(bodies.some((body) => body.idempotent === true)).toBe(true)
-    expect(storedObjects.size).toBe(beforeObjects + 2)
-    expect(storagePutCount).toBe(putsBefore + 2)
-    const winningSubmissionId = bodies[0]?.submission_id
-    if (winningSubmissionId === undefined) throw new Error("missing winning submission")
-    const rows = await db
-      .select()
-      .from(submissionAttachments)
-      .where(eq(submissionAttachments.submissionId, winningSubmissionId))
-    expect(rows).toHaveLength(2)
+    try {
+      const responses = await Promise.all(requests)
+      expect(responses.map((response) => response.status)).toEqual([200, 200])
+      const bodies = (await Promise.all(responses.map((response) => response.json()))) as {
+        submission_id: string
+        idempotent?: boolean
+        attachments: { id: string }[]
+      }[]
+      expect(new Set(bodies.map((body) => body.submission_id)).size).toBe(1)
+      expect(bodies.some((body) => body.idempotent === true)).toBe(true)
+      expect(storedObjects.size).toBe(beforeObjects + 2)
+      expect(storagePutCount).toBe(putsBefore + 2)
+      const winningSubmissionId = bodies[0]?.submission_id
+      if (winningSubmissionId === undefined) throw new Error("missing winning submission")
+      const rows = await db
+        .select()
+        .from(submissionAttachments)
+        .where(eq(submissionAttachments.submissionId, winningSubmissionId))
+      expect(rows).toHaveLength(2)
+    } finally {
+      await db
+        .update(organizationSettings)
+        .set({ limits: {} })
+        .where(eq(organizationSettings.organizationId, organizationId))
+    }
   })
 
   it("does not deadlock the database pool during concurrent attachment uploads", async () => {
