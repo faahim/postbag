@@ -102,6 +102,29 @@ export function articleLd(input: { title: string; description: string; url: stri
   }
 }
 
+export function howToLd(input: {
+  url: string
+  name: string
+  description: string
+  steps: { name: string; text: string }[]
+}) {
+  return {
+    "@type": "HowTo",
+    "@id": `${input.url}#howto`,
+    name: input.name,
+    description: input.description,
+    step: input.steps.map((s, i) => ({
+      "@type": "HowToStep",
+      position: i + 1,
+      name: s.name,
+      text: s.text,
+      url: `${input.url}#step-${i + 1}`,
+    })),
+    totalTime: "PT5M",
+    tool: { "@type": "HowToTool", name: "A website with a form, or an agent with the Postbag skill" },
+  }
+}
+
 export function webPageLd(input: { url: string; name: string; description: string; modified?: string }) {
   return {
     "@type": "WebPage",

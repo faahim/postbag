@@ -8,6 +8,17 @@ the rules and `docs/` for the design.
 ## Current state (update this block, don't append)
 
 - **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in _Next up_.
+- **Guide library v1 on `claude/guide-library` 2026-09-09 (PR pending):** `/guides/*` — 14 long-tail integration pages
+  (10 frameworks: HTML, Astro, Next.js, React, Vue, Nuxt, SvelteKit, Hugo, Jekyll+GitHub Pages, Eleventy; 4
+  destinations: Telegram, Zapier, Make, n8n) plus an index, each with runnable snippets checked against the live
+  contract, an agent-prompt door, HowTo/FAQ JSON-LD, Markdown twins and llms-full/sitemap/nav wiring. The operating
+  system (registry, page anatomy, truth rules, voice rubric, batch discipline) is `tasks/guides-system.md`; BRAND.md
+  gained the guide register; growth ideas now live in `docs/BACKLOG.md` (verified-guides CI harness is the follow-up
+  before the library passes ~25 pages; the "Powered by Postbag" thanks-page loop is deliberately sequenced after).
+  Verified: astro check 0 errors, root lint, site build (102 pages), server tests 48 passed (DB-backed skipped — no
+  local Postgres on this machine; Docker socket denied), twins/llms-full/sitemap confirmed, forced-reveal full-page
+  browser pass at desktop/tablet/mobile. Slack/Discord guides are **blocked on payload templates** (schema exists,
+  no adapter — Phase 2); Route `filter`/`transform` are stored but not evaluated, so no page claims them.
 - **Brand overhaul complete on `codex/brand-overhaul` 2026-08-24:** `docs/BRAND.md` is the source of truth. The approved
   receiving-pocket hero now leads one coherent midnight-indigo/periwinkle identity across the complete homepage,
   public page family, documentation shell, auth, first-run, empty/status states, manifests and social previews. The old
