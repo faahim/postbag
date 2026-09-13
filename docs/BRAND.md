@@ -194,6 +194,24 @@ agent-facing files (llms.txt, OpenAPI, the skill).
   inspect), facts before adjectives.
 - Machine docs speak literally to agents. Both registers stay bluff-free.
 
+### The guide register (`/guides/*`)
+
+Guides are marketing prose wrapped around product-register artifacts. A guide
+reader arrived with a task, not a question about us — so the prose sounds like
+the marketing register (warm, plain, a friend at the same desk), while the code
+blocks, field names, and API facts obey the product register exactly.
+
+- Prose calibration: warm 7/10 · casual 6/10 · humorous 3/10 · technical 5/10 ·
+  concrete 10/10. More technical than a feature page, still read-aloud human.
+- HTML attributes, endpoint paths, and framework names may appear in prose when
+  the step needs them; internals (outbox, worker, Postgres, idempotency) still
+  may not. "Submission" and "Delivery" are allowed once the reader has sent one.
+- Every code block must be runnable as pasted, current against the live API, and
+  tied to something the reader can verify in the same guide ("send it, then look
+  here"). A guide never shows code the reader must take on faith.
+- One micro-story maximum, in the introduction only. Steps stay declarative.
+- The full working rubric lives in `tasks/guides-system.md`.
+
 ### Rules for both
 
 - Lead with what happens for the reader; the mechanism comes second, if at all.

@@ -10,6 +10,7 @@
 | [`BRAND.md`](./BRAND.md)                     | Positioning, message, voice and visual language for every public and product surface.                                                      |
 | [`DESIGN.md`](./DESIGN.md)                   | Before any UI work. shadcn/ui foundation, the identity coat, feel rules, and the mandatory design skills.                                  |
 | [`ROADMAP.md`](./ROADMAP.md)                 | Phases, what ships when, and what is deliberately deferred.                                                                                |
+| [`BACKLOG.md`](./BACKLOG.md)                 | Accepted-in-spirit growth and product ideas waiting for their moment, with the case for each recorded.                                     |
 | [`decisions/`](./decisions/)                 | Architecture Decision Records. One file per decision; never edit history, supersede instead.                                               |
 | [`../api/openapi.yaml`](../api/openapi.yaml) | The API contract. In Phase 0 it is hand-written; from Phase 1 it is generated from the route definitions and this file becomes a snapshot. |
 

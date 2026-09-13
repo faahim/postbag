@@ -1,0 +1,93 @@
+---
+import Base from "@/layouts/Base.astro"
+import PageHeader from "@/components/PageHeader.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import { DESTINATION_GUIDES, FRAMEWORK_GUIDES } from "@/content/guides"
+import { breadcrumbLd, webPageLd } from "@/lib/seo"
+import { SITE_URL } from "@/config"
+import { ArrowUpRight } from "@lucide/astro"
+
+const title = "Guides: wire a form on your stack, send it where you need it"
+const description =
+  "Working contact-form code for HTML, Astro, Next.js, React, Vue, Nuxt, SvelteKit, Hugo, Jekyll and Eleventy — plus sending submissions to Telegram, Zapier, Make and n8n. Every guide starts before you have an account."
+const crumbs = [
+  { name: "Home", href: "/" },
+  { name: "Guides", href: "/guides/" },
+]
+const ld = [webPageLd({ url: `${SITE_URL}/guides/`, name: title, description }), breadcrumbLd(crumbs)]
+const frameworks = FRAMEWORK_GUIDES()
+const destinations = DESTINATION_GUIDES()
+const groups = [
+  {
+    id: "stacks",
+    heading: "Start with your stack",
+    intro:
+      "Each of these ends the same way: a form on your site, a real test stored in Postbag, and nothing to babysit. Pick the one that looks like your repository.",
+    items: frameworks,
+  },
+  {
+    id: "destinations",
+    heading: "Then send it somewhere useful",
+    intro:
+      "A form that only collects is half a form. These wire the messages onward — to your phone, your automations, or a workflow you run yourself.",
+    items: destinations,
+  },
+]
+---
+<Base title={title} description={description} canonical="/guides/" ld={ld} ogImage="/og/docs.png">
+  <PageHeader
+    title="Working code for your stack. Five minutes, no account."
+    lede="Every guide builds a real form you can test before signing up, then shows the messages the way you want them."
+    crumbs={crumbs}
+    eyebrow="Guides"
+  />
+
+  <div class="container-x guide-index">
+    {groups.map((group) => (
+      <section class="guide-group" id={group.id} data-reveal>
+        <div class="guide-group-heading">
+          <h2>{group.heading}</h2>
+          <p>{group.intro}</p>
+        </div>
+        <ul class="guide-list">
+          {group.items.map((g) => (
+            <li>
+              <a href={`/guides/${g.slug}/`}>
+                <span class="guide-row-text">
+                  <span class="guide-row-title">{g.nav}</span>
+                  <span class="guide-row-desc">{g.lede}</span>
+                </span>
+                <ArrowUpRight size={17} stroke-width={1.7} aria-hidden="true" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+
+  <CtaBand />
+</Base>
+
+<style>
+  .guide-index { display: grid; gap: clamp(3.5rem, 8vw, 6rem); padding-top: clamp(2.5rem, 6vw, 4.5rem); padding-bottom: clamp(3rem, 7vw, 5.5rem); }
+  .guide-group { display: grid; gap: clamp(1.75rem, 4vw, 3rem); }
+  .guide-group-heading h2 { max-width: 24ch; font-size: clamp(1.7rem, 3vw, 2.4rem); font-weight: 580; line-height: 1.08; letter-spacing: -0.024em; text-wrap: balance; }
+  .guide-group-heading p { max-width: 42rem; margin-top: 0.8rem; color: var(--muted-foreground); font-size: clamp(0.98rem, 1.4vw, 1.05rem); line-height: 1.7; }
+  .guide-list { display: grid; padding: 0; list-style: none; border-top: 1px solid var(--border); }
+  .guide-list a { display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; padding: 1.1rem 0.25rem; border-bottom: 1px solid var(--border); color: inherit; text-decoration: none; transition-property: background-color, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
+  .guide-list a:hover { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+  .guide-list a:hover :global(svg) { color: var(--primary); transform: translate(0.15rem, -0.15rem); }
+  .guide-list :global(svg) { flex-shrink: 0; color: var(--muted-foreground); transition: color var(--duration-fast) var(--ease-smooth-out), transform var(--duration-fast) var(--ease-smooth-out); }
+  .guide-row-text { display: grid; gap: 0.2rem; min-width: 0; }
+  .guide-row-title { font-size: 1.02rem; font-weight: 600; letter-spacing: -0.012em; }
+  .guide-row-desc { color: var(--muted-foreground); font-size: 0.92rem; line-height: 1.55; }
+  @media (min-width: 64rem) {
+    .guide-group { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); align-items: start; }
+    .guide-group-heading { position: sticky; top: 6.25rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .guide-list a, .guide-list :global(svg) { transition: none; }
+    .guide-list a:hover :global(svg) { transform: none; }
+  }
+</style>

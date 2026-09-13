@@ -1,0 +1,193 @@
+---
+import Base from "@/layouts/Base.astro"
+import PageHeader from "@/components/PageHeader.astro"
+import CodeBlock from "@/components/CodeBlock.astro"
+import Faq from "@/components/Faq.astro"
+import CtaBand from "@/components/CtaBand.astro"
+import { GUIDES } from "@/content/guides"
+import { breadcrumbLd, faqLd, howToLd, webPageLd } from "@/lib/seo"
+import { SITE_URL } from "@/config"
+import { ArrowUpRight } from "@lucide/astro"
+
+export function getStaticPaths() {
+  return GUIDES.map((g) => ({ params: { slug: g.slug }, props: { guide: g } }))
+}
+
+const { guide } = Astro.props
+const path = `/guides/${guide.slug}/`
+const crumbs = [
+  { name: "Home", href: "/" },
+  { name: "Guides", href: "/guides/" },
+  { name: guide.nav, href: path },
+]
+const ld = [
+  webPageLd({ url: `${SITE_URL}${path}`, name: guide.title, description: guide.description, modified: guide.modified }),
+  breadcrumbLd(crumbs),
+  howToLd({
+    url: `${SITE_URL}${path}`,
+    name: guide.title,
+    description: guide.description,
+    steps: guide.steps.map((s) => ({ name: s.h, text: s.p[0] ?? "" })),
+  }),
+  faqLd(guide.faqs),
+]
+const others = GUIDES.filter((g) => g.slug !== guide.slug && g.kind === guide.kind).slice(0, 5)
+const crossKind = GUIDES.filter((g) => g.kind !== guide.kind).slice(0, 3)
+---
+<Base title={guide.title} description={guide.description} canonical={path} ld={ld} ogImage="/og/docs.png">
+  <PageHeader title={guide.title} lede={guide.lede} crumbs={crumbs} eyebrow="Guide" modified={guide.modified} />
+
+  <div class="container-x guide-detail">
+    <div class="guide-reading">
+      <aside class="guide-plan" data-reveal>
+        <div class="guide-plan-cell">
+          <p>You need</p>
+          <ul>
+            {guide.needs.map((need) => <li>{need}</li>)}
+            {guide.versionNote && <li class="guide-version">{guide.versionNote}</li>}
+          </ul>
+        </div>
+        <div class="guide-plan-cell">
+          <p>You leave with</p>
+          <div>{guide.outcome}</div>
+        </div>
+      </aside>
+
+      <section class="guide-agent" data-reveal aria-label="Do this with your agent">
+        <div class="guide-agent-copy">
+          <h2>Or skip the reading entirely.</h2>
+          <p>
+            Everything below is agent-work. Paste this to yours, then come back to a working form —
+            you show up at the end to say "keep it."
+          </p>
+        </div>
+        <CodeBlock code={guide.agentPrompt} lang="text" title="Paste to your agent" copy dense wrap />
+      </section>
+
+      <article class="guide-article">
+        {guide.steps.map((step, i) => (
+          <section class="guide-step" id={`step-${i + 1}`} data-reveal>
+            <div class="guide-step-heading">
+              <span class="guide-step-numeral" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+              <h2>{step.h}</h2>
+            </div>
+            <div class="guide-step-body">
+              {step.p.map((paragraph) => <p>{paragraph}</p>)}
+              {step.code && <CodeBlock code={step.code.code} lang={step.code.lang} title={step.code.title} copy />}
+              {step.extra && <CodeBlock code={step.extra.code} lang={step.extra.lang} title={step.extra.title} copy />}
+            </div>
+          </section>
+        ))}
+      </article>
+
+      {guide.gotchas.length > 0 && (
+        <section class="guide-gotchas" data-reveal aria-label="Things that bite">
+          <h2>The parts that bite</h2>
+          <dl>
+            {guide.gotchas.map((g) => (
+              <div class="guide-gotcha">
+                <dt>{g.h}</dt>
+                <dd>{g.p}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+    </div>
+
+    <aside class="guide-links" data-reveal>
+      <nav aria-label="More guides">
+        <p>{guide.kind === "framework" ? "Other stacks" : "Other places to send it"}</p>
+        <ul>
+          {others.map((item) => (
+            <li><a href={`/guides/${item.slug}/`}>{item.nav}<ArrowUpRight size={15} stroke-width={1.7} aria-hidden="true" /></a></li>
+          ))}
+        </ul>
+      </nav>
+      {crossKind.length > 0 && (
+        <nav aria-label={guide.kind === "framework" ? "Where it can go" : "Wire a site"}>
+          <p>{guide.kind === "framework" ? "Then send it somewhere" : "Wire a site first"}</p>
+          <ul>
+            {crossKind.map((item) => (
+              <li><a href={`/guides/${item.slug}/`}>{item.nav}<ArrowUpRight size={15} stroke-width={1.7} aria-hidden="true" /></a></li>
+            ))}
+          </ul>
+        </nav>
+      )}
+      <nav aria-label="Related pages">
+        <p>Related</p>
+        <ul>
+          {guide.related.map((item) => (
+            <li><a href={item.href}>{item.label}<ArrowUpRight size={15} stroke-width={1.7} aria-hidden="true" /></a></li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
+  </div>
+
+  <Faq items={guide.faqs} class="mt-24" />
+  <CtaBand />
+</Base>
+
+<style>
+  .guide-detail { display: grid; gap: clamp(3rem, 7vw, 5.5rem); padding-top: clamp(2.5rem, 6vw, 4.5rem); }
+  .guide-reading { min-width: 0; }
+
+  .guide-plan { display: grid; gap: 1.5rem; padding: clamp(1.4rem, 3vw, 2rem); border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border)); border-radius: calc(var(--radius) + 10px); background: color-mix(in srgb, var(--accent) 82%, var(--background)); box-shadow: var(--shadow-sm); }
+  .guide-plan-cell { display: grid; gap: 0.7rem; align-content: start; }
+  .guide-plan-cell p { color: var(--primary); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .guide-plan-cell ul { display: grid; gap: 0.45rem; padding: 0; list-style: none; color: var(--accent-foreground); font-size: 0.98rem; line-height: 1.55; }
+  .guide-plan-cell li { position: relative; padding-left: 1.1rem; }
+  .guide-plan-cell li::before { position: absolute; top: 0.58rem; left: 0; width: 0.4rem; height: 0.4rem; border-radius: 999px; background: var(--primary); content: ""; }
+  .guide-plan-cell li.guide-version::before { background: var(--muted-foreground); }
+  .guide-plan-cell li.guide-version { color: var(--muted-foreground); font-size: 0.9rem; }
+  .guide-plan-cell div { color: var(--accent-foreground); font-family: var(--font-display); font-size: clamp(1.08rem, 1.6vw, 1.28rem); line-height: 1.5; letter-spacing: -0.012em; }
+
+  .guide-agent { display: grid; gap: 1.4rem; margin-top: clamp(2rem, 4.5vw, 3rem); padding: clamp(1.4rem, 3vw, 2rem); border: 1px solid var(--border); border-radius: calc(var(--radius) + 10px); background: color-mix(in srgb, var(--card) 65%, var(--background)); }
+  .guide-agent-copy h2 { font-size: clamp(1.25rem, 2vw, 1.55rem); font-weight: 600; letter-spacing: -0.018em; }
+  .guide-agent-copy p { max-width: 44rem; margin-top: 0.55rem; color: var(--muted-foreground); font-size: 0.98rem; line-height: 1.7; }
+  .guide-agent :global(.code-panel) { box-shadow: var(--shadow-sm); }
+
+  .guide-article { min-width: 0; }
+  .guide-step { display: grid; gap: 1.25rem; padding: clamp(2.25rem, 5vw, 3.75rem) 0; border-top: 1px solid var(--border); scroll-margin-top: 5.5rem; }
+  .guide-step:first-child { margin-top: clamp(2.25rem, 5vw, 3.5rem); }
+  .guide-step-heading { display: flex; align-items: baseline; gap: 1rem; min-width: 0; }
+  .guide-step-numeral { color: var(--primary); font-family: var(--font-mono, monospace); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.08em; }
+  .guide-step-heading h2 { max-width: 26ch; font-size: clamp(1.55rem, 2.8vw, 2.15rem); font-weight: 580; line-height: 1.12; letter-spacing: -0.022em; text-wrap: balance; }
+  .guide-step-body { width: 100%; max-width: 46rem; min-width: 0; color: var(--muted-foreground); font-size: clamp(1rem, 1.4vw, 1.08rem); line-height: 1.75; }
+  .guide-step-body p + p { margin-top: 1rem; }
+  .guide-step-body :global(.code-panel) { margin-top: 1.5rem; box-shadow: var(--shadow-md); }
+  .guide-step-body :global(.code-panel + .code-panel) { margin-top: 1rem; }
+
+  .guide-gotchas { padding: clamp(2.25rem, 5vw, 3.5rem) 0 0; border-top: 1px solid var(--border); }
+  .guide-gotchas h2 { font-size: clamp(1.35rem, 2.2vw, 1.7rem); font-weight: 600; letter-spacing: -0.02em; }
+  .guide-gotchas dl { display: grid; gap: 0; margin-top: 1.25rem; }
+  .guide-gotcha { display: grid; gap: 0.35rem; padding: 1.1rem 0; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+  .guide-gotcha:first-child { border-top: none; }
+  .guide-gotcha dt { color: var(--foreground); font-size: 0.98rem; font-weight: 600; }
+  .guide-gotcha dd { max-width: 46rem; color: var(--muted-foreground); font-size: 0.95rem; line-height: 1.7; }
+
+  .guide-links { display: grid; align-content: start; gap: 2.5rem; }
+  .guide-links p { color: var(--primary); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .guide-links ul { margin-top: 0.7rem; }
+  .guide-links li + li { margin-top: 0.1rem; }
+  .guide-links a { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); color: var(--muted-foreground); font-size: 0.92rem; text-decoration: none; transition-property: color, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
+  .guide-links a:hover { color: var(--primary); transform: translateX(0.2rem); }
+  .guide-links a:active { transform: translateX(0.1rem); }
+
+  @media (min-width: 40rem) {
+    .guide-plan { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: clamp(1.5rem, 4vw, 3rem); }
+    .guide-agent { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: center; gap: clamp(1.5rem, 4vw, 2.5rem); }
+    .guide-step { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (min-width: 64rem) {
+    .guide-detail { grid-template-columns: minmax(0, 1fr) minmax(15rem, 17rem); align-items: start; }
+    .guide-links { position: sticky; top: 6.25rem; }
+    .guide-step { grid-template-columns: 16rem minmax(0, 1fr); gap: clamp(1.5rem, 3vw, 3rem); }
+    .guide-step-heading { flex-direction: column; gap: 0.6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .guide-links a { transition: none; }
+    .guide-links a:hover, .guide-links a:active { transform: none; }
+  }
+</style>
