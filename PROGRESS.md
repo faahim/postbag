@@ -13,8 +13,11 @@ the rules and `docs/` for the design.
   submissions real/test, orgs with a successful non-test Delivery in 30d, sandbox created/claimed/
   expired-or-blocked in 30d, destinations by type). Same `PLATFORM_ADMIN_EMAILS` gate as plan-grants
   — non-admins get `404 not_found`. Aggregates only; no emails, names, payloads or per-org dumps.
-  Sandbox `expired_or_blocked_30d` counts currently marked rows (housekeeping deletes expired
-  sandboxes). CLI: `postbag admin growth-metrics`.
+  This is the sole, enumerated platform aggregate exception under ADR-011; it requires `read`
+  scope and grants no tenant-row access or general admin bypass. Every metric is a current
+  retained-row snapshot, not historical analytics; sandbox fields use `retained_*` because
+  housekeeping deletes all rows after `expires_at`, including claimed sandboxes. CLI:
+  `postbag admin growth-metrics`.
 - **Guide library v1 on `claude/guide-library` 2026-09-09 (PR pending):** `/guides/*` — 14 long-tail integration pages
   (10 frameworks: HTML, Astro, Next.js, React, Vue, Nuxt, SvelteKit, Hugo, Jekyll+GitHub Pages, Eleventy; 4
   destinations: Telegram, Zapier, Make, n8n) plus an index, each with runnable snippets checked against the live

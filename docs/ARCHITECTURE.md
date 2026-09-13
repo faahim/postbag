@@ -119,7 +119,10 @@ attachment. 2xx = sent. 410 = destination disabled itself. Anything else retries
 ## Multi-tenancy
 
 `organization_id` on every tenant table; repositories take an `OrgScope` and refuse
-to run without one. Postgres row-level security is enabled as a second fence with
+to run without one. Cross-tenant row reads and writes remain forbidden. The sole
+platform-wide exception is the fixed set of aggregate counts defined by
+[ADR-011](./decisions/ADR-011-platform-growth-aggregates.md); it exposes no tenant
+identifiers or rows and grants no general admin bypass. Postgres row-level security is enabled as a second fence with
 `SET LOCAL app.org_id` per request/transaction. Public submit runs outside RLS on
 a narrow, audited path. Plan limits are checked at creation (forms, destinations)
 and counted per month (submissions) with soft-fail: over-limit submissions are

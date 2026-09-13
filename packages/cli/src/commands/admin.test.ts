@@ -95,7 +95,11 @@ describe("postbag admin plan-grants (job K)", () => {
             test_last_30d: 0,
             orgs_with_real_delivery_30d: 0,
           },
-          sandboxes: { created_30d: 0, claimed_30d: 0, expired_or_blocked_30d: 0 },
+          sandboxes: {
+            retained_created_30d: 0,
+            retained_claimed_30d: 0,
+            retained_expired_or_blocked_30d: 0,
+          },
           destinations: { by_type: { email: 0, telegram: 0, webhook: 0, slack: 0, discord: 0 } },
         },
       }),

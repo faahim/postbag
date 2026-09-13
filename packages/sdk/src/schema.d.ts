@@ -438,7 +438,7 @@ export interface paths {
         };
         /**
          * Platform-wide growth KPIs (platform admin only; aggregates only)
-         * @description Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var (comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist. Returns COUNT aggregates across every organization — never emails, names, submission payloads, API keys, or per-organization dumps. Sandbox `expired_or_blocked_30d` counts rows currently marked expired or blocked whose created_at or expires_at is in the last 30 days; housekeeping deletes expired sandboxes, so that figure is typically near zero. `orgs_with_real_delivery_30d` is organizations with at least one successful (status=sent) Delivery of a non-test Submission in 30 days.
+         * @description Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var (comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist. Returns COUNT aggregates across every organization — never emails, names, submission payloads, API keys, or per-organization dumps. Requires the read scope. This is the narrow platform aggregate exception defined by ADR-011. Every value is a current snapshot of retained database rows, so retention and user deletion can reduce totals and window counts; this is not an append-only historical funnel. Sandbox fields are explicitly prefixed `retained_` because housekeeping deletes every sandbox after expires_at, including claimed rows. `orgs_with_real_delivery_30d` is organizations with at least one successful (status=sent) Delivery of a non-test Submission in 30 days.
          */
         get: operations["admin_growth_metrics"];
         put?: never;
@@ -1319,7 +1319,7 @@ export interface components {
         };
         GrowthMetrics: {
             /**
-             * @description ISO-8601 instant the windows (7d / 30d) are computed from. Aggregates only — no emails, names, payloads, or keys.
+             * @description ISO-8601 instant the windows (7d / 30d) are computed from. Every metric is a snapshot of rows retained in the primary database at this instant, not an append-only historical total. Aggregates only — no emails, names, payloads, or keys.
              * @example 2026-08-21T09:00:00.000Z
              */
             generated_at: string;
@@ -1353,14 +1353,14 @@ export interface components {
                 /** @description Distinct organizations with at least one Delivery status=sent of a non-test Submission whose sent_at is in the last 30 days. */
                 orgs_with_real_delivery_30d: number;
             };
-            /** @description Anonymous sandbox Form staging rows (ADR-008). Expired sandboxes are normally deleted, not retained as expired. */
+            /** @description Current retained anonymous sandbox staging rows (ADR-008), not a historical creation/claim/conversion funnel. Housekeeping deletes every sandbox after expires_at, including claimed rows. */
             sandboxes: {
-                /** @description anonymous_sandboxes rows inserted in the last 30 days. */
-                created_30d: number;
-                /** @description Sandboxes whose claimed_at is in the last 30 days. */
-                claimed_30d: number;
-                /** @description Rows currently status expired or blocked whose created_at or expires_at falls in the last 30 days. Housekeeping deletes expired sandboxes rather than leaving them marked, so this is typically near zero unless a row is explicitly marked. */
-                expired_or_blocked_30d: number;
+                /** @description Retained anonymous_sandboxes rows inserted in the last 30 days. */
+                retained_created_30d: number;
+                /** @description Retained sandbox rows whose claimed_at is in the last 30 days. */
+                retained_claimed_30d: number;
+                /** @description Retained rows currently status expired or blocked whose created_at or expires_at falls in the last 30 days. */
+                retained_expired_or_blocked_30d: number;
             };
             destinations: {
                 /** @description Destination counts keyed by type. Always includes email, telegram, webhook, slack and discord (0 when none); any other stored type is included as well. */

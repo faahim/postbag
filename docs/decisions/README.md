@@ -15,3 +15,4 @@ that supersedes it. Template: Context → Decision → Alternatives → Conseque
 | [008](./ADR-008-anonymous-claimable-quickstart.md)   | Anonymous sandbox Forms can be tested, then claimed by a person                | Accepted and live 2026-08-23 |
 | [009](./ADR-009-anonymous-admission-boundary.md)     | Anonymous admission is bounded before the durable Submission contract begins   | Accepted 2026-08-23          |
 | [010](./ADR-010-attachment-storage-and-admission.md) | Attachments use private S3-compatible storage and a durable admission boundary | Accepted 2026-08-30          |
+| [011](./ADR-011-platform-growth-aggregates.md)       | Fixed aggregate growth report across tenants                                   | Accepted 2026-09-14          |

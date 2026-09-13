@@ -369,8 +369,10 @@ components:
         generated_at:
           type: string
           example: 2026-08-21T09:00:00.000Z
-          description: ISO-8601 instant the windows (7d / 30d) are computed from.
-            Aggregates only — no emails, names, payloads, or keys.
+          description: ISO-8601 instant the windows (7d / 30d) are computed from. Every
+            metric is a snapshot of rows retained in the primary database at
+            this instant, not an append-only historical total. Aggregates only —
+            no emails, names, payloads, or keys.
         organizations:
           type: object
           properties:
@@ -467,27 +469,26 @@ components:
         sandboxes:
           type: object
           properties:
-            created_30d:
+            retained_created_30d:
               type: integer
               minimum: 0
-              description: anonymous_sandboxes rows inserted in the last 30 days.
-            claimed_30d:
+              description: Retained anonymous_sandboxes rows inserted in the last 30 days.
+            retained_claimed_30d:
               type: integer
               minimum: 0
-              description: Sandboxes whose claimed_at is in the last 30 days.
-            expired_or_blocked_30d:
+              description: Retained sandbox rows whose claimed_at is in the last 30 days.
+            retained_expired_or_blocked_30d:
               type: integer
               minimum: 0
-              description: Rows currently status expired or blocked whose created_at or
-                expires_at falls in the last 30 days. Housekeeping deletes
-                expired sandboxes rather than leaving them marked, so this is
-                typically near zero unless a row is explicitly marked.
+              description: Retained rows currently status expired or blocked whose created_at
+                or expires_at falls in the last 30 days.
           required:
-            - created_30d
-            - claimed_30d
-            - expired_or_blocked_30d
-          description: Anonymous sandbox Form staging rows (ADR-008). Expired sandboxes
-            are normally deleted, not retained as expired.
+            - retained_created_30d
+            - retained_claimed_30d
+            - retained_expired_or_blocked_30d
+          description: Current retained anonymous sandbox staging rows (ADR-008), not a
+            historical creation/claim/conversion funnel. Housekeeping deletes
+            every sandbox after expires_at, including claimed rows.
         destinations:
           type: object
           properties:
@@ -3079,12 +3080,15 @@ paths:
         not_found, not 403, so a self-hosted operator who never sets
         PLATFORM_ADMIN_EMAILS never sees this endpoint exist. Returns COUNT
         aggregates across every organization — never emails, names, submission
-        payloads, API keys, or per-organization dumps. Sandbox
-        `expired_or_blocked_30d` counts rows currently marked expired or blocked
-        whose created_at or expires_at is in the last 30 days; housekeeping
-        deletes expired sandboxes, so that figure is typically near zero.
-        `orgs_with_real_delivery_30d` is organizations with at least one
-        successful (status=sent) Delivery of a non-test Submission in 30 days."
+        payloads, API keys, or per-organization dumps. Requires the read scope.
+        This is the narrow platform aggregate exception defined by ADR-011.
+        Every value is a current snapshot of retained database rows, so
+        retention and user deletion can reduce totals and window counts; this is
+        not an append-only historical funnel. Sandbox fields are explicitly
+        prefixed `retained_` because housekeeping deletes every sandbox after
+        expires_at, including claimed rows. `orgs_with_real_delivery_30d` is
+        organizations with at least one successful (status=sent) Delivery of a
+        non-test Submission in 30 days."
       responses:
         "200":
           description: ok

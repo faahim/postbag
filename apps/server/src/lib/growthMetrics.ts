@@ -48,11 +48,16 @@ function countsByKey(
 /**
  * Platform-wide COUNT aggregates for GET /v1/admin/growth-metrics.
  *
- * Golden rule 6 forbids cross-tenant row reads, including "just for admin". This is the
- * narrow exception: COUNT / COUNT(DISTINCT) only — never emails, names, payloads, API
- * keys, or per-organization dumps. Callers must already have passed requirePlatformAdmin.
+ * ADR-011 defines the sole platform aggregate exception to tenant-scoped reads:
+ * COUNT / COUNT(DISTINCT) only, grouped only by the closed plan and Destination-type
+ * dimensions — never emails, names, payloads, API keys, tenant identifiers, or
+ * per-organization dumps. Callers must already have passed requirePlatformAdmin and
+ * the read-scope check.
  */
-export async function loadPlatformGrowthMetrics(db: Database, now = new Date()): Promise<GrowthMetrics> {
+export async function loadPlatformGrowthMetrics(
+  db: Database,
+  now = new Date(),
+): Promise<GrowthMetrics> {
   const since7 = daysAgo(now, 7)
   const since30 = daysAgo(now, 30)
   // postgres.js cannot bind Date inside a raw `sql` fragment; ISO text + timestamptz works.
@@ -119,7 +124,11 @@ export async function loadPlatformGrowthMetrics(db: Database, now = new Date()):
         ),
       )
       .where(
-        and(eq(deliveries.status, "sent"), eq(submissions.test, false), gte(deliveries.sentAt, since30)),
+        and(
+          eq(deliveries.status, "sent"),
+          eq(submissions.test, false),
+          gte(deliveries.sentAt, since30),
+        ),
       )
       .then((rows) => rows[0]),
     db
@@ -170,9 +179,9 @@ export async function loadPlatformGrowthMetrics(db: Database, now = new Date()):
       orgs_with_real_delivery_30d: asCount(orgsWithRealDelivery?.value),
     },
     sandboxes: {
-      created_30d: asCount(sandboxWindow?.created30d),
-      claimed_30d: asCount(sandboxWindow?.claimed30d),
-      expired_or_blocked_30d: asCount(sandboxWindow?.expiredOrBlocked30d),
+      retained_created_30d: asCount(sandboxWindow?.created30d),
+      retained_claimed_30d: asCount(sandboxWindow?.claimed30d),
+      retained_expired_or_blocked_30d: asCount(sandboxWindow?.expiredOrBlocked30d),
     },
     destinations: { by_type: byType },
   }

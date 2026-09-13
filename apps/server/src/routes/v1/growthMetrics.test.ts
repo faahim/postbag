@@ -13,7 +13,14 @@ import {
 } from "@postbag/db"
 import { afterEach, describe, expect, it } from "vitest"
 
-import { buildHarness, createTestApiKey, seedOrganization, TEST_DATABASE_URL, type TestHarness } from "../../testUtils.js"
+import {
+  buildHarness,
+  createTestApiKey,
+  seedOrganization,
+  TEST_DATABASE_URL,
+  type TestHarness,
+} from "../../testUtils.js"
+import { runAnonymousSandboxCleanup } from "../../worker/housekeeping.js"
 
 const integration = describe.skipIf(TEST_DATABASE_URL === undefined)
 
@@ -30,7 +37,12 @@ type GrowthMetricsBody = {
     readonly total: number
     readonly created_7d: number
     readonly created_30d: number
-    readonly by_plan: { readonly free: number; readonly pro: number; readonly team: number; readonly selfhost: number }
+    readonly by_plan: {
+      readonly free: number
+      readonly pro: number
+      readonly team: number
+      readonly selfhost: number
+    }
   }
   readonly forms: {
     readonly total: number
@@ -47,9 +59,9 @@ type GrowthMetricsBody = {
     readonly orgs_with_real_delivery_30d: number
   }
   readonly sandboxes: {
-    readonly created_30d: number
-    readonly claimed_30d: number
-    readonly expired_or_blocked_30d: number
+    readonly retained_created_30d: number
+    readonly retained_claimed_30d: number
+    readonly retained_expired_or_blocked_30d: number
   }
   readonly destinations: { readonly by_type: Readonly<Record<string, number>> }
 }
@@ -94,7 +106,11 @@ integration("GET /v1/admin/growth-metrics", () => {
     harness = undefined
   })
 
-  async function setup(asAdmin: boolean) {
+  async function setup(
+    asAdmin: boolean,
+    adminScopes: readonly ("manage" | "read" | "submit")[] = ["manage", "read", "submit"],
+    otherScopes: readonly ("manage" | "read" | "submit")[] = ["manage", "read", "submit"],
+  ) {
     const seedHarness = buildHarness()
     const adminOrg = await seedOrganization(seedHarness.db, "Growth Admin Org")
     const otherOrg = await seedOrganization(seedHarness.db, "Growth Other Org")
@@ -110,8 +126,18 @@ integration("GET /v1/admin/growth-metrics", () => {
     const h = buildHarness({ PLATFORM_ADMIN_EMAILS: asAdmin ? [adminEmail] : [] })
     harness = h
     orgIds.push(adminOrg.organizationId, otherOrg.organizationId)
-    const adminKey = await createTestApiKey(h.auth, adminOrg.organizationId, adminOrg.userId)
-    const otherKey = await createTestApiKey(h.auth, otherOrg.organizationId, otherOrg.userId)
+    const adminKey = await createTestApiKey(
+      h.auth,
+      adminOrg.organizationId,
+      adminOrg.userId,
+      adminScopes,
+    )
+    const otherKey = await createTestApiKey(
+      h.auth,
+      otherOrg.organizationId,
+      otherOrg.userId,
+      otherScopes,
+    )
     return { h, adminOrg, otherOrg, adminKey, otherKey }
   }
 
@@ -131,8 +157,25 @@ integration("GET /v1/admin/growth-metrics", () => {
     expect(body.error.code).toBe("not_found")
   })
 
-  it("returns aggregate KPIs for a platform admin and reflects seeded rows", async () => {
-    const { h, adminKey, adminOrg, otherOrg } = await setup(true)
+  it("keeps the endpoint concealed from a non-admin submit-only key", async () => {
+    const { h, otherKey } = await setup(true, ["read"], ["submit"])
+    const response = await h.app.request("/v1/admin/growth-metrics", authed(otherKey))
+    expect(response.status).toBe(404)
+    const body = (await response.json()) as { error: { code: string } }
+    expect(body.error.code).toBe("not_found")
+  })
+
+  it("refuses an allowlisted platform admin key without read scope", async () => {
+    const { h, adminKey } = await setup(true, ["submit"])
+    const response = await h.app.request("/v1/admin/growth-metrics", authed(adminKey))
+    expect(response.status).toBe(403)
+    const body = (await response.json()) as { error: { code: string; details?: unknown } }
+    expect(body.error.code).toBe("forbidden")
+    expect(body.error.details).toEqual({ required_scope: "read" })
+  })
+
+  it("returns aggregate KPIs for a read-scoped platform admin and reflects seeded rows", async () => {
+    const { h, adminKey, adminOrg, otherOrg } = await setup(true, ["read"])
 
     const beforeResponse = await h.app.request("/v1/admin/growth-metrics", authed(adminKey))
     expect(beforeResponse.status).toBe(200)
@@ -262,9 +305,35 @@ integration("GET /v1/admin/growth-metrics", () => {
     expect(after.submissions.orgs_with_real_delivery_30d).toBe(
       before.submissions.orgs_with_real_delivery_30d + 1,
     )
-    expect(after.destinations.by_type["email"]).toBe((before.destinations.by_type["email"] ?? 0) + 1)
-    expect(after.sandboxes.created_30d).toBe(before.sandboxes.created_30d + 3)
-    expect(after.sandboxes.claimed_30d).toBe(before.sandboxes.claimed_30d + 1)
-    expect(after.sandboxes.expired_or_blocked_30d).toBe(before.sandboxes.expired_or_blocked_30d + 1)
+    expect(after.destinations.by_type["email"]).toBe(
+      (before.destinations.by_type["email"] ?? 0) + 1,
+    )
+    expect(after.sandboxes.retained_created_30d).toBe(before.sandboxes.retained_created_30d + 3)
+    expect(after.sandboxes.retained_claimed_30d).toBe(before.sandboxes.retained_claimed_30d + 1)
+    expect(after.sandboxes.retained_expired_or_blocked_30d).toBe(
+      before.sandboxes.retained_expired_or_blocked_30d + 1,
+    )
+
+    // Cleanup is status-agnostic: both active and claimed staging rows disappear
+    // after expires_at. The API must report retained rows rather than implying an
+    // append-only sandbox conversion history.
+    await h.db
+      .update(anonymousSandboxes)
+      .set({ expiresAt: new Date(Date.now() - 1_000) })
+      .where(eq(anonymousSandboxes.id, createdSandboxId))
+    await h.db
+      .update(anonymousSandboxes)
+      .set({ expiresAt: new Date(Date.now() - 1_000) })
+      .where(eq(anonymousSandboxes.id, claimedSandboxId))
+    await runAnonymousSandboxCleanup(h.db, h.logger)
+
+    const retainedResponse = await h.app.request("/v1/admin/growth-metrics", authed(adminKey))
+    expect(retainedResponse.status).toBe(200)
+    const retained = (await retainedResponse.json()) as GrowthMetricsBody
+    expect(retained.sandboxes.retained_created_30d).toBe(after.sandboxes.retained_created_30d - 2)
+    expect(retained.sandboxes.retained_claimed_30d).toBe(after.sandboxes.retained_claimed_30d - 1)
+    expect(retained.sandboxes.retained_expired_or_blocked_30d).toBe(
+      after.sandboxes.retained_expired_or_blocked_30d,
+    )
   })
 })

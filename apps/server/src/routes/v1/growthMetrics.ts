@@ -4,7 +4,7 @@ import type { Database } from "@postbag/db"
 import type { Env } from "../../env.js"
 import { loadPlatformGrowthMetrics } from "../../lib/growthMetrics.js"
 import { PLATFORM_ADMIN_GATE_DESCRIPTION, requirePlatformAdmin } from "../../lib/platformAdmin.js"
-import type { AppEnv } from "../../lib/scope.js"
+import { assertScope, type AppEnv } from "../../lib/scope.js"
 import { errorResponses, GrowthMetricsSchema } from "../../schemas.js"
 
 const getGrowthMetricsRoute = createRoute({
@@ -16,9 +16,11 @@ const getGrowthMetricsRoute = createRoute({
   description:
     `${PLATFORM_ADMIN_GATE_DESCRIPTION} Returns COUNT aggregates across every organization — ` +
     "never emails, names, submission payloads, API keys, or per-organization dumps. " +
-    "Sandbox `expired_or_blocked_30d` counts rows currently marked expired or blocked whose " +
-    "created_at or expires_at is in the last 30 days; housekeeping deletes expired sandboxes, " +
-    "so that figure is typically near zero. `orgs_with_real_delivery_30d` is organizations " +
+    "Requires the read scope. This is the narrow platform aggregate exception defined by ADR-011. " +
+    "Every value is a current snapshot of retained database rows, so retention and user deletion " +
+    "can reduce totals and window counts; this is not an append-only historical funnel. Sandbox " +
+    "fields are explicitly prefixed `retained_` because housekeeping deletes every sandbox after " +
+    "expires_at, including claimed rows. `orgs_with_real_delivery_30d` is organizations " +
     "with at least one successful (status=sent) Delivery of a non-test Submission in 30 days.",
   responses: {
     200: { description: "ok", content: { "application/json": { schema: GrowthMetricsSchema } } },
@@ -26,9 +28,17 @@ const getGrowthMetricsRoute = createRoute({
   },
 })
 
-export function registerGrowthMetricsRoutes(app: OpenAPIHono<AppEnv>, db: Database, env: Env): void {
+export function registerGrowthMetricsRoutes(
+  app: OpenAPIHono<AppEnv>,
+  db: Database,
+  env: Env,
+): void {
   app.openapi(getGrowthMetricsRoute, async (c) => {
-    await requirePlatformAdmin(db, c.var.scope, env.PLATFORM_ADMIN_EMAILS)
+    const scope = c.var.scope
+    // Preserve endpoint concealment for non-admins, then enforce the ordinary read
+    // capability before any platform-wide aggregate query runs.
+    await requirePlatformAdmin(db, scope, env.PLATFORM_ADMIN_EMAILS)
+    assertScope(scope, "read")
     return c.json(await loadPlatformGrowthMetrics(db), 200)
   })
 }

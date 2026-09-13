@@ -414,7 +414,7 @@ const CountSchema = z.number().int().nonnegative()
 export const GrowthMetricsSchema = z
   .object({
     generated_at: TimestampSchema.describe(
-      "ISO-8601 instant the windows (7d / 30d) are computed from. Aggregates only — no emails, names, payloads, or keys.",
+      "ISO-8601 instant the windows (7d / 30d) are computed from. Every metric is a snapshot of rows retained in the primary database at this instant, not an append-only historical total. Aggregates only — no emails, names, payloads, or keys.",
     ),
     organizations: z.object({
       total: CountSchema,
@@ -443,22 +443,30 @@ export const GrowthMetricsSchema = z
       total: CountSchema,
       last_7d: CountSchema,
       last_30d: CountSchema,
-      real_last_30d: CountSchema.describe("Submissions with test=false received in the last 30 days."),
-      test_last_30d: CountSchema.describe("Submissions with test=true received in the last 30 days."),
+      real_last_30d: CountSchema.describe(
+        "Submissions with test=false received in the last 30 days.",
+      ),
+      test_last_30d: CountSchema.describe(
+        "Submissions with test=true received in the last 30 days.",
+      ),
       orgs_with_real_delivery_30d: CountSchema.describe(
         "Distinct organizations with at least one Delivery status=sent of a non-test Submission whose sent_at is in the last 30 days.",
       ),
     }),
     sandboxes: z
       .object({
-        created_30d: CountSchema.describe("anonymous_sandboxes rows inserted in the last 30 days."),
-        claimed_30d: CountSchema.describe("Sandboxes whose claimed_at is in the last 30 days."),
-        expired_or_blocked_30d: CountSchema.describe(
-          "Rows currently status expired or blocked whose created_at or expires_at falls in the last 30 days. Housekeeping deletes expired sandboxes rather than leaving them marked, so this is typically near zero unless a row is explicitly marked.",
+        retained_created_30d: CountSchema.describe(
+          "Retained anonymous_sandboxes rows inserted in the last 30 days.",
+        ),
+        retained_claimed_30d: CountSchema.describe(
+          "Retained sandbox rows whose claimed_at is in the last 30 days.",
+        ),
+        retained_expired_or_blocked_30d: CountSchema.describe(
+          "Retained rows currently status expired or blocked whose created_at or expires_at falls in the last 30 days.",
         ),
       })
       .describe(
-        "Anonymous sandbox Form staging rows (ADR-008). Expired sandboxes are normally deleted, not retained as expired.",
+        "Current retained anonymous sandbox staging rows (ADR-008), not a historical creation/claim/conversion funnel. Housekeeping deletes every sandbox after expires_at, including claimed rows.",
       ),
     destinations: z.object({
       by_type: z
