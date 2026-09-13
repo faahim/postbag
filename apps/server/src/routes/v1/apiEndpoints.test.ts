@@ -1141,6 +1141,8 @@ integration("/v1 API", () => {
     const llmsBody = await llms.text()
     expect(llmsBody).toContain("Postbag")
     expect(llmsBody).toContain("npx skills add faahim/postbag --skill postbag")
+    expect(llmsBody).toContain(`${harness.env.APP_URL}/.well-known/skills/postbag/SKILL.md`)
+    expect(llmsBody).toContain(`POSTBAG_API_URL=${harness.env.APP_URL}`)
     expect(llmsBody).toContain(`${harness.env.APP_URL}/for-ai-agents/`)
     expect(llmsBody).toContain(`${harness.env.APP_URL}/docs/agents/`)
     expect(llmsBody).toContain(`${harness.env.APP_URL}/guides/html/`)

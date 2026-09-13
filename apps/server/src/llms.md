@@ -12,10 +12,13 @@ If your environment can install agent skills, do that first:
 
 `npx skills add faahim/postbag --skill postbag`
 
+That install hardcodes `https://postbag.dev`. On this instance, read
+`GET {{APP_URL}}/.well-known/skills/postbag/SKILL.md` (also `GET {{APP_URL}}/SKILL.md`)
+and set `POSTBAG_API_URL={{APP_URL}}` for the CLI and `npx -y @postbag/mcp`.
+
 Then read {{APP_URL}}/for-ai-agents/ and {{APP_URL}}/docs/agents/. Those pages
 cover the same sandbox → claim → Destination/Route order as this file, with the
-skill, CLI, and MCP filled in. The skill itself is also at
-`GET {{APP_URL}}/.well-known/skills/postbag/SKILL.md`.
+skill, CLI, and MCP filled in.
 
 Also useful:
 

@@ -13,8 +13,10 @@ the rules and `docs/` for the design.
   `Accept: text/markdown`) now points agents at the skill install
   (`npx skills add faahim/postbag --skill postbag`), `/for-ai-agents/`, `/docs/agents/`,
   `/guides/` (especially `/guides/html/`), the `postbag` CLI and `@postbag/mcp`. The
+  npm skill hardcodes `postbag.dev`; the same file tells self-hosts to read this
+  instance's `/.well-known/skills/postbag/SKILL.md` and set `POSTBAG_API_URL`. The
   anonymous sandbox path is unchanged. `GET /SKILL.md` aliases the existing
-  `/.well-known/skills/postbag/SKILL.md` — no HTTP MCP endpoint (stdio only).
+  well-known skill — no HTTP MCP endpoint (stdio only).
 - **Platform-admin growth metrics (2026-09-13):** `GET /v1/admin/growth-metrics` (`operationId: admin_growth_metrics`)
   returns COUNT-only business KPIs (organizations by plan and recency, forms including 30d-active,
   submissions real/test, orgs with a successful non-test Delivery in 30d, sandbox created/claimed/
