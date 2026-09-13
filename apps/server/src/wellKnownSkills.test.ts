@@ -30,4 +30,16 @@ describe("Agent Skill discovery (/.well-known/skills)", () => {
     expect(text).not.toContain("postbag.dev")
     await harness.close()
   })
+
+  it("GET /SKILL.md serves the same skill as the well-known path", async () => {
+    const harness = buildHarness()
+    const [root, wellKnown] = await Promise.all([
+      harness.app.request("/SKILL.md"),
+      harness.app.request("/.well-known/skills/postbag/SKILL.md"),
+    ])
+    expect(root.status).toBe(200)
+    expect(root.headers.get("content-type")).toContain("text/markdown")
+    expect(await root.text()).toBe(await wellKnown.text())
+    await harness.close()
+  })
 })

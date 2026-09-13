@@ -6,6 +6,27 @@ according to rules you configure. It is multi-tenant, self-hostable, and
 agent-native: an agent can prove receipt before signup, then claim and configure the
 same Form with an API key.
 
+## Preferred start for coding agents
+
+If your environment can install agent skills, do that first:
+
+`npx skills add faahim/postbag --skill postbag`
+
+Then read {{APP_URL}}/for-ai-agents/ and {{APP_URL}}/docs/agents/. Those pages
+cover the same sandbox → claim → Destination/Route order as this file, with the
+skill, CLI, and MCP filled in. The skill itself is also at
+`GET {{APP_URL}}/.well-known/skills/postbag/SKILL.md`.
+
+Also useful:
+
+- Framework and Destination guides: {{APP_URL}}/guides/ — start with
+  {{APP_URL}}/guides/html/ for a plain HTML form
+- Live contract: `GET {{APP_URL}}/openapi.json`
+- CLI: `postbag` on npm (`postbag login` drives the email-code key flow)
+- MCP: `npx -y @postbag/mcp` (stdio; tools match `/v1` operationIds)
+
+The anonymous sandbox path below still works if you only have HTTP.
+
 ## Start without credentials
 
 When no `postbag.json` or API key exists, try the bounded anonymous path first:

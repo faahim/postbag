@@ -19,7 +19,7 @@ import { renderLlmsTxt } from "../lib/llms.js"
  */
 
 const RESERVED_PREFIXES = ["/v1/", "/s/", "/api/", "/app"]
-const RESERVED_EXACT = new Set(["/v1", "/s", "/health", "/llms.txt", "/openapi.json"])
+const RESERVED_EXACT = new Set(["/v1", "/s", "/health", "/llms.txt", "/openapi.json", "/SKILL.md"])
 
 const MIME: Readonly<Record<string, string>> = {
   ".html": "text/html; charset=utf-8",
