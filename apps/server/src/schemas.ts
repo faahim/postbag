@@ -409,6 +409,75 @@ export const PlanRedeemResponseSchema = OrganizationPlanSchema.extend({
   next: NextSchema,
 }).openapi("PlanRedeemResult")
 
+const CountSchema = z.number().int().nonnegative()
+
+export const GrowthMetricsSchema = z
+  .object({
+    generated_at: TimestampSchema.describe(
+      "ISO-8601 instant the windows (7d / 30d) are computed from. Every metric is a snapshot of rows retained in the primary database at this instant, not an append-only historical total. Aggregates only — no emails, names, payloads, or keys.",
+    ),
+    organizations: z.object({
+      total: CountSchema,
+      created_7d: CountSchema,
+      created_30d: CountSchema,
+      by_plan: z
+        .object({
+          free: CountSchema,
+          pro: CountSchema,
+          team: CountSchema,
+          selfhost: CountSchema,
+        })
+        .describe(
+          "Counts from organization_settings.plan. Always includes free, pro, team and selfhost (0 when none). An organization without a settings row is counted as free.",
+        ),
+    }),
+    forms: z.object({
+      total: CountSchema,
+      created_7d: CountSchema,
+      created_30d: CountSchema,
+      active: CountSchema.describe(
+        "Forms with at least one non-test Submission in the last 30 days.",
+      ),
+    }),
+    submissions: z.object({
+      total: CountSchema,
+      last_7d: CountSchema,
+      last_30d: CountSchema,
+      real_last_30d: CountSchema.describe(
+        "Submissions with test=false received in the last 30 days.",
+      ),
+      test_last_30d: CountSchema.describe(
+        "Submissions with test=true received in the last 30 days.",
+      ),
+      orgs_with_real_delivery_30d: CountSchema.describe(
+        "Distinct organizations with at least one Delivery status=sent of a non-test Submission whose sent_at is in the last 30 days.",
+      ),
+    }),
+    sandboxes: z
+      .object({
+        retained_created_30d: CountSchema.describe(
+          "Retained anonymous_sandboxes rows inserted in the last 30 days.",
+        ),
+        retained_claimed_30d: CountSchema.describe(
+          "Retained sandbox rows whose claimed_at is in the last 30 days.",
+        ),
+        retained_expired_or_blocked_30d: CountSchema.describe(
+          "Retained rows currently status expired or blocked whose created_at or expires_at falls in the last 30 days.",
+        ),
+      })
+      .describe(
+        "Current retained anonymous sandbox staging rows (ADR-008), not a historical creation/claim/conversion funnel. Housekeeping deletes every sandbox after expires_at, including claimed rows.",
+      ),
+    destinations: z.object({
+      by_type: z
+        .record(z.string(), CountSchema)
+        .describe(
+          "Destination counts keyed by type. Always includes email, telegram, webhook, slack and discord (0 when none); any other stored type is included as well.",
+        ),
+    }),
+  })
+  .openapi("GrowthMetrics")
+
 // Job L — members, invitations, roles, org switcher.
 export const MemberRoleSchema = z.enum(["owner", "admin", "member"])
 

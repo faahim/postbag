@@ -11,7 +11,7 @@ Dashboard sessions use cookies (Better Auth). Everything else uses `Authorizatio
 
 ## Tenancy
 
-Every tenant-owned row has a non-null `organization_id`; repositories require an organization scope, so a cross-tenant query cannot be expressed. Postgres row-level security policies and a `postbag_app` role ship in the migrations as a second fence.
+Every tenant-owned row has a non-null `organization_id`; repositories require an organization scope, so cross-tenant row reads and writes cannot be expressed. ADR-011 defines one fixed platform growth report made only from aggregate counts. It returns no tenant identifiers or rows and creates no general admin access. Postgres row-level security policies and a `postbag_app` role ship in the migrations as a second fence.
 
 ## Outbound signatures
 

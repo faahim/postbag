@@ -8,6 +8,16 @@ the rules and `docs/` for the design.
 ## Current state (update this block, don't append)
 
 - **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in _Next up_.
+- **Platform-admin growth metrics (2026-09-13):** `GET /v1/admin/growth-metrics` (`operationId: admin_growth_metrics`)
+  returns COUNT-only business KPIs (organizations by plan and recency, forms including 30d-active,
+  submissions real/test, orgs with a successful non-test Delivery in 30d, sandbox created/claimed/
+  expired-or-blocked in 30d, destinations by type). Same `PLATFORM_ADMIN_EMAILS` gate as plan-grants
+  — non-admins get `404 not_found`. Aggregates only; no emails, names, payloads or per-org dumps.
+  This is the sole, enumerated platform aggregate exception under ADR-011; it requires `read`
+  scope and grants no tenant-row access or general admin bypass. Every metric is a current
+  retained-row snapshot, not historical analytics; sandbox fields use `retained_*` because
+  housekeeping deletes all rows after `expires_at`, including claimed sandboxes. CLI:
+  `postbag admin growth-metrics`.
 - **Guide library v1 on `claude/guide-library` 2026-09-09 (PR pending):** `/guides/*` — 14 long-tail integration pages
   (10 frameworks: HTML, Astro, Next.js, React, Vue, Nuxt, SvelteKit, Hugo, Jekyll+GitHub Pages, Eleventy; 4
   destinations: Telegram, Zapier, Make, n8n) plus an index, each with runnable snippets checked against the live
@@ -146,6 +156,10 @@ the rules and `docs/` for the design.
   free on 2026-08-21; MCP registry has no `postbag` entry.
 
 ## Done
+
+- [x] **Platform-admin growth metrics (2026-09-13):** `GET /v1/admin/growth-metrics` — platform-wide
+  aggregate KPIs for the Growth CEO, gated like plan-grants (`PLATFORM_ADMIN_EMAILS`, 404 not_found
+  for everyone else). OpenAPI + SDK + MCP regenerated; CLI `admin growth-metrics`.
 
 - [x] **Marketing + docs site (2026-08-21):** `apps/site`. Home (live demo form, scroll-driven "journey", agent
       transcript, streams diagram, invariants, destinations, self-host, FAQ), `/for-ai-agents/`, `/features/*` (6),

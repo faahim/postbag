@@ -78,6 +78,40 @@ describe("postbag admin plan-grants (job K)", () => {
     expect(req?.method).toBe("POST")
   })
 
+  it("growth-metrics — GETs /v1/admin/growth-metrics", async () => {
+    const harness = createHarness({
+      env: { POSTBAG_API_KEY: "pb_live_test" },
+      handleFetch: () => ({
+        status: 200,
+        body: {
+          generated_at: "2026-09-13T00:00:00.000Z",
+          organizations: { total: 1, created_7d: 0, created_30d: 1, by_plan: { free: 1, pro: 0, team: 0, selfhost: 0 } },
+          forms: { total: 0, created_7d: 0, created_30d: 0, active: 0 },
+          submissions: {
+            total: 0,
+            last_7d: 0,
+            last_30d: 0,
+            real_last_30d: 0,
+            test_last_30d: 0,
+            orgs_with_real_delivery_30d: 0,
+          },
+          sandboxes: {
+            retained_created_30d: 0,
+            retained_claimed_30d: 0,
+            retained_expired_or_blocked_30d: 0,
+          },
+          destinations: { by_type: { email: 0, telegram: 0, webhook: 0, slack: 0, discord: 0 } },
+        },
+      }),
+    })
+
+    await main(["node", "postbag", "--json", "admin", "growth-metrics"], harness.deps)
+
+    const [req] = harness.requests
+    expect(req?.url).toBe("https://postbag.dev/v1/admin/growth-metrics")
+    expect(req?.method).toBe("GET")
+  })
+
   it("mint 404 (not a platform admin) renders not_found and exits 1", async () => {
     const harness = createHarness({
       env: { POSTBAG_API_KEY: "pb_live_test" },

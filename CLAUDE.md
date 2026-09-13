@@ -31,7 +31,7 @@ correctness. `docs/ARCHITECTURE.md` explains why.
 3. **Two personas, one test each** (`PRINCIPLES.md` §1). Anything that taxes the solo dev to serve the operator gets hidden, not removed.
 4. **Vocabulary is fixed** (`PRINCIPLES.md` §3). Form, Submission, Stream, Schema, Mapping, Destination, Route, Delivery, Drift. No synonyms in code, docs, or copy.
 5. **Schemas are immutable versions.** Never mutate a `form_schemas` / `stream_schemas` row; publish a new version.
-6. **Every tenant row has `organization_id`**, and repositories require an org scope. No cross-tenant query ever, including "just for admin".
+6. **Every tenant row has `organization_id`**, and repositories require an org scope. Cross-tenant row reads and writes are forbidden, including "just for admin". The sole exception is the enumerated, aggregate-only growth query in [ADR-011](./docs/decisions/ADR-011-platform-growth-aggregates.md); it grants no tenant-row access.
 7. **Self-host parity.** A feature that needs a cloud-only service without a self-host path does not ship.
 8. **Agent-native errors.** Every error has `code`, `message`, `hint`, `docs`. Every create returns `next`.
 9. **ADRs for arguable decisions.** `docs/decisions/`. Supersede, never edit.

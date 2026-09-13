@@ -429,6 +429,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/growth-metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Platform-wide growth KPIs (platform admin only; aggregates only)
+         * @description Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var (comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist. Returns COUNT aggregates across every organization — never emails, names, submission payloads, API keys, or per-organization dumps. Requires the read scope. This is the narrow platform aggregate exception defined by ADR-011. Every value is a current snapshot of retained database rows, so retention and user deletion can reduce totals and window counts; this is not an append-only historical funnel. Sandbox fields are explicitly prefixed `retained_` because housekeeping deletes every sandbox after expires_at, including claimed rows. `orgs_with_real_delivery_30d` is organizations with at least one successful (status=sent) Delivery of a non-test Submission in 30 days.
+         */
+        get: operations["admin_growth_metrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/billing": {
         parameters: {
             query?: never;
@@ -1297,6 +1317,58 @@ export interface components {
             /** @example 2026-08-21T09:00:00.000Z */
             revoked_at: string | null;
         };
+        GrowthMetrics: {
+            /**
+             * @description ISO-8601 instant the windows (7d / 30d) are computed from. Every metric is a snapshot of rows retained in the primary database at this instant, not an append-only historical total. Aggregates only — no emails, names, payloads, or keys.
+             * @example 2026-08-21T09:00:00.000Z
+             */
+            generated_at: string;
+            organizations: {
+                total: number;
+                created_7d: number;
+                created_30d: number;
+                /** @description Counts from organization_settings.plan. Always includes free, pro, team and selfhost (0 when none). An organization without a settings row is counted as free. */
+                by_plan: {
+                    free: number;
+                    pro: number;
+                    team: number;
+                    selfhost: number;
+                };
+            };
+            forms: {
+                total: number;
+                created_7d: number;
+                created_30d: number;
+                /** @description Forms with at least one non-test Submission in the last 30 days. */
+                active: number;
+            };
+            submissions: {
+                total: number;
+                last_7d: number;
+                last_30d: number;
+                /** @description Submissions with test=false received in the last 30 days. */
+                real_last_30d: number;
+                /** @description Submissions with test=true received in the last 30 days. */
+                test_last_30d: number;
+                /** @description Distinct organizations with at least one Delivery status=sent of a non-test Submission whose sent_at is in the last 30 days. */
+                orgs_with_real_delivery_30d: number;
+            };
+            /** @description Current retained anonymous sandbox staging rows (ADR-008), not a historical creation/claim/conversion funnel. Housekeeping deletes every sandbox after expires_at, including claimed rows. */
+            sandboxes: {
+                /** @description Retained anonymous_sandboxes rows inserted in the last 30 days. */
+                retained_created_30d: number;
+                /** @description Retained sandbox rows whose claimed_at is in the last 30 days. */
+                retained_claimed_30d: number;
+                /** @description Retained rows currently status expired or blocked whose created_at or expires_at falls in the last 30 days. */
+                retained_expired_or_blocked_30d: number;
+            };
+            destinations: {
+                /** @description Destination counts keyed by type. Always includes email, telegram, webhook, slack and discord (0 when none); any other stored type is included as well. */
+                by_type: {
+                    [key: string]: number;
+                };
+            };
+        };
         Form: {
             /** @example fm_8f3kq2 */
             id: string;
@@ -1639,7 +1711,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Retained attachment storage limit reached */
+            /** @description Retained attachment storage limit reached, including pending work */
             402: {
                 headers: {
                     [name: string]: unknown;
@@ -3395,6 +3467,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanGrant"];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_growth_metrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthMetrics"];
                 };
             };
             /** @description Error */

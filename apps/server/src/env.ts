@@ -66,9 +66,9 @@ const EnvSchema = z
           .filter((host) => host.length > 0),
       ),
     // Job K: comma-separated emails allowed to mint/list/revoke plan_grants
-    // (POST/GET /v1/admin/plan-grants*). Empty by default so a self-hosted operator who
-    // never sets this never sees the endpoint exist (it answers 404 not_found) — see
-    // apps/server/src/lib/platformAdmin.ts.
+    // (POST/GET /v1/admin/plan-grants*) and to read GET /v1/admin/growth-metrics.
+    // Empty by default so a self-hosted operator who never sets this never sees the
+    // endpoints exist (they answer 404 not_found) — see apps/server/src/lib/platformAdmin.ts.
     PLATFORM_ADMIN_EMAILS: z
       .string()
       .optional()

@@ -363,6 +363,152 @@ components:
         - created_by_user_id
         - created_at
         - revoked_at
+    GrowthMetrics:
+      type: object
+      properties:
+        generated_at:
+          type: string
+          example: 2026-08-21T09:00:00.000Z
+          description: ISO-8601 instant the windows (7d / 30d) are computed from. Every
+            metric is a snapshot of rows retained in the primary database at
+            this instant, not an append-only historical total. Aggregates only —
+            no emails, names, payloads, or keys.
+        organizations:
+          type: object
+          properties:
+            total:
+              type: integer
+              minimum: 0
+            created_7d:
+              type: integer
+              minimum: 0
+            created_30d:
+              type: integer
+              minimum: 0
+            by_plan:
+              type: object
+              properties:
+                free:
+                  type: integer
+                  minimum: 0
+                pro:
+                  type: integer
+                  minimum: 0
+                team:
+                  type: integer
+                  minimum: 0
+                selfhost:
+                  type: integer
+                  minimum: 0
+              required:
+                - free
+                - pro
+                - team
+                - selfhost
+              description: Counts from organization_settings.plan. Always includes free, pro,
+                team and selfhost (0 when none). An organization without a
+                settings row is counted as free.
+          required:
+            - total
+            - created_7d
+            - created_30d
+            - by_plan
+        forms:
+          type: object
+          properties:
+            total:
+              type: integer
+              minimum: 0
+            created_7d:
+              type: integer
+              minimum: 0
+            created_30d:
+              type: integer
+              minimum: 0
+            active:
+              type: integer
+              minimum: 0
+              description: Forms with at least one non-test Submission in the last 30 days.
+          required:
+            - total
+            - created_7d
+            - created_30d
+            - active
+        submissions:
+          type: object
+          properties:
+            total:
+              type: integer
+              minimum: 0
+            last_7d:
+              type: integer
+              minimum: 0
+            last_30d:
+              type: integer
+              minimum: 0
+            real_last_30d:
+              type: integer
+              minimum: 0
+              description: Submissions with test=false received in the last 30 days.
+            test_last_30d:
+              type: integer
+              minimum: 0
+              description: Submissions with test=true received in the last 30 days.
+            orgs_with_real_delivery_30d:
+              type: integer
+              minimum: 0
+              description: Distinct organizations with at least one Delivery status=sent of a
+                non-test Submission whose sent_at is in the last 30 days.
+          required:
+            - total
+            - last_7d
+            - last_30d
+            - real_last_30d
+            - test_last_30d
+            - orgs_with_real_delivery_30d
+        sandboxes:
+          type: object
+          properties:
+            retained_created_30d:
+              type: integer
+              minimum: 0
+              description: Retained anonymous_sandboxes rows inserted in the last 30 days.
+            retained_claimed_30d:
+              type: integer
+              minimum: 0
+              description: Retained sandbox rows whose claimed_at is in the last 30 days.
+            retained_expired_or_blocked_30d:
+              type: integer
+              minimum: 0
+              description: Retained rows currently status expired or blocked whose created_at
+                or expires_at falls in the last 30 days.
+          required:
+            - retained_created_30d
+            - retained_claimed_30d
+            - retained_expired_or_blocked_30d
+          description: Current retained anonymous sandbox staging rows (ADR-008), not a
+            historical creation/claim/conversion funnel. Housekeeping deletes
+            every sandbox after expires_at, including claimed rows.
+        destinations:
+          type: object
+          properties:
+            by_type:
+              type: object
+              additionalProperties:
+                type: integer
+                minimum: 0
+              description: Destination counts keyed by type. Always includes email, telegram,
+                webhook, slack and discord (0 when none); any other stored type
+                is included as well.
+          required:
+            - by_type
+      required:
+        - generated_at
+        - organizations
+        - forms
+        - submissions
+        - sandboxes
+        - destinations
     Form:
       type: object
       properties:
@@ -2885,6 +3031,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlanGrant"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/admin/growth-metrics:
+    get:
+      operationId: admin_growth_metrics
+      tags:
+        - admin
+      summary: Platform-wide growth KPIs (platform admin only; aggregates only)
+      description: "Platform-admin only: allowed when the caller's email (the session
+        user's email, or — for an API key — the owner member's email of the
+        key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var
+        (comma-separated, empty by default). Any other caller gets 404
+        not_found, not 403, so a self-hosted operator who never sets
+        PLATFORM_ADMIN_EMAILS never sees this endpoint exist. Returns COUNT
+        aggregates across every organization — never emails, names, submission
+        payloads, API keys, or per-organization dumps. Requires the read scope.
+        This is the narrow platform aggregate exception defined by ADR-011.
+        Every value is a current snapshot of retained database rows, so
+        retention and user deletion can reduce totals and window counts; this is
+        not an append-only historical funnel. Sandbox fields are explicitly
+        prefixed `retained_` because housekeeping deletes every sandbox after
+        expires_at, including claimed rows. `orgs_with_real_delivery_30d` is
+        organizations with at least one successful (status=sent) Delivery of a
+        non-test Submission in 30 days."
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrowthMetrics"
         "400":
           description: Error
           content:

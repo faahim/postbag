@@ -20,8 +20,10 @@ AnonymousSandbox ── AnonymousSubmission
         └── claim ──► Organization / Project / Form / Submission
 ```
 
-Tenancy: **every tenant-owned row carries `organization_id`** and every query is
-scoped by it. Anonymous sandbox staging rows are deliberately non-tenant and can
+Tenancy: **every tenant-owned row carries `organization_id`** and tenant-row queries
+are scoped by it. [ADR-011](./decisions/ADR-011-platform-growth-aggregates.md) permits
+one fixed set of platform-wide aggregate counts without exposing tenant identifiers
+or rows. Anonymous sandbox staging rows are deliberately non-tenant and can
 only be addressed with their hashed capability token; claiming moves their data
 into tenant-owned rows atomically.
 IDs are prefixed public ids (`fm_…`, `sb_…`, `fl_…`, `st_…`, `ds_…`, `rt_…`, `dl_…`) so an

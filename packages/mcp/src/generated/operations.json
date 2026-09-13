@@ -668,6 +668,18 @@
     "body": null
   },
   {
+    "operationId": "admin_growth_metrics",
+    "method": "get",
+    "path": "/v1/admin/growth-metrics",
+    "summary": "Platform-wide growth KPIs (platform admin only; aggregates only)",
+    "description": "Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var (comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist. Returns COUNT aggregates across every organization — never emails, names, submission payloads, API keys, or per-organization dumps. Requires the read scope. This is the narrow platform aggregate exception defined by ADR-011. Every value is a current snapshot of retained database rows, so retention and user deletion can reduce totals and window counts; this is not an append-only historical funnel. Sandbox fields are explicitly prefixed `retained_` because housekeeping deletes every sandbox after expires_at, including claimed rows. `orgs_with_real_delivery_30d` is organizations with at least one successful (status=sent) Delivery of a non-test Submission in 30 days.",
+    "tags": [
+      "admin"
+    ],
+    "params": [],
+    "body": null
+  },
+  {
     "operationId": "billing_get",
     "method": "get",
     "path": "/v1/billing",
