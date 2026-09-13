@@ -1,5 +1,5 @@
-import type { Faq } from "@/lib/seo"
-import { API_URL, EXAMPLE } from "@/config"
+import { API_URL, EXAMPLE } from "../config"
+import type { Faq } from "../lib/seo"
 
 /**
  * The guide library: long-tail "add a form to X, send it to Y" pages.
@@ -37,28 +37,37 @@ export type Guide = {
 }
 
 const u = API_URL
-export const SUBMIT_URL = `${u}/s/${EXAMPLE.form}`
+export const SUBMIT_URL = "YOUR_POSTBAG_SUBMIT_URL"
 
 /** Shared step artifacts, so every guide states the same contract the same way. */
 export const SANDBOX_CREATE = {
   lang: "bash",
   title: "Create a Form before you have an account",
-  code: `npx postbag sandbox create \\\n  --name "Contact" \\\n  --origin "https://example.com"`,
+  code: `sandbox_json="$(npx postbag --json sandbox create \\\n  --name "Contact" \\\n  --origin "https://example.com")"
+
+submit_url="$(printf '%s\\n' "$sandbox_json" | jq -er '.sandbox.submit_url')"
+form_id="$(printf '%s\\n' "$sandbox_json" | jq -er '.sandbox.id')"
+sandbox_token="$(printf '%s\\n' "$sandbox_json" | jq -er '.sandbox_token')"
+claim_url="$(printf '%s\\n' "$sandbox_json" | jq -er '.claim_url')"
+
+printf 'Submit URL: %s\\nForm ID: %s\\nClaim URL: %s\\nSandbox token: %s\\nReplace YOUR_POSTBAG_SUBMIT_URL in the next snippet with the Submit URL above.\\n' \\
+  "$submit_url" "$form_id" "$claim_url" "$sandbox_token"`,
 } satisfies GuideCode
 
 export const CURL_TEST = {
   lang: "bash",
   title: "Send one test from your terminal",
-  code: `curl -X POST "${SUBMIT_URL}" \\\n  -H "content-type: application/json" \\\n  -d '{ "email": "you@example.com", "message": "hello from the terminal" }'`,
+  code: `curl --fail --silent --show-error -X POST "$submit_url" \\\n  -H "content-type: application/json" \\\n  -d '{ "email": "you@example.com", "message": "hello from the terminal" }'`,
 } satisfies GuideCode
 
 export const SANDBOX_STATUS = {
   lang: "bash",
   title: "See it stored",
-  code: `POSTBAG_SANDBOX_TOKEN="pbs_…" npx postbag sandbox status`,
+  code: `POSTBAG_SANDBOX_TOKEN="$sandbox_token" npx postbag sandbox status`,
 } satisfies GuideCode
 
-const SKILL_INSTALL = "Install the Postbag skill with `npx skills add faahim/postbag --skill postbag`"
+const SKILL_INSTALL =
+  "Install the Postbag skill with `npx skills add faahim/postbag --skill postbag`"
 
 const CLAIM_STEP = {
   h: "Claim it when you're ready",
@@ -70,7 +79,28 @@ const CLAIM_STEP = {
 const DELIVERY_CODE = {
   lang: "bash",
   title: "Connect your inbox, then route the Form to it",
-  code: `curl -X POST ${u}/v1/destinations \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '{ "type": "email", "config": { "to": ["you@example.com"] } }'\n\ncurl -X POST ${u}/v1/routes \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '{ "form_id": "${EXAMPLE.form}", "destination_id": "${EXAMPLE.destination}" }'`,
+  code: `destination_json="$(curl --fail --silent --show-error -X POST ${u}/v1/destinations \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '{ "type": "email", "config": { "to": ["you@example.com"] } }')"\ndestination_id="$(printf '%s\\n' "$destination_json" | jq -er '.id')"\nroute_body="$(jq -n --arg form_id "$form_id" --arg destination_id "$destination_id" \\\n  '{ form_id: $form_id, destination_id: $destination_id }')"\n\ncurl --fail --silent --show-error -X POST ${u}/v1/routes \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d "$route_body"`,
+} satisfies GuideCode
+
+function destinationCreateCode(body: string): string {
+  return `form_id="fm_YOUR_FORM_ID" # Copy yours from: npx postbag forms list
+destination_json="$(curl --fail --silent --show-error -X POST ${u}/v1/destinations \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '${body}')"
+destination_id="$(printf '%s\\n' "$destination_json" | jq -er '.id')"
+
+printf 'Destination ID: %s\\n' "$destination_id"`
+}
+
+const DESTINATION_TEST = {
+  lang: "bash",
+  title: "Test the Destination",
+  code: `curl --fail --silent --show-error -X POST ${u}/v1/destinations/"$destination_id"/test \\\n  -H "Authorization: Bearer pb_live_…"`,
+} satisfies GuideCode
+
+const DESTINATION_ROUTE = {
+  lang: "bash",
+  code: `route_body="$(jq -n --arg form_id "$form_id" --arg destination_id "$destination_id" \\\n  '{ form_id: $form_id, destination_id: $destination_id }')"
+
+curl --fail --silent --show-error -X POST ${u}/v1/routes \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d "$route_body"`,
 } satisfies GuideCode
 
 const WEBHOOK_ENVELOPE = {
@@ -100,7 +130,7 @@ export const GUIDES: Guide[] = [
     lede: "No backend, no build step, no JavaScript. A form tag, and somewhere real for it to go.",
     needs: [
       "An HTML page you can edit",
-      "A terminal that can run npx — or an agent that has one",
+      "A terminal that can run npx and jq — or an agent that has both",
       "About five minutes",
     ],
     outcome:
@@ -179,7 +209,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "astro",
@@ -191,7 +221,7 @@ export const GUIDES: Guide[] = [
     lede: "Astro's whole promise is shipping less JavaScript. Your contact form shouldn't be the exception.",
     needs: [
       "An Astro project (a fresh npm create astro is fine)",
-      "A terminal that can run npx — or an agent that has one",
+      "A terminal that can run npx and jq — or an agent that has both",
       "About five minutes",
     ],
     outcome:
@@ -276,7 +306,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "nextjs",
@@ -288,7 +318,7 @@ export const GUIDES: Guide[] = [
     lede: "You were about to write app/api/contact/route.ts. You can close that file.",
     needs: [
       "A Next.js project on the App Router",
-      "A terminal that can run npx — or an agent that has one",
+      "A terminal that can run npx and jq — or an agent that has both",
       "About five minutes",
     ],
     outcome:
@@ -335,7 +365,7 @@ export const GUIDES: Guide[] = [
     gotchas: [
       {
         h: "The directive earns its keep",
-        p: "Without \"use client\" at the top, the App Router treats the file as a server component and useState throws at build time. It's the only Next-specific thing here — the rest is plain React.",
+        p: 'Without "use client" at the top, the App Router treats the file as a server component and useState throws at build time. It\'s the only Next-specific thing here — the rest is plain React.',
       },
       ORIGIN_GOTCHA,
       {
@@ -368,7 +398,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "react",
@@ -380,7 +410,7 @@ export const GUIDES: Guide[] = [
     lede: "Your React app is static files on a CDN. It can still have a real contact form.",
     needs: [
       "A React app (Vite, CRA, or anything that renders components)",
-      "A terminal that can run npx — or an agent that has one",
+      "A terminal that can run npx and jq — or an agent that has both",
       "About five minutes",
     ],
     outcome:
@@ -459,7 +489,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "vue",
@@ -471,7 +501,7 @@ export const GUIDES: Guide[] = [
     lede: "Three refs, one handler, and a template that reads like the form it renders.",
     needs: [
       "A Vue 3 project with a build step (Vite is the usual suspect)",
-      "A terminal that can run npx — or an agent that has one",
+      "A terminal that can run npx and jq — or an agent that has both",
       "About five minutes",
     ],
     outcome:
@@ -550,7 +580,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "nuxt",
@@ -562,7 +592,7 @@ export const GUIDES: Guide[] = [
     lede: "Drop one file in components/ and Nuxt does the introductions. No server route required.",
     needs: [
       "A Nuxt 3 or 4 project",
-      "A terminal that can run npx — or an agent that has one",
+      "A terminal that can run npx and jq — or an agent that has both",
       "About five minutes",
     ],
     outcome:
@@ -642,7 +672,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "sveltekit",
@@ -654,7 +684,7 @@ export const GUIDES: Guide[] = [
     lede: "Form actions are lovely — until adapter-static takes the server away. This form never needed one.",
     needs: [
       "A SvelteKit project (any adapter, including static)",
-      "A terminal that can run npx — or an agent that has one",
+      "A terminal that can run npx and jq — or an agent that has both",
       "About five minutes",
     ],
     outcome:
@@ -738,7 +768,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "hugo",
@@ -750,7 +780,7 @@ export const GUIDES: Guide[] = [
     lede: "Your site builds in milliseconds. It shouldn't grow a server for one form.",
     needs: [
       "A Hugo site with layouts you can edit",
-      "A terminal that can run npx — or an agent that has one",
+      "A terminal that can run npx and jq — or an agent that has both",
       "About five minutes",
     ],
     outcome:
@@ -833,7 +863,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "jekyll",
@@ -845,7 +875,7 @@ export const GUIDES: Guide[] = [
     lede: "GitHub Pages runs no server code, ever. Your contact form was always going to need a friend.",
     needs: [
       "A Jekyll site — on GitHub Pages or anywhere else",
-      "A terminal that can run npx — or an agent that has one",
+      "A terminal that can run npx and jq — or an agent that has both",
       "About five minutes",
     ],
     outcome:
@@ -931,7 +961,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "eleventy",
@@ -943,7 +973,7 @@ export const GUIDES: Guide[] = [
     lede: "Eleventy stays out of your way. Its contact form should have the same manners.",
     needs: [
       "An Eleventy project with an _includes directory",
-      "A terminal that can run npx — or an agent that has one",
+      "A terminal that can run npx and jq — or an agent that has both",
       "About five minutes",
     ],
     outcome:
@@ -993,7 +1023,7 @@ export const GUIDES: Guide[] = [
     gotchas: [
       {
         h: "Quote the include name",
-        p: "Nunjucks wants {% include \"contact-form.njk\" %} with quotes. Liquid templates in the same project use their own unquoted syntax — check which engine the including file speaks.",
+        p: 'Nunjucks wants {% include "contact-form.njk" %} with quotes. Liquid templates in the same project use their own unquoted syntax — check which engine the including file speaks.',
       },
       ORIGIN_GOTCHA,
       {
@@ -1026,7 +1056,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "telegram",
@@ -1039,6 +1069,7 @@ export const GUIDES: Guide[] = [
     needs: [
       "A free Postbag account and an API key",
       "A Form already wired into a site (any guide in the stack list gets you there)",
+      "A terminal with curl and jq",
       "A Telegram account and ten spare minutes",
     ],
     outcome:
@@ -1075,7 +1106,9 @@ export const GUIDES: Guide[] = [
         code: {
           lang: "bash",
           title: "Create the Destination",
-          code: `curl -X POST ${u}/v1/destinations \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '{\n    "type": "telegram",\n    "name": "My phone",\n    "config": { "bot_token": "<your-bot-token>", "chat_id": "<your-chat-id>" }\n  }'`,
+          code: destinationCreateCode(
+            `{\n    "type": "telegram",\n    "name": "My phone",\n    "config": { "bot_token": "<your-bot-token>", "chat_id": "<your-chat-id>" }\n  }`,
+          ),
         },
       },
       {
@@ -1083,22 +1116,14 @@ export const GUIDES: Guide[] = [
         p: [
           "Every Destination can be tested before a real message depends on it. This sends a test note through the actual bot to the actual chat — your phone should buzz within a breath or two.",
         ],
-        code: {
-          lang: "bash",
-          title: "Test the Destination",
-          code: `curl -X POST ${u}/v1/destinations/${EXAMPLE.destination}/test \\\n  -H "Authorization: Bearer pb_live_…"`,
-        },
+        code: DESTINATION_TEST,
       },
       {
         h: "Route your Form to it",
         p: [
           "One Route ties the Form to the chat. From now on each new submission is stored first, then delivered to Telegram — and if Telegram has a moment, the message waits safely while Postbag retries. Prefer calm to buzzing? Switch the Route to a daily digest and get one tidy note instead.",
         ],
-        code: {
-          lang: "bash",
-          title: "Route Form → Telegram",
-          code: `curl -X POST ${u}/v1/routes \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '{ "form_id": "${EXAMPLE.form}", "destination_id": "${EXAMPLE.destination}" }'`,
-        },
+        code: { ...DESTINATION_ROUTE, title: "Route Form → Telegram" },
       },
     ],
     gotchas: [
@@ -1139,7 +1164,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/destinations/", label: "Destinations docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "zapier",
@@ -1152,6 +1177,7 @@ export const GUIDES: Guide[] = [
     needs: [
       "A free Postbag account and an API key",
       "A Form already wired into a site",
+      "A terminal with curl and jq",
       "A Zapier account (webhooks need their paid tier)",
     ],
     outcome:
@@ -1172,7 +1198,9 @@ export const GUIDES: Guide[] = [
         code: {
           lang: "bash",
           title: "Create the Destination",
-          code: `curl -X POST ${u}/v1/destinations \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '{\n    "type": "webhook",\n    "name": "Zapier",\n    "config": { "url": "https://hooks.zapier.com/hooks/catch/…" }\n  }'`,
+          code: destinationCreateCode(
+            `{\n    "type": "webhook",\n    "name": "Zapier",\n    "config": { "url": "https://hooks.zapier.com/hooks/catch/…" }\n  }`,
+          ),
         },
       },
       {
@@ -1180,11 +1208,7 @@ export const GUIDES: Guide[] = [
         p: [
           "Send a test through the Destination, then click Test trigger in Zapier — it will show the fields it caught. Your visitor's answers ride inside data; the rest is the envelope: which Form, which delivery, when.",
         ],
-        code: {
-          lang: "bash",
-          title: "Send a test delivery",
-          code: `curl -X POST ${u}/v1/destinations/${EXAMPLE.destination}/test \\\n  -H "Authorization: Bearer pb_live_…"`,
-        },
+        code: { ...DESTINATION_TEST, title: "Send a test delivery" },
         extra: WEBHOOK_ENVELOPE,
       },
       {
@@ -1192,11 +1216,7 @@ export const GUIDES: Guide[] = [
         p: [
           "Tie the Form to the Destination and finish building the Zap — a spreadsheet row, a CRM contact, a Slack message, whatever the day calls for. Each new submission is stored first, then posted; if Zapier hiccups, Postbag retries up to ten times and then leaves the delivery clearly marked for you.",
         ],
-        code: {
-          lang: "bash",
-          title: "Route Form → Zapier",
-          code: `curl -X POST ${u}/v1/routes \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '{ "form_id": "${EXAMPLE.form}", "destination_id": "${EXAMPLE.destination}" }'`,
-        },
+        code: { ...DESTINATION_ROUTE, title: "Route Form → Zapier" },
       },
     ],
     gotchas: [
@@ -1237,7 +1257,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/destinations/", label: "Destinations docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "make",
@@ -1250,6 +1270,7 @@ export const GUIDES: Guide[] = [
     needs: [
       "A free Postbag account and an API key",
       "A Form already wired into a site",
+      "A terminal with curl and jq",
       "A Make account (webhooks are on the free tier)",
     ],
     outcome:
@@ -1270,7 +1291,9 @@ export const GUIDES: Guide[] = [
         code: {
           lang: "bash",
           title: "Create the Destination",
-          code: `curl -X POST ${u}/v1/destinations \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '{\n    "type": "webhook",\n    "name": "Make",\n    "config": { "url": "https://hook.eu2.make.com/…" }\n  }'`,
+          code: destinationCreateCode(
+            `{\n    "type": "webhook",\n    "name": "Make",\n    "config": { "url": "https://hook.eu2.make.com/…" }\n  }`,
+          ),
         },
       },
       {
@@ -1278,11 +1301,7 @@ export const GUIDES: Guide[] = [
         p: [
           "Click Redetermine data structure (or Run once) so the webhook listens, then send a test through the Destination. Make catches it and maps the fields for its visual editor — your visitor's answers are the ones inside data.",
         ],
-        code: {
-          lang: "bash",
-          title: "Send a test delivery while Make listens",
-          code: `curl -X POST ${u}/v1/destinations/${EXAMPLE.destination}/test \\\n  -H "Authorization: Bearer pb_live_…"`,
-        },
+        code: { ...DESTINATION_TEST, title: "Send a test delivery while Make listens" },
         extra: WEBHOOK_ENVELOPE,
       },
       {
@@ -1290,11 +1309,7 @@ export const GUIDES: Guide[] = [
         p: [
           "Tie the Form to the Destination, then build the rest of the scenario — a sheet, a CRM, an email chain, whatever Make is for in your house. Every new submission is stored before it's posted, and a failed post is retried up to ten times before it's left clearly marked for you.",
         ],
-        code: {
-          lang: "bash",
-          title: "Route Form → Make",
-          code: `curl -X POST ${u}/v1/routes \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '{ "form_id": "${EXAMPLE.form}", "destination_id": "${EXAMPLE.destination}" }'`,
-        },
+        code: { ...DESTINATION_ROUTE, title: "Route Form → Make" },
       },
     ],
     gotchas: [
@@ -1335,7 +1350,7 @@ export const GUIDES: Guide[] = [
       { href: "/docs/destinations/", label: "Destinations docs" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
   {
     slug: "n8n",
@@ -1348,6 +1363,7 @@ export const GUIDES: Guide[] = [
     needs: [
       "A free Postbag account and an API key",
       "A Form already wired into a site",
+      "A terminal with curl and jq",
       "An n8n instance — self-hosted or cloud, both work the same here",
     ],
     outcome:
@@ -1368,7 +1384,9 @@ export const GUIDES: Guide[] = [
         code: {
           lang: "bash",
           title: "Create the Destination",
-          code: `curl -X POST ${u}/v1/destinations \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '{\n    "type": "webhook",\n    "name": "n8n",\n    "config": { "url": "https://n8n.your-domain.com/webhook/…", "secret": "a-long-random-string" }\n  }'`,
+          code: destinationCreateCode(
+            `{\n    "type": "webhook",\n    "name": "n8n",\n    "config": { "url": "https://n8n.your-domain.com/webhook/…", "secret": "a-long-random-string" }\n  }`,
+          ),
         },
       },
       {
@@ -1376,11 +1394,7 @@ export const GUIDES: Guide[] = [
         p: [
           "Activate the workflow, then send a test through the Destination. The execution list shows the delivery: your visitor's answers inside data, the envelope around it saying which Form and when, and a Postbag-Signature header for the sceptical.",
         ],
-        code: {
-          lang: "bash",
-          title: "Send a test delivery",
-          code: `curl -X POST ${u}/v1/destinations/${EXAMPLE.destination}/test \\\n  -H "Authorization: Bearer pb_live_…"`,
-        },
+        code: { ...DESTINATION_TEST, title: "Send a test delivery" },
         extra: WEBHOOK_ENVELOPE,
       },
       {
@@ -1388,11 +1402,7 @@ export const GUIDES: Guide[] = [
         p: [
           "Tie the Form to the Destination and build the rest of the workflow — enrich, file, notify, reply. Every submission is stored before it's posted; if your instance is down for an upgrade, Postbag retries up to ten times and the messages simply wait, unbothered.",
         ],
-        code: {
-          lang: "bash",
-          title: "Route Form → n8n",
-          code: `curl -X POST ${u}/v1/routes \\\n  -H "Authorization: Bearer pb_live_…" \\\n  -H "content-type: application/json" \\\n  -d '{ "form_id": "${EXAMPLE.form}", "destination_id": "${EXAMPLE.destination}" }'`,
-        },
+        code: { ...DESTINATION_ROUTE, title: "Route Form → n8n" },
       },
     ],
     gotchas: [
@@ -1433,7 +1443,7 @@ export const GUIDES: Guide[] = [
       { href: "/guides/make/", label: "The Make version" },
     ],
     published: "2026-09-09",
-    modified: "2026-09-09",
+    modified: "2026-09-14",
   },
 ]
 

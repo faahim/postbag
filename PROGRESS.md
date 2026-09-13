@@ -15,6 +15,10 @@ the rules and `docs/` for the design.
   system (registry, page anatomy, truth rules, voice rubric, batch discipline) is `tasks/guides-system.md`; BRAND.md
   gained the guide register; growth ideas now live in `docs/BACKLOG.md` (verified-guides CI harness is the follow-up
   before the library passes ~25 pages; the "Powered by Postbag" thanks-page loop is deliberately sequenced after).
+  PR #15 review follow-up on 2026-09-14 removed canned Form/Destination ids from every executable sequence: framework
+  guides capture the sandbox response's `submit_url`, Form id, capability and claim URL; Destination guides capture
+  each created Destination id; later tests and Routes reuse those values with JSON-safe shell quoting. A focused
+  three-test guide contract suite executes the generated shell against fixture responses for all 14 guides.
   Verified: astro check 0 errors, root lint, site build (102 pages), server tests 48 passed (DB-backed skipped — no
   local Postgres on this machine; Docker socket denied), twins/llms-full/sitemap confirmed, forced-reveal full-page
   browser pass at desktop/tablet/mobile. Slack/Discord guides are **blocked on payload templates** (schema exists,
