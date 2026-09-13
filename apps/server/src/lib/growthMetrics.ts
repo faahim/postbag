@@ -55,6 +55,9 @@ function countsByKey(
 export async function loadPlatformGrowthMetrics(db: Database, now = new Date()): Promise<GrowthMetrics> {
   const since7 = daysAgo(now, 7)
   const since30 = daysAgo(now, 30)
+  // postgres.js cannot bind Date inside a raw `sql` fragment; ISO text + timestamptz works.
+  const since7Iso = since7.toISOString()
+  const since30Iso = since30.toISOString()
 
   const [
     orgWindow,
@@ -69,8 +72,8 @@ export async function loadPlatformGrowthMetrics(db: Database, now = new Date()):
     db
       .select({
         total: count(),
-        created7d: sql<number>`count(*) filter (where ${organization.createdAt} >= ${since7})`,
-        created30d: sql<number>`count(*) filter (where ${organization.createdAt} >= ${since30})`,
+        created7d: sql<number>`count(*) filter (where ${organization.createdAt} >= ${since7Iso}::timestamptz)`,
+        created30d: sql<number>`count(*) filter (where ${organization.createdAt} >= ${since30Iso}::timestamptz)`,
       })
       .from(organization)
       .then((rows) => rows[0]),
@@ -85,8 +88,8 @@ export async function loadPlatformGrowthMetrics(db: Database, now = new Date()):
     db
       .select({
         total: count(),
-        created7d: sql<number>`count(*) filter (where ${forms.createdAt} >= ${since7})`,
-        created30d: sql<number>`count(*) filter (where ${forms.createdAt} >= ${since30})`,
+        created7d: sql<number>`count(*) filter (where ${forms.createdAt} >= ${since7Iso}::timestamptz)`,
+        created30d: sql<number>`count(*) filter (where ${forms.createdAt} >= ${since30Iso}::timestamptz)`,
       })
       .from(forms)
       .then((rows) => rows[0]),
@@ -98,10 +101,10 @@ export async function loadPlatformGrowthMetrics(db: Database, now = new Date()):
     db
       .select({
         total: count(),
-        last7d: sql<number>`count(*) filter (where ${submissions.receivedAt} >= ${since7})`,
-        last30d: sql<number>`count(*) filter (where ${submissions.receivedAt} >= ${since30})`,
-        realLast30d: sql<number>`count(*) filter (where ${submissions.test} = false and ${submissions.receivedAt} >= ${since30})`,
-        testLast30d: sql<number>`count(*) filter (where ${submissions.test} = true and ${submissions.receivedAt} >= ${since30})`,
+        last7d: sql<number>`count(*) filter (where ${submissions.receivedAt} >= ${since7Iso}::timestamptz)`,
+        last30d: sql<number>`count(*) filter (where ${submissions.receivedAt} >= ${since30Iso}::timestamptz)`,
+        realLast30d: sql<number>`count(*) filter (where ${submissions.test} = false and ${submissions.receivedAt} >= ${since30Iso}::timestamptz)`,
+        testLast30d: sql<number>`count(*) filter (where ${submissions.test} = true and ${submissions.receivedAt} >= ${since30Iso}::timestamptz)`,
       })
       .from(submissions)
       .then((rows) => rows[0]),
@@ -121,9 +124,9 @@ export async function loadPlatformGrowthMetrics(db: Database, now = new Date()):
       .then((rows) => rows[0]),
     db
       .select({
-        created30d: sql<number>`count(*) filter (where ${anonymousSandboxes.createdAt} >= ${since30})`,
-        claimed30d: sql<number>`count(*) filter (where ${anonymousSandboxes.claimedAt} >= ${since30})`,
-        expiredOrBlocked30d: sql<number>`count(*) filter (where ${anonymousSandboxes.status} in ('expired', 'blocked') and (${anonymousSandboxes.createdAt} >= ${since30} or ${anonymousSandboxes.expiresAt} >= ${since30}))`,
+        created30d: sql<number>`count(*) filter (where ${anonymousSandboxes.createdAt} >= ${since30Iso}::timestamptz)`,
+        claimed30d: sql<number>`count(*) filter (where ${anonymousSandboxes.claimedAt} >= ${since30Iso}::timestamptz)`,
+        expiredOrBlocked30d: sql<number>`count(*) filter (where ${anonymousSandboxes.status} in ('expired', 'blocked') and (${anonymousSandboxes.createdAt} >= ${since30Iso}::timestamptz or ${anonymousSandboxes.expiresAt} >= ${since30Iso}::timestamptz))`,
       })
       .from(anonymousSandboxes)
       .then((rows) => rows[0]),
