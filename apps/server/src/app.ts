@@ -40,6 +40,7 @@ import {
 import { registerMeRoutes } from "./routes/v1/me.js"
 import { registerMemberRoutes } from "./routes/v1/members.js"
 import { registerOrganizationRoutes } from "./routes/v1/organizations.js"
+import { registerGrowthMetricsRoutes } from "./routes/v1/growthMetrics.js"
 import { registerPlanGrantRoutes } from "./routes/v1/planGrants.js"
 import { registerPlanRoutes } from "./routes/v1/plan.js"
 import { registerProjectRoutes } from "./routes/v1/projects.js"
@@ -117,6 +118,7 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
   registerInvitationRoutes(app, auth, db, env)
   registerPlanRoutes(app, db)
   registerPlanGrantRoutes(app, db, env)
+  registerGrowthMetricsRoutes(app, db, env)
   registerBillingRoutes(app, db, billing, env)
   registerQuickstartRoutes(app, db, env.APP_URL)
   registerAuthenticatedAnonymousSandboxRoutes(app, db, env)

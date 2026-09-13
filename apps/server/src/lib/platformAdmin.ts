@@ -6,6 +6,13 @@ import type { RequestScope } from "./scope.js"
 
 export type CallerIdentity = { readonly userId: string; readonly email: string }
 
+/** Shared OpenAPI / route description for every `/v1/admin/*` platform-admin gate. */
+export const PLATFORM_ADMIN_GATE_DESCRIPTION =
+  "Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — " +
+  "the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var " +
+  "(comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted " +
+  "operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist."
+
 /**
  * Job K — resolves the user that identifies the caller for the `PLATFORM_ADMIN_EMAILS`
  * check, per the route description on POST /v1/admin/plan-grants: a session actor's own

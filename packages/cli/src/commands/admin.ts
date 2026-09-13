@@ -15,10 +15,11 @@ type CreateOpts = {
 }
 
 /**
- * Job K — platform-admin plan-grants: mint/list/revoke complimentary-access codes. These
- * hit `/v1/admin/plan-grants*`, which answer 404 for any caller whose email (the CLI's
- * own signed-in session or API key owner) is not in the server's PLATFORM_ADMIN_EMAILS —
- * there is no separate "am I an admin" check here, the API itself is the gate.
+ * Platform-admin commands: plan-grants (mint/list/revoke complimentary-access codes) and
+ * growth-metrics. These hit `/v1/admin/*`, which answer 404 for any caller whose email
+ * (the CLI's own signed-in session or API key owner) is not in the server's
+ * PLATFORM_ADMIN_EMAILS — there is no separate "am I an admin" check here, the API
+ * itself is the gate.
  */
 export function registerAdminCommands(program: Command, deps: CliDeps): void {
   const admin = program.command("admin").description("Platform-admin operations (gated by the server's PLATFORM_ADMIN_EMAILS)")
@@ -68,6 +69,16 @@ export function registerAdminCommands(program: Command, deps: CliDeps): void {
     .action(async (id: string, _opts: unknown, command: Command) => {
       await withCommand(command, deps, async (ctx) => {
         const result = await ctx.client.POST("/v1/admin/plan-grants/{id}/revoke", { params: { path: { id } } })
+        printData(ctx.io, unwrap(result, ctx), ctx.json)
+      })
+    })
+
+  admin
+    .command("growth-metrics")
+    .description("Platform-wide growth KPIs (aggregates only; 404 unless PLATFORM_ADMIN_EMAILS)")
+    .action(async (_opts: unknown, command: Command) => {
+      await withCommand(command, deps, async (ctx) => {
+        const result = await ctx.client.GET("/v1/admin/growth-metrics")
         printData(ctx.io, unwrap(result, ctx), ctx.json)
       })
     })

@@ -5,25 +5,20 @@ import { planGrants, type Database } from "@postbag/db"
 
 import type { Env } from "../../env.js"
 import { generateGrantCode, hashGrantCode } from "../../lib/grantCode.js"
-import { requirePlatformAdmin } from "../../lib/platformAdmin.js"
+import { PLATFORM_ADMIN_GATE_DESCRIPTION, requirePlatformAdmin } from "../../lib/platformAdmin.js"
 import type { AppEnv } from "../../lib/scope.js"
 import { errorResponses, IdSchema, PlanGrantCreateInputSchema, PlanGrantCreatedSchema, PlanGrantSummarySchema } from "../../schemas.js"
 
 // Job K — complimentary access, minted without touching any tenant (golden rule 6: "no
-// cross-tenant query ever, including 'just for admin'"). These three endpoints are the
-// *only* platform-admin surface in the API, and are gated the same way on all three:
-// `PLATFORM_ADMIN_EMAILS` is a comma-separated env var, empty by default, so a
-// self-hosted operator who never sets it never learns these endpoints exist — every
-// non-admin caller (including a perfectly valid session/key on some other org) gets
-// `404 not_found`, never `403`. Admin status is resolved from the caller: a session
-// actor's own email, or — for an API key — the *owner* member's email of the key's
-// organization (see lib/platformAdmin.ts). No endpoint here lists or modifies another
-// organization's rows; minting only ever writes a row with no organization_id at all.
-const ADMIN_GATE_DESCRIPTION =
-  "Platform-admin only: allowed when the caller's email (the session user's email, or — for an API key — " +
-  "the owner member's email of the key's organization) is in the server's PLATFORM_ADMIN_EMAILS env var " +
-  "(comma-separated, empty by default). Any other caller gets 404 not_found, not 403, so a self-hosted " +
-  "operator who never sets PLATFORM_ADMIN_EMAILS never sees this endpoint exist."
+// cross-tenant query ever, including 'just for admin'"). Gated the same way as every
+// other `/v1/admin/*` route (see GET /v1/admin/growth-metrics): `PLATFORM_ADMIN_EMAILS`
+// is a comma-separated env var, empty by default, so a self-hosted operator who never
+// sets it never learns these endpoints exist — every non-admin caller (including a
+// perfectly valid session/key on some other org) gets `404 not_found`, never `403`.
+// Admin status is resolved from the caller: a session actor's own email, or — for an
+// API key — the *owner* member's email of the key's organization (see
+// lib/platformAdmin.ts). No endpoint here lists or modifies another organization's
+// rows; minting only ever writes a row with no organization_id at all.
 
 function serializeGrant(row: typeof planGrants.$inferSelect): z.infer<typeof PlanGrantSummarySchema> {
   return {
@@ -47,7 +42,7 @@ const createGrantRoute = createRoute({
   tags: ["admin"],
   summary: "Mint a complimentary-access grant code (platform admin only)",
   description:
-    `${ADMIN_GATE_DESCRIPTION} Touches no tenant — the code is redeemed by an org's own owner ` +
+    `${PLATFORM_ADMIN_GATE_DESCRIPTION} Touches no tenant — the code is redeemed by an org's own owner ` +
     "with POST /v1/plan/redeem, which is where plan_source actually changes.",
   request: { body: { content: { "application/json": { schema: PlanGrantCreateInputSchema } } } },
   responses: {
@@ -62,7 +57,7 @@ const listGrantsRoute = createRoute({
   operationId: "admin_plan_grants_list",
   tags: ["admin"],
   summary: "List plan grants (platform admin only; hashed codes never returned)",
-  description: ADMIN_GATE_DESCRIPTION,
+  description: PLATFORM_ADMIN_GATE_DESCRIPTION,
   responses: {
     200: { description: "ok", content: { "application/json": { schema: z.array(PlanGrantSummarySchema) } } },
     ...errorResponses,
@@ -75,7 +70,7 @@ const revokeGrantRoute = createRoute({
   operationId: "admin_plan_grants_revoke",
   tags: ["admin"],
   summary: "Revoke a plan grant so it can no longer be redeemed (platform admin only)",
-  description: `${ADMIN_GATE_DESCRIPTION} Idempotent — revoking an already-revoked grant just returns it.`,
+  description: `${PLATFORM_ADMIN_GATE_DESCRIPTION} Idempotent — revoking an already-revoked grant just returns it.`,
   request: { params: z.object({ id: IdSchema }) },
   responses: {
     200: { description: "ok", content: { "application/json": { schema: PlanGrantSummarySchema } } },
