@@ -1,0 +1,25 @@
+From: Ada Lovelace <ada@example.com>
+To: wren@postbag.dev
+Subject: Hello from the sample email
+Date: Tue, 15 Sep 2026 09:00:00 +0200
+Message-ID: <sample-0001@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="b1"
+
+--b1
+Content-Type: text/plain; charset=utf-8
+
+Hi Wren,
+
+This is a sample message used to test the Email -> Postbag Worker locally.
+Two links for spam-scoring realism: https://postbag.dev and https://example.com
+
+Ada
+--b1
+Content-Type: text/csv; name="numbers.csv"
+Content-Disposition: attachment; filename="numbers.csv"
+
+id,value
+1,42
+2,7
+--b1--

@@ -1,0 +1,9 @@
+From: Grace Hopper <grace@example.com>
+To: wren@postbag.dev
+Subject: Plain text, no attachment
+Date: Tue, 15 Sep 2026 09:05:00 +0200
+Message-ID: <sample-0002@example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Just checking the no-attachment path. Nothing to see here.

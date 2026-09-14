@@ -25,6 +25,9 @@ export default tseslint.config(
       // types, so excluding them here does not lose coverage — do not rewrite them.
       "apps/site/src/pages/docs/\\[...slug\\]/index.md.ts",
       "apps/site/src/pages/llms-full.txt.ts",
+      // Standalone examples have their own package.json, tsconfig and dependencies
+      // (Cloudflare Workers types) and are not part of the pnpm workspace.
+      "examples/**",
     ],
   },
   eslint.configs.recommended,

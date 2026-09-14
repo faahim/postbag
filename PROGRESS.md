@@ -8,6 +8,13 @@ the rules and `docs/` for the design.
 ## Current state (update this block, don't append)
 
 - **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in _Next up_.
+- **Email → Postbag Worker (2026-09-15):** `examples/cloudflare-email-worker/` is a standalone (non-workspace)
+  Cloudflare Email Routing Worker that turns inbound mail into Submissions (always multipart, `Message-ID` as
+  `Idempotency-Key`, files as `fl_` with a without-files fallback, `setReject` when Postbag does not ack and no
+  forward copy exists). Deployed as Worker `postbag-email-worker`; rule `e2c18802990445458243887e0d432b5d` routes
+  **wren@postbag.dev** → Worker → Form `fm_rk3q85427ryr` ("Wren inbox (Growth CEO agent)", slug `wren-inbox`, project `growth-ceo`). Verified: local
+  `wrangler dev` handler with and without attachments, idempotent re-delivery, and a real Resend→Cloudflare→Worker
+  round trip (`sb_xxj3k2kk8pxp`). Root eslint ignores `examples/**`. Guide page for it is a follow-up.
 - **Platform-admin growth metrics (2026-09-13):** `GET /v1/admin/growth-metrics` (`operationId: admin_growth_metrics`)
   returns COUNT-only business KPIs (organizations by plan and recency, forms including 30d-active,
   submissions real/test, orgs with a successful non-test Delivery in 30d, sandbox created/claimed/
