@@ -151,6 +151,13 @@ export function createApp(deps: AppDeps): OpenAPIHono<AppEnv> {
     c.header("cache-control", "public, max-age=3600")
     return c.body(renderPostbagSkill(env.APP_URL))
   })
+  // Common probe: agents often fetch /SKILL.md at the origin. Same file as the
+  // well-known skill — not a second skill, just a shorter path.
+  app.get("/SKILL.md", (c) => {
+    c.header("content-type", "text/markdown; charset=utf-8")
+    c.header("cache-control", "public, max-age=3600")
+    return c.body(renderPostbagSkill(env.APP_URL))
+  })
 
   app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
     type: "http",

@@ -93,9 +93,33 @@ const crossKind = GUIDES.filter((g) => g.kind !== guide.kind).slice(0, 3)
           </dl>
         </section>
       )}
+
+      {guide.cloneExample && (
+        <section class="guide-clone" data-reveal aria-label="Clone a working example">
+          <h2>Or clone the working example.</h2>
+          <p>{guide.cloneExample.p}</p>
+          <a href={guide.cloneExample.href} rel="noopener">
+            {guide.cloneExample.label}
+            <ArrowUpRight size={16} stroke-width={1.7} aria-hidden="true" />
+          </a>
+        </section>
+      )}
     </div>
 
     <aside class="guide-links" data-reveal>
+      {guide.cloneExample && (
+        <nav aria-label="Working example">
+          <p>A working example</p>
+          <ul>
+            <li>
+              <a href={guide.cloneExample.href} rel="noopener">
+                {guide.cloneExample.label}
+                <ArrowUpRight size={15} stroke-width={1.7} aria-hidden="true" />
+              </a>
+            </li>
+          </ul>
+        </nav>
+      )}
       <nav aria-label="More guides">
         <p>{guide.kind === "framework" ? "Other stacks" : "Other places to send it"}</p>
         <ul>
@@ -167,6 +191,15 @@ const crossKind = GUIDES.filter((g) => g.kind !== guide.kind).slice(0, 3)
   .guide-gotcha dt { color: var(--foreground); font-size: 0.98rem; font-weight: 600; }
   .guide-gotcha dd { max-width: 46rem; color: var(--muted-foreground); font-size: 0.95rem; line-height: 1.7; }
 
+  .guide-clone { margin-top: clamp(2rem, 4.5vw, 3rem); padding: clamp(1.4rem, 3vw, 2rem); border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border)); border-radius: calc(var(--radius) + 10px); background: color-mix(in srgb, var(--accent) 72%, var(--background)); box-shadow: var(--shadow-sm); }
+  .guide-clone h2 { font-size: clamp(1.25rem, 2vw, 1.55rem); font-weight: 600; letter-spacing: -0.018em; }
+  .guide-clone p { max-width: 44rem; margin-top: 0.55rem; color: var(--muted-foreground); font-size: 0.98rem; line-height: 1.7; }
+  .guide-clone a { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 1rem; color: var(--primary); font-weight: 600; text-decoration: none; transition-property: color, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-smooth-out); }
+  .guide-clone a:hover { transform: translateX(0.2rem); }
+  .guide-clone a:active { transform: translateX(0.1rem); }
+  .guide-clone a :global(svg) { flex-shrink: 0; transition: transform var(--duration-fast) var(--ease-smooth-out); }
+  .guide-clone a:hover :global(svg) { transform: translate(0.12rem, -0.12rem); }
+
   .guide-links { display: grid; align-content: start; gap: 2.5rem; }
   .guide-links p { color: var(--primary); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
   .guide-links ul { margin-top: 0.7rem; }
@@ -187,7 +220,7 @@ const crossKind = GUIDES.filter((g) => g.kind !== guide.kind).slice(0, 3)
     .guide-step-heading { flex-direction: column; gap: 0.6rem; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .guide-links a { transition: none; }
-    .guide-links a:hover, .guide-links a:active { transform: none; }
+    .guide-clone a, .guide-clone a :global(svg), .guide-links a { transition: none; }
+    .guide-clone a:hover, .guide-clone a:active, .guide-clone a:hover :global(svg), .guide-links a:hover, .guide-links a:active { transform: none; }
   }
 </style>

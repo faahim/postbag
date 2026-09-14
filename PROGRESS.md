@@ -15,6 +15,20 @@ the rules and `docs/` for the design.
   **wren@postbag.dev** → Worker → Form `fm_rk3q85427ryr` ("Wren inbox (Growth CEO agent)", slug `wren-inbox`, project `growth-ceo`). Verified: local
   `wrangler dev` handler with and without attachments, idempotent re-delivery, and a real Resend→Cloudflare→Worker
   round trip (`sb_xxj3k2kk8pxp`). Root eslint ignores `examples/**`. Guide page for it is a follow-up.
+- **Guide example discovery (2026-09-14):** `/guides/html/`, `/guides/astro/` and `/guides/nextjs/` now close
+  with a warm clone door (plus a rail link and Markdown-twin section) to the public repos
+  `faahim/postbag-html-contact-form`, `faahim/postbag-astro-contact-form` and
+  `faahim/postbag-next-contact-form`. The guides index mentions the three cloneable
+  examples in the stacks intro. No new repos invented; `/llms.txt` untouched.
+- **llms.txt agent discovery (2026-09-13):** `GET /llms.txt` (source `apps/server/src/llms.md`,
+  rendered by `renderLlmsTxt`; the same body is the homepage Markdown twin when
+  `Accept: text/markdown`) now points agents at the skill install
+  (`npx skills add faahim/postbag --skill postbag`), `/for-ai-agents/`, `/docs/agents/`,
+  `/guides/` (especially `/guides/html/`), the `postbag` CLI and `@postbag/mcp`. The
+  npm skill hardcodes `postbag.dev`; the same file tells self-hosts to read this
+  instance's `/.well-known/skills/postbag/SKILL.md` and set `POSTBAG_API_URL`. The
+  anonymous sandbox path is unchanged. `GET /SKILL.md` aliases the existing
+  well-known skill — no HTTP MCP endpoint (stdio only).
 - **Platform-admin growth metrics (2026-09-13):** `GET /v1/admin/growth-metrics` (`operationId: admin_growth_metrics`)
   returns COUNT-only business KPIs (organizations by plan and recency, forms including 30d-active,
   submissions real/test, orgs with a successful non-test Delivery in 30d, sandbox created/claimed/

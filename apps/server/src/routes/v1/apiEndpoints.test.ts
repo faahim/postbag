@@ -1138,7 +1138,16 @@ integration("/v1 API", () => {
   it("/llms.txt and /openapi.json are served", async () => {
     const llms = await harness.app.request("/llms.txt")
     expect(llms.status).toBe(200)
-    expect(await llms.text()).toContain("Postbag")
+    const llmsBody = await llms.text()
+    expect(llmsBody).toContain("Postbag")
+    expect(llmsBody).toContain("npx skills add faahim/postbag --skill postbag")
+    expect(llmsBody).toContain(`${harness.env.APP_URL}/.well-known/skills/postbag/SKILL.md`)
+    expect(llmsBody).toContain(`POSTBAG_API_URL=${harness.env.APP_URL}`)
+    expect(llmsBody).toContain(`${harness.env.APP_URL}/for-ai-agents/`)
+    expect(llmsBody).toContain(`${harness.env.APP_URL}/docs/agents/`)
+    expect(llmsBody).toContain(`${harness.env.APP_URL}/guides/html/`)
+    expect(llmsBody).toContain("npx -y @postbag/mcp")
+    expect(llmsBody).toContain("Start without credentials")
 
     const openapi = await harness.app.request("/openapi.json")
     expect(openapi.status).toBe(200)
