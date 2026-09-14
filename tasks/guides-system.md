@@ -93,7 +93,11 @@ polish the template, then never fork it per page.
 6. **FAQ** — 3–5 pairing-specific questions, ≤40-word answers, `faqLd`.
    Never repeat a global FAQ from the homepage.
 7. **Related rail** — other guides, the matching feature page, one docs link.
-8. **CtaBand.**
+8. **Clone door (optional)** — when a public example repo already exists for this
+   pairing, a short warm link after the gotchas (and a matching Markdown-twin
+   section). Prefer “clone this working example” over “reference implementation.”
+   Never invent a repo.
+9. **CtaBand.**
 
 Structured data: `webPageLd` + `breadcrumbLd` + `faqLd` + HowTo. Each guide page
 gets a Markdown twin (same `[slug]/index.md.ts` pattern as docs) and joins

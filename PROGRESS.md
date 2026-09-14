@@ -8,6 +8,11 @@ the rules and `docs/` for the design.
 ## Current state (update this block, don't append)
 
 - **Phase:** 1 — MVP **live** (overnight autonomous run 2026-08-21; jobs A–E done). Remaining Phase 1 items are in _Next up_.
+- **Guide example discovery (2026-09-14):** `/guides/html/`, `/guides/astro/` and `/guides/nextjs/` now close
+  with a warm clone door (plus a rail link and Markdown-twin section) to the public repos
+  `faahim/postbag-html-contact-form`, `faahim/postbag-astro-contact-form` and
+  `faahim/postbag-next-contact-form`. The guides index mentions the three cloneable
+  examples in the stacks intro. No new repos invented; `/llms.txt` untouched.
 - **llms.txt agent discovery (2026-09-13):** `GET /llms.txt` (source `apps/server/src/llms.md`,
   rendered by `renderLlmsTxt`; the same body is the homepage Markdown twin when
   `Accept: text/markdown`) now points agents at the skill install

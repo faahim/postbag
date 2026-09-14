@@ -32,6 +32,8 @@ export type Guide = {
   gotchas: GuideGotcha[]
   faqs: Faq[]
   related: { href: string; label: string }[]
+  /** Public cloneable example, when one exists for this pairing. Never invent a repo. */
+  cloneExample?: { href: string; label: string; p: string }
   published: string
   modified: string
 }
@@ -208,6 +210,11 @@ export const GUIDES: Guide[] = [
       { href: "/features/spam-protection/", label: "Spam protection" },
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
+    cloneExample: {
+      href: "https://github.com/faahim/postbag-html-contact-form",
+      label: "Clone this working example",
+      p: "If you'd rather start from a finished page than paste the snippet, this little repo is the form above — swap in your submit URL and you're away.",
+    },
     published: "2026-09-09",
     modified: "2026-09-14",
   },
@@ -305,6 +312,11 @@ export const GUIDES: Guide[] = [
       { href: "/features/spam-protection/", label: "Spam protection" },
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
+    cloneExample: {
+      href: "https://github.com/faahim/postbag-astro-contact-form",
+      label: "Clone this working example",
+      p: "Prefer a folder you can open and run? This Astro example is the same form, already a component, ready to try locally.",
+    },
     published: "2026-09-09",
     modified: "2026-09-14",
   },
@@ -397,6 +409,11 @@ export const GUIDES: Guide[] = [
       { href: "/features/routing/", label: "Where messages go" },
       { href: "/docs/submit-endpoint/", label: "Submit URL docs" },
     ],
+    cloneExample: {
+      href: "https://github.com/faahim/postbag-next-contact-form",
+      label: "Clone this working example",
+      p: "If you'd rather clone a working example than write the component by hand, this Next.js app is already wired — drop in your submit URL and send a test.",
+    },
     published: "2026-09-09",
     modified: "2026-09-14",
   },

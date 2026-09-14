@@ -8,6 +8,7 @@ import {
   CURL_TEST,
   DESTINATION_GUIDES,
   FRAMEWORK_GUIDES,
+  GUIDES,
   SANDBOX_CREATE,
   SANDBOX_STATUS,
   SUBMIT_URL,
@@ -55,6 +56,26 @@ function runShell(code: string): string {
     encoding: "utf8",
   })
 }
+
+describe("public cloneable examples", () => {
+  it("points only the HTML, Astro and Next.js guides at the real public repos", () => {
+    const expected: Record<string, string> = {
+      html: "https://github.com/faahim/postbag-html-contact-form",
+      astro: "https://github.com/faahim/postbag-astro-contact-form",
+      nextjs: "https://github.com/faahim/postbag-next-contact-form",
+    }
+
+    for (const guide of GUIDES) {
+      const href = expected[guide.slug]
+      if (href === undefined) {
+        expect(guide.cloneExample).toBeUndefined()
+        continue
+      }
+      expect(guide.cloneExample?.href).toBe(href)
+      expect(guide.cloneExample?.label.toLowerCase()).toContain("clone this working example")
+    }
+  })
+})
 
 describe("guide command sequences", () => {
   it("reuses each framework sandbox response instead of example ids", () => {
