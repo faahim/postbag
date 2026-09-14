@@ -1,0 +1,21 @@
+{
+  "name": "postbag-cloudflare-email-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Email Routing Worker that turns inbound email into Postbag Submissions.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test:local": "curl -sS -X POST 'http://localhost:8787/cdn-cgi/handler/email?from=sender@example.com&to=wren@postbag.dev' -H 'content-type: message/rfc822' --data-binary @test/sample.eml"
+  },
+  "dependencies": {
+    "postal-mime": "^3.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260914.1",
+    "typescript": "^5.9.2",
+    "wrangler": "^4.131.2"
+  }
+}
