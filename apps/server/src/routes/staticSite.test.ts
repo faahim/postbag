@@ -49,4 +49,17 @@ describe("site static Markdown twins", () => {
     expect(response.headers.get("vary")).toBe("accept")
     expect(await response.text()).toBe("# Quickstart\n")
   })
+
+  it("serves llms.txt as the homepage Markdown twin", async () => {
+    const response = await buildSite().request("/", {
+      headers: { accept: "text/markdown, text/html;q=0.9" },
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("content-type")).toContain("text/markdown")
+    const body = await response.text()
+    expect(body).toContain("npx skills add faahim/postbag --skill postbag")
+    expect(body).toContain("https://postbag.dev/for-ai-agents/")
+    expect(body).toContain("Start without credentials")
+  })
 })
