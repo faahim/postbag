@@ -44,6 +44,16 @@ function serialize(guide: Guide): string {
     for (const g of guide.gotchas) lines.push(`- **${g.h}** ${g.p}`)
     lines.push("")
   }
+  if (guide.cloneExample) {
+    lines.push(
+      "## Or clone the working example",
+      "",
+      guide.cloneExample.p,
+      "",
+      `[${guide.cloneExample.label}](${guide.cloneExample.href})`,
+      "",
+    )
+  }
   if (guide.faqs.length > 0) {
     lines.push("## FAQ", "")
     for (const f of guide.faqs) lines.push(`**${f.q}**`, "", f.a, "")
