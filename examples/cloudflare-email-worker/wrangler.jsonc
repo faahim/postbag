@@ -10,7 +10,7 @@
     // Set at deploy time: `wrangler deploy --var POSTBAG_SUBMIT_URL:https://postbag.dev/s/fm_…`
     // or copy this file's value into .dev.vars for local runs. Not a secret, but it is
     // deployment-specific, so it is left blank here.
-    "POSTBAG_SUBMIT_URL": ""
+    "POSTBAG_SUBMIT_URL": "",
     // Optional safety net — every email is also forwarded to this verified address:
     // "FORWARD_TO": "you@example.com"
   }

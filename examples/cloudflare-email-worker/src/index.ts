@@ -106,13 +106,9 @@ function toFields(message: ForwardableEmailMessage, mail: Email, rawSize: number
   }
 }
 
-interface SubmitResult {
-  ok: boolean
-  status: number
-  submissionId?: string
-  attachmentsSent: number
-  body?: string
-}
+type SubmitResult =
+  | { ok: true; status: number; submissionId: string; attachmentsSent: number }
+  | { ok: false; status: number; body: string; attachmentsSent: number }
 
 async function submit(
   url: string,
@@ -126,17 +122,15 @@ async function submit(
   const headers = { accept: "application/json", "idempotency-key": idempotencyKey }
 
   if (attachments.length > 0) {
-    const res = await fetch(url, { method: "POST", headers, body: toForm(fields, attachments) })
-    if (res.ok) return { ok: true, status: res.status, submissionId: await submissionId(res), attachmentsSent: attachments.length }
-    const body = await res.text()
-    console.warn("multipart with files rejected, retrying without attachments", { status: res.status, body })
+    const first = await post(url, headers, toForm(fields, attachments))
+    if (first.ok) return { ...first, attachmentsSent: attachments.length }
+    console.warn("multipart with files rejected, retrying without attachments", { status: first.status, body: first.body })
     fields["attachments_dropped"] = true
-    fields["attachments_dropped_reason"] = `${String(res.status)} ${body.slice(0, 500)}`
+    fields["attachments_dropped_reason"] = `${String(first.status)} ${first.body.slice(0, 500)}`
   }
 
-  const res = await fetch(url, { method: "POST", headers, body: toForm(fields, []) })
-  if (res.ok) return { ok: true, status: res.status, submissionId: await submissionId(res), attachmentsSent: 0 }
-  return { ok: false, status: res.status, attachmentsSent: 0, body: (await res.text()).slice(0, 1000) }
+  const second = await post(url, headers, toForm(fields, []))
+  return { ...second, attachmentsSent: 0 }
 }
 
 function toForm(fields: Fields, attachments: Email["attachments"]): FormData {
@@ -151,18 +145,47 @@ function toForm(fields: Fields, attachments: Email["attachments"]): FormData {
   return form
 }
 
-async function submissionId(res: Response): Promise<string | undefined> {
+type PostResult = { ok: true; status: number; submissionId: string } | { ok: false; status: number; body: string }
+
+/**
+ * A 2xx is not enough: a misconfigured URL or an intermediary can answer 200 with
+ * anything. Only the Postbag receipt (`ok: true` plus a `submission_id`) counts as
+ * durable receipt; everything else is a failure the caller must not swallow.
+ */
+async function post(url: string, headers: Record<string, string>, body: FormData): Promise<PostResult> {
+  let res: Response
   try {
-    const json = (await res.json()) as { id?: string; submission_id?: string }
-    return json.id ?? json.submission_id
+    res = await fetch(url, { method: "POST", headers, body })
+  } catch (error) {
+    return { ok: false, status: 0, body: `fetch failed: ${String(error)}` }
+  }
+  const text = await res.text()
+  if (!res.ok) return { ok: false, status: res.status, body: text.slice(0, 1000) }
+  const receipt = parseReceipt(text)
+  if (receipt === null) {
+    return { ok: false, status: res.status, body: `no Postbag receipt in response: ${text.slice(0, 300)}` }
+  }
+  return { ok: true, status: res.status, submissionId: receipt }
+}
+
+function parseReceipt(text: string): string | null {
+  try {
+    const json: unknown = JSON.parse(text)
+    if (typeof json !== "object" || json === null) return null
+    const r = json as { ok?: unknown; submission_id?: unknown }
+    return r.ok === true && typeof r.submission_id === "string" && r.submission_id !== "" ? r.submission_id : null
   } catch {
-    return undefined
+    return null
   }
 }
 
+/** Cap at `cap` UTF-8 bytes without splitting a multi-byte sequence. */
 function truncate(value: string, cap: number): { value: string; truncated: boolean } {
-  if (value.length <= cap) return { value, truncated: false }
-  return { value: value.slice(0, cap), truncated: true }
+  const bytes = new TextEncoder().encode(value)
+  if (bytes.byteLength <= cap) return { value, truncated: false }
+  let end = cap
+  while (end > 0 && (bytes[end] ?? 0) >> 6 === 0b10) end-- // back up over continuation bytes
+  return { value: new TextDecoder().decode(bytes.subarray(0, end)), truncated: true }
 }
 
 function byteLength(content: ArrayBuffer | Uint8Array | string): number {
