@@ -5,6 +5,7 @@
 [![npm: @postbag/sdk](https://img.shields.io/npm/v/%40postbag%2Fsdk?label=%40postbag%2Fsdk)](https://www.npmjs.com/package/@postbag/sdk)
 [![npm: @postbag/mcp](https://img.shields.io/npm/v/%40postbag%2Fmcp?label=%40postbag%2Fmcp)](https://www.npmjs.com/package/@postbag/mcp)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](./LICENSE)
+[![skills.sh](https://skills.sh/b/faahim/postbag)](https://skills.sh/faahim/postbag)
 
 **A form backend that routes.** Point any HTML form at a Postbag endpoint and it
 lands in your inbox — then goes wherever it should: email, Telegram, a webhook, a
